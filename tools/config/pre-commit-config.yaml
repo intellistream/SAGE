@@ -227,12 +227,8 @@ repos:
         "l3-kernel"
         "l3-libs"
         "l4-middleware"
-        "l5-apps"
-        "l5-benchmark"
-        "l6-cli"
-        "l6-gateway"
-        "l6-studio"
-        "l6-tools"
+        "l5-cli"
+        "l5-tools"
         "cross-layer"
         "testing"
         "archive"
@@ -275,7 +271,7 @@ repos:
         echo ""
         echo "📁 允许的目录:"
         echo "  - 分层目录: l1-common, l2-platform, l3-kernel, l3-libs, l4-middleware"
-        echo "               l5-apps, l5-benchmark, l6-cli, l6-gateway, l6-studio, l6-tools"
+        echo "               l5-cli, l5-tools"
         echo "  - 交叉主题: cross-layer, testing, archive"
         echo "  - 研究工作: research_work"
         echo ""
@@ -397,7 +393,7 @@ repos:
         echo "   - 临时文件应放在 .sage/ 目录下"
         echo "   - 如果是新增的合法文件/目录，请更新 tools/config/pre-commit-config.yaml 中的白名单"
         echo ""
-        echo "📖 参考: docs/dev-notes/l6-tools/CACHE_MANAGEMENT.md"
+        echo "📖 参考: docs-public/docs_src/dev-notes/l5-tools/CACHE_MANAGEMENT.md"
         exit 1
       fi
       exit 0

@@ -115,7 +115,7 @@ else
     echo -e "${BLUE}🐛 调试建议：${NC}"
     echo "1. 查看上方的详细 DEBUG 输出，了解具体哪些包违规"
     echo "2. 检查日志文件: $LOG_FILE"
-    echo "3. 确认安装顺序是否正确（L1→L2→L3→L4→L5→L6）"
+    echo "3. 确认安装顺序是否正确（L1→L2→L3→L4→L5）"
     echo "4. 验证 pyproject.toml 中的依赖声明"
     echo "5. 如果是 CI/CD 环境，对比本地安装日志"
     echo ""

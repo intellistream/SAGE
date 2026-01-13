@@ -24,7 +24,7 @@ class SageVDBBackend:
     Architecture:
         - Implements VectorStore Protocol from L3 (sage-libs)
         - Uses SageVDB from isage-vdb (PyPI package, Python: sagevdb)
-        - Injected into IndexBuilder by L6 (sage-cli)
+        - Injected into IndexBuilder by L5 (sage-cli)
 
     Example:
         >>> from sage.libs.rag.index_builder import IndexBuilder

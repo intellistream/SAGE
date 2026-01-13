@@ -8,7 +8,7 @@
 
 1. 打开 VS Code 的 Copilot Chat
 2. 输入：`@workspace what are the SAGE architecture layers?`
-3. 如果 Copilot 回答包含 L1-L6 层次结构，说明指令已生效
+3. 如果 Copilot 回答包含 L1-L5 层次结构，说明指令已生效
 
 ### 如果指令未生效
 

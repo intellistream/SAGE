@@ -19,24 +19,25 @@ embedding workloads, and reproducible experimentation.
 
 Key design aspects to consider:
 
-- **Layered architecture (L1–L6)** with **no upward dependencies**:
+- **Layered architecture (L1–L5)** with **no upward dependencies**:
   - L1: `sage-common` – foundational utilities, configuration, user paths (XDG), port management
-    (`SagePorts`), shared components (e.g., `UnifiedInferenceClient`, control-plane core modules
-    under `sageLLM/control_plane/`).
+    (`SagePorts`), shared components.
   - L2: `sage-platform` – platform services (storage, queuing, service management), cluster
     configuration via `config/cluster.yaml`.
   - L3: `sage-kernel`, `sage-libs` – core execution engine, **job management**
     (`runtime/job_manager`), **node selection** (`scheduler/node_selector`), algorithms, scheduling
     logic, CPU/GPU awareness.
   - L4: `sage-middleware` – C++ operators and performance-critical components, built via CMake.
-  - L5: `sage-apps`, `sage-benchmark` – applications and benchmark suites.
-  - L6: `sage-cli`, `sage-studio`, `sage-tools`, `sage-gateway` – user-facing interfaces, CLI, web
-    studio, tools, and OpenAI-compatible gateway.
+  - L5: `sage-cli`, `sage-tools` – user-facing interfaces (CLI, development tools).
+- **Independent repositories** (not in core architecture):
+  - `sage-benchmark` – benchmark suites (PyPI: `isage-benchmark`)
+  - `sage-examples` – applications and tutorials
+  - `sageLLM` – LLM inference engine with control plane (PyPI: `isagellm`)
 - **Declarative dataflow** abstraction for specifying pipelines, with compilation/execution over
   heterogeneous resources.
 - **Unified LLM & embedding control plane** (sageLLM): `UnifiedInferenceClient`,
   `ControlPlaneManager`, `HybridSchedulingPolicy`, `EmbeddingExecutor` coordinating multiple vLLM
-  and embedding backends via `sage-gateway`.
+  and embedding backends via `isagellm.gateway`.
 - **User paths and configuration** following XDG base directory spec; project-level `.sage/`
   directory for build artifacts and caches.
 - **Deployment and CI** patterns (quickstart scripts, `sage-dev` tooling, pre-commit hooks) as
@@ -92,11 +93,11 @@ Here is the bullet-point outline for this subsection (from the previous step):
 
 --- System reminders ---
 
-- SAGE uses a **6-layer architecture (L1–L6)** with no upward dependencies.
+- SAGE uses a **5-layer architecture (L1–L5)** with no upward dependencies.
 - It exposes **declarative dataflow** to users, while deeper layers handle scheduling, optimization,
   and execution.
-- It includes a **unified control plane** for LLM and embedding services, fronted by an
-  OpenAI-compatible gateway.
+- It includes a **unified control plane** for LLM and embedding services (sageLLM, independent
+  repo), fronted by an OpenAI-compatible gateway.
 - It targets **scalability, heterogeneity (CPU/GPU), and reproducibility**.
 - The paper should emphasize the **whole system** (architecture + dataflow + control plane +
   benchmarks + deployment), not just one component.

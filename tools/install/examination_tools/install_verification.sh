@@ -308,14 +308,13 @@ verify_sage_imports() {
     # L2: sage-platform
     # L3: sage-kernel, sage-libs
     # L4: sage-middleware
-    # L6: sage-cli, sage-tools
+    # L5: sage-cli, sage-tools
     # NOTE: PEP 420 namespace packages - 'sage' namespace is implicit, cannot be imported directly
     # We only verify actual packages under the namespace
     #
     # 已独立的包（不再验证）:
-    # - sage.llm: 独立 PyPI 包 isagellm (pip install isagellm)
-    # - sage.llm.gateway: 独立 PyPI 包 isagellm-gateway (pip install isagellm-gateway)
-    # - sage.apps: 已迁移到 sage-examples 仓库
+    # - sageLLM: 独立 PyPI 包 isagellm (pip install isagellm)
+    # - sage-examples (原 sage.apps): 已迁移到 sage-examples 仓库
     # - sage.benchmark: 独立 PyPI 包 isage-benchmark (pip install isage-benchmark)
     # - sage.studio: 独立仓库 https://github.com/intellistream/sage-studio
     # - sage.edge: 独立 PyPI 包 isage-edge (pip install isage-edge)
@@ -325,14 +324,14 @@ verify_sage_imports() {
         "sage.kernel"             # L3: Kernel
         "sage.libs"               # L3: Libraries
         "sage.middleware"         # L4: Middleware (C++ extensions)
-        "sage.cli"                # L6: CLI (optional)
-        "sage.tools"              # L6: Dev Tools (optional)
+        "sage.cli"                # L5: CLI (optional)
+        "sage.tools"              # L5: Dev Tools (optional)
     )
     local failed_imports=()
     local optional_failed=()
 
     for pkg in "${sage_packages[@]}"; do
-        # 判断是否为可选包（L6 层）
+        # 判断是否为可选包（L5 层 CLI/Tools）
         local is_optional=false
         if [[ "$pkg" =~ ^sage\.(cli|tools)$ ]]; then
             is_optional=true
@@ -356,8 +355,8 @@ verify_sage_imports() {
     echo ""
     echo -e "${DIM}   说明：${NC}"
     echo -e "${DIM}   • L1-L4 为核心层，必须能够导入${NC}"
-    echo -e "${DIM}   • L5-L6 为应用层，根据安装模式可能不存在${NC}"
-    echo -e "${DIM}   • sage.apps/studio/edge 已独立为单独仓库/包，不在此验证${NC}"
+    echo -e "${DIM}   • L5 为接口层（CLI/Tools），根据安装模式可能不存在${NC}"
+    echo -e "${DIM}   • sage-benchmark/examples/studio/edge 已独立为单独仓库/包，不在此验证${NC}"
     echo ""
 
     if [ ${#failed_imports[@]} -eq 0 ]; then

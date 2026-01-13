@@ -132,7 +132,7 @@ class VectorSearchTool(BaseTool):
             },
             {
                 "id": "doc2",
-                "content": "The architecture consists of 6 layers: L1-Common to L6-Interface.",
+                "content": "The architecture consists of 5 layers: L1-Common to L5-Interface.",
             },
             {
                 "id": "doc3",

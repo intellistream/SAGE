@@ -61,20 +61,23 @@ ______________________________________________________________________
 **Mapping to SAGE components**
 
 - L1 – `sage-common`: configuration (`config/config.yaml`), user paths (XDG), `SagePorts` for port
-  allocation, shared components including `UnifiedInferenceClient` and control-plane core
-  (`sageLLM/control_plane/`).
+  allocation, shared components.
 - L2 – `sage-platform`: platform services for storage, queuing, and service management; integration
   with cluster configuration (`config/cluster.yaml`).
 - L3 – `sage-kernel`, `sage-libs`: execution kernels, job management (`runtime/job_manager`), node
   selection (`scheduler/node_selector`), CPU/GPU awareness, algorithms, and scheduling primitives.
 - L4 – `sage-middleware`: C++ operators and performance-critical components.
-- L5 – `sage-apps`, `sage-benchmark`: concrete applications and benchmark scenarios.
-- L6 – `sage-cli`, `sage-studio`, `sage-tools`, `sage-gateway`: CLI commands (e.g.,
-  `sage llm serve`, `sage gateway start`), web studio, tools, and OpenAI-compatible API.
+- L5 – `sage-cli`, `sage-tools`: CLI commands (e.g., `sage llm engine start`), development tools.
+
+**Independent repositories** (not in core architecture):
+
+- `sage-benchmark` – benchmark scenarios (PyPI: `isage-benchmark`)
+- `sage-examples` – applications and tutorials
+- `sageLLM` – LLM inference engine with control plane (PyPI: `isagellm`)
 
 **Suggested figures**
 
-- **Figure 2: Layered Architecture.** A stacked diagram (L1 at bottom to L6 at top) with arrows only
+- **Figure 2: Layered Architecture.** A stacked diagram (L1 at bottom to L5 at top) with arrows only
   going downward. Caption: *"SAGE enforces a strict layering discipline with no upward dependencies,
   which simplifies reasoning about responsibilities and allows lower layers to be reused across
   tools, applications, and benchmarks."*

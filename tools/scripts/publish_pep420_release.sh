@@ -39,7 +39,7 @@ echo "Repository: $REPOSITORY"
 echo "Dry run: $DRY_RUN"
 echo ""
 
-# Define packages in dependency order (L1 → L6)
+# Define packages in dependency order (L1 → L5)
 # L1: Foundation packages
 declare -a L1_PACKAGES=(
     "packages/sage-common"
@@ -62,18 +62,10 @@ declare -a L4_PACKAGES=(
     "packages/sage-middleware"
 )
 
-# L5: Apps
+# L5: Interface layer
 declare -a L5_PACKAGES=(
-    "packages/sage-apps"
-)
-
-# L6: Interface layer
-declare -a L6_PACKAGES=(
     "packages/sage-cli"
-    "packages/sage-studio"
     "packages/sage-tools"
-    "packages/sage-llm-gateway"
-    "    # "packages/sage-edge"  # 已独立: https://github.com/intellistream/sage-edge"
 )
 
 # Meta-package
@@ -88,7 +80,6 @@ ALL_PACKAGES=(
     "${L3_PACKAGES[@]}"
     "${L4_PACKAGES[@]}"
     "${L5_PACKAGES[@]}"
-    "${L6_PACKAGES[@]}"
     "${META_PACKAGE[@]}"
 )
 

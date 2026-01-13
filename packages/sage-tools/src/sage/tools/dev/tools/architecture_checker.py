@@ -669,7 +669,7 @@ class ArchitectureChecker:
         # Markdown 文档
         if suffix == ".md":
             if any(kw in filename for kw in ["migration", "cleanup", "refactor", "tools"]):
-                return "开发文档应该放在: docs/dev-notes/l6-tools/ 或相应的分类目录下"
+                return "开发文档应该放在: docs/dev-notes/l5-tools/ 或相应的分类目录下"
             else:
                 return (
                     "文档应该放在: docs/dev-notes/ (开发笔记) 或 docs-public/docs_src/ (公开文档)"

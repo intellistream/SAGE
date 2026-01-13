@@ -68,7 +68,7 @@ class SagePorts:
     GATEWAY_DEFAULT: ClassVar[int] = 8889  # API Gateway main port (default moved off 8888)
 
     # =========================================================================
-    # sage-edge (L6 aggregator shell)
+    # sage-edge (独立仓库 aggregator shell)
     # =========================================================================
     EDGE_DEFAULT: ClassVar[int] = 8899  # Edge aggregator (mounts LLM gateway by default)
 

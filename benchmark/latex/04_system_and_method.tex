@@ -5,13 +5,13 @@
 \subsection{Overview and Design Goals}
 
 SAGE is a Python 3.10+ framework that treats LLM/AI applications as declarative dataflow pipelines executed across heterogeneous CPU and GPU clusters. The system is designed to address several recurring challenges observed in practice: scaling multi-stage retrieval-and-generation workflows, sharing resources between LLM and embedding workloads with different latency requirements, and making complex deployments reproducible and observable. Rather than introducing yet another standalone serving engine, SAGE provides a full-stack architecture that integrates platform services, execution runtimes, performance-critical operators, user interfaces, and a unified control plane on top of existing engines such as vLLM.
-The design of SAGE is guided by four goals. First, it should provide a clear separation of concerns so that common utilities, platform services, execution logic, and user interfaces can evolve independently; this motivates a strict six-layer architecture with no upward dependencies. Second, it should expose a high-level declarative dataflow abstraction that allows users to express retrieval, tool calls, LLM invocations, and post-processing without hard-coding deployment details. Third, it should offer a unified control plane for LLM and embedding services that can co-schedule workloads, enforce per-tenant SLOs, and adapt to heterogeneous hardware. Finally, it should be easy to deploy and evaluate: quickstart scripts, XDG-compliant configuration, and system-level benchmarks are treated as first-class components rather than afterthoughts.
+The design of SAGE is guided by four goals. First, it should provide a clear separation of concerns so that common utilities, platform services, execution logic, and user interfaces can evolve independently; this motivates a strict five-layer architecture with no upward dependencies. Second, it should expose a high-level declarative dataflow abstraction that allows users to express retrieval, tool calls, LLM invocations, and post-processing without hard-coding deployment details. Third, it should offer a unified control plane for LLM and embedding services that can co-schedule workloads, enforce per-tenant SLOs, and adapt to heterogeneous hardware. Finally, it should be easy to deploy and evaluate: quickstart scripts, XDG-compliant configuration, and system-level benchmarks are treated as first-class components rather than afterthoughts.
 
 \subsection{Layered Architecture}
 
-At the core of SAGE is a strict six-layer architecture (L1--L6) that prevents upward dependencies and keeps each layer responsible for a focused set of concerns. The L1 layer, \texttt{sage-common}, contains foundational utilities, configuration management, XDG-based user paths, port management via \texttt{SagePorts}, and shared components such as the unified inference client and control-plane core modules. L2, implemented in \texttt{sage-platform}, provides platform services including storage integration, queuing, service supervision, and cluster configuration via project-level files like \texttt{config/cluster.yaml}. These two layers form the stable base that higher layers depend on but never modify directly.
-The L3 layer comprises \texttt{sage-kernel} and \texttt{sage-libs}, which implement the core execution engine for dataflow pipelines. The kernel includes a job manager and node selector that map logical pipeline stages to concrete execution nodes, taking into account CPU-only and GPU-capable resources, load, and placement constraints. Algorithms and scheduling logic in this layer are written with awareness of LLM and embedding workloads, but do not hard-code any particular engine implementation. L4, \texttt{sage-middleware}, contains C++ operators and other performance-critical components built via CMake; these can be reused across applications and are invoked from the kernel as part of the dataflow execution. L5 hosts \texttt{sage-apps} and \texttt{sage-benchmark}, which define concrete applications and benchmark suites on top of the execution engine. Finally, L6 provides user-facing entry points through \texttt{sage-cli}, \texttt{sage-studio}, \texttt{sage-tools}, and the \texttt{sage-gateway} OpenAI-compatible endpoint.
-This layering has two practical benefits. First, it enables modular development: teams can evolve the control plane or middleware operators without entangling them with platform configuration or user interfaces, as long as they respect the downward-only dependency rule. Second, it simplifies reasoning about deployments and upgrades: operators can treat L1--L2 as part of the environment, roll out new kernels or middleware versions in L3--L4, and update applications or tools in L5--L6 with well-defined compatibility boundaries.
+At the core of SAGE is a strict five-layer architecture (L1--L5) that prevents upward dependencies and keeps each layer responsible for a focused set of concerns. The L1 layer, \texttt{sage-common}, contains foundational utilities, configuration management, XDG-based user paths, port management via \texttt{SagePorts}, and shared components such as the unified inference client and control-plane core modules. L2, implemented in \texttt{sage-platform}, provides platform services including storage integration, queuing, service supervision, and cluster configuration via project-level files like \texttt{config/cluster.yaml}. These two layers form the stable base that higher layers depend on but never modify directly.
+The L3 layer comprises \texttt{sage-kernel} and \texttt{sage-libs}, which implement the core execution engine for dataflow pipelines. The kernel includes a job manager and node selector that map logical pipeline stages to concrete execution nodes, taking into account CPU-only and GPU-capable resources, load, and placement constraints. Algorithms and scheduling logic in this layer are written with awareness of LLM and embedding workloads, but do not hard-code any particular engine implementation. L4, \texttt{sage-middleware}, contains C++ operators and other performance-critical components built via CMake; these can be reused across applications and are invoked from the kernel as part of the dataflow execution. Finally, L5 provides user-facing entry points through \texttt{sage-cli} and \texttt{sage-tools}. Applications (sage-examples), benchmarks (sage-benchmark), the visual studio (sage-studio), and the LLM gateway (sageLLM) are maintained in independent repositories.
+This layering has two practical benefits. First, it enables modular development: teams can evolve the control plane or middleware operators without entangling them with platform configuration or user interfaces, as long as they respect the downward-only dependency rule. Second, it simplifies reasoning about deployments and upgrades: operators can treat L1--L2 as part of the environment, roll out new kernels or middleware versions in L3--L4, and update CLI/tools in L5 with well-defined compatibility boundaries.
 
 \subsection{Declarative Dataflow and Execution Model}
 
@@ -38,7 +38,7 @@ In practical deployments, a SAGE cluster will consist of one or more vLLM instan
 % ---------------------------------------------------------------------------
 % Suggested figures and diagrams (author notes, not part of camera-ready)
 % ---------------------------------------------------------------------------
-% Figure 1: SAGE layered architecture (L1--L6), showing packages and
+% Figure 1: SAGE layered architecture (L1--L5), showing packages and
 %           dependency directions.
 % Figure 2: Declarative dataflow and execution model, with a RAG pipeline
 %           compiled into jobs and placed on CPU/GPU nodes.
@@ -76,9 +76,8 @@ In practical deployments, a SAGE cluster will consist of one or more vLLM instan
 %      node selection with CPU/GPU awareness.
 %    - L4 (sage-middleware): C++ operators and performance-critical
 %      components.
-%    - L5 (sage-apps, sage-benchmark): applications and benchmark suites.
-%    - L6 (sage-cli, sage-studio, sage-tools, sage-gateway): CLI, studio,
-%      tools, and OpenAI-compatible API.
+%    - L5 (sage-cli, sage-tools): CLI and development tools.
+%    - Independent repos: sage-benchmark, sage-examples, sage-studio, sageLLM.
 %
 % 3) Declarative Dataflow and Execution Model
 %    - User-facing APIs for composing ingestion, embedding, retrieval, LLM
@@ -88,7 +87,7 @@ In practical deployments, a SAGE cluster will consist of one or more vLLM instan
 %      batching, parallelism, and backpressure handled by kernel/platform.
 %    - Role of C++ middleware operators in performance-critical stages.
 %
-% 4) LLM & Embedding Control Plane (sageLLM)
+% 4) LLM & Embedding Control Plane (sageLLM, independent repo)
 %    - Goals: share resources across LLM/embedding workloads, improve
 %      throughput and tail latency, respect SLOs.
 %    - Components: ControlPlaneManager, RequestClassifier,

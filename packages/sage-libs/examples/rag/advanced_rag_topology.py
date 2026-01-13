@@ -72,8 +72,11 @@ Advanced RAG Topology - 完整 RAG 系统拓扑结构
 - L2 (platform): 平台服务
 - L3 (kernel/libs): Environment, DataStream API, Embedding, Retriever 基础
 - L4 (middleware): sage_db, sage_tsdb, sage_flow, sage_refiner (C++ 扩展)
-- L5 (apps): 应用编排
-- L6 (cli/studio): 用户界面和可视化
+- L5 (cli/tools): 命令行接口和开发工具
+
+独立仓库 (不在 SAGE 核心架构中):
+- sage-examples: 应用示例
+- sage-studio: 用户界面和可视化
 """
 
 import time

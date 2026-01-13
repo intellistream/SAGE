@@ -24,8 +24,8 @@ Quick Start:
     >>> vectors = client.embed(["text1", "text2"])
 
 Architecture:
-    This is a L1 foundation component used by higher layers (L2-L6).
-    It must NOT import from sage.kernel, sage.middleware, sage.libs, or sage.apps.
+    This is a L1 foundation component used by higher layers (L2-L5).
+    It must NOT import from sage.kernel, sage.middleware, sage.libs, sage.cli, or sage.tools.
 """
 
 # L1 components should not depend on higher layers

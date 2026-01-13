@@ -1,8 +1,8 @@
 """
 SAGE Tools - Development and CLI Tools
 
-Layer: L6 (Interface - CLI)
-Dependencies: All layers (L1-L5)
+Layer: L5 (Interface - CLI & Development Tools)
+Dependencies: L1-L4 layers
 
 提供开发和命令行工具:
 - cli: 命令行接口
@@ -10,12 +10,12 @@ Dependencies: All layers (L1-L5)
 - finetune: 模型微调工具
 
 Architecture:
-- L6 界面层，提供命令行工具
-- 依赖所有下层组件
+- L5 接口层，提供命令行工具和开发工具
+- 依赖所有下层组件 (L1-L4)
 - 用于命令行管理、开发和部署 SAGE 应用
 """
 
-__layer__ = "L6"
+__layer__ = "L5"
 
 from . import cli, dev
 from ._version import __version__

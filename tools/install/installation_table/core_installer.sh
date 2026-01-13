@@ -487,9 +487,9 @@ else:
         log_pip_package_info "$pkg_name" "INSTALL"
     done
 
-    # 第四步：安装上层包（L4-L6，根据模式）
+    # 第四步：安装上层包（L4-L5，根据模式）
     if [ "$install_mode" != "core" ]; then
-        echo -e "${DIM}步骤 4/5: 安装上层包 (L4-L6)...${NC}"
+        echo -e "${DIM}步骤 4/5: 安装上层包 (L4-L5)...${NC}"
 
         # 显式安装独立 PyPI 包依赖 (因为下面使用了 --no-deps)
         # 这些包是 sage-middleware 的依赖，但因为 --no-deps 选项会被跳过

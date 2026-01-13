@@ -251,11 +251,16 @@ L2: sage-platform       ← 当前层
 L3: sage-kernel         ← 执行引擎
     sage-libs
 L4: sage-middleware     ← 领域组件
-L5: sage-apps           ← 应用程序
-    sage-tools
-    sage-benchmark
-L6: sage-studio         ← 用户界面
+L5: sage-cli            ← 命令行接口
+    sage-tools          ← 开发工具
 ```
+
+**独立仓库** (不在 SAGE 核心架构中):
+
+- sage-benchmark - 基准测试
+- sage-examples - 应用示例
+- sage-studio - Web UI
+- sageLLM - LLM 推理引擎
 
 ## 设计原则
 

@@ -4,7 +4,7 @@
 
 SAGE Tutorials 是完整的学习资源集合，包含：
 
-- 分层教程（L1-L6）
+- 分层教程（L1-L5）
 - 完整的示例代码
 - 配置文件和测试数据
 - 详细的注释和说明
@@ -151,7 +151,7 @@ cd SAGE
 # 运行 Tutorials
 python tutorials/L1-common/hello_world.py
 python tutorials/L3-libs/rag/simple_rag.py
-python tutorials/L5-apps/video_intelligence_demo.py
+# 完整应用示例见 sage-examples 仓库
 ```
 
 ### 3. 研究人员（深度定制）
@@ -254,7 +254,7 @@ git clone https://github.com/YOUR_USERNAME/SAGE.git
 git checkout -b tutorial/my-new-tutorial
 
 # 3. 添加 tutorial
-# 放在合适的层级目录（L1-L6）
+# 放在合适的层级目录（L1-L5）
 
 # 4. 提交 PR
 git add tutorials/L3-libs/my_tutorial.py

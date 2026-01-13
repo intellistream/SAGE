@@ -108,7 +108,7 @@ dependencies = [
 
 ```bash
 # Then reinstall packages
-pip install -e packages/sage-middleware -e packages/sage-apps -e packages/sage-libs
+pip install -e packages/sage-middleware -e packages/sage-libs
 ```
 
 **Why**: Ensures reproducibility, tracks dependency changes in git, prevents version conflicts, maintains single source of truth.

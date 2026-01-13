@@ -17,7 +17,7 @@ class VectorStore(Protocol):
     Architecture Pattern:
         - L4 (sage-middleware): Defines this Protocol + SageDB implementation
         - L3 (sage-libs/integrations): Provides ChromaDB implementation
-        - L6 (sage-cli, sage-gateway): Uses via factory injection
+        - L5 (sage-cli): Uses via factory injection
 
     Example Implementation:
         >>> class SageVDBBackend:

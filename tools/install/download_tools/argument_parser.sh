@@ -229,7 +229,7 @@ show_installation_menu() {
     while true; do
         echo -e "${BOLD}1. 选择安装模式：${NC}"
         echo -e "  ${GRAY}1)${NC} 核心运行时  - L1-L3 ${DIM}(~100MB, 生产部署)${NC}"
-        echo -e "  ${GREEN}2)${NC} 标准开发    - L1-L4+L6 ${DIM}(~200MB, 应用开发)${NC}"
+        echo -e "  ${GREEN}2)${NC} 标准开发    - L1-L5 ${DIM}(~200MB, 应用开发)${NC}"
         echo -e "  ${PURPLE}3)${NC} 完整功能    - Standard+L5 ${DIM}(~300MB, 学习示例)${NC}"
         echo -e "  ${YELLOW}4)${NC} 框架开发    - Full+开发工具 ${DIM}(~400MB, 推荐)${NC}"
         echo ""
@@ -435,7 +435,7 @@ show_parameter_help() {
     echo -e "    ${DIM}大小: ~100MB${NC}"
     echo ""
     echo -e "  ${BOLD}--standard, --s, -standard, -s${NC}               ${GREEN}标准开发${NC}"
-    echo -e "    ${DIM}包含: L1-L4 + L6 (核心 + CLI + Web UI + RAG/LLM)${NC}"
+    echo -e "    ${DIM}包含: L1-L5 (核心 + CLI + 开发工具 + RAG/LLM)${NC}"
     echo -e "    ${DIM}安装方式: 生产模式安装 (pip install)${NC}"
     echo -e "    ${DIM}适合: 应用开发、日常使用${NC}"
     echo -e "    ${DIM}大小: ~200MB${NC}"

@@ -29,11 +29,11 @@ You are an experienced systems-track author. You help me write a **concise but t
 
 Key architectural points (you should weave them naturally into the abstract, not list them mechanically):
 
-- A strict **6-layer architecture (L1–L6)**: `sage-common`, `sage-platform`, `sage-kernel` / `sage-libs`, `sage-middleware`, `sage-apps` / `sage-benchmark`, `sage-cli` / `sage-studio` / `sage-tools` / `sage-gateway`, with **no upward dependencies** (each layer only depends on lower layers).
+- A strict **5-layer architecture (L1–L5)**: `sage-common`, `sage-platform`, `sage-kernel` / `sage-libs`, `sage-middleware`, `sage-cli` / `sage-tools`, with **no upward dependencies** (each layer only depends on lower layers). Independent repositories (`sage-benchmark`, `sage-examples`, `sage-studio`, `sageLLM`) are outside the core architecture.
 - **Declarative dataflow** for constructing LLM/AI pipelines: users declare high-level pipelines, while platform, kernel, and middleware layers compile them into an efficient execution plan across heterogeneous resources.
-- A unified **LLM & embedding control plane** ("sageLLM"), exposed via an **OpenAI-compatible gateway** (`sage-gateway`), providing request classification, hybrid scheduling, batching, and resource sharing across multiple vLLM / embedding instances.
+- A unified **LLM & embedding control plane** ("sageLLM"), exposed via an **OpenAI-compatible gateway** (`isagellm.gateway`), providing request classification, hybrid scheduling, batching, and resource sharing across multiple vLLM / embedding instances.
 - **CPU-only and GPU node support**, with job management and node selection in `sage-kernel` (runtime, scheduler) and cluster configuration / services in `sage-platform`.
-- A **comprehensive benchmark suite** (`sage-benchmark`) that evaluates both **agent capabilities** (tool selection, task planning, timing decisions) and **system-level behavior** (throughput, latency distribution, SLO compliance, interference) for different SAGE subsystems.
+- A **comprehensive benchmark suite** (`sage-benchmark`, independent repo) that evaluates both **agent capabilities** (tool selection, task planning, timing decisions) and **system-level behavior** (throughput, latency distribution, SLO compliance, interference) for different SAGE subsystems.
 - Implementation characteristics that highlight systems engineering effort: C++ middleware operators (`sage-middleware`) with CMake-based build; unified CI and quality tools (Ruff, Mypy); reproducible quickstart scripts; XDG-based user paths and configuration.
 
 --- Quantitative claims template (to be filled after experiments) ---
@@ -129,11 +129,11 @@ You are a systems-track co-author. Help me design the **structure** of the Intro
 - Target venue: a **top-tier Machine Learning Systems track**.
 - System: **SAGE**, a Python 3.10+ framework for **LLM/AI data processing pipelines** with **declarative dataflow**.
 - SAGE should be presented as a **full-stack system**, covering:
-  - a strict **6-layer architecture (L1–L6)** with no upward dependencies, from `sage-common` and `sage-platform` up to `sage-cli`, `sage-studio`, `sage-tools`, and `sage-gateway`;
+  - a strict **5-layer architecture (L1–L5)** with no upward dependencies, from `sage-common` and `sage-platform` up to `sage-cli` and `sage-tools`;
   - **declarative dataflow** for composing LLM/AI pipelines (e.g., retrieval, tools, LLM calls, post-processing);
-  - a **unified LLM & embedding control plane** (sageLLM) exposed via `sage-gateway`;
+  - a **unified LLM & embedding control plane** (sageLLM, independent repo) exposed via `isagellm.gateway`;
   - **CPU-only and GPU deployments**, job management and node selection in `sage-kernel`, platform services in `sage-platform`;
-  - **benchmark suites** in `sage-benchmark` for agents, scheduling policies, RAG, DB/time-series components, etc.
+  - **benchmark suites** in `sage-benchmark` (independent repo) for agents, scheduling policies, RAG, DB/time-series components, etc.
 
 --- Positioning against existing systems (CRITICAL for novelty) ---
 
@@ -229,11 +229,11 @@ You are a systems-track author responsible for the **Related Work** section of a
 
 SAGE focuses on **system-level support for LLM/AI dataflow pipelines**, rather than general ML training. Key system contributions include:
 
-- A **6-layer architecture** with strict no-upward-dependency design, from `sage-common` and `sage-platform` to `sage-kernel` / `sage-libs`, `sage-middleware`, `sage-apps` / `sage-benchmark`, and user-facing tools (`sage-cli`, `sage-studio`, `sage-tools`, `sage-gateway`).
+- A **5-layer architecture** with strict no-upward-dependency design, from `sage-common` and `sage-platform` to `sage-kernel` / `sage-libs`, `sage-middleware`, and user-facing tools (`sage-cli`, `sage-tools`). Independent repositories (`sage-benchmark`, `sage-examples`, `sage-studio`, `sageLLM`) are outside the core architecture.
 - **Declarative dataflow** for LLM/AI pipelines, mapping user-level pipeline descriptions to efficient execution on heterogeneous CPU/GPU clusters.
-- A unified **LLM & embedding control plane** with hybrid scheduling and batching, exposed via an OpenAI-compatible gateway (`sage-gateway`).
+- A unified **LLM & embedding control plane** with hybrid scheduling and batching, exposed via an OpenAI-compatible gateway (`isagellm.gateway`).
 - Systems support for **CPU-only and GPU nodes**, job management and node selection in `sage-kernel`, platform services in `sage-platform`.
-- A **benchmark suite** (`sage-benchmark`) focusing on **agent capabilities** (tool selection, planning, timing) and **system-level scheduling** (throughput, latency distribution, SLO compliance, interference).
+- A **benchmark suite** (`sage-benchmark`, independent repo) focusing on **agent capabilities** (tool selection, planning, timing) and **system-level scheduling** (throughput, latency distribution, SLO compliance, interference).
 
 --- Task ---
 
@@ -318,15 +318,18 @@ SAGE is a Python 3.10+ framework for building LLM/AI data processing pipelines. 
 
 Key design aspects to consider:
 
-- **Layered architecture (L1–L6)** with **no upward dependencies**:
-  - L1: `sage-common` – foundational utilities, configuration, user paths (XDG), port management (`SagePorts`), shared components (e.g., `UnifiedInferenceClient`, control-plane core modules under `sageLLM/control_plane/`).
+- **Layered architecture (L1–L5)** with **no upward dependencies**:
+  - L1: `sage-common` – foundational utilities, configuration, user paths (XDG), port management (`SagePorts`), shared components.
   - L2: `sage-platform` – platform services (storage, queuing, service management), cluster configuration via `config/cluster.yaml`.
   - L3: `sage-kernel`, `sage-libs` – core execution engine, **job management** (`runtime/job_manager`), **node selection** (`scheduler/node_selector`), algorithms, scheduling logic, CPU/GPU awareness.
   - L4: `sage-middleware` – C++ operators and performance-critical components, built via CMake.
-  - L5: `sage-apps`, `sage-benchmark` – applications and benchmark suites.
-  - L6: `sage-cli`, `sage-studio`, `sage-tools`, `sage-gateway` – user-facing interfaces, CLI, web studio, tools, and OpenAI-compatible gateway.
+  - L5: `sage-cli`, `sage-tools` – user-facing interfaces (CLI, development tools).
+- **Independent repositories** (not in core architecture):
+  - `sage-benchmark` – benchmark suites (PyPI: `isage-benchmark`)
+  - `sage-examples` – applications and tutorials
+  - `sageLLM` – LLM inference engine with control plane (PyPI: `isagellm`)
 - **Declarative dataflow** abstraction for specifying pipelines, with compilation/execution over heterogeneous resources.
-- **Unified LLM & embedding control plane** (sageLLM): `UnifiedInferenceClient`, `ControlPlaneManager`, `HybridSchedulingPolicy`, `EmbeddingExecutor` coordinating multiple vLLM and embedding backends via `sage-gateway`.
+- **Unified LLM & embedding control plane** (sageLLM): `UnifiedInferenceClient`, `ControlPlaneManager`, `HybridSchedulingPolicy`, `EmbeddingExecutor` coordinating multiple vLLM and embedding backends via `isagellm.gateway`.
 - **User paths and configuration** following XDG base directory spec; project-level `.sage/` directory for build artifacts and caches.
 - **Deployment and CI** patterns (quickstart scripts, `sage-dev` tooling, pre-commit hooks) as concrete implementation and reproducibility choices.
 
@@ -370,9 +373,9 @@ Here is the bullet-point outline for this subsection (from the previous step):
 
 --- System reminders ---
 
-- SAGE uses a **6-layer architecture (L1–L6)** with no upward dependencies.
+- SAGE uses a **5-layer architecture (L1–L5)** with no upward dependencies.
 - It exposes **declarative dataflow** to users, while deeper layers handle scheduling, optimization, and execution.
-- It includes a **unified control plane** for LLM and embedding services, fronted by an OpenAI-compatible gateway.
+- It includes a **unified control plane** for LLM and embedding services (sageLLM, independent repo), fronted by an OpenAI-compatible gateway.
 - It targets **scalability, heterogeneity (CPU/GPU), and reproducibility**.
 - The paper should emphasize the **whole system** (architecture + dataflow + control plane + benchmarks + deployment), not just one component.
 
@@ -864,16 +867,20 @@ ______________________________________________________________________
 
 **Mapping to SAGE components**
 
-- L1 – `sage-common`: configuration (`config/config.yaml`), user paths (XDG), `SagePorts` for port allocation, shared components including `UnifiedInferenceClient` and control-plane core (`sageLLM/control_plane/`).
+- L1 – `sage-common`: configuration (`config/config.yaml`), user paths (XDG), `SagePorts` for port allocation, shared components.
 - L2 – `sage-platform`: platform services for storage, queuing, and service management; integration with cluster configuration (`config/cluster.yaml`).
 - L3 – `sage-kernel`, `sage-libs`: execution kernels, job management (`runtime/job_manager`), node selection (`scheduler/node_selector`), CPU/GPU awareness, algorithms, and scheduling primitives.
 - L4 – `sage-middleware`: C++ operators and performance-critical components.
-- L5 – `sage-apps`, `sage-benchmark`: concrete applications and benchmark scenarios.
-- L6 – `sage-cli`, `sage-studio`, `sage-tools`, `sage-gateway`: CLI commands (e.g., `sage llm serve`, `sage gateway start`), web studio, tools, and OpenAI-compatible API.
+- L5 – `sage-cli`, `sage-tools`: CLI commands (e.g., `sage llm engine start`), development tools.
+
+**Independent repositories** (not in core architecture):
+- `sage-benchmark` – benchmark scenarios (PyPI: `isage-benchmark`)
+- `sage-examples` – applications and tutorials
+- `sageLLM` – LLM inference engine with control plane (PyPI: `isagellm`)
 
 **Suggested figures**
 
-- **Figure 2: Layered Architecture.**  A stacked diagram (L1 at bottom to L6 at top) with arrows only going downward. Caption: *"SAGE enforces a strict layering discipline with no upward dependencies, which simplifies reasoning about responsibilities and allows lower layers to be reused across tools, applications, and benchmarks."*
+- **Figure 2: Layered Architecture.**  A stacked diagram (L1 at bottom to L5 at top) with arrows only going downward. Caption: *"SAGE enforces a strict layering discipline with no upward dependencies, which simplifies reasoning about responsibilities and allows lower layers to be reused across tools, applications, and benchmarks."*
 
 ______________________________________________________________________
 

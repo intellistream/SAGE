@@ -19,8 +19,8 @@
 | quickstart.sh | pip install       | 包含内容                              | 用途               | 大小   |
 | ------------- | ----------------- | ------------------------------------- | ------------------ | ------ |
 | `--core`      | `isage[core]`     | L1-L3 (common, platform, kernel)      | 容器部署、生产环境 | ~100MB |
-| `--standard`  | `isage[standard]` | L1-L4+L6 (核心+CLI+Web UI+RAG/LLM)    | 应用开发、日常使用 | ~200MB |
-| `--full`      | `isage[full]`     | standard + L5 (apps, benchmark)       | 学习示例、性能评估 | ~300MB |
+| `--standard`  | `isage[standard]` | L1-L5 (核心+CLI+RAG/LLM)              | 应用开发、日常使用 | ~200MB |
+| `--full`      | `isage[full]`     | standard + 独立包 (benchmark, studio) | 学习示例、性能评估 | ~300MB |
 | `--dev`       | `isage[dev]`      | full + 开发工具 (pytest, black, mypy) | 框架开发、贡献代码 | ~400MB |
 
 ### 模式详细说明
@@ -36,11 +36,10 @@
 
 #### `standard` (默认)
 
-- **包含包**：core + sage-libs, sage-middleware, sage-tools[cli], sage-studio
+- **包含包**：core + sage-libs, sage-middleware, sage-cli, sage-tools
 - **额外功能**：
   - RAG/LLM operators
   - CLI 工具 (sage, sage-dev)
-  - Web UI (SAGE Studio)
   - 数据科学库 (numpy, pandas, matplotlib, jupyter)
 - **适用场景**：
   - 开发 SAGE 应用
@@ -49,10 +48,10 @@
 
 #### `full`
 
-- **包含包**：standard + sage-apps, sage-studio
+- **包含包**：standard + 独立包 (isage-benchmark, isage-studio)
 - **额外功能**：
-  - 示例应用（医疗、视频分析等）
-  - Web UI 界面
+  - 性能基准测试 (isage-benchmark)
+  - Web UI 界面 (isage-studio, 独立仓库)
 - **适用场景**：
   - 学习 SAGE
   - 运行示例代码

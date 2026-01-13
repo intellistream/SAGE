@@ -43,7 +43,14 @@ pip install isage
 **包含组件**：
 
 - **L1-L4**: 核心运行时、算法库、领域算子
-- **L6**: CLI 工具 (`sage` 命令) + Web UI (Studio)
+- **L5**: CLI 工具 (`sage` 命令) + 开发工具
+
+**独立仓库** (不在 SAGE 核心架构中):
+
+- sage-benchmark - 基准测试
+- sage-examples - 应用示例
+- sage-studio - Web UI
+- sageLLM - LLM 推理引擎
 - **科学计算库**: numpy, pandas, matplotlib, scipy, jupyter
 
 **大小**: ~200MB | **适合**: 应用开发者、日常使用
@@ -91,13 +98,14 @@ pip install isage[dev]
 - **isage-kernel** (L3): 核心运行时和任务执行引擎
 - **isage-libs** (L3): 算法库和 Agent 框架
 - **isage-middleware** (L4): RAG/LLM operators
-- **isage-tools** (L6): CLI 工具 (`sage` 命令)
-- **isage-studio** (L6): Web UI 低代码界面
+- **isage-tools** (L5): CLI 工具 (`sage` 命令)
+- **isage-cli** (L5): 生产 CLI 接口
 
-### 额外组件 (full)
+### 额外组件 (独立仓库/PyPI 包)
 
-- **isage-apps** (L5): 示例应用（医疗诊断、视频分析）
-- **isage-benchmark** (L5): 性能基准测试工具
+- **isage-benchmark**: 性能基准测试工具 (独立仓库: sage-benchmark)
+- **isagellm**: LLM 推理引擎 (独立仓库: sageLLM)
+- **isage-edge**: 边缘聚合器 (独立仓库: sage-edge)
 
 ## 快速开始
 

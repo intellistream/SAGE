@@ -12,7 +12,7 @@ Components:
 
 Architecture:
 - ✅ Can import from: L1 (sage-common)
-- ✅ Can be imported by: L3-L6 (sage-kernel, sage-middleware, sage-libs, sage-apps)
+- ✅ Can be imported by: L3-L5 (sage-kernel, sage-middleware, sage-libs, sage-cli, sage-tools)
 - ✅ Clean design: Uses factory pattern for L3 dependencies (RPCQueue)
 """
 

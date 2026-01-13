@@ -136,17 +136,22 @@ python sage-examples/tutorials/L3-kernel/cpu_node_demo.py
 
 ### System Architecture
 
-SAGE is built on a **layered modular architecture** with 11 independent packages organized across 6
-layers:
+SAGE is built on a **layered modular architecture** with 8 core packages organized across 5 layers:
 
 ```
-L6: sage-studio, sage-cli, sage-tools    # User Interfaces & Dev Tools
-L5: (Applications moved to independent repos)
-L4: sage-middleware, sage-gateway         # Domain Operators & API Gateway
-L3: sage-kernel, sage-libs                # Core Engine & Algorithm Library
-L2: sage-platform                         # Platform Services (Queue, Storage)
-L1: sage-common                           # Foundation & Utilities
+L5: sage-cli, sage-tools                  # Interface Layer (CLI & Dev Tools)
+L4: sage-middleware                       # Middleware Layer (Operators, C++ Extensions)
+L3: sage-kernel, sage-libs                # Core Layer (Engine & Algorithm Library)
+L2: sage-platform                         # Platform Layer (Queue, Storage)
+L1: sage-common                           # Foundation Layer (Config, Types, Utilities)
 ```
+
+**Independent Repositories** (not in SAGE core):
+
+- **sage-benchmark**: https://github.com/intellistream/sage-benchmark (PyPI: `isage-benchmark`)
+- **sage-examples**: https://github.com/intellistream/sage-examples (Tutorials & Applications)
+- **sage-studio**: https://github.com/intellistream/sage-studio (Visual Workflow Builder)
+- **sageLLM**: LLM inference engine (PyPI: `isagellm`)
 
 **Key Architectural Principles:**
 
@@ -160,28 +165,25 @@ Detailed package descriptions, dependency rules, and design principles
 
 ### Modular Design
 
-**10 Core Packages**, each with clear responsibilities:
+**8 Core Packages**, each with clear responsibilities:
 
 - **sage-common** (L1): Foundation utilities, configuration, logging
 - **sage-platform** (L2): Platform services - queue, storage abstractions
 - **sage-kernel** (L3): Distributed execution engine and runtime
 - **sage-libs** (L3): Algorithm library, RAG tools, Agent framework
 - **sage-middleware** (L4): Domain operators and middleware components
-- **sage-gateway** (L4): API gateway and service mesh
-- **sage-studio** (L6): Web-based visualization interface
-- **sage-cli** (L6): Unified command-line interface
-- **sage-tools** (L6): Development tools and testing framework
+- **sage-cli** (L5): Unified command-line interface
+- **sage-tools** (L5): Development tools and testing framework
 
-**Independent Repository:**
+**Independent Repositories:**
 
-- **sage-examples**: Tutorials, examples, and production applications (will be published to PyPI as
-  `isage-examples`)
+- **sage-examples**: Tutorials, examples, and production applications
   - Repository: [intellistream/sage-examples](https://github.com/intellistream/sage-examples)
   - Includes: tutorials, RAG examples, application demos (video intelligence, medical diagnosis,
     etc.)
-
-**Note**: sage-benchmark has been separated into an independent repository:
-https://github.com/intellistream/sage-benchmark
+- **sage-benchmark**: Evaluation framework
+  - Repository: [intellistream/sage-benchmark](https://github.com/intellistream/sage-benchmark)
+- **sageLLM**: LLM inference engine (PyPI: `isagellm`)
 
 ### Production Features
 
@@ -258,7 +260,7 @@ balancing and fault tolerance.
 
 ## 📚 Tutorials
 
-Complete tutorials covering all layers of SAGE (L1-L6):
+Complete tutorials covering all layers of SAGE (L1-L5):
 
 ```bash
 # Clone repository
@@ -279,8 +281,7 @@ cat tutorials/QUICK_START.md
 - `tutorials/L3-kernel/` - Execution engine (batch, stream, operators)
 - `tutorials/L3-libs/` - RAG, Agents, Algorithms
 - `tutorials/L4-middleware/` - Domain operators (vector DB, time-series)
-- `tutorials/L5-apps/` - Application patterns
-- `tutorials/L6-interface/` - CLI and UI
+- `tutorials/L5-cli/` - CLI and development tools
 
 See `tutorials/README.md` for complete learning paths.
 

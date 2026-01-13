@@ -111,26 +111,31 @@ For detailed documentation, see:
 
 ## 🏗️ Architecture
 
-SAGE CLI is part of the L6 (Interface Layer) in the SAGE architecture:
+SAGE CLI is part of the L5 (Interface Layer) in the SAGE architecture:
 
 ```
 L1: sage-common          (Foundation)
 L2: sage-platform        (Platform Core)
-L3: sage-kernel, sage-libs --< \llm>
+L3: sage-kernel, sage-libs
 L4: sage-middleware
-L5: sage-apps, sage-benchmark
-L6: sage-cli, sage-tools, sage-studio
+L5: sage-cli, sage-tools
     ├── sage-cli: Production CLI via `sage` command
-    ├── sage-tools: Development tools via `sage-dev` command
-    └── sage-studio: Visual interface
+    └── sage-tools: Development tools via `sage-dev` command
 ```
+
+**Independent Repositories:**
+
+- sage-benchmark: Benchmark suites
+- sage-examples: Applications and tutorials
+- sage-studio: Visual interface
+- sageLLM: LLM inference engine
 
 **Command Separation:**
 
 - **sage** (from sage-cli): User-facing production commands
 
   - Platform: cluster, head, worker, job, jobmanager, config, doctor, version, extensions
-  - Apps: llm, chat, embedding, pipeline, studio
+  - Apps: llm, chat, embedding, pipeline
 
 - **sage-dev** (from sage-tools): Developer-only commands
 

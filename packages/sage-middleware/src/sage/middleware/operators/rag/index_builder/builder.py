@@ -81,14 +81,14 @@ class IndexBuilder:
         - L4 defines this builder (orchestration logic)
         - L4 provides SageDB backend (sage.middleware.components.sage_db)
         - L3 provides ChromaDB backend (sage.libs.integrations.chroma)
-        - L6 uses IndexBuilder with injected backend factory
+        - L5 uses IndexBuilder with injected backend factory
 
     Args:
         backend_factory: Function creating VectorStore instances
             Signature: (persist_path: Path, dim: int) -> VectorStore
 
     Example:
-        >>> # In sage-cli (L6)
+        >>> # In sage-cli (L5)
         >>> from sage.middleware.operators.rag.index_builder import IndexBuilder
         >>> from sage.middleware.components.sage_db import SageVDBBackend
         >>>

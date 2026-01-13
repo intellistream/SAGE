@@ -12,7 +12,7 @@ This custom agent is a specialized expert for the SAGE (Stream Analytics for Gen
 The SAGE agent assists with:
 
 1. **Architecture & Design**
-   - Navigate SAGE's 6-layer architecture (L1-L6: Common → Platform → Kernel/Libs → Middleware → Apps → CLI/Studio/Gateway)
+   - Navigate SAGE's 5-layer architecture (L1-L5: Common → Platform → Kernel/Libs → Middleware → CLI/Tools)
    - Enforce architectural constraints (NO upward dependencies, Control Plane-only LLM operations)
    - Guide proper package structure and dependency management
 
@@ -101,7 +101,7 @@ If the agent encounters:
 ## Key Principles
 
 1. **Documentation-First:** Always check docs-public/docs_src/dev-notes/ before guessing
-2. **Architecture-Aware:** Respect L1-L6 layer boundaries and Control Plane requirements
+2. **Architecture-Aware:** Respect L1-L5 layer boundaries and Control Plane requirements
 3. **No Fallbacks:** Fail fast with clear errors instead of silent degradation
 4. **Unified Config:** Use SagePorts, pyproject.toml, and XDG paths consistently
 5. **Test-Driven:** Run tests and quality checks after changes

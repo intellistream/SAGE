@@ -60,6 +60,8 @@ L4-middleware/
 
 ## ⏭️ 下一步
 
-学完中间件层后，继续学习：
+学完中间件层后，继续探索：
 
-- **L5-apps/** - 完整应用和解决方案
+- **sage-benchmark**: 性能基准测试 (`pip install isage-benchmark`)
+- **sage-examples**: 完整应用示例 (独立仓库)
+- **sage-cli / sage-tools**: CLI 工具 (L5 接口层)

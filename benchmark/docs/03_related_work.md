@@ -17,18 +17,18 @@ You are a systems-track author responsible for the **Related Work** section of a
 SAGE focuses on **system-level support for LLM/AI dataflow pipelines**, rather than general ML
 training. Key system contributions include:
 
-- A **6-layer architecture** with strict no-upward-dependency design, from `sage-common` and
-  `sage-platform` to `sage-kernel` / `sage-libs`, `sage-middleware`, `sage-apps` / `sage-benchmark`,
-  and user-facing tools (`sage-cli`, `sage-studio`, `sage-tools`, `sage-gateway`).
+- A **5-layer architecture** with strict no-upward-dependency design, from `sage-common` and
+  `sage-platform` to `sage-kernel` / `sage-libs`, `sage-middleware`, and user-facing tools
+  (`sage-cli`, `sage-tools`). LLM inference is provided by independent `sageLLM` engine.
 - **Declarative dataflow** for LLM/AI pipelines, mapping user-level pipeline descriptions to
   efficient execution on heterogeneous CPU/GPU clusters.
 - A unified **LLM & embedding control plane** with hybrid scheduling and batching, exposed via an
-  OpenAI-compatible gateway (`sage-gateway`).
+  OpenAI-compatible gateway (in `sageLLM` independent package).
 - Systems support for **CPU-only and GPU nodes**, job management and node selection in
   `sage-kernel`, platform services in `sage-platform`.
-- A **benchmark suite** (`sage-benchmark`) focusing on **agent capabilities** (tool selection,
-  planning, timing) and **system-level scheduling** (throughput, latency distribution, SLO
-  compliance, interference).
+- A **benchmark suite** (`sage-benchmark`, independent repository) focusing on **agent
+  capabilities** (tool selection, planning, timing) and **system-level scheduling** (throughput,
+  latency distribution, SLO compliance, interference).
 
 --- Task ---
 

@@ -1912,7 +1912,7 @@ def architecture(
     """显示 SAGE 架构信息
 
     显示项：
-    - 分层架构定义（L1-L6）
+    - 分层架构定义（L1-L5）
     - 包的层级归属
     - 允许的依赖关系
     - 依赖规则说明
@@ -2024,8 +2024,7 @@ def architecture(
                     "L2": "平台层 - 基础设施",
                     "L3": "核心层 - 核心功能",
                     "L4": "中间件层 - 服务组件",
-                    "L5": "应用层 - 应用程序",
-                    "L6": "工具层 - 开发工具",
+                    "L5": "接口层 - CLI与开发工具",
                 }.get(layer, "")
 
                 console.print(f"  [bold yellow]{layer}[/bold yellow] - {layer_desc}")
@@ -2039,7 +2038,7 @@ def architecture(
             console.print("  💡 原则: 高层可以依赖低层，同层之间需要明确定义")
             console.print()
 
-            # 按层级顺序显示（L1-L6）
+            # 按层级顺序显示（L1-L5）
             for layer in sorted(LAYER_DEFINITION.keys()):
                 for pkg in LAYER_DEFINITION[layer]:
                     deps = ALLOWED_DEPENDENCIES.get(pkg, set())

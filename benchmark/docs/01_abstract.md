@@ -22,15 +22,15 @@ abstract** for a paper about **SAGE**, a machine learning systems framework.
 Key architectural points (you should weave them naturally into the abstract, not list them
 mechanically):
 
-- A strict **6-layer architecture (L1–L6)**: `sage-common`, `sage-platform`, `sage-kernel` /
-  `sage-libs`, `sage-middleware`, `sage-apps` / `sage-benchmark`, `sage-cli` / `sage-studio` /
-  `sage-tools` / `sage-gateway`, with **no upward dependencies** (each layer only depends on lower
-  layers).
+- A strict **5-layer architecture (L1–L5)**: `sage-common`, `sage-platform`, `sage-kernel` /
+  `sage-libs`, `sage-middleware`, `sage-cli` / `sage-tools`, with **no upward dependencies** (each
+  layer only depends on lower layers). Independent repositories (`sage-benchmark`, `sage-examples`,
+  `sage-studio`, `sageLLM`) are outside the core architecture.
 - **Declarative dataflow** for constructing LLM/AI pipelines: users declare high-level pipelines,
   while platform, kernel, and middleware layers compile them into an efficient execution plan across
   heterogeneous resources.
 - A unified **LLM & embedding control plane** ("sageLLM"), exposed via an **OpenAI-compatible
-  gateway** (`sage-gateway`), providing request classification, hybrid scheduling, batching, and
+  gateway** (`isagellm.gateway`), providing request classification, hybrid scheduling, batching, and
   resource sharing across multiple vLLM / embedding instances.
 - **CPU-only and GPU node support**, with job management and node selection in `sage-kernel`
   (runtime, scheduler) and cluster configuration / services in `sage-platform`.

@@ -15,16 +15,22 @@ python hello_world.py
 
 ### 2. 理解架构
 
-SAGE 采用 **6 层架构**，从底层到应用层：
+SAGE 采用 **5 层架构**，从底层到接口层：
 
 ```
-L1: Common      → 基础工具 (配置、日志)
-L2: Kernel      → 核心引擎 (流处理、批处理)
-L3: Middleware  → 数据服务 (向量数据库、时序数据库)
-L4: Libs        → 应用库 (RAG、Agents、LLM)
-L5: Platform    → 平台服务 (调度、部署)
-L6: Apps        → 完整应用 (端到端解决方案)
+L1: Common      → 基础层 (配置、日志、类型)
+L2: Platform    → 平台层 (队列、存储、消息)
+L3: Kernel/Libs → 核心层 (执行引擎、算法库)
+L4: Middleware  → 中间件层 (Operators、C++ 扩展)
+L5: CLI/Tools   → 接口层 (CLI、开发工具)
 ```
+
+**独立仓库**（不在核心仓库中）：
+
+- sage-benchmark: 评估框架 (PyPI: isage-benchmark)
+- sage-examples: 教程和应用示例
+- sage-studio: 可视化工作流 (独立仓库)
+- sageLLM: LLM 推理引擎 (PyPI: isagellm)
 
 ### 3. 选择学习路径
 
@@ -34,8 +40,8 @@ L6: Apps        → 完整应用 (端到端解决方案)
 | ------------- | ------------------ | -------- |
 | 🔰 初学者     | L1 → L2 基础       | 1-2 小时 |
 | 🚀 应用开发者 | L1 → L2 → L3 → L4  | 4-6 小时 |
-| 🧠 平台开发者 | 全栈学习 L1-L5     | 1-2 天   |
-| 🏗️ 架构师     | 全部 L1-L6 + tools | 2-3 天   |
+| 🧠 平台开发者 | 全栈学习 L1-L4     | 1-2 天   |
+| 🏗️ 架构师     | 全部 L1-L5 + tools | 2-3 天   |
 
 ______________________________________________________________________
 
@@ -211,7 +217,7 @@ python remote_env.py            # 远程环境
 - 分布式执行
 - 资源管理
 
-👉 **下一步**：探索 L6-apps 完整应用（即将推出）
+👉 **下一步**：探索 sage-examples 仓库中的完整应用
 
 ______________________________________________________________________
 
@@ -265,11 +271,12 @@ ______________________________________________________________________
 每个层级目录都有详细的 README：
 
 - `L1-common/README.md`
-- `L2-kernel/README.md`
-- `L3-middleware/README.md`
-- `L4-libs/README.md`
-- `L5-platform/README.md`
-- `L6-apps/README.md`
+- `L2-platform/README.md`
+- `L3-kernel/README.md`
+- `L3-libs/README.md`
+- `L4-middleware/README.md`
+
+更多信息请查看 `docs-public/docs_src/dev-notes/` 中的开发文档。
 
 ### 遇到问题？
 

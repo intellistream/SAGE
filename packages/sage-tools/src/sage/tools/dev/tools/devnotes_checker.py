@@ -18,18 +18,16 @@ from datetime import datetime
 from pathlib import Path
 
 # 允许的 dev-notes 分类目录
-# 按照 SAGE 系统架构设计：L1-L6 分层 + 跨层主题
+# 按照 SAGE 系统架构设计：L1-L5 分层 + 跨层主题
 ALLOWED_CATEGORIES = {
-    # === 架构层次分类 (L1-L6) ===
+    # === 架构层次分类 (L1-L5) ===
     "l1-common": "L1 基础层 - sage-common 包相关开发笔记",
     "l2-platform": "L2 平台层 - sage-platform 包相关开发笔记",
     "l3-kernel": "L3 核心层 - sage-kernel 包相关开发笔记",
     "l3-libs": "L3 核心层 - sage-libs 包相关开发笔记",
     "l4-middleware": "L4 中间件层 - sage-middleware 包相关开发笔记",
-    "l5-apps": "L5 应用层 - sage-apps 包相关开发笔记",
-    "l5-benchmark": "L5 应用层 - sage-benchmark 包相关开发笔记",
-    "l6-studio": "L6 工具层 - sage-studio 包相关开发笔记",
-    "l6-tools": "L6 工具层 - sage-tools 包相关开发笔记",
+    "l5-cli": "L5 接口层 - sage-cli 包相关开发笔记",
+    "l5-tools": "L5 接口层 - sage-tools 包相关开发笔记",
     # === 跨层主题分类 (在 cross-layer/ 下) ===
     "cross-layer/architecture": "系统架构设计与演进",
     "cross-layer/ci-cd": "CI/CD 流程、构建系统、自动化",

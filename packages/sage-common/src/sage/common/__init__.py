@@ -13,8 +13,8 @@ Module Structure:
 - utils: Common utilities (logging, serialization, system helpers)
 
 Architecture Rules:
-- ✅ Can be imported by: L2-L6 (all upper layers)
-- ❌ Must NOT import from: sage.kernel, sage.middleware, sage.libs, sage.apps
+- ✅ Can be imported by: L2-L5 (all upper layers)
+- ❌ Must NOT import from: sage.kernel, sage.middleware, sage.libs, sage.cli, sage.tools
 - ✅ May import: Standard library, external dependencies
 """
 

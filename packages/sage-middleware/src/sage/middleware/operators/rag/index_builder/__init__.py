@@ -18,7 +18,7 @@ Architecture Pattern:
 - L4 defines IndexBuilder (orchestration)
 - L4 provides SageDB backend implementation
 - L3 provides ChromaDB backend via integrations
-- L6 (sage-cli, sage-gateway) uses IndexBuilder
+- L5 (sage-cli) uses IndexBuilder
 
 Example Usage:
     >>> from sage.middleware.operators.rag.index_builder import IndexBuilder

@@ -110,7 +110,7 @@ class VectorSearchTool(BaseTool):
         {
             "id": "doc1",
             "title": "SAGE Framework Overview",
-            "content": "SAGE is a Python framework for building AI/LLM data processing pipelines with declarative dataflow. It consists of 6 layers: L1-Common (foundation), L2-Platform (services), L3-Kernel/Libs (core algorithms), L4-Middleware (operators), L5-Apps (applications), L6-Interface (CLI/Studio/Gateway).",
+            "content": "SAGE is a Python framework for building AI/LLM data processing pipelines with declarative dataflow. It consists of 5 layers: L1-Common (foundation), L2-Platform (services), L3-Kernel/Libs (core algorithms), L4-Middleware (operators), L5-CLI/Tools (interface).",
             "tags": ["overview", "architecture", "layers"],
         },
         {

@@ -207,7 +207,7 @@ analyze_pip_log() {
         echo ""
         echo -e "${YELLOW}🔧 建议：${NC}"
         echo "   1. 检查 pyproject.toml 的 dependencies 声明"
-        echo "   2. 确保按依赖顺序安装（L1→L2→L3→L4→L5→L6）"
+        echo "   2. 确保按依赖顺序安装（L1→L2→L3→L4→L5）"
         echo "   3. 所有本地包使用 'pip install -e pkg --no-deps'"
         echo "   4. 最后一步才安装外部依赖"
         echo ""

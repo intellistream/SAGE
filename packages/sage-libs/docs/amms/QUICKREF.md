@@ -109,8 +109,8 @@ python examples/tutorials/L3-libs/amms_example.py
 
 ## Benefits
 
-✅ **Architectural Compliance**: Follows SAGE's L1-L6 layered architecture\
-✅ **Separation of Concerns**: Algorithms (L3) separate from benchmarks (L5)\
+✅ **Architectural Compliance**: Follows SAGE's L1-L5 layered architecture\
+✅ **Separation of Concerns**: Algorithms (L3) separate from benchmarks (independent repo)\
 ✅ **Unified Interface**: Factory pattern like ANNS\
 ✅ **Better Organization**: Clear directory structure\
 ✅ **Consistency**: Same pattern as ANNS and other algorithm libraries

@@ -163,7 +163,7 @@ def register_vector_db_service(
             knowledge_base = [
                 {
                     "title": "SAGE Framework Overview",
-                    "text": "SAGE is a Python framework for building AI/LLM data processing pipelines with declarative dataflow. It consists of 6 layers from L1-Common to L6-Interface.",
+                    "text": "SAGE is a Python framework for building AI/LLM data processing pipelines with declarative dataflow. It consists of 5 layers from L1-Common to L5-CLI/Tools.",
                     "tags": "overview,architecture",
                 },
                 {
