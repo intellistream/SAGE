@@ -373,54 +373,6 @@ verify_sage_imports() {
     fi
 }
 
-# 验证 VLLM 安装（如果已安装）
-verify_vllm_installation() {
-    echo -e "${BLUE}🚀 验证 VLLM 安装...${NC}"
-
-    if ! $PYTHON_CMD -c "import vllm" &> /dev/null; then
-        log_verification_result "vllm_install" "SKIP" "VLLM 未安装，跳过验证"
-        echo -e "${DIM}   ℹ️  VLLM 未安装，跳过验证${NC}"
-        return 0
-    fi
-
-    local vllm_version=$($PYTHON_CMD -c "import vllm; print(vllm.__version__)" 2>/dev/null)
-    echo -e "${GREEN}   ✅ VLLM $vllm_version 已安装${NC}"
-
-    # 检查 FlashInfer（可选但推荐）
-    if $PYTHON_CMD -c "import flashinfer" &> /dev/null; then
-        local flashinfer_version=$($PYTHON_CMD -c "import flashinfer; print(flashinfer.__version__)" 2>/dev/null || echo "unknown")
-        echo -e "${GREEN}   ✅ FlashInfer $flashinfer_version 已安装（高性能采样）${NC}"
-    else
-        echo -e "${DIM}   ℹ️  FlashInfer 未安装（可选：用于高性能采样）${NC}"
-        # 获取 CUDA 版本并给出安装建议
-        local cuda_version=$($PYTHON_CMD -c "import torch; print(torch.version.cuda)" 2>/dev/null || echo "")
-        if [ -n "$cuda_version" ]; then
-            local cuda_major=$(echo "$cuda_version" | cut -d. -f1)
-            echo -e "${DIM}      安装命令: pip install flashinfer-python -i https://flashinfer.ai/whl/cu${cuda_major}4/torch2.6/${NC}"
-        fi
-    fi
-
-    # 尝试基本功能测试
-    if $PYTHON_CMD -c "
-import vllm
-print(f'VLLM 版本: {vllm.__version__}')
-
-# 检查 CUDA 可用性
-try:
-    from vllm import LLM
-    print('VLLM LLM 类导入成功')
-except Exception as e:
-    print(f'VLLM 功能测试失败: {e}')
-    exit(1)
-" 2>/dev/null; then
-        log_verification_result "vllm_install" "PASS" "VLLM 安装和基本功能正常"
-        return 0
-    else
-        log_verification_result "vllm_install" "WARN" "VLLM 安装但功能测试失败"
-        return 1
-    fi
-}
-
 # 生成验证报告
 generate_verification_report() {
     echo -e "\n${BLUE}${BOLD}📊 安装验证报告${NC}" >> "$VERIFICATION_LOG"
@@ -481,9 +433,6 @@ run_comprehensive_verification() {
     echo ""
 
     verify_sage_doctor
-    echo ""
-
-    verify_vllm_installation
     echo ""
 
     generate_verification_report

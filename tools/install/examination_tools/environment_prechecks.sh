@@ -194,7 +194,7 @@ check_cuda_availability() {
     # 关键检测：GPU 存在但缺少 nvcc
     if [ "$has_gpu" = true ] && [ "$has_nvcc" = false ]; then
         echo -e "${RED}   ❌ 检测到 GPU 但缺少 CUDA Toolkit (nvcc 编译器)${NC}"
-        echo -e "${YELLOW}   这将导致 vLLM 无法启动！${NC}"
+        echo -e "${YELLOW}   这将导致 GPU 加速功能无法使用！${NC}"
         echo -e "${YELLOW}   建议操作:${NC}"
         echo -e "${DIM}   • 如果使用 conda: conda install -c conda-forge cudatoolkit-dev -y --override-channels${NC}"
         echo -e "${DIM}   • 如果使用系统包管理: apt install nvidia-cuda-toolkit${NC}"

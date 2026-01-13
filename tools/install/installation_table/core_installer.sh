@@ -408,8 +408,7 @@ else:
                 echo -e "${DIM}     验证并升级关键包版本...${NC}"
                 log_info "强制安装 transformers 和 peft 到兼容版本" "INSTALL"
 
-                # vllm 0.9.2 与 transformers 4.57+ 有兼容性问题 (aimv2 冲突)
-                # 使用 transformers 4.52.0 可以同时兼容 vllm 0.9.2 和 peft 0.18.0
+                # transformers 4.52.0 与 peft 0.18.0 兼容
                 # 同时需要 tokenizers<0.22 来匹配 transformers 4.52.0
                 if log_command "INSTALL" "Deps" "$PIP_CMD install 'transformers==4.52.0' 'tokenizers>=0.21,<0.22' 'peft>=0.18.0,<1.0.0' $deps_pip_args"; then
                     log_info "关键包版本升级成功" "INSTALL"
@@ -652,8 +651,8 @@ else:
     log_debug "外部依赖将保存到: $external_deps_file" "INSTALL"
     echo -e "${DIM}     从已安装包中提取外部依赖...${NC}"
 
-    # 执行 Python 脚本提取依赖（优化版：去重+合并版本+vLLM可选依赖）
-    log_debug "执行 Python 依赖提取脚本（去重优化+vLLM可选依赖）..." "INSTALL"
+    # 执行 Python 脚本提取依赖（优化版：去重+合并版本）
+    log_debug "执行 Python 依赖提取脚本（去重优化）..." "INSTALL"
     if $PYTHON_CMD -c "
 import sys, re
 from pathlib import Path
@@ -707,38 +706,6 @@ for pkg_dir in package_dirs:
                 if full_pkg_match:
                     pkg_name = full_pkg_match.group(1)
                     dep_versions[pkg_name].append(dep)
-
-# 在 dev/full 模式下，提取 vLLM 可选依赖
-if install_mode in ['dev', 'full']:
-    sage_common_pyproject = Path('packages/sage-common/pyproject.toml')
-    if sage_common_pyproject.exists():
-        content = sage_common_pyproject.read_text(encoding='utf-8')
-        # 匹配 vllm = [...] 块
-        pattern = re.compile(r'\\bvllm\\s*=\\s*\\[(.*?)\\]', re.DOTALL)
-        match = pattern.search(content)
-        if match:
-            vllm_deps_block = match.group(1)
-            vllm_dep_count = 0
-            for raw_line in vllm_deps_block.splitlines():
-                line = raw_line.strip()
-                if not line or line.startswith('#'): continue
-                # 移除行内注释
-                if '#' in line:
-                    line = line.split('#')[0].strip()
-                # 移除尾部逗号
-                if line.endswith(','):
-                    line = line[:-1].strip()
-                # 移除引号
-                if line.startswith(('\"', \"'\")) and line.endswith(('\"', \"'\")):
-                    line = line[1:-1]
-                if line:
-                    pkg_match = re.match(r'^([a-zA-Z0-9_-]+[a-zA-Z0-9_\[\]-]*)', line)
-                    if pkg_match:
-                        pkg_name = pkg_match.group(1)
-                        dep_versions[pkg_name].append(line)
-                        vllm_dep_count += 1
-            if vllm_dep_count > 0:
-                print(f'[INFO] 已包含 {vllm_dep_count} 个 vLLM 可选依赖', file=sys.stderr)
 
 # 去重并选择最严格的版本约束
 external_deps = []
