@@ -182,8 +182,7 @@ L1: sage-common                        # Foundation
 ```
 
 **独立 LLM 仓库** (已从 SAGE 核心分离):
-- `isage-llm-core`: LLM Control Plane + Unified Client (PyPI)
-- `isage-llm-gateway`: OpenAI/Anthropic-compatible API Gateway (PyPI)
+- `sageLLM`: 统一 LLM 推理引擎，安装命令: `pip install isagellm`
 - `sage-benchmark`: Evaluation framework (独立 PyPI: isage-benchmark)
 
 **Independent Repositories**:
@@ -217,13 +216,12 @@ L1: sage-common                        # Foundation
 如果 SAGE 未安装，则作为独立库使用。
 
 Notes:
-- `sage-llm-gateway` has been moved to independent repository. Install from PyPI: `pip install isage-llm-gateway`
-- `sage-llm-core` has been moved to independent repository. Install from PyPI: `pip install isage-llm-core`
+- `sageLLM` (LLM 推理引擎) 已独立。安装: `pip install isagellm`
 - `sage-edge` (optional) is an independent PyPI package `isage-edge>=0.2.4.0`. Install separately if needed.
 - `sage-apps` 已迁移到 sage-examples 仓库，不再是可安装的包。
 - Legacy `sage-gateway` has been superseded; do not add new code under that namespace.
 
-**⚠️ SAGE 核心仓库不再包含 LLM 推理相关代码**。如需 LLM 功能，请单独安装 `isage-llm-core` 和 `isage-llm-gateway`。
+**⚠️ SAGE 核心仓库不再包含 LLM 推理相关代码**。如需 LLM 功能，请安装 `pip install isagellm`。
 
 ### 🚨 sageLLM 独立仓库 - CRITICAL
 
@@ -323,47 +321,46 @@ Only after consulting these READMEs should the assistant propose designs, refact
 
 SAGE is an inference pipeline system, not just an LLM server. When writing docs, abstracts, design notes, or code changes, prefer describing/using these existing modules (and their correct layer placement) instead of inventing new components.
 
-**⚠️ LLM 推理组件已独立**：Gateway 和 Control Plane 已移至独立仓库，以下为参考架构。
+**⚠️ LLM 推理组件已独立**：LLM 推理已移至独立仓库 `sageLLM`，以下为参考架构。
 
 Canonical namespaces (post-refactor):
-- Gateway: `sage.llm.gateway.*` (独立包: `isage-llm-gateway`)
-- Control plane + unified client: `sage.llm.*` (独立包: `isage-llm-core`)
+- sageLLM 推理引擎: `isagellm.*` (PyPI: `pip install isagellm`)
 - Optional edge aggregator: `sage.edge.*` (独立包: `isage-edge`) - Mounts entire Gateway application
-- Avoid legacy `sage.gateway.*` imports; they have been superseded.
+- Avoid legacy `sage.gateway.*` and `sage.llm.*` imports; they have been superseded.
 
 **Gateway (独立仓库, OpenAI/Anthropic-compatible + control plane + sessions)**
 
-> **Note**: 以下路径指向独立仓库 `isage-llm-gateway`，不在 SAGE 核心仓库中。
-> 安装: `pip install isage-llm-gateway`
+> **Note**: 以下路径指向独立仓库 `sageLLM`，不在 SAGE 核心仓库中。
+> 安装: `pip install isagellm`
 
-- Entry point: `sage/llm/gateway/server.py`
-- Control plane management API: `sage/llm/gateway/routes/engine_control_plane.py`
-- Studio backend routes (merged into gateway): `sage/llm/gateway/routes/studio.py`
+- Entry point: `isagellm/gateway/server.py`
+- Control plane management API: `isagellm/gateway/routes/engine_control_plane.py`
+- Studio backend routes (merged into gateway): `isagellm/gateway/routes/studio.py`
 - OpenAI adapter (runs persistent RAG pipeline, can trigger agentic operators):
-  `sage/llm/gateway/adapters/openai.py`
-- Pipeline-as-a-service for RAG: `sage/llm/gateway/rag_pipeline.py`
+  `isagellm/gateway/adapters/openai.py`
+- Pipeline-as-a-service for RAG: `isagellm/gateway/rag_pipeline.py`
 - Session + memory backends (short-term + NeuroMem VDB/KV/Graph):
-  `sage/llm/gateway/session/manager.py`
+  `isagellm/gateway/session/manager.py`
 - Edge aggregator (optional, independent package `isage-edge`):
   Repository: https://github.com/intellistream/sage-edge
   Note: Edge mounts the complete Gateway FastAPI application, not just LLM endpoints
 
 **Control Plane + Unified Client (独立仓库, sageLLM integration)**
 
-> **Note**: 以下路径指向独立仓库 `isage-llm-core`，不在 SAGE 核心仓库中。
-> 安装: `pip install isage-llm-core`
+> **Note**: 以下路径指向独立仓库 `sageLLM`，不在 SAGE 核心仓库中。
+> 安装: `pip install isagellm`
 
 - Unified LLM+Embedding client (must use factory):
-  `sage/llm/unified_client.py`
+  `isagellm/unified_client.py`
 - Control plane implementation lives under:
-  `sage/llm/control_plane/`
+  `isagellm/control_plane/`
 - Speculative Decoding strategies (engine optimization):
-  `sage/llm/engines/vllm/speculative.py`
+  `isagellm/engines/vllm/speculative.py`
   - `SpeculativeStrategy` - Abstract base class
   - `DraftModelStrategy` - Use separate draft model (e.g., Qwen-0.5B for Qwen-7B)
   - `NgramStrategy` - N-gram based (lightweight, no extra model)
   - `DynamicLookaheadStrategy` - Research-grade dynamic lookahead adjustment
-  - Import: `from sage.llm import DynamicLookaheadStrategy` (需先安装 isage-llm-core)
+  - Import: `from isagellm import DynamicLookaheadStrategy` (需先安装 isagellm)
 
 **Middleware inference building blocks (L4, PyPI packages with C++ extensions)**
 
@@ -807,8 +804,7 @@ SAGE 的 PyPI 包名与内部包名不同：
 **已独立的 LLM 包** (不在 SAGE 核心仓库):
 | 包名 | PyPI 包名 | 用途 |
 |------|----------|------|
-| `isage-llm-gateway` | `isage-llm-gateway` | OpenAI-compatible Gateway |
-| `isage-llm-core` | `isage-llm-core` | LLM control plane + client |
+| `sageLLM` | `isagellm` | 统一 LLM 推理引擎 (含 Control Plane, Gateway) |
 
 ### Pre-publish Checklist
 
@@ -1021,21 +1017,21 @@ engines:
 
 | 组件 | 位置 | 功能 |
 |------|------|------|
-| `ControlPlaneManager` | `sage.llm.control_plane.manager` | 核心调度管理器 |
-| `RequestClassifier` | `sage.llm.control_plane.request_classifier` | 请求类型分类 |
-| `HybridSchedulingPolicy` | `sage.llm.control_plane.strategies.hybrid_policy` | 混合调度策略 |
-| `EmbeddingExecutor` | `sage.llm.control_plane.executors.embedding_executor` | Embedding 批处理 |
-| `ControlPlaneService` | `sage.llm.control_plane_service` | Control Plane SAGE 封装 |
+| `ControlPlaneManager` | `isagellm.control_plane.manager` | 核心调度管理器 |
+| `RequestClassifier` | `isagellm.control_plane.request_classifier` | 请求类型分类 |
+| `HybridSchedulingPolicy` | `isagellm.control_plane.strategies.hybrid_policy` | 混合调度策略 |
+| `EmbeddingExecutor` | `isagellm.control_plane.executors.embedding_executor` | Embedding 批处理 |
+| `ControlPlaneService` | `isagellm.control_plane_service` | Control Plane SAGE 封装 |
 
-> **Note**: 以上组件来自独立仓库 `isage-llm-core`，需单独安装：`pip install isage-llm-core`
+> **Note**: 以上组件来自独立仓库 `sageLLM`，需单独安装：`pip install isagellm`
 
 ### 关键文件位置
 
-> **Note**: LLM 相关代码已移至独立仓库，以下路径仅供参考。
+> **Note**: LLM 相关代码已移至独立仓库 `sageLLM`，以下路径仅供参考。
 
-**isage-llm-core (独立仓库)**:
+**sageLLM (独立仓库, PyPI: isagellm)**:
 ```
-sage/llm/
+isagellm/
   unified_client.py         # UnifiedInferenceClient (factory-only construction)
   control_plane_service.py  # Control Plane facade
   control_plane/            # Control Plane core implementation
@@ -1043,21 +1039,17 @@ sage/llm/
     request_classifier.py   # 请求分类器
     strategies/hybrid_policy.py  # LLM + Embedding 混合调度
     executors/embedding_executor.py # Embedding 批处理执行
-```
-
-**isage-llm-gateway (独立仓库)**:
-```
-sage/llm/gateway/
-  server.py                 # FastAPI 应用入口 (OpenAI/Anthropic-compatible)
-  routes/
-    engine_control_plane.py # Control Plane 管理 API
-    llm.py                  # LLM 代理
-    embedding.py            # Embedding 代理
-    studio.py               # Studio backend routes (merged)
-    sessions.py             # 会话管理
-  adapters/openai.py        # OpenAI adapter
-  rag_pipeline.py           # Pipeline-as-a-service
-  session/manager.py        # Session + memory backends
+  gateway/
+    server.py               # FastAPI 应用入口 (OpenAI/Anthropic-compatible)
+    routes/
+      engine_control_plane.py # Control Plane 管理 API
+      llm.py                # LLM 代理
+      embedding.py          # Embedding 代理
+      studio.py             # Studio backend routes (merged)
+      sessions.py           # 会话管理
+    adapters/openai.py      # OpenAI adapter
+    rag_pipeline.py         # Pipeline-as-a-service
+    session/manager.py      # Session + memory backends
 ```
 
 **isage-edge (独立仓库)**:
@@ -1078,7 +1070,7 @@ packages/sage-common/src/sage/common/components/
 ### 客户端模式对比（统一 Control Plane）
 
 > Simple 模式已移除；所有请求都经由 Control Plane。
-> **Note**: 以下功能需要安装独立包 `isage-llm-core`。
+> **Note**: 以下功能需要安装独立包 `isagellm`。
 
 | 模式 | 创建方式 | 调度 | 适用场景 |
 |------|----------|------|---------|
