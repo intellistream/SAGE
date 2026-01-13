@@ -194,9 +194,6 @@ install_sage() {
     local mode="${1:-dev}"
     local environment="${2:-conda}"
     local clean_cache="${3:-true}"
-    local install_vllm="${4:-true}"
-
-    export SAGE_INSTALL_VLLM="$install_vllm"
 
     # CI 环境特殊处理：双重保险，确保使用 pip
     # 即使参数解析阶段没有正确设置，这里也会修正
@@ -265,7 +262,7 @@ install_sage() {
     fi
 
     log_info "SAGE 主要安装过程开始" "MAIN"
-    log_info "安装模式: $mode | 环境: $environment | vLLM: $install_vllm" "MAIN"
+    log_info "安装模式: $mode | 环境: $environment" "MAIN"
 
     echo ""
     case "$mode" in
@@ -326,20 +323,6 @@ install_sage() {
             else
                 log_phase_end "开发者安装模式" "failure" "MAIN"
                 return 1
-            fi
-
-            # 尝试安装 FlashInfer（可选，用于 vLLM 高性能采样）
-            local flashinfer_script="$project_root/tools/install/helpers/install_flashinfer.sh"
-            if [ -f "$flashinfer_script" ]; then
-                echo ""
-                echo -e "${BLUE}🚀 尝试安装 FlashInfer（vLLM 高性能采样加速）...${NC}"
-                log_info "尝试安装 FlashInfer" "MAIN"
-                if bash "$flashinfer_script" 2>&1 | tee -a "$log_file"; then
-                    log_info "FlashInfer 安装成功" "MAIN"
-                else
-                    log_warn "FlashInfer 安装跳过（可选组件，不影响基本功能）" "MAIN"
-                    echo -e "${DIM}   FlashInfer 安装跳过，vLLM 将使用 PyTorch 原生采样${NC}"
-                fi
             fi
             ;;
         *)

@@ -52,7 +52,7 @@ fi
 PIP_CMD="${PIP_CMD:-pip3}"
 
 # ============================================================================
-# vLLM 依赖管理辅助函数
+# 版本比较辅助函数
 # ============================================================================
 
 # 版本比较函数（语义版本）
@@ -80,144 +80,13 @@ except Exception:
     return $?
 }
 
-# 检查 torch 版本兼容性
-check_torch_compatibility_before_vllm() {
-    local required_ver="2.7.0"
-    local existing_torch_ver=""
-
-    # 检查现有 torch 版本
-    if existing_torch_ver=$(python3 -c "import torch; print(torch.__version__)" 2>/dev/null); then
-        # 移除版本号中的 +cu121 等后缀
-        existing_torch_ver="${existing_torch_ver%%+*}"
-
-        echo -e "${INFO_MARK} 检测到现有 torch 版本: $existing_torch_ver"
-        log_info "检测到现有 torch 版本: $existing_torch_ver" "INSTALL"
-
-        # 检查是否满足 vLLM 要求 (>= 2.7.0)
-        if version_gte "$existing_torch_ver" "$required_ver"; then
-            echo -e "${CHECK} 现有 torch 版本满足 vLLM 要求（>= $required_ver）"
-            log_info "torch 版本兼容: $existing_torch_ver >= $required_ver" "INSTALL"
-            return 0  # 兼容
-        else
-            echo -e "${WARNING} 现有 torch 版本过低（$existing_torch_ver < $required_ver）"
-            echo -e "${INFO_MARK} 将在安装 vLLM 时升级 torch"
-            log_warn "torch 版本过低，需要升级: $existing_torch_ver -> >= $required_ver" "INSTALL"
-            return 1  # 需要升级
-        fi
-    else
-        echo -e "${INFO_MARK} 未检测到 torch，将随 vLLM 一起安装"
-        log_info "未检测到 torch，将安装 >= $required_ver" "INSTALL"
-        return 1  # 需要安装
-    fi
-}
-
 # ============================================================================
-# vLLM 安装函数
+# 核心安装函数
 # ============================================================================
-
-# 从本地源码安装 vLLM
-# vLLM 源码位于 packages/sage-common/src/sage/common/components/sage_llm/sageLLM/engines/vllm
-install_vllm_from_source() {
-    local pip_args="$1"
-    local project_root="${2:-$(pwd)}"
-    local vllm_source_dir="$project_root/packages/sage-common/src/sage/common/components/sage_llm/sageLLM/engines/vllm"
-
-    if [ ! -d "$vllm_source_dir" ]; then
-        log_error "vLLM 源码目录不存在: $vllm_source_dir" "INSTALL"
-        echo -e "${CROSS} vLLM 源码目录不存在，请先同步 submodules: ./manage.sh"
-        return 1
-    fi
-
-    if [ ! -f "$vllm_source_dir/pyproject.toml" ]; then
-        log_error "vLLM pyproject.toml 不存在: $vllm_source_dir/pyproject.toml" "INSTALL"
-        echo -e "${CROSS} vLLM 源码不完整，缺少 pyproject.toml"
-        return 1
-    fi
-
-    echo -e "${BLUE}🔧 从本地源码编译安装 vLLM...${NC}"
-    echo -e "${DIM}   源码目录: $vllm_source_dir${NC}"
-    echo -e "${DIM}   注意：编译可能需要 10-30 分钟，取决于硬件配置${NC}"
-    log_info "开始从源码编译安装 vLLM: $vllm_source_dir" "INSTALL"
-
-    # 首先安装编译依赖（torch 等）
-    echo -e "${DIM}   安装编译依赖 (torch>=2.4.0)...${NC}"
-    local torch_install_cmd="$PIP_CMD install 'torch>=2.4.0' 'torchaudio>=2.4.0' 'torchvision>=0.17.0'"
-    for arg in $pip_args; do
-        torch_install_cmd+=" $arg"
-    done
-
-    if ! eval "$torch_install_cmd" >> "$project_root/.sage/logs/install.log" 2>&1; then
-        log_warn "torch 安装失败，但继续尝试编译 vLLM" "INSTALL"
-    fi
-
-    # 编译并安装 vLLM（使用 editable 模式便于开发调试）
-    echo -e "${DIM}   编译 vLLM（这可能需要较长时间）...${NC}"
-    local pip_install_cmd="$PIP_CMD install -e '$vllm_source_dir'"
-    for arg in $pip_args; do
-        pip_install_cmd+=" $arg"
-    done
-
-    # 记录开始时间
-    local start_time=$(date +%s)
-
-    if log_pip_install_with_progress "INSTALL" "vLLM (源码编译)" "$pip_install_cmd"; then
-        local end_time=$(date +%s)
-        local duration=$((end_time - start_time))
-        log_success "vLLM 源码编译安装完成，耗时 ${duration} 秒" "INSTALL"
-        echo -e "${CHECK} vLLM 源码编译安装完成（耗时 ${duration} 秒）"
-        return 0
-    else
-        log_error "vLLM 源码编译安装失败" "INSTALL"
-        echo -e "${CROSS} vLLM 源码编译安装失败${NC}"
-        echo -e "${DIM}   可能原因:${NC}"
-        echo -e "${DIM}   - CUDA toolkit 未安装或版本不兼容${NC}"
-        echo -e "${DIM}   - cmake 或 ninja 未安装${NC}"
-        echo -e "${DIM}   - 内存不足（建议 16GB+）${NC}"
-        echo -e "${DIM}   查看日志: $project_root/.sage/logs/install.log${NC}"
-        echo -e "${DIM}   或尝试 pip 安装: ./quickstart.sh --vllm-pip${NC}"
-        return 1
-    fi
-}
-
-# 安装 vLLM 运行时依赖（基于 optional-dependencies[vllm]）
-# 智能选择：如果 torch 已满足要求，使用 vllm-minimal；否则使用 vllm（含 torch）
-install_vllm_optional_dependencies() {
-    local pip_args="$1"
-
-    # 检查 torch 兼容性，决定使用哪个 extra
-    local extra_name="vllm"
-    if check_torch_compatibility_before_vllm; then
-        extra_name="vllm-minimal"
-        echo -e "${INFO_MARK} 使用 vllm-minimal（不含 torch，复用现有版本）"
-        log_info "使用 vllm-minimal extra（torch 已满足要求）" "INSTALL"
-    else
-        extra_name="vllm"
-        echo -e "${INFO_MARK} 使用 vllm（含 torch >= 2.0.0）"
-        log_info "使用 vllm extra（包含 torch 依赖）" "INSTALL"
-    fi
-
-    # vLLM 依赖现在在 sage-llm-core 中声明
-    echo -e "${DIM}  安装 vLLM 依赖（extra: $extra_name）...${NC}"
-    log_info "开始安装 vLLM 依赖: isage-llm-core[$extra_name]" "INSTALL"
-
-    local install_cmd="$PIP_CMD install 'isage-llm-core[$extra_name]' $pip_args"
-
-    if log_pip_install_with_progress "INSTALL" "vLLM" "$install_cmd"; then
-        log_success "vLLM 运行时依赖安装完成" "INSTALL"
-        echo -e "${CHECK} vLLM 运行时依赖安装完成"
-        return 0
-    else
-        log_warn "vLLM 运行时依赖安装失败" "INSTALL"
-        echo -e "${WARNING} vLLM 依赖安装失败"
-        echo -e "${DIM}   可稍后手动运行: pip install 'isage-llm-core[$extra_name]'${NC}"
-        return 1
-    fi
-}
 
 # 安装核心包 - 新的简化版本
 install_core_packages() {
     local install_mode="${1:-dev}"  # 默认为开发模式
-    local install_vllm="${SAGE_INSTALL_VLLM:-true}"
 
     # 准备pip安装参数
     local pip_args="--disable-pip-version-check --no-input"
@@ -1133,31 +1002,6 @@ print(f'✓ 提取了 {len(external_deps)} 个外部依赖（已去重）', file
     fi
 
     log_phase_end_enhanced "外部依赖安装" "success" "INSTALL"
-
-    echo ""
-    # 优化：检查外部依赖是否已包含 vLLM
-    local vllm_in_external_deps=false
-    if [ -f "$external_deps_file" ] && grep -q "^vllm" "$external_deps_file" 2>/dev/null; then
-        vllm_in_external_deps=true
-        log_info "外部依赖中已包含 vLLM，跳过单独安装" "INSTALL"
-    fi
-
-    if [ "$install_vllm" = "true" ] && [ "$vllm_in_external_deps" = false ]; then
-        local vllm_from_source="${SAGE_VLLM_FROM_SOURCE:-false}"
-        if [ "$vllm_from_source" = "true" ]; then
-            echo -e "${BLUE}🔧 从本地源码编译安装 vLLM...${NC}"
-            install_vllm_from_source "$pip_args" "$project_root"
-        else
-            echo -e "${BLUE}🤖 安装 vLLM 运行时依赖（从 PyPI）...${NC}"
-            install_vllm_optional_dependencies "$pip_args"
-        fi
-    elif [ "$install_vllm" = "true" ] && [ "$vllm_in_external_deps" = true ]; then
-        echo -e "${CHECK} vLLM 运行时依赖已在外部依赖中安装，跳过单独安装"
-        log_info "vLLM 已在外部依赖阶段安装，跳过重复安装" "INSTALL"
-    else
-        echo -e "${DIM}跳过 vLLM 运行时依赖安装（使用 --no-vllm）${NC}"
-        log_info "用户通过 --no-vllm 跳过 vLLM 依赖安装" "INSTALL"
-    fi
 
     echo ""
     echo -e "${CHECK} SAGE ($install_mode 模式) 和外部依赖安装成功."

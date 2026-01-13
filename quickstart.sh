@@ -223,31 +223,11 @@ main() {
             echo -e "${DIM}提示: 查看详细报告 .sage/logs/environment_precheck.log${NC}"
         fi
 
-        # 检查是否需要安装 nvcc (检测到 GPU 但缺少 CUDA Toolkit)
-        if [ "${SAGE_NEEDS_NVCC:-false}" = "true" ]; then
-            echo -e "\n${YELLOW}${BOLD}⚠️  检测到 GPU 但缺少 CUDA Toolkit (nvcc 编译器)${NC}"
-            echo -e "${DIM}vLLM 需要 nvcc 才能正常运行${NC}"
-
-            if [[ -n "${CONDA_DEFAULT_ENV:-}" || -n "${CONDA_PREFIX:-}" ]]; then
-                echo -e "\n${BLUE}正在自动安装 CUDA Toolkit...${NC}"
-                if conda install -c conda-forge cudatoolkit-dev -y --override-channels; then
-                    echo -e "${GREEN}✅ CUDA Toolkit 安装成功${NC}"
-                else
-                    echo -e "${YELLOW}⚠️  CUDA Toolkit 自动安装失败${NC}"
-                    echo -e "${DIM}请手动安装: conda install -c conda-forge cudatoolkit-dev -y --override-channels${NC}"
-                fi
-            else
-                echo -e "${YELLOW}未检测到 conda 环境，请手动安装 CUDA Toolkit${NC}"
-                echo -e "${DIM}推荐: conda install -c conda-forge cudatoolkit-dev -y --override-channels${NC}"
-            fi
-        fi
-
         # 保持原有的 numpy 检查
         if ! precheck_numpy_environment ".sage/logs/install.log"; then
             echo -e "${YELLOW}⚠️  检测到潜在 numpy 环境问题，但将继续尝试安装${NC}"
         fi
     fi
-
     # 如果没有指定任何参数且不在 CI 环境中，显示交互式菜单
     if [ $# -eq 0 ] && [[ -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" && -z "${GITLAB_CI:-}" && -z "${JENKINS_URL:-}" && -z "${BUILDKITE:-}" ]]; then
         show_installation_menu
@@ -267,14 +247,10 @@ main() {
     local use_mirror=$(should_use_pip_mirror)
     local mirror_source=$(get_mirror_source_value)
     local clean_before_install=$(get_clean_before_install)
-    local install_vllm=$(should_install_vllm)
-    local vllm_from_source=$(should_install_vllm_from_source)
 
     # 导出 pip 镜像配置为环境变量，供子脚本使用
     export USE_PIP_MIRROR="$use_mirror"
     export MIRROR_SOURCE="$mirror_source"
-    # 导出 vLLM 源码安装配置
-    export SAGE_VLLM_FROM_SOURCE="$vllm_from_source"
 
     # 执行安装前清理（如果启用）
     if [ "$clean_before_install" = "true" ]; then
@@ -366,7 +342,7 @@ main() {
     fi
 
     # 执行安装
-    install_sage "$mode" "$environment" "$clean_cache" "$install_vllm"
+    install_sage "$mode" "$environment" "$clean_cache"
 
     # 验证安装
     if run_comprehensive_verification; then
