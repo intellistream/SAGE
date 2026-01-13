@@ -143,7 +143,7 @@ class AgentRuntimeConfig:
             generator=GeneratorConfig(
                 engine_type="openai",
                 model_name="gpt-4o-mini",
-                api_key="sk-xxx",
+                api_key="sk-xxx",  # pragma: allowlist secret
             ),
         )
         ```

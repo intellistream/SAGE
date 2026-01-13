@@ -35,11 +35,7 @@ def demo_basic_embedding_service():
     from sage.common.components.sage_embedding import EmbeddingService
 
     # 检查是否在测试模式或 mock 模式
-    is_test_mode = (
-        _USE_MOCK
-        or os.getenv("SAGE_TEST_MODE") == "true"
-        or os.getenv("CI") == "true"
-    )
+    is_test_mode = _USE_MOCK or os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("CI") == "true"
 
     # 配置: 在测试/mock 模式使用 mock，否则使用 HuggingFace 模型
     if is_test_mode:
@@ -437,11 +433,7 @@ def main():
     ]
 
     # 检查是否在测试模式
-    is_test_mode = (
-        _USE_MOCK
-        or os.getenv("SAGE_TEST_MODE") == "true"
-        or os.getenv("CI") == "true"
-    )
+    is_test_mode = _USE_MOCK or os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("CI") == "true"
 
     if is_test_mode:
         # 测试模式：运行所有示例

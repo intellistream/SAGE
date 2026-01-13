@@ -39,66 +39,26 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
 ]
 dependencies = [
-    # Middleware-specific dependencies - 只包含外部依赖
-    # Authentication and security
-    "python-jose[cryptography]>=3.5.0,<4.0.0",
-    "passlib[argon2]>=1.7.4,<2.0.0",
+    # ============================================================================
+    # 核心依赖 - 只包含 sage.middleware 模块导入时必需的最小依赖集
+    # 原则：重型依赖（transformers, celery, ML libs）放在 optional-dependencies
+    # ============================================================================
+    # API clients - required for LLM integrations
+    "openai>=1.52.0,<1.91.0",
+    "httpx>=0.28.0,<1.0.0",
 
-    # Task queue
-    "celery>=5.5.0,<6.0.0",
-    "flower>=2.0.0,<3.0.0",
+    # Network utilities - required for operators
+    "aiohttp>=3.12.0,<4.0.0",
+    "beautifulsoup4>=4.12.0,<5.0.0",  # Web scraping operators
+    "feedparser>=6.0.11,<7.0.0",  # RSS feed operators
 
-    # API clients
-    "openai>=1.52.0,<1.91.0",  # OpenAI API client
-    "ollama>=0.5.0,<1.0.0",
-    "zhipuai>=2.1.0,<3.0.0",
-    "cohere>=5.16.0,<6.0.0",
-    "anthropic>=0.25.0,<1.0.0",
+    # JSON handling - for LongRefiner
+    "json_repair>=0.30.0,<1.0.0",
 
-    # ML/AI libraries
-    "transformers>=4.52.0,<4.54.0",  # 兼容 sagellm-backend CUDA engine
-    "tokenizers>=0.21.0,<0.24.0",  # 兼容 transformers 4.52-4.57
-    "faiss-cpu>=1.7.0,<2.0.0",
-    "isage-vdb>=0.1.5",  # SageVDB vector database (independent PyPI package, renamed from sagedb)
-    "isage-tsdb>=0.1.5",  # SageTSDB time series database (independent PyPI package, manylinux compatible)
-    "isage-flow>=0.1.1",  # SageFlow stream processing engine (independent PyPI package)
-
-    # L3 Independent Algorithm Libraries (sage_libs namespace, PyPI: isage-xxx)
-    "isage-libs",  # SAGE core algorithms library
-    "isage-agentic>=0.1.0.0",  # Agent implementations (sage_libs.sage_agentic)
-    "isage-eval>=0.1.0.0",  # Evaluation metrics/profiler/judge (sage_libs.sage_eval)
-    "isage-finetune>=0.1.0.0",  # Fine-tuning trainers and data loaders (sage_libs.sage_finetune)
-    "isage-privacy>=0.1.0.0",  # Privacy protection (DP, FL, MU, PII) (sage_libs.sage_privacy)
-    "isage-rag>=0.1.0.0",  # RAG implementations (Loaders, Chunkers, Retrievers) (sage_libs.sage_rag)
-    "isage-safety>=0.1.0.0",  # Safety guardrails and detectors (sage_libs.sage_safety)
-    "isage-refiner>=0.1.0.0",  # Context compression (LongRefiner, REFORM, Provence) (sage_libs.sage_refiner)
-    # Note: isage-neuromem moved to optional-dependencies to avoid conflicts
+    # BM25 retrieval - lightweight keyword search
     "bm25s>=0.2.13,<1.0.0",
     "rank-bm25>=0.2.0,<1.0.0",
     "PyStemmer>=3.0.0,<4.0.0",
-    "json_repair>=0.30.0,<1.0.0",  # For LongRefiner JSON parsing
-
-    # Network and data processing
-    "aiohttp>=3.12.0,<4.0.0",
-    "frozenlist>=1.7.0,<2.0.0",
-    "feedparser>=6.0.11,<7.0.0",
-
-    # ML acceleration
-    "accelerate>=1.9.0,<2.0.0",
-    "sentence-transformers>=3.1.0,<4.0.0",
-    "InstructorEmbedding>=1.0.0,<2.0.0",
-    "huggingface-hub>=0.34.0,<1.0.0",
-    "peft>=0.18.0,<1.0.0",
-
-    # Scientific computing
-    "scipy>=1.15.0,<2.0.0",  # 统一scipy版本范围，与其他包兼容
-
-    # Prompt compression (LLMLingua family)
-    "llmlingua>=0.2.0,<1.0.0",  # For LongLLMLingua and LLMLingua2 compression
-
-    # Documentation
-    "markdown>=3.4.4,<4.0.0",
-    "pymdown-extensions>=10.2.0,<11.0.0",
 ]
 license = {text = "MIT"}
 
@@ -111,14 +71,66 @@ dev = [
     "mypy>=1.7.0",
     "pybind11>=2.10.0",
 ]
+# Vector databases and storage
 vdb = [
-    "isage-vdb>=0.1.5",
+    "isage-vdb>=0.1.5",  # SageVDB vector database
+    "faiss-cpu>=1.7.0,<2.0.0",  # FAISS CPU backend
 ]
+# Memory system
 neuromem = [
-    "isage-neuromem>=0.2.1.1",
+    "isage-neuromem>=0.2.1.1",  # NeuroMem memory system
 ]
+# Streaming and time-series
+streaming = [
+    "isage-flow>=0.1.1",  # SageFlow stream processing
+    "isage-tsdb>=0.1.5",  # SageTSDB time series database
+]
+# ML/AI - transformers, embeddings, etc.
+ml = [
+    "transformers>=4.52.0,<4.54.0",
+    "tokenizers>=0.21.0,<0.24.0",
+    "sentence-transformers>=3.1.0,<4.0.0",
+    "InstructorEmbedding>=1.0.0,<2.0.0",
+    "accelerate>=1.9.0,<2.0.0",
+    "huggingface-hub>=0.34.0,<1.0.0",
+    "peft>=0.18.0,<1.0.0",
+    "scipy>=1.15.0,<2.0.0",
+]
+# Prompt compression
+compression = [
+    "llmlingua>=0.2.0,<1.0.0",  # LLMLingua family
+]
+# Task queue for distributed processing
+queue = [
+    "celery>=5.5.0,<6.0.0",
+    "flower>=2.0.0,<3.0.0",
+]
+# Authentication and security
+auth = [
+    "python-jose[cryptography]>=3.5.0,<4.0.0",
+    "passlib[argon2]>=1.7.4,<2.0.0",
+]
+# Additional LLM providers
+llm-providers = [
+    "ollama>=0.5.0,<1.0.0",
+    "zhipuai>=2.1.0,<3.0.0",
+    "cohere>=5.16.0,<6.0.0",
+    "anthropic>=0.25.0,<1.0.0",
+]
+# L3 Independent Algorithm Libraries
+libs = [
+    "isage-libs",  # Core interface library
+    "isage-agentic>=0.1.0.0",
+    "isage-eval>=0.1.0.0",
+    "isage-finetune>=0.1.0.0",
+    "isage-privacy>=0.1.0.0",
+    "isage-rag>=0.1.0.0",
+    "isage-safety>=0.1.0.0",
+    "isage-refiner>=0.1.0.0",
+]
+# Full installation with all optional dependencies
 all = [
-    "isage-middleware[vdb,neuromem]",
+    "isage-middleware[vdb,neuromem,streaming,ml,compression,queue,auth,llm-providers,libs]",
 ]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"

@@ -873,9 +873,10 @@ prompt_start_llm_service() {
         4|"")
             echo ""
             echo -e "${DIM}已跳过。稍后可用以下命令:${NC}"
-            echo -e "  ${CYAN}python examples/tutorials/hello_world.py${NC}  # Hello World"
-            echo -e "  ${CYAN}sage llm serve${NC}                           # LLM 服务"
-            echo -e "  ${CYAN}sage studio start${NC}                        # Studio 界面"
+            echo -e "  ${CYAN}git clone https://github.com/intellistream/sage-examples.git${NC}"
+            echo -e "  ${CYAN}python sage-examples/tutorials/hello_world.py${NC}  # Hello World"
+            echo -e "  ${CYAN}sage llm serve${NC}                                  # LLM 服务"
+            echo -e "  ${CYAN}sage studio start${NC}                               # Studio 界面"
             ;;
         *)
             echo ""
@@ -944,43 +945,67 @@ show_usage_tips() {
     echo ""
 
     case "$mode" in
-        "core")
-            echo -e "${BLUE}核心运行时模式：${NC}"
-            echo -e "  # 只包含 SAGE 核心包 (L1-L4)，适合容器部署和生产环境"
+        "minimal")
+            echo -e "${BLUE}最小安装模式：${NC}"
+            echo -e "  # 只包含 SAGE 核心包 (L1-L5)，适合容器部署和生产环境"
             echo -e "  python3 -c 'from sage.kernel import Pipeline; print(\"Pipeline ready\")'"
-            echo -e "  # 如需完整功能，建议使用 --standard 或 --dev 模式"
             echo ""
-            ;;
-        "standard")
-            echo -e "${BLUE}标准模式：${NC}"
-            echo -e "  # 包含 Core + CLI + 科学计算包"
-            echo -e "  sage --help                      # 查看 CLI 命令"
-            echo -e "  jupyter notebook                 # 启动 Jupyter 笔记本"
-            echo -e "  python examples/tutorials/hello_world.py  # 运行示例"
-            echo ""
-            ;;
-        "full")
-            echo -e "${BLUE}完整功能模式：${NC}"
-            echo -e "  # 包含 Standard + Apps + Studio (Web UI)"
-            echo -e "  sage web-ui start                # 启动 Web UI"
-            echo -e "  python examples/apps/rag_app.py  # 运行应用示例"
+            echo -e "${BLUE}按需安装可选功能：${NC}"
+            echo -e "  pip install isage-middleware[ml]         # ML 功能 (torch, transformers)"
+            echo -e "  pip install isage-middleware[vdb]        # 向量数据库 (faiss)"
+            echo -e "  pip install isage-middleware[streaming]  # 流处理扩展"
             echo ""
             ;;
         "dev")
             echo -e "${BLUE}开发者模式：${NC}"
-            echo -e "  # 包含完整开发工具链"
+            echo -e "  # 包含核心包 + 开发工具"
             echo -e "  sage-dev test                    # 运行测试"
             echo -e "  sage-dev quality                 # 代码质量检查"
-            echo -e "  sage-dev examples test           # 测试所有示例"
             echo -e "  pre-commit run --all-files       # 运行所有检查"
             echo ""
-            echo -e "${BLUE}C++扩展管理（可选）：${NC}"
-            echo -e "  ${DIM}# C++扩展已在安装 sage-middleware 时自动构建${NC}"
-            echo -e "  sage extensions status           # 检查扩展状态"
-            echo -e "  sage extensions install --force  # 强制重新构建扩展"
+            echo -e "${BLUE}按需安装可选功能：${NC}"
+            echo -e "  pip install isage-middleware[ml,vdb]     # ML + 向量数据库"
+            echo -e "  pip install isage-kernel[ml]             # Kernel ML 扩展"
+            echo ""
+            ;;
+        "full")
+            echo -e "${BLUE}完整功能模式（默认）：${NC}"
+            echo -e "  # 包含所有核心功能 + 科学计算 + ML + 向量数据库"
+            echo -e "  sage --help                      # 查看 CLI 命令"
+            echo -e "  jupyter notebook                 # 启动 Jupyter 笔记本"
+            echo -e "  sage-dev test                    # 运行测试"
+            echo -e "  sage-dev quality                 # 代码质量检查"
+            echo ""
+            ;;
+        # 兼容旧模式名称
+        "core")
+            echo -e "${BLUE}核心运行时模式（已改名为 minimal）：${NC}"
+            echo -e "  python3 -c 'from sage.kernel import Pipeline; print(\"Pipeline ready\")'"
+            echo ""
+            ;;
+        "standard")
+            echo -e "${BLUE}标准模式（已合并到 full）：${NC}"
+            echo -e "  sage --help                      # 查看 CLI 命令"
             echo ""
             ;;
     esac
+
+    # 独立包安装提示（所有模式通用）
+    echo -e "${BLUE}独立包（按需安装）：${NC}"
+    echo -e "  pip install isage-benchmark             # 性能基准测试"
+    echo -e "  pip install isagellm                    # LLM 推理引擎"
+    echo -e "  pip install isage-edge                  # Edge 聚合器"
+    echo -e "  git clone https://github.com/intellistream/sage-studio   # Web UI"
+    echo -e "  git clone https://github.com/intellistream/sage-examples # 示例代码"
+    echo ""
+
+    if [ "$mode" = "dev" ] || [ "$mode" = "full" ]; then
+        echo -e "${BLUE}C++扩展管理（可选）：${NC}"
+        echo -e "  ${DIM}# C++扩展已在安装 sage-middleware 时自动构建${NC}"
+        echo -e "  sage extensions status           # 检查扩展状态"
+        echo -e "  sage extensions install --force  # 强制重新构建扩展"
+        echo ""
+    fi
 
     echo -e "${BLUE}文档和示例：${NC}"
     echo -e "  ${GRAY}https://intellistream.github.io/SAGE-Pub/${NC}"
@@ -1052,11 +1077,8 @@ create_vscode_conda_config() {
     "\${workspaceFolder}/packages/sage-libs/src",
     "\${workspaceFolder}/packages/sage-middleware/src",
     "\${workspaceFolder}/packages/sage-platform/src",
-    "\${workspaceFolder}/packages/sage-apps/src",
-    "\${workspaceFolder}/packages/sage-studio/src",
     "\${workspaceFolder}/packages/sage-tools/src",
-    "\${workspaceFolder}/packages/sage-cli/src",
-    "\${workspaceFolder}/packages/sage-gateway/src"
+    "\${workspaceFolder}/packages/sage-cli/src"
   ]
 }
 EOF

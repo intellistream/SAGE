@@ -5,10 +5,18 @@ to split documents into smaller chunks for embedding and retrieval.
 
 This is a pure algorithm module (L3) - no dependencies on middleware or
 external services.
+
+Note: SentenceTransformersTokenTextSplitter requires sentence-transformers.
+      Install with: pip install isage-libs[llm]
 """
 
-from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+# Lazy imports for heavy dependencies
+if TYPE_CHECKING:
+    pass
 
 
 class CharacterSplitter:
@@ -70,6 +78,8 @@ class SentenceTransformersTokenTextSplitter:
         - chunk_size: Number of tokens per chunk (default: 512).
         - chunk_overlap: Number of overlapping tokens (default: 50).
         - model_name: SentenceTransformer model name (default: "sentence-transformers/all-mpnet-base-v2").
+
+    Note: Requires sentence-transformers. Install with: pip install isage-libs[llm]
     """
 
     def __init__(
@@ -83,15 +93,20 @@ class SentenceTransformersTokenTextSplitter:
         self.chunk_overlap = chunk_overlap
 
         try:
+            # Lazy import heavy dependencies
+            from sentence_transformers import SentenceTransformer
+            from transformers import AutoTokenizer
+
             # Load the SentenceTransformer model
             self._model = SentenceTransformer(self.model_name)
             # Use AutoTokenizer for transformer-based tokenization
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-        except ImportError:
+        except ImportError as e:
             raise ImportError(
                 "Could not import sentence_transformers or transformers python packages. "
-                "Please install them with `pip install sentence-transformers transformers`."
-            )
+                "Please install them with `pip install isage-libs[llm]` or "
+                "`pip install sentence-transformers transformers`."
+            ) from e
         except Exception as e:
             raise RuntimeError(f"Error while loading model or tokenizer: {e}") from e
 

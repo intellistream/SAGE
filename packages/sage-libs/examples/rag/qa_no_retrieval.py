@@ -118,7 +118,9 @@ def create_qa_pipeline():
             generator_class = SageLLMGenerator
             generator_config = {
                 "backend_type": "mock",
-                "model_id": config.get("generator", {}).get("vllm", {}).get("model_id", "mock-model"),
+                "model_id": config.get("generator", {})
+                .get("vllm", {})
+                .get("model_id", "mock-model"),
             }
         else:
             # 使用配置中的 OpenAIGenerator

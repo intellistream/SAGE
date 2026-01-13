@@ -794,9 +794,7 @@ class ResponseGenerator:
 
         请使用 --engine=sagellm 替代。
         """
-        console.print(
-            "[yellow]⚠️  vllm 引擎已废弃，推荐使用 --engine=sagellm[/yellow]"
-        )
+        console.print("[yellow]⚠️  vllm 引擎已废弃，推荐使用 --engine=sagellm[/yellow]")
         import os
 
         import requests
@@ -1069,13 +1067,15 @@ class ResponseGenerator:
         try:
             # SageLLMGenerator.execute() 接受多种格式输入，返回 dict
             # 使用 dict 格式以传递额外参数
-            result = self._sagellm_generator.execute({
-                "prompt": prompt,
-                "options": {
-                    "max_tokens": 768,
-                    "temperature": self.temperature,
-                },
-            })
+            result = self._sagellm_generator.execute(
+                {
+                    "prompt": prompt,
+                    "options": {
+                        "max_tokens": 768,
+                        "temperature": self.temperature,
+                    },
+                }
+            )
             # 结果是 dict，包含 text 字段
             if isinstance(result, dict):
                 return result.get("text", "")

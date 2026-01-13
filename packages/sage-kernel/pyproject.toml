@@ -41,54 +41,12 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
 ]
 dependencies = [
-    # 外部依赖
-    # Python basics
-    "python-dotenv>=1.1.0,<2.0.0",
-    "python_multipart>=0.0.20,<0.1.0",
-    "filelock>=3.16.0,<4.0.0",
-
-    # Distributed computing
-    "ray>=2.48.0,<3.0.0",
-    "grpcio>=1.74.0,<2.0.0",
-    "protobuf>=6.32.0,<7.0.0",
-    "msgpack>=1.1.0,<2.0.0",
-
-    # Deep learning (flexible ranges for GPU/CPU compatibility)
-    "torch>=2.7.0,<3.0.0",
-    "torchvision>=0.22.0,<1.0.0",
-
-    # HTTP and networking
-    "httpx>=0.28.0,<1.0.0",
-    "socksio>=1.0.0,<2.0.0",
-    "h11>=0.16.0,<1.0.0",
-    "requests>=2.32.0,<3.0.0",
-    "aiohappyeyeballs>=2.6.0,<3.0.0",
-    "aiosignal>=1.4.0,<2.0.0",
-
-    # Scientific computing
-    "numpy>=1.26.0,<2.3.0",
-
-    # Build dependencies (should be flexible)
-    "Cython>=3.1.0,<4.0.0",
-    "pybind11>=3.0.0,<4.0.0",
-
-    # AWS
-    "aioboto3>=14.1.0,<15.0.0",
-
-    # Web framework
-    "fastapi>=0.115.0,<1.0.0",
-    "uvicorn[standard]>=0.34.0,<1.0.0",
-    "pydantic[email]>=2.10.0,<3.0.0",
-
-    # Templates and CLI
-    "jinja2>=3.1.0,<4.0.0",
-    "shellingham>=1.5.0,<2.0.0",
-    "tabulate>=0.9.0,<1.0.0",
-    "typer>=0.15.0,<1.0.0",
-    "rich>=13.0.0,<14.0.0",
-    "click>=8.0.0,<9.0.0",
-    "questionary>=1.10.0,<2.0.0",
-    "prompt_toolkit>=3.0.50,<4.0.0",
+    # ============================================================================
+    # 核心依赖 - 只包含 sage.kernel 模块导入时必需的最小依赖集
+    # 原则：所有重型依赖（torch, fastapi, etc.）都放在 optional-dependencies
+    # ============================================================================
+    # NOTE: sage-kernel reuses dependencies from sage-platform (ray, etc.)
+    # These are pulled in transitively via isage-platform dependency
 ]
 
 license = {text = "MIT"}
@@ -102,15 +60,46 @@ dev = [
     "ruff==0.14.6",
     "mypy>=1.7.0",
 ]
-gpu = [
-    # PyTorch GPU will be installed via torch>=2.7.0
-    # Ensure CUDA is properly configured on your system
+# Deep learning - for model execution and GPU computation
+ml = [
+    "torch>=2.7.0,<3.0.0",
+    "torchvision>=0.22.0,<1.0.0",
 ]
-cpu = [
-    # For CPU-only: pip install isage-kernel[cpu]
-    # PyTorch CPU will be installed via torch>=2.7.0
+# Web server - for serving kernel as HTTP service
+server = [
+    "fastapi>=0.115.0,<1.0.0",
+    "uvicorn[standard]>=0.34.0,<1.0.0",
+    "python_multipart>=0.0.20,<0.1.0",
 ]
-all = []
+# Distributed - for cluster execution (usually pulled from sage-platform)
+distributed = [
+    "ray>=2.48.0,<3.0.0",
+    "grpcio>=1.74.0,<2.0.0",
+    "protobuf>=6.32.0,<7.0.0",
+    "msgpack>=1.1.0,<2.0.0",
+]
+# AWS - for cloud storage and services
+aws = [
+    "aioboto3>=14.1.0,<15.0.0",
+]
+# CLI - for interactive kernel management
+cli = [
+    "typer>=0.15.0,<1.0.0",
+    "rich>=13.0.0,<14.0.0",
+    "click>=8.0.0,<9.0.0",
+    "questionary>=1.10.0,<2.0.0",
+    "prompt_toolkit>=3.0.50,<4.0.0",
+    "tabulate>=0.9.0,<1.0.0",
+]
+# Build - for C++ extensions
+build = [
+    "Cython>=3.1.0,<4.0.0",
+    "pybind11>=3.0.0,<4.0.0",
+]
+# Full installation with all optional dependencies
+all = [
+    "isage-kernel[ml,server,distributed,aws,cli,build]",
+]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Repository = "https://github.com/intellistream/SAGE.git"

@@ -8,8 +8,6 @@ from sage.middleware.operators.agentic import (
     AgentRuntimeConfig,
     AgentRuntimeOperator,
     GeneratorConfig,
-    ProfileConfig,
-    RuntimeSettings,
 )
 from sage.middleware.operators.agentic.runtime import (
     _build_generator,
@@ -41,7 +39,7 @@ class TestGeneratorConfig:
         config = GeneratorConfig(
             engine_type="openai",
             model_name="gpt-4o-mini",
-            api_key="test-key",
+            api_key="test-key",  # pragma: allowlist secret
         )
         assert config.engine_type == "openai"
         assert config.model_name == "gpt-4o-mini"
@@ -76,7 +74,7 @@ class TestAgentRuntimeConfig:
         """Test factory method for OpenAI."""
         config = AgentRuntimeConfig.for_openai(
             model_name="gpt-4o",
-            api_key="sk-test",
+            api_key="sk-test",  # pragma: allowlist secret
         )
         assert config.generator.engine_type == "openai"
         assert config.generator.model_name == "gpt-4o"
@@ -143,7 +141,7 @@ class TestBuildGenerator:
     @pytest.mark.skip(reason="vllm support has been removed in v0.3.0")
     def test_vllm_deprecation_warning(self):
         """Test that vllm engine_type raises deprecation warning.
-        
+
         Note: This test is skipped as vllm support has been completely removed.
         """
         pass

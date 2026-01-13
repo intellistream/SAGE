@@ -167,7 +167,7 @@ class SageUserPaths:
         for subdir in [
             "models",
             "models/sagellm",  # sageLLM models (preferred)
-            "models/vllm",     # vLLM models (legacy)
+            "models/vllm",  # vLLM models (legacy)
             "sessions",
             "vector_db",
             "finetune",

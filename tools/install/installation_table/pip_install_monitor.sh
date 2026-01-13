@@ -35,20 +35,17 @@ else
     NC='\033[0m'
 fi
 
-# 本地 SAGE 包列表（不应该从 PyPI 下载）
+# 本地 SAGE 包列表（不应该从 PyPI 下载，应该从本地源码安装）
+# NOTE: 已独立的包（isage-benchmark, isage-studio, isage-edge, isagellm）
+#       不在此列表中，它们可以从 PyPI 下载
 LOCAL_PACKAGES=(
     "isage-common"
     "isage-platform"
     "isage-kernel"
     "isage-libs"
     "isage-middleware"
-    "isage-apps"
-    "isage-benchmark"
-    "isage-gateway"
     "isage-cli"
-    "isage-studio"
     "isage-tools"
-    "isage-gateway"
     "isage"
 )
 

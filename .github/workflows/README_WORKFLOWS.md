@@ -10,7 +10,7 @@
 | **ci-sagellm-test.yml**       | PR/Push (packages/)      | SageLLM mock/CUDA | pip install packages       | ~30分钟  | ✅ (mock)|
 | **ci-code-quality.yml**       | PR/Push (\*.py)          | 代码质量检查      | pip install tools only     | ~10分钟  | ✅       |
 | **ci-deployment-check.yml**   | PR/Push                  | 部署就绪检查      | `quickstart.sh --dev`      | ~15分钟  | -        |
-| **ci-examples-test.yml**      | PR/Push (examples/)      | 示例功能测试      | `quickstart.sh --standard` | ~30分钟  | -        |
+| **ci-examples-test.yml**      | PR/Push (examples/)      | 示例功能测试      | `quickstart.sh --dev`      | ~30分钟  | -        |
 | **ci-pr-install.yml**         | PR/Push (pyproject.toml) | 用户安装测试      | 构建 wheel + pip install   | ~20分钟  | -        |
 
 ## 🚀 SageLLM 测试 (ci-sagellm-test.yml) - 新增
@@ -73,50 +73,64 @@ gh workflow run ci-sagellm-test.yml -f run_cuda_tests=true
 
 ### quickstart.sh 模式
 
-| quickstart.sh | pip install       | 包含内容                              | 用途               | 大小   |
-| ------------- | ----------------- | ------------------------------------- | ------------------ | ------ |
-| `--core`      | `isage[core]`     | L1-L3 (common, platform, kernel)      | 容器部署、生产环境 | ~100MB |
-| `--standard`  | `isage[standard]` | L1-L5 (核心+CLI+RAG/LLM)              | 应用开发、日常使用 | ~200MB |
-| `--full`      | `isage[full]`     | standard + 独立包 (benchmark, studio) | 学习示例、性能评估 | ~300MB |
-| `--dev`       | `isage[dev]`      | full + 开发工具 (pytest, black, mypy) | 框架开发、贡献代码 | ~400MB |
+| quickstart.sh | pip install           | 包含内容                              | 用途               | 包数量 |
+| ------------- | --------------------- | ------------------------------------- | ------------------ | ------ |
+| `--minimal`   | `isage`               | L1-L3 核心 (common, platform, kernel) | 容器部署、生产环境 | ~80    |
+| `--dev`       | `isage` + dev tools   | minimal + pytest, ruff, mypy          | 框架开发、贡献代码 | ~120   |
+| `--full`      | `isage` + all extras  | dev + 科学库 + 可选依赖               | 完整功能、学习示例 | ~200+  |
+
+**默认模式**: `--full` (推荐新用户使用)
 
 ### 模式详细说明
 
-#### `core`
+#### `minimal` (最小安装)
 
-- **包含包**：sage-common, sage-platform, sage-kernel
-- **核心功能**：Pipeline, Operators, DataStream API
+- **包含包**：sage-common, sage-platform, sage-kernel, sage-libs, sage-middleware, sage-cli, sage-tools
+- **核心功能**：Pipeline, Operators, DataStream API, CLI
 - **适用场景**：
   - Docker 容器部署
   - 生产环境最小化安装
   - 仅需要流处理核心功能
+  - CI/CD 快速测试
+- **提示**：如需使用 ML、向量数据库等功能，可手动安装:
+  ```bash
+  pip install isage-middleware[ml,vdb,streaming]
+  ```
 
-#### `standard` (默认)
+#### `dev` (开发安装)
 
-- **包含包**：core + sage-libs, sage-middleware, sage-cli, sage-tools
+- **包含包**：minimal + 开发工具
 - **额外功能**：
-  - RAG/LLM operators
-  - CLI 工具 (sage, sage-dev)
-  - 数据科学库 (numpy, pandas, matplotlib, jupyter)
+  - pytest, pytest-cov (测试)
+  - ruff (格式化/lint)
+  - mypy (类型检查)
+  - pre-commit (Git hooks)
 - **适用场景**：
-  - 开发 SAGE 应用
+  - 开发 SAGE 框架代码
+  - 贡献代码到 SAGE
+  - 运行测试和代码质量检查
+- **提示**：如需 ML/科学计算功能:
+  ```bash
+  pip install isage-middleware[ml,vdb] isage-kernel[ml]
+  ```
+
+#### `full` (完整安装，默认)
+
+- **包含包**：dev + 科学库 + 所有可选依赖
+- **额外功能**：
+  - 科学计算库 (numpy, pandas, matplotlib, jupyter)
+  - ML 功能 (torch, transformers)
+  - 向量数据库 (faiss-cpu)
+  - 流处理扩展 (aiostream)
+  - 压缩功能 (llmlingua)
+  - 性能基准测试 (isage-benchmark)
+- **适用场景**：
+  - 学习 SAGE 完整功能
+  - 运行所有示例代码
   - 使用 RAG/LLM 功能
   - 日常开发和测试
 
-#### `full`
-
-- **包含包**：standard + 独立包 (isage-benchmark, isage-studio)
-- **额外功能**：
-  - 性能基准测试 (isage-benchmark)
-  - Web UI 界面 (isage-studio, 独立仓库)
-- **适用场景**：
-  - 学习 SAGE
-  - 运行示例代码
-  - 使用 Web 界面
-
 **Note**: Performance benchmarking is now available via separate package: `pip install isage-benchmark`
-
-#### `dev`
 
 - **包含包**：full + sage-tools[dev]
 - **额外功能**：
@@ -138,11 +152,11 @@ gh workflow run ci-sagellm-test.yml -f run_cuda_tests=true
 strategy:
   matrix:
     python-version: ['3.10', '3.11', '3.12']
-    install-mode: ['core', 'standard', 'full', 'dev']
+    install-mode: ['minimal', 'dev', 'full']
   fail-fast: false
 ```
 
-**总共测试组合**：3 × 4 = 12 个组合
+**总共测试组合**：3 × 3 = 9 个组合
 
 ### 测试内容
 
@@ -151,7 +165,7 @@ strategy:
 1. **本地 Wheel 构建安装**
 
    - 构建所有 SAGE 包为 wheel
-   - 使用 `pip install --find-links dist "isage[mode]"` 安装
+   - 使用 `pip install --find-links dist isage` 安装
    - 验证基础导入和 CLI 可用性
 
 1. **从源码安装**
@@ -162,10 +176,9 @@ strategy:
 
 1. **模式特定验证**
 
-   - **core**: Pipeline, Operators
-   - **standard**: RAGPipeline, CLI tools
-   - **full**: Apps, Benchmark
-   - **dev**: pytest, black, mypy
+   - **minimal**: Pipeline, Operators, CLI
+   - **dev**: minimal + pytest, ruff, mypy
+   - **full**: dev + torch, transformers, faiss, jupyter
 
 ### 额外测试 (独立 jobs)
 
@@ -182,19 +195,17 @@ strategy:
 
 ## 🔄 模式对齐检查清单
 
-### quickstart.sh vs pyproject.toml
+### quickstart.sh vs pip install
 
-- [x] `--core` ↔️ `isage[core]` ✅
-- [x] `--standard` ↔️ `isage[standard]` ✅
-- [x] `--full` ↔️ `isage[full]` ✅
-- [x] `--dev` ↔️ `isage[dev]` ✅
+- [x] `--minimal` ↔️ `pip install isage` ✅
+- [x] `--dev` ↔️ `pip install isage` + dev tools ✅
+- [x] `--full` ↔️ `pip install isage` + 所有可选依赖 ✅
 
 ### pip-installation-test.yml 测试覆盖
 
-- [x] `core` 模式 ✅
-- [x] `standard` 模式 ✅
-- [x] `full` 模式 ✅
+- [x] `minimal` 模式 ✅
 - [x] `dev` 模式 ✅
+- [x] `full` 模式 ✅
 - [x] Python 3.10 ✅
 - [x] Python 3.11 ✅
 - [x] Python 3.12 ✅
@@ -204,19 +215,17 @@ strategy:
 ### 用户安装 (从 PyPI)
 
 ```bash
-# 核心运行时
-pip install isage[core]
-
-# 标准安装（推荐）
+# 核心运行时（最小依赖）
 pip install isage
-# 或
-pip install isage[standard]
 
-# 完整功能
-pip install isage[full]
+# 添加 ML 功能
+pip install isage-middleware[ml]
 
-# 开发模式
-pip install isage[dev]
+# 添加向量数据库支持
+pip install isage-middleware[vdb]
+
+# 添加所有可选功能
+pip install isage-middleware[ml,vdb,streaming,compression]
 ```
 
 ### 开发者安装 (从源码)
@@ -226,11 +235,10 @@ pip install isage[dev]
 git clone https://github.com/intellistream/SAGE.git
 cd SAGE
 
-# 使用 quickstart.sh（推荐）
-./quickstart.sh --dev          # 开发模式（默认）
-./quickstart.sh --standard     # 标准模式
-./quickstart.sh --full         # 完整功能
-./quickstart.sh --core         # 核心运行时
+# 使用 quickstart.sh
+./quickstart.sh --full         # 完整功能（默认）
+./quickstart.sh --dev          # 开发模式
+./quickstart.sh --minimal      # 最小安装
 
 # 或手动安装
 pip install -e ".[dev]"        # 开发模式
@@ -241,8 +249,8 @@ pip install -e ".[standard]"   # 标准模式
 
 1. **默认行为差异**：
 
-   - `quickstart.sh` 默认使用 `--dev` 模式
-   - `pip install isage` 默认等同于 `isage[standard]`
+   - `quickstart.sh` 默认使用 `--full` 模式
+   - `pip install isage` 安装核心依赖，可选依赖通过 extras 安装
 
 1. **安装方式差异**：
 
@@ -252,13 +260,14 @@ pip install -e ".[standard]"   # 标准模式
 1. **CI/CD 策略**：
 
    - 代码质量检查使用 `--dev`（需要开发工具）
-   - 示例测试使用 `--standard`（模拟标准用户）
-   - pip 安装测试覆盖所有 4 种模式
+   - 示例测试使用 `--dev`（模拟开发者）
+   - 清理工具使用 `--minimal`（最小依赖）
+   - pip 安装测试覆盖所有 3 种模式
 
 1. **测试覆盖**：
 
    - 每个模式在 3 个 Python 版本下测试
-   - 总计 12 个测试组合
+   - 总计 9 个测试组合
    - 允许部分失败（`fail-fast: false`）
 
 ## 🔗 相关文档

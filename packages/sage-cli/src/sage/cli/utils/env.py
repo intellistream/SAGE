@@ -143,9 +143,9 @@ def check_environment_status() -> dict[str, object]:
 
     # sagellm environment variables
     sagellm_env_vars = [
-        "SAGELLM_MODEL_PATH",   # Default model path
-        "SAGELLM_BACKEND",      # Backend type: auto/mock/cuda/ascend
-        "SAGELLM_MODEL_ROOT",   # Model cache directory (~/.sage/models/sagellm)
+        "SAGELLM_MODEL_PATH",  # Default model path
+        "SAGELLM_BACKEND",  # Backend type: auto/mock/cuda/ascend
+        "SAGELLM_MODEL_ROOT",  # Model cache directory (~/.sage/models/sagellm)
     ]
 
     return {

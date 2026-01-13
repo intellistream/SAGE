@@ -185,6 +185,7 @@ class SageLLMGenerator(MapOperator):
 
                     if loop is not None:
                         import concurrent.futures
+
                         with concurrent.futures.ThreadPoolExecutor() as pool:
                             pool.submit(asyncio.run, start_coro).result()
                     else:
@@ -206,9 +207,7 @@ class SageLLMGenerator(MapOperator):
                 f"Failed to create SageLLM engine with backend_type={self.backend_type}: {e}"
             ) from e
 
-    def _build_generation_params(
-        self, prompt: str, options: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _build_generation_params(self, prompt: str, options: dict[str, Any]) -> dict[str, Any]:
         """
         构建生成参数，合并默认值和用户指定的选项。
         """
@@ -285,10 +284,9 @@ class SageLLMGenerator(MapOperator):
                     if loop is not None:
                         # 已有事件循环，创建新任务
                         import concurrent.futures
+
                         with concurrent.futures.ThreadPoolExecutor() as pool:
-                            result = pool.submit(
-                                asyncio.run, coro_or_result
-                            ).result()
+                            result = pool.submit(asyncio.run, coro_or_result).result()
                     else:
                         result = asyncio.run(coro_or_result)
                 else:
@@ -306,7 +304,9 @@ class SageLLMGenerator(MapOperator):
                 output = {"text": result, "usage": {}}
             elif isinstance(result, dict):
                 output = {
-                    "text": result.get("text", result.get("generated", result.get("output_text", ""))),
+                    "text": result.get(
+                        "text", result.get("generated", result.get("output_text", ""))
+                    ),
                     "usage": result.get("usage", {}),
                 }
             elif hasattr(result, "output_text"):

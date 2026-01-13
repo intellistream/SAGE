@@ -10,8 +10,6 @@ Recommended engine: sagellm (default). vllm engine is deprecated.
 
 from __future__ import annotations
 
-import warnings
-
 import httpx
 import typer
 from rich.console import Console
@@ -75,6 +73,7 @@ def _get_registry(engine: str):
             "See migration guide: docs-public/docs_src/dev-notes/migration/VLLM_TO_SAGELLM_MIGRATION.md"
         )
     from sage.common.model_registry import sagellm_registry as registry
+
     return registry
 
 

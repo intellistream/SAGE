@@ -143,43 +143,38 @@ install_core_packages() {
     log_phase_end_enhanced "环境信息收集" "true" "INSTALL"
 
     case "$install_mode" in
-        "core")
-            echo -e "${GRAY}核心运行时：L1-L4 (仅运行时)${NC}"
-            echo -e "${DIM}包含: common, platform, kernel, libs, middleware (~100MB)${NC}"
-            ;;
-        "standard")
-            echo -e "${GREEN}标准模式：Core + CLI + 科学计算${NC}"
-            echo -e "${DIM}包含: L1-L4 + sage-cli + numpy, pandas, matplotlib (~200MB)${NC}"
-            ;;
-        "full")
-            echo -e "${PURPLE}完整功能：Standard + 开发工具${NC}"
-            echo -e "${DIM}包含: 标准 + sage-tools (~250MB)${NC}"
+        "minimal")
+            echo -e "${GRAY}最小安装：核心运行时包${NC}"
+            echo -e "${DIM}包含: L1-L5 核心包，无开发工具，无可选依赖 (~80 包)${NC}"
+            echo -e "${DIM}💡 如需 ML/VDB 等功能，稍后运行: pip install isage-middleware[ml,vdb,...]${NC}"
             ;;
         "dev")
-            echo -e "${YELLOW}开发模式：Full + 开发工具${NC}"
-            echo -e "${DIM}包含: 完整 + sage-tools, pytest, black, mypy, pre-commit (~350MB)${NC}"
+            echo -e "${GREEN}开发安装：核心 + 开发工具${NC}"
+            echo -e "${DIM}包含: 核心包 + pytest, ruff, mypy, pre-commit (~120 包)${NC}"
+            echo -e "${DIM}💡 如需 ML/VDB 等功能，稍后运行: pip install isage-middleware[ml,vdb,...]${NC}"
+            ;;
+        "full")
+            echo -e "${YELLOW}完整安装：核心 + 开发工具 + 所有可选依赖${NC}"
+            echo -e "${DIM}包含: 所有功能 (ML, VDB, streaming, compression, etc.) (~200+ 包)${NC}"
+            ;;
+        # 兼容旧模式名称
+        "core"|"standard")
+            echo -e "${DIM}映射到: minimal 模式${NC}"
+            install_mode="minimal"
             ;;
         *)
-            echo -e "${YELLOW}未知模式，使用开发者模式${NC}"
-            install_mode="dev"
+            echo -e "${YELLOW}未知模式，使用完整安装${NC}"
+            install_mode="full"
             ;;
     esac
 
     echo ""
 
     # 检查所有必要的包目录是否存在
-    local required_packages=("packages/sage-common" "packages/sage-platform" "packages/sage-kernel")
+    local required_packages=("packages/sage-common" "packages/sage-platform" "packages/sage-kernel" "packages/sage-libs" "packages/sage-middleware" "packages/sage-cli")
 
-    # 根据模式添加更多包
-    if [ "$install_mode" != "core" ]; then
-        required_packages+=("packages/sage-middleware" "packages/sage-libs")
-        # standard/full/dev 模式需要 CLI
-        required_packages+=("packages/sage-cli")
-        # Note: sage-benchmark moved to independent repo (pip install isage-benchmark)
-    fi
-
-    # dev 模式需要 sage-tools
-    if [ "$install_mode" = "full" ] || [ "$install_mode" = "dev" ]; then
+    # dev 和 full 模式需要 sage-tools
+    if [ "$install_mode" = "dev" ] || [ "$install_mode" = "full" ]; then
         [ -d "packages/sage-tools" ] && required_packages+=("packages/sage-tools")
     fi
 

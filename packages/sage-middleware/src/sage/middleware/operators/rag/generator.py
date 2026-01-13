@@ -316,7 +316,7 @@ class SageLLMRAGGenerator(MapOperator):
             top_k=self.top_k,
             timeout=self.timeout,
             default_options=self.default_options,
-            )
+        )
 
     def execute(self, data: list[Any]) -> dict[str, Any]:
         """
@@ -338,4 +338,3 @@ class SageLLMRAGGenerator(MapOperator):
             }
         else:
             return {"generated": str(result)}
-

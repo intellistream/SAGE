@@ -225,32 +225,35 @@ show_installation_menu() {
     # 选择安装模式
     while true; do
         echo -e "${BOLD}1. 选择安装模式：${NC}"
-        echo -e "  ${GRAY}1)${NC} 核心运行时  - L1-L3 ${DIM}(~100MB, 生产部署)${NC}"
-        echo -e "  ${GREEN}2)${NC} 标准开发    - L1-L5 ${DIM}(~200MB, 应用开发)${NC}"
-        echo -e "  ${PURPLE}3)${NC} 完整功能    - Standard+L5 ${DIM}(~300MB, 学习示例)${NC}"
-        echo -e "  ${YELLOW}4)${NC} 框架开发    - Full+开发工具 ${DIM}(~400MB, 推荐)${NC}"
+        echo -e "  ${GRAY}1)${NC} 最小安装    - 核心包 ${DIM}(~80包, 生产部署/容器镜像)${NC}"
+        echo -e "  ${GREEN}2)${NC} 开发安装    - 核心+开发工具 ${DIM}(~120包, 日常开发)${NC}"
+        echo -e "  ${YELLOW}3)${NC} 完整安装    - 开发+所有可选依赖 ${DIM}(~200+包, 推荐)${NC}"
         echo ""
-        read -p "请选择安装模式 [1-4，默认4]: " mode_choice
+        read -p "请选择安装模式 [1-3，默认3]: " mode_choice
 
-        case "${mode_choice:-4}" in
+        case "${mode_choice:-3}" in
             1)
-                INSTALL_MODE="core"
+                INSTALL_MODE="minimal"
+                echo ""
+                echo -e "${DIM}💡 最小安装不含 ML/VDB/streaming 等功能${NC}"
+                echo -e "${DIM}   如需这些功能，可稍后运行:${NC}"
+                echo -e "${DIM}   pip install isage-middleware[ml,vdb,streaming,compression]${NC}"
                 break
                 ;;
             2)
-                INSTALL_MODE="standard"
+                INSTALL_MODE="dev"
+                echo ""
+                echo -e "${DIM}💡 开发安装不含 ML/VDB/streaming 等可选依赖${NC}"
+                echo -e "${DIM}   如需这些功能，可稍后运行:${NC}"
+                echo -e "${DIM}   pip install isage-middleware[ml,vdb,streaming,compression]${NC}"
                 break
                 ;;
             3)
                 INSTALL_MODE="full"
                 break
                 ;;
-            4)
-                INSTALL_MODE="dev"
-                break
-                ;;
             *)
-                echo -e "${RED}无效选择，请输入 1、2、3 或 4${NC}"
+                echo -e "${RED}无效选择，请输入 1、2 或 3${NC}"
                 echo ""
                 ;;
         esac
@@ -408,7 +411,6 @@ show_installation_menu() {
     done
 
     echo ""
-    refresh_sync_submodule_default
 }
 
 # 显示参数帮助信息
@@ -423,32 +425,24 @@ show_parameter_help() {
     echo -e "${PURPLE}💡 无参数运行时将显示交互式菜单，引导您完成安装配置${NC}"
     echo ""
 
-    echo -e "${BLUE}📦 安装模式 (quickstart.sh 默认: 开发者模式)：${NC}"
+    echo -e "${BLUE}📦 安装模式：${NC}"
     echo ""
-    echo -e "  ${BOLD}--core, --c, -core, -c${NC}                      ${GRAY}核心运行时${NC}"
-    echo -e "    ${DIM}包含: L1-L3 (common + platform + kernel)${NC}"
-    echo -e "    ${DIM}安装方式: 生产模式安装 (pip install)${NC}"
-    echo -e "    ${DIM}适合: 容器部署、生产运行环境${NC}"
-    echo -e "    ${DIM}大小: ~100MB${NC}"
+    echo -e "  ${BOLD}--minimal, -m${NC}                               ${GRAY}最小安装${NC}"
+    echo -e "    ${DIM}包含: L1-L5 核心包，无开发工具，无可选依赖${NC}"
+    echo -e "    ${DIM}大小: ~80 个包（约 200MB）${NC}"
+    echo -e "    ${DIM}适合: 生产部署、容器镜像、CI/CD 基础镜像${NC}"
+    echo -e "    ${DIM}缺少功能需手动安装: pip install isage-middleware[ml,vdb,...]${NC}"
     echo ""
-    echo -e "  ${BOLD}--standard, --s, -standard, -s${NC}               ${GREEN}标准开发${NC}"
-    echo -e "    ${DIM}包含: L1-L5 (核心 + CLI + 开发工具 + RAG/LLM)${NC}"
-    echo -e "    ${DIM}安装方式: 生产模式安装 (pip install)${NC}"
-    echo -e "    ${DIM}适合: 应用开发、日常使用${NC}"
-    echo -e "    ${DIM}大小: ~200MB${NC}"
+    echo -e "  ${BOLD}--dev, -d${NC}                                   ${GREEN}开发安装${NC}"
+    echo -e "    ${DIM}包含: 最小安装 + 开发工具 (pytest, ruff, mypy, pre-commit)${NC}"
+    echo -e "    ${DIM}大小: ~120 个包（约 350MB）${NC}"
+    echo -e "    ${DIM}适合: 日常开发、贡献 SAGE 框架源码${NC}"
+    echo -e "    ${DIM}可选功能需手动安装: pip install isage-middleware[ml,vdb,...]${NC}"
     echo ""
-    echo -e "  ${BOLD}--full, --f, -full, -f${NC}                      ${PURPLE}完整功能${NC}"
-    echo -e "    ${DIM}包含: Standard + L5 (apps + benchmark)${NC}"
-    echo -e "    ${DIM}安装方式: 生产模式安装 (pip install)${NC}"
-    echo -e "    ${DIM}适合: 学习示例、性能评估${NC}"
-    echo -e "    ${DIM}大小: ~300MB${NC}"
-    echo ""
-    echo -e "  ${BOLD}--dev, --d, -dev, -d${NC}                         ${YELLOW}框架开发 (默认)${NC}"
-    echo -e "    ${DIM}包含: Full + 开发工具 (pytest, black, mypy, pre-commit)${NC}"
-    echo -e "    ${DIM}安装方式: 开发模式安装 (pip install -e)${NC}"
-    echo -e "    ${DIM}适合: 贡献 SAGE 框架源码${NC}"
-    echo -e "    ${DIM}大小: ~400MB${NC}"
-    echo -e "    ${DIM}C++扩展: 在 sage-middleware 安装时自动构建${NC}"
+    echo -e "  ${BOLD}--full, -f${NC}                                  ${YELLOW}完整安装 (默认)${NC}"
+    echo -e "    ${DIM}包含: 开发安装 + 所有可选依赖 (ML, VDB, streaming, etc.)${NC}"
+    echo -e "    ${DIM}大小: ~200+ 个包（约 1GB，含 PyTorch）${NC}"
+    echo -e "    ${DIM}适合: 学习示例、完整功能体验、研究实验${NC}"
     echo ""
 
     echo -e "${BLUE}🔧 安装环境：${NC}"
@@ -549,17 +543,16 @@ show_parameter_help() {
     echo ""
 
     echo -e "${BLUE}💡 使用示例：${NC}"
-    echo -e "  ./quickstart.sh                                  ${DIM}# 交互式安装${NC}"
-    echo -e "  ./quickstart.sh --dev                            ${DIM}# 开发者安装 (默认) + 智能环境选择${NC}"
-    echo -e "  ./quickstart.sh --standard --conda               ${DIM}# 标准安装 + conda环境${NC}"
-    echo -e "  ./quickstart.sh --core --pip --yes               ${DIM}# 核心运行时 + 当前环境 + 跳过确认${NC}"
-    echo -e "  ./quickstart.sh --full --yes                     ${DIM}# 完整功能 + 跳过确认${NC}"
-    echo -e "  ./quickstart.sh --verify-deps --standard         ${DIM}# 深度安全验证 + 标准安装${NC}"
-    echo -e "  ./quickstart.sh --verify-deps-strict --dev --yes ${DIM}# 严格验证 + 开发模式 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh                                  ${DIM}# 交互式安装（推荐）${NC}"
+    echo -e "  ./quickstart.sh --yes                            ${DIM}# 完整安装 + 跳过确认（默认模式）${NC}"
+    echo -e "  ./quickstart.sh --dev --yes                      ${DIM}# 开发安装 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh --minimal --pip --yes            ${DIM}# 最小安装 + 当前环境 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh --full --conda                   ${DIM}# 完整安装 + 创建conda环境${NC}"
     echo ""
     echo -e "${PURPLE}📝 注意：${NC}"
-    echo -e "  ${DIM}• quickstart.sh 默认使用 dev 模式（适合从源码安装的开发者）${NC}"
-    echo -e "  ${DIM}• pip 安装默认使用 standard 模式: pip install isage${NC}"
+    echo -e "  ${DIM}• quickstart.sh 默认使用 full 模式（包含所有功能）${NC}"
+    echo -e "  ${DIM}• minimal/dev 模式缺少的功能会在运行时给出安装提示${NC}"
+    echo -e "  ${DIM}• pip 安装: pip install isage (等同于 minimal 模式)${NC}"
     echo ""
 }
 
@@ -567,23 +560,23 @@ show_parameter_help() {
 
 
 # 解析安装模式参数
+# 简化为三种模式: minimal, dev, full (默认)
 parse_install_mode() {
     local param="$1"
     case "$param" in
-        "--core"|"--c"|"-core"|"-c"|"--minimal"|"-minimal")
-            INSTALL_MODE="core"
+        # 最小安装：核心包，无开发工具，无可选依赖
+        "--minimal"|"-m"|"-minimal"|"--core"|"--c"|"-core"|"-c")
+            INSTALL_MODE="minimal"
             return 0
             ;;
-        "--standard"|"--s"|"-standard"|"-s")
-            INSTALL_MODE="standard"
-            return 0
-            ;;
-        "--full"|"--f"|"-full"|"-f")
-            INSTALL_MODE="full"
-            return 0
-            ;;
-        "--dev"|"--d"|"-dev"|"-d")
+        # 开发安装：核心 + 开发工具
+        "--dev"|"-d"|"-dev"|"--d"|"--standard"|"--s"|"-standard"|"-s")
             INSTALL_MODE="dev"
+            return 0
+            ;;
+        # 完整安装：核心 + 开发工具 + 所有可选依赖
+        "--full"|"-f"|"-full"|"--f")
+            INSTALL_MODE="full"
             return 0
             ;;
         *)
@@ -822,9 +815,6 @@ parse_arguments() {
         elif parse_auto_confirm "$param"; then
             # 自动确认参数
             shift
-        elif parse_sync_submodules_option "$param"; then
-            # 同步 submodule 参数
-            shift
         elif parse_cache_option "$param"; then
             # pip 缓存清理参数
             shift
@@ -862,31 +852,6 @@ parse_arguments() {
     set_defaults_and_show_tips
 }
 
-# 设置默认值并显示提示
-set_default_sync_submodules() {
-    if [ "$SYNC_SUBMODULES_EXPLICIT" = true ]; then
-        return
-    fi
-
-    local desired="false"
-    if [ "$INSTALL_MODE" = "dev" ]; then
-        desired="true"
-    fi
-
-    if [ -z "${SYNC_SUBMODULES:-}" ] || [ "${SYNC_SUBMODULES:-}" != "$desired" ]; then
-        SYNC_SUBMODULES="$desired"
-
-        if [ "$desired" = "true" ] && [ "$SYNC_SUBMODULES_NOTIFIED" = false ]; then
-            echo -e "${INFO} 开发者模式默认会同步所有 submodules"
-            SYNC_SUBMODULES_NOTIFIED=true
-        fi
-    fi
-}
-
-refresh_sync_submodule_default() {
-    set_default_sync_submodules
-}
-
 set_defaults_and_show_tips() {
     local has_defaults=false
 
@@ -921,13 +886,10 @@ set_defaults_and_show_tips() {
 
     # 设置安装模式默认值
     if [ -z "$INSTALL_MODE" ]; then
-        INSTALL_MODE="dev"
-        echo -e "${INFO} 未指定安装模式，使用默认: ${YELLOW}开发者模式${NC}"
+        INSTALL_MODE="full"
+        echo -e "${INFO} 未指定安装模式，使用默认: ${YELLOW}完整安装${NC}"
         has_defaults=true
     fi
-
-    # 根据当前安装模式决定是否同步 submodule
-    set_default_sync_submodules
 
     # 设置安装环境默认值（基于当前环境智能选择）
     if [ -z "$INSTALL_ENVIRONMENT" ]; then
@@ -991,12 +953,6 @@ show_install_configuration() {
             fi
             ;;
     esac
-
-    if [ "${SYNC_SUBMODULES:-}" = "true" ]; then
-        echo -e "  ${BLUE}Submodules:${NC} ${GREEN}自动同步${NC}"
-    else
-        echo -e "  ${BLUE}Submodules:${NC} ${DIM}跳过自动同步${NC}"
-    fi
 
     if [ "$SKIP_HOOKS" = true ]; then
         echo -e "  ${BLUE}Git Hooks:${NC} ${DIM}跳过自动安装${NC}"

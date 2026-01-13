@@ -1592,7 +1592,9 @@ def create_embedding_pipeline(
     # 生成配置
     # Handle removed --vllm flag
     if use_vllm:
-        console.print("[red]Error:[/red] --vllm has been removed in SAGE v0.3.0. Use --engine sagellm instead.")
+        console.print(
+            "[red]Error:[/red] --vllm has been removed in SAGE v0.3.0. Use --engine sagellm instead."
+        )
         raise typer.Exit(1)
 
     console.print(

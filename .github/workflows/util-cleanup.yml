@@ -213,8 +213,8 @@ jobs:
         run: |
           # 完整的安装-使用-清理流程
 
-          # 1. 使用 auto-venv 安装
-          ./quickstart.sh --auto-venv --core --yes || {
+          # 1. 使用 auto-venv 安装 (minimal 模式用于快速测试)
+          ./quickstart.sh --auto-venv --minimal --yes || {
             echo "⚠️ Installation failed, checking logs..."
             find .sage -name "*.log" -type f -exec tail -20 {} \;
             exit 1

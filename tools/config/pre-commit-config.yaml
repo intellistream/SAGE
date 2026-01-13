@@ -322,6 +322,7 @@ repos:
         "CHANGELOG.md"
         "dependencies-spec.yaml"
         "tasks.md"
+        "SAGE.code-workspace"
       )
 
       # Allowed directories in project root (whitelist)

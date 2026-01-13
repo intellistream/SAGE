@@ -199,16 +199,16 @@ print(\"✅ 所有子包版本已检测 (sage 是命名空间包，无独立版�
 
     # 8. 示例测试（快速验证）
     print_test_header "🎓 8. 快速示例测试"
-    if [ -f "${SAGE_ROOT:-}/examples/tutorials/hello_world.py" ]; then
-        echo -e "${DIM}测试运行 hello_world.py（30秒超时）...${NC}"
-        if timeout 30s python3 "${SAGE_ROOT:-}/examples/tutorials/hello_world.py" > /dev/null 2>&1; then
-            echo -e "${GREEN}✅ hello_world.py 运行成功${NC}"
+    if [ -f "${SAGE_ROOT:-}/tools/verify_hello_world.py" ]; then
+        echo -e "${DIM}运行 verify_hello_world.py...${NC}"
+        if python3 "${SAGE_ROOT:-}/tools/verify_hello_world.py" > /dev/null 2>&1; then
+            echo -e "${GREEN}✅ verify_hello_world.py 运行成功${NC}"
         else
-            echo -e "${YELLOW}⚠️  hello_world.py 运行失败或超时${NC}"
-            echo -e "${DIM}   这可能由于缺少 API keys 或网络问题${NC}"
+            echo -e "${YELLOW}⚠️  verify_hello_world.py 运行失败${NC}"
+            echo -e "${DIM}   请检查核心包是否正确安装${NC}"
         fi
     else
-        echo -e "${YELLOW}⚠️  hello_world.py 未找到${NC}"
+        echo -e "${YELLOW}⚠️  verify_hello_world.py 未找到${NC}"
     fi
 
     # 9. 环境健康与隔离检查

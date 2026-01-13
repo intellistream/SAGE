@@ -424,9 +424,7 @@ class EmbeddingService(BaseService):
             else:
                 # Use standard embedder (factory-based)
                 assert self._embedder is not None
-                uncached_vectors = self._embed_with_factory(
-                    uncached_texts, normalize, batch_size
-                )
+                uncached_vectors = self._embed_with_factory(uncached_texts, normalize, batch_size)
 
             # Update cache and results
             for idx, text, vec in zip(
@@ -615,6 +613,7 @@ class EmbeddingService(BaseService):
                 uncached_vectors.extend(batch_vecs)
 
         return uncached_vectors
+
     def _normalize_vector(self, vec: list[float]) -> list[float]:
         """Normalize a vector to unit length."""
         array = np.array(vec, dtype=np.float32)

@@ -39,13 +39,19 @@ app = typer.Typer(
     name="sage",
     help="""🚀 SAGE - Streaming Applied to GEneral data stream
 
+    🎮 即开即用:
+      sage demo hello                 # Hello World 入门
+      sage demo list                  # 查看所有示例
+      sage demo interactive           # 交互式 Shell
+
     命令分类：
     • Platform  - 集群管理和作业调度
     • Apps      - 应用层服务（LLM、Chat等）
+    • Demo      - 即开即用的体验入口
 
     快速示例：
       sage cluster start              # 启动集群
-      sage llm serve                  # 启动LLM服务
+      sage gateway start              # 启动 API 网关
       sage job submit task.py         # 提交作业
 
     开发工具：
@@ -197,6 +203,22 @@ try:
         )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 apps 命令组: {e}[/yellow]")
+
+
+# ============================================================================
+# Demo Commands - 即开即用的体验入口
+# ============================================================================
+
+try:
+    from .commands.demo import app as demo_app
+
+    app.add_typer(
+        demo_app,
+        name="demo",
+        help="🎮 Demo - 即开即用的 SAGE 体验 (hello, list, run, interactive)",
+    )
+except ImportError as e:
+    console.print(f"[yellow]警告: 无法导入 demo 命令: {e}[/yellow]")
 
 
 # ============================================================================

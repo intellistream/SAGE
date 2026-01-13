@@ -424,7 +424,9 @@ class OpenAIEmbedding(BaseEmbedding):
         Returns:
             字符串表示
         """
-        base_info = f"OpenAIEmbedding(model='{self._model}', dim={self._dim}, provider='{self._provider}'"
+        base_info = (
+            f"OpenAIEmbedding(model='{self._model}', dim={self._dim}, provider='{self._provider}'"
+        )
         if self._provider == "openai" and self._base_url:
             base_info += f", base_url='{self._base_url}'"
         elif self._provider == "sagellm" and self._sagellm_config:

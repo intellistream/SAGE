@@ -1,6 +1,6 @@
 ---
 description: 'SAGE AI data processing pipeline expert - specialized in LLM inference, RAG, and distributed dataflow'
-tools: ['vscode', 'execute', 'read', 'agent', 'edit', 'search', 'web', 'copilot-container-tools/*', 'todo']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'copilot-container-tools/*', 'todo']
 ---
 
 # SAGE Agent

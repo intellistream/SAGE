@@ -30,7 +30,7 @@ SAGE_ENV_NAME="${SAGE_ENV_NAME:-}"  # 可能由安装流程设置
 
 # 验证常量
 VERIFICATION_LOG=".sage/install_verification.log"
-HELLO_WORLD_SCRIPT="docs-public/hello_world.py"
+HELLO_WORLD_SCRIPT="tools/verify_hello_world.py"
 
 # 验证结果状态
 VERIFICATION_PASSED=true
@@ -145,29 +145,30 @@ EOF
 }
 
 # 验证 hello_world 示例
+# Uses tools/verify_hello_world.py - a minimal verification script in SAGE core repo
 verify_hello_world() {
     echo -e "${BLUE}🧪 运行 hello_world 测试...${NC}"
 
     if [ ! -f "$HELLO_WORLD_SCRIPT" ]; then
-        log_verification_result "hello_world" "FAIL" "hello_world.py 文件不存在"
-        echo -e "${RED}   ❌ hello_world.py 文件不存在${NC}"
+        log_verification_result "hello_world" "FAIL" "verify_hello_world.py 文件不存在"
+        echo -e "${RED}   ❌ verify_hello_world.py 文件不存在${NC}"
         return 1
     fi
 
-    # 运行 hello_world 脚本
+    # 运行验证脚本
     local output
     output=$($PYTHON_CMD "$HELLO_WORLD_SCRIPT" 2>&1)
     local exit_code=$?
 
     if [ $exit_code -eq 0 ]; then
-        log_verification_result "hello_world" "PASS" "hello_world.py 执行成功"
-        echo -e "${GREEN}   ✅ hello_world.py 执行成功${NC}"
-        echo -e "${DIM}   输出: $(echo "$output" | head -3 | tr '\n' ' ')${NC}"
+        log_verification_result "hello_world" "PASS" "verify_hello_world.py 执行成功"
+        echo -e "${GREEN}   ✅ verify_hello_world.py 执行成功${NC}"
+        echo -e "${DIM}   输出: $(echo "$output" | grep -E "^✅" | head -3 | tr '\n' ' ')${NC}"
         return 0
     else
-        log_verification_result "hello_world" "FAIL" "hello_world.py 执行失败: $output"
-        echo -e "${RED}   ❌ hello_world.py 执行失败${NC}"
-        echo -e "${DIM}   错误: $output${NC}"
+        log_verification_result "hello_world" "FAIL" "verify_hello_world.py 执行失败"
+        echo -e "${RED}   ❌ verify_hello_world.py 执行失败${NC}"
+        echo -e "${DIM}   错误: $(echo "$output" | grep -E "^❌" | head -3 | tr '\n' ' ')${NC}"
         return 1
     fi
 }

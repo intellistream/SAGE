@@ -32,19 +32,27 @@ classifiers = [
 ]
 license = {text = "MIT"}
 
-# 核心依赖 - 只包含外部依赖
+# 核心依赖 - sage-dev 命令必需的最小依赖集
 dependencies = [
-    # Tools-specific dependencies
-    "typer>=0.15.0,<1.0.0",  # CLI framework for sage-dev command
-    "rich>=13.0.0,<14.0.0",  # Rich terminal output for sage-dev
+    # CLI framework - required for sage-dev command
+    "typer>=0.15.0,<1.0.0",
+    "rich>=13.0.0,<14.0.0",
     "click>=8.0.0,<9.0.0",
-    "jinja2>=3.1.0,<4.0.0",
-    "markdown>=3.4.4,<4.0.0",
-    "markupsafe>=2.0.1",
-    "packaging>=20.5",
-    "huggingface-hub>=0.34.0,<1.0.0",
 
-    # Dev tools - 确保 sage-dev 命令可用
+    # Template rendering
+    "jinja2>=3.1.0,<4.0.0",
+    "markupsafe>=2.0.1",
+
+    # Package version handling
+    "packaging>=20.5",
+
+    # File locking for safe operations
+    "filelock>=3.16.0,<4.0.0",
+]
+
+[project.optional-dependencies]
+# Development tools - for code quality, testing, etc.
+dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
@@ -54,25 +62,24 @@ dependencies = [
     "black>=23.0.0",
     "isort>=5.10.0",
     "mypy>=1.0.0",
-    "ruff==0.14.6",  # Pinned to match tools/pre-commit-config.yaml
+    "ruff==0.14.6",
     "flake8>=5.0.0",
     "coverage>=7.0.0",
     "bandit>=1.7.0",
     "safety>=2.3.0",
     "virtualenv>=20.31.2",
-    "filelock>=3.16.0,<4.0.0",
-    # 兼容性约束 - 确保与kubernetes等包兼容
-    "urllib3>=1.24.2,<2.4.0",  # kubernetes 34.x 要求 <2.4.0
 ]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.4.0",
-    "pytest-cov>=4.0.0",
-    "ruff==0.14.6",
-    "mypy>=1.7.0",
+# HuggingFace integration
+hf = [
+    "huggingface-hub>=0.34.0,<1.0.0",
 ]
-all = []
+# Documentation tools
+docs = [
+    "markdown>=3.4.4,<4.0.0",
+]
+all = [
+    "isage-tools[dev,hf,docs]",
+]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Documentation = "https://intellistream.github.io/SAGE-Pub/"

@@ -77,6 +77,7 @@ SAGE_QA_TOP_P=0.95             # Nucleus sampling parameter
 ```
 
 Supported `SAGE_QA_BACKEND` values:
+
 - `mock` (default): No external services, returns placeholder responses
 - `auto`: Auto-detect available hardware (cuda/ascend)
 - `cuda`: Use CUDA GPU acceleration

@@ -266,75 +266,93 @@ install_sage() {
 
     echo ""
     case "$mode" in
-        "core")
-            echo -e "${BLUE}核心运行时模式：仅安装基础 SAGE 包${NC}"
-            log_phase_start "核心运行时模式安装" "MAIN"
+        "minimal"|"core"|"standard")
+            # minimal 模式：只安装核心包，无开发工具，无可选依赖
+            echo -e "${BLUE}最小安装模式：仅安装核心 SAGE 包${NC}"
+            log_phase_start "最小安装模式" "MAIN"
 
-            if install_core_packages "$mode"; then
-                log_phase_end "核心运行时模式安装" "success" "MAIN"
+            if install_core_packages "minimal"; then
+                log_phase_end "最小安装模式" "success" "MAIN"
+                echo ""
+                echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                echo -e "${INFO} 💡 最小安装完成！如需额外功能，可手动安装："
+                echo -e "${DIM}   ML/深度学习:    pip install isage-middleware[ml]${NC}"
+                echo -e "${DIM}   向量数据库:    pip install isage-middleware[vdb]${NC}"
+                echo -e "${DIM}   流处理:        pip install isage-middleware[streaming]${NC}"
+                echo -e "${DIM}   提示词压缩:    pip install isage-middleware[compression]${NC}"
+                echo -e "${DIM}   任务队列:      pip install isage-middleware[queue]${NC}"
+                echo -e "${DIM}   开发工具:      pip install isage-tools[dev]${NC}"
+                echo -e "${DIM}   所有可选:      pip install isage-middleware[all]${NC}"
+                echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             else
-                log_phase_end "核心运行时模式安装" "failure" "MAIN"
+                log_phase_end "最小安装模式" "failure" "MAIN"
                 return 1
             fi
-            ;;
-        "standard")
-            echo -e "${BLUE}标准安装模式：基础包 + 中间件 + 应用包${NC}"
-            log_phase_start "标准安装模式" "MAIN"
-
-            # libstdc++ 检查已移除：
-            # - 现代 conda 环境默认提供足够新的 libstdc++ (GLIBCXX >= 3.4.30)
-            # - C++ 扩展实际只需要 GLIBCXX_3.4.29
-            # - scikit-build-core 会自动处理编译时的库依赖
-            # 如果编译失败，错误信息会明确指出缺少的符号
-
-            if ! install_core_packages "$mode"; then
-                log_phase_end "标准安装模式" "failure" "MAIN"
-                return 1
-            fi
-
-            if ! install_scientific_packages; then
-                log_phase_end "标准安装模式" "failure" "MAIN"
-                return 1
-            fi
-
-            echo -e "${CHECK} 标准安装模式完成"
-            log_phase_end "标准安装模式" "success" "MAIN"
             ;;
         "dev")
-            echo -e "${BLUE}开发者安装模式：标准安装 + 开发工具${NC}"
-            log_phase_start "开发者安装模式" "MAIN"
+            # dev 模式：核心包 + 开发工具
+            echo -e "${BLUE}开发安装模式：核心包 + 开发工具${NC}"
+            log_phase_start "开发安装模式" "MAIN"
 
-            # libstdc++ 检查已移除 - 见 standard 模式注释
-
-            if ! install_core_packages "$mode"; then
-                log_phase_end "开发者安装模式" "failure" "MAIN"
-                return 1
-            fi
-
-            if ! install_scientific_packages; then
-                log_phase_end "开发者安装模式" "failure" "MAIN"
+            if ! install_core_packages "dev"; then
+                log_phase_end "开发安装模式" "failure" "MAIN"
                 return 1
             fi
 
             # 安装开发工具
             log_info "开始安装开发工具" "MAIN"
             if install_dev_packages; then
-                log_phase_end "开发者安装模式" "success" "MAIN"
+                log_phase_end "开发安装模式" "success" "MAIN"
+                echo ""
+                echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                echo -e "${INFO} 💡 开发安装完成！如需额外功能，可手动安装："
+                echo -e "${DIM}   ML/深度学习:    pip install isage-middleware[ml]${NC}"
+                echo -e "${DIM}   向量数据库:    pip install isage-middleware[vdb]${NC}"
+                echo -e "${DIM}   流处理:        pip install isage-middleware[streaming]${NC}"
+                echo -e "${DIM}   提示词压缩:    pip install isage-middleware[compression]${NC}"
+                echo -e "${DIM}   所有可选:      pip install isage-middleware[all]${NC}"
+                echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             else
-                log_phase_end "开发者安装模式" "failure" "MAIN"
+                log_phase_end "开发安装模式" "failure" "MAIN"
+                return 1
+            fi
+            ;;
+        "full")
+            # full 模式：核心包 + 开发工具 + 所有可选依赖
+            echo -e "${BLUE}完整安装模式：核心包 + 开发工具 + 所有可选依赖${NC}"
+            log_phase_start "完整安装模式" "MAIN"
+
+            if ! install_core_packages "full"; then
+                log_phase_end "完整安装模式" "failure" "MAIN"
+                return 1
+            fi
+
+            # 安装开发工具
+            log_info "开始安装开发工具" "MAIN"
+            if ! install_dev_packages; then
+                log_phase_end "完整安装模式" "failure" "MAIN"
+                return 1
+            fi
+
+            # 安装所有可选依赖
+            log_info "开始安装可选依赖 (ML, VDB, streaming, etc.)" "MAIN"
+            if install_optional_packages; then
+                log_phase_end "完整安装模式" "success" "MAIN"
+            else
+                log_phase_end "完整安装模式" "failure" "MAIN"
                 return 1
             fi
             ;;
         *)
-            echo -e "${WARNING} 未知安装模式: $mode，使用开发者模式"
-            log_warn "未知安装模式 $mode，使用开发者模式" "MAIN"
-            log_phase_start "默认开发者安装" "MAIN"
+            echo -e "${WARNING} 未知安装模式: $mode，使用完整安装"
+            log_warn "未知安装模式 $mode，使用完整安装" "MAIN"
+            log_phase_start "默认完整安装" "MAIN"
 
-            install_core_packages "dev"
-            install_scientific_packages
+            install_core_packages "full"
             install_dev_packages
+            install_optional_packages
 
-            log_phase_end "默认开发者安装" "success" "MAIN"
+            log_phase_end "默认完整安装" "success" "MAIN"
             ;;
     esac
 
