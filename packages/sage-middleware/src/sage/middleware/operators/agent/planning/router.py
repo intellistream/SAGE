@@ -4,12 +4,12 @@ import json
 import logging
 from typing import Any
 
-from sage_agentic.agents.planning.hierarchical_planner import HierarchicalPlanner
-from sage_agentic.agents.planning.react_planner import ReActConfig, ReActPlanner
-from sage_agentic.agents.planning.schemas import PlannerConfig
-from sage_agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
-from sage_agentic.agents.planning.tot_planner import ToTConfig
-from sage_agentic.agents.planning.tot_planner import TreeOfThoughtsPlanner as ToTPlanner
+from sage_libs.sage_agentic.agents.planning.hierarchical_planner import HierarchicalPlanner
+from sage_libs.sage_agentic.agents.planning.react_planner import ReActConfig, ReActPlanner
+from sage_libs.sage_agentic.agents.planning.schemas import PlannerConfig
+from sage_libs.sage_agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
+from sage_libs.sage_agentic.agents.planning.tot_planner import ToTConfig
+from sage_libs.sage_agentic.agents.planning.tot_planner import TreeOfThoughtsPlanner as ToTPlanner
 
 from .llm_adapter import GeneratorToClientAdapter
 from .planner_adapter import SageLibsPlannerAdapter

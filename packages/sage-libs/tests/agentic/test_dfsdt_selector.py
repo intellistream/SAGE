@@ -4,8 +4,7 @@ Unit tests for DFSDT (Depth-First Search-based Decision Tree) tool selector.
 
 import numpy as np
 import pytest
-
-from sage.libs.agentic.agents.action.tool_selection import (
+from sage_libs.sage_agentic.agents.action.tool_selection import (
     DFSDTSelector,
     DFSDTSelectorConfig,
     SelectorResources,
@@ -97,7 +96,7 @@ class TestDFSDTSelectorConfig:
         assert config.llm_model == "custom"
 
     def test_config_type_registration(self):
-        from sage.libs.agentic.agents.action.tool_selection.schemas import CONFIG_TYPES
+        from sage_libs.sage_agentic.agents.action.tool_selection.schemas import CONFIG_TYPES
 
         assert "dfsdt" in CONFIG_TYPES
         assert CONFIG_TYPES["dfsdt"] == DFSDTSelectorConfig
@@ -111,7 +110,7 @@ class TestDFSDTSelector:
         assert selector._keyword_selector is not None
 
     def test_fallback_score(self, dfsdt_config, mock_resources):
-        from sage.libs.agentic.agents.action.tool_selection.dfsdt_selector import SearchNode
+        from sage_libs.sage_agentic.agents.action.tool_selection.dfsdt_selector import SearchNode
 
         selector = DFSDTSelector(dfsdt_config, mock_resources)
         node = SearchNode(
@@ -166,7 +165,7 @@ class TestDFSDTSelector:
 
 class TestDFSDTTreeSearch:
     def test_search_node_structure(self):
-        from sage.libs.agentic.agents.action.tool_selection.dfsdt_selector import SearchNode
+        from sage_libs.sage_agentic.agents.action.tool_selection.dfsdt_selector import SearchNode
 
         node = SearchNode(
             tool_id="weather_get",
@@ -180,7 +179,7 @@ class TestDFSDTTreeSearch:
         assert node.depth == 1
 
     def test_search_node_equality(self):
-        from sage.libs.agentic.agents.action.tool_selection.dfsdt_selector import SearchNode
+        from sage_libs.sage_agentic.agents.action.tool_selection.dfsdt_selector import SearchNode
 
         node1 = SearchNode("tool1", "Tool 1", "Description 1")
         node2 = SearchNode("tool1", "Tool 1", "Description 1")

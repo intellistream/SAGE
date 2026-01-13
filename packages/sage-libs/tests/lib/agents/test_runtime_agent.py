@@ -1,9 +1,10 @@
 # refactor_wxh/MemoRAG/packages/sage-libs/tests/lib/agents/test_runtime_agent.py
 import json
 
-from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
-from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
-from sage.libs.agentic.agents.profile.profile import BaseProfile
+from sage_libs.sage_agentic.agents.action.mcp_registry import MCPRegistry
+from sage_libs.sage_agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
+from sage_libs.sage_agentic.agents.profile.profile import BaseProfile
+
 from sage.middleware.operators.agent.runtime import AgentRuntime
 
 

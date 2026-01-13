@@ -12,9 +12,9 @@ import time
 from typing import Any
 
 # Import from L3 (Libs) - Allowed dependency direction (L4 -> L3)
-from sage_agentic.agents.action.mcp_registry import MCPRegistry
-from sage_agentic.agents.planning import PlanStep, SimpleLLMPlanner
-from sage_agentic.agents.profile.profile import BaseProfile
+from sage_libs.sage_agentic.agents.action.mcp_registry import MCPRegistry
+from sage_libs.sage_agentic.agents.planning import PlanStep, SimpleLLMPlanner
+from sage_libs.sage_agentic.agents.profile.profile import BaseProfile
 
 logger = logging.getLogger(__name__)
 

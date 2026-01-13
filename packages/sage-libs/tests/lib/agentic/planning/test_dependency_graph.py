@@ -3,8 +3,7 @@ Tests for DependencyGraph module.
 """
 
 import pytest
-
-from sage.libs.agentic.agents.planning import DependencyGraph, PlanStep
+from sage_libs.sage_agentic.agents.planning import DependencyGraph, PlanStep
 
 
 class TestDependencyGraph:

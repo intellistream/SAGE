@@ -6,8 +6,8 @@ Middleware operator for planning using runtime components.
 
 from typing import Any, Optional
 
-from sage_agentic.agents.runtime import BenchmarkAdapter, Orchestrator, RuntimeConfig
-from sage_agentic.agents.runtime.config import PlannerConfig
+from sage_libs.sage_agentic.agents.runtime import BenchmarkAdapter, Orchestrator, RuntimeConfig
+from sage_libs.sage_agentic.agents.runtime.config import PlannerConfig
 
 from sage.common.core.functions import MapFunction
 

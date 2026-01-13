@@ -2,7 +2,7 @@
 Tests for Tree-of-Thoughts (ToT) Planner module.
 """
 
-from sage.libs.agentic.agents.planning import (
+from sage_libs.sage_agentic.agents.planning import (
     PlanRequest,
     SearchMethod,
     ThoughtNode,

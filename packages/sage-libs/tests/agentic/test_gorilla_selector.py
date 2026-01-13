@@ -8,8 +8,7 @@ import json
 
 import numpy as np
 import pytest
-
-from sage.libs.agentic.agents.action.tool_selection import (
+from sage_libs.sage_agentic.agents.action.tool_selection import (
     GorillaSelector,
     GorillaSelectorConfig,
     SelectorResources,

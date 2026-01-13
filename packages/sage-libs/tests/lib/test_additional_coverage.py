@@ -18,7 +18,7 @@ class TestSimpleLLMPlanner:
 
     def test_simple_planner_init(self):
         """Test SimpleLLMPlanner initialization"""
-        from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
+        from sage_libs.sage_agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
 
         mock_generator = MagicMock()
         planner = SimpleLLMPlanner(generator=mock_generator)
@@ -27,7 +27,7 @@ class TestSimpleLLMPlanner:
 
     def test_simple_planner_plan_generation(self):
         """Test plan generation"""
-        from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
+        from sage_libs.sage_agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
 
         mock_generator = MagicMock()
         # Mock generator to return valid JSON plan
@@ -51,7 +51,7 @@ class TestSimpleLLMPlanner:
 
     def test_simple_planner_custom_params(self):
         """Test SimpleLLMPlanner with custom parameters"""
-        from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
+        from sage_libs.sage_agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
 
         mock_generator = MagicMock()
         planner = SimpleLLMPlanner(generator=mock_generator)
@@ -63,7 +63,7 @@ class TestSimpleLLMPlannerErrorHandling:
 
     def test_simple_planner_repair(self):
         """Test SimpleLLMPlanner repair mechanism when JSON parsing fails"""
-        from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
+        from sage_libs.sage_agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
 
         mock_generator = MagicMock()
         # First call returns invalid JSON, second call returns valid JSON

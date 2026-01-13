@@ -24,22 +24,13 @@ SAGE Middleware Operators - 领域算子
     from sage.middleware.operators.agentic import PlanningOperator
 """
 
-# 导出子模块（不包含依赖可选包的模块）
-from . import filters, llm, rag, tools
+# 导出子模块
+from . import agentic, filters, llm, rag, tools
 
 __all__ = [
     "rag",
     "llm",
     "tools",
     "filters",
+    "agentic",
 ]
-
-# Conditionally import agentic if sage_agentic is available
-try:
-    import sage_agentic  # noqa: F401
-
-    from . import agentic
-
-    __all__.append("agentic")
-except ImportError:
-    pass

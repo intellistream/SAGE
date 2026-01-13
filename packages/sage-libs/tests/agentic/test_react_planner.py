@@ -20,7 +20,7 @@ class TestReActStep:
 
     def test_init(self):
         """Test ReActStep initialization."""
-        from sage.libs.agentic.agents.planning.react_planner import ReActStep
+        from sage_libs.sage_agentic.agents.planning.react_planner import ReActStep
 
         step = ReActStep(
             step_id=0,
@@ -40,7 +40,7 @@ class TestReActStep:
 
     def test_to_plan_step(self):
         """Test conversion to standard PlanStep."""
-        from sage.libs.agentic.agents.planning.react_planner import ReActStep
+        from sage_libs.sage_agentic.agents.planning.react_planner import ReActStep
 
         step = ReActStep(
             step_id=1,
@@ -65,7 +65,7 @@ class TestReActTrace:
 
     def test_empty_trace(self):
         """Test empty trace."""
-        from sage.libs.agentic.agents.planning.react_planner import ReActTrace
+        from sage_libs.sage_agentic.agents.planning.react_planner import ReActTrace
 
         trace = ReActTrace()
 
@@ -77,7 +77,7 @@ class TestReActTrace:
 
     def test_trace_with_steps(self):
         """Test trace with multiple steps."""
-        from sage.libs.agentic.agents.planning.react_planner import ReActStep, ReActTrace
+        from sage_libs.sage_agentic.agents.planning.react_planner import ReActStep, ReActTrace
 
         steps = [
             ReActStep(
@@ -111,7 +111,7 @@ class TestReActTrace:
 
     def test_trace_excludes_finish(self):
         """Test that 'finish' action is excluded from tool_sequence."""
-        from sage.libs.agentic.agents.planning.react_planner import ReActStep, ReActTrace
+        from sage_libs.sage_agentic.agents.planning.react_planner import ReActStep, ReActTrace
 
         steps = [
             ReActStep(step_id=0, thought="Do something", action="tool_a"),
@@ -129,7 +129,7 @@ class TestReActConfig:
 
     def test_default_config(self):
         """Test default configuration values."""
-        from sage.libs.agentic.agents.planning.react_planner import ReActConfig
+        from sage_libs.sage_agentic.agents.planning.react_planner import ReActConfig
 
         config = ReActConfig()
 
@@ -140,7 +140,7 @@ class TestReActConfig:
 
     def test_custom_config(self):
         """Test custom configuration."""
-        from sage.libs.agentic.agents.planning.react_planner import ReActConfig
+        from sage_libs.sage_agentic.agents.planning.react_planner import ReActConfig
 
         config = ReActConfig(
             min_steps=3,
@@ -161,7 +161,7 @@ class TestReActPlanner:
 
     def test_init_without_llm(self):
         """Test initialization without LLM client."""
-        from sage.libs.agentic.agents.planning.react_planner import (
+        from sage_libs.sage_agentic.agents.planning.react_planner import (
             ReActConfig,
             ReActPlanner,
         )
@@ -175,7 +175,7 @@ class TestReActPlanner:
 
     def test_init_with_llm(self):
         """Test initialization with LLM client."""
-        from sage.libs.agentic.agents.planning.react_planner import (
+        from sage_libs.sage_agentic.agents.planning.react_planner import (
             ReActConfig,
             ReActPlanner,
         )
@@ -188,7 +188,7 @@ class TestReActPlanner:
 
     def test_from_config(self):
         """Test factory method."""
-        from sage.libs.agentic.agents.planning.react_planner import (
+        from sage_libs.sage_agentic.agents.planning.react_planner import (
             ReActConfig,
             ReActPlanner,
         )
@@ -200,11 +200,11 @@ class TestReActPlanner:
 
     def test_fallback_plan_generation(self):
         """Test fallback plan when no LLM available."""
-        from sage.libs.agentic.agents.planning import (
+        from sage_libs.sage_agentic.agents.planning import (
             PlanRequest,
             ToolMetadata,
         )
-        from sage.libs.agentic.agents.planning.react_planner import (
+        from sage_libs.sage_agentic.agents.planning.react_planner import (
             ReActConfig,
             ReActPlanner,
         )
@@ -248,8 +248,8 @@ class TestReActPlanner:
 
     def test_plan_with_empty_tools(self):
         """Test planning with no available tools."""
-        from sage.libs.agentic.agents.planning import PlanRequest
-        from sage.libs.agentic.agents.planning.react_planner import (
+        from sage_libs.sage_agentic.agents.planning import PlanRequest
+        from sage_libs.sage_agentic.agents.planning.react_planner import (
             ReActConfig,
             ReActPlanner,
         )
@@ -271,7 +271,7 @@ class TestReActPlanner:
 
     def test_parse_react_step_basic(self):
         """Test parsing basic ReAct response."""
-        from sage.libs.agentic.agents.planning.react_planner import (
+        from sage_libs.sage_agentic.agents.planning.react_planner import (
             ReActConfig,
             ReActPlanner,
         )
@@ -298,7 +298,7 @@ Observation: Configuration loaded successfully."""
 
     def test_parse_react_step_fuzzy_match(self):
         """Test parsing with fuzzy tool matching."""
-        from sage.libs.agentic.agents.planning.react_planner import (
+        from sage_libs.sage_agentic.agents.planning.react_planner import (
             ReActConfig,
             ReActPlanner,
         )
@@ -322,7 +322,7 @@ Action Input: {}"""
 
     def test_parse_react_step_finish(self):
         """Test parsing finish action."""
-        from sage.libs.agentic.agents.planning.react_planner import (
+        from sage_libs.sage_agentic.agents.planning.react_planner import (
             ReActConfig,
             ReActPlanner,
         )
@@ -345,7 +345,7 @@ Action Input: {}"""
 
     def test_parse_react_step_invalid(self):
         """Test parsing invalid response."""
-        from sage.libs.agentic.agents.planning.react_planner import (
+        from sage_libs.sage_agentic.agents.planning.react_planner import (
             ReActConfig,
             ReActPlanner,
         )
@@ -371,11 +371,11 @@ class TestReActPlannerWithMockLLM:
 
     def test_plan_with_llm(self):
         """Test planning with mocked LLM responses."""
-        from sage.libs.agentic.agents.planning import (
+        from sage_libs.sage_agentic.agents.planning import (
             PlanRequest,
             ToolMetadata,
         )
-        from sage.libs.agentic.agents.planning.react_planner import (
+        from sage_libs.sage_agentic.agents.planning.react_planner import (
             ReActConfig,
             ReActPlanner,
         )

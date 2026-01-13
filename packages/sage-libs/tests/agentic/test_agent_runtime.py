@@ -1,9 +1,9 @@
 from unittest.mock import Mock
 
 import pytest
+from sage_libs.sage_agentic.agents.action.mcp_registry import MCPRegistry
+from sage_libs.sage_agentic.agents.profile.profile import BaseProfile
 
-from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
-from sage.libs.agentic.agents.profile.profile import BaseProfile
 from sage.middleware.operators.agent.runtime import AgentRuntime
 
 

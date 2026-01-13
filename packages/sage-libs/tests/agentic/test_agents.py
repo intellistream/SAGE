@@ -18,7 +18,7 @@ class TestTool:
 
     def test_init(self):
         """测试工具初始化"""
-        from sage.libs.agentic.agents.agent import Tool
+        from sage_libs.sage_agentic.agents.agent import Tool
 
         def mock_func(x):
             return x * 2
@@ -31,7 +31,7 @@ class TestTool:
 
     def test_run(self):
         """测试工具执行"""
-        from sage.libs.agentic.agents.agent import Tool
+        from sage_libs.sage_agentic.agents.agent import Tool
 
         def mock_func(x, y):
             return x + y
@@ -48,7 +48,7 @@ class TestBochaSearch:
 
     def test_init(self):
         """测试搜索初始化"""
-        from sage.libs.agentic.agents.agent import BochaSearch
+        from sage_libs.sage_agentic.agents.agent import BochaSearch
 
         search = BochaSearch(api_key="test_key")  # pragma: allowlist secret
 
@@ -59,7 +59,7 @@ class TestBochaSearch:
     @patch("sage.libs.agentic.agents.agent.requests.request")
     def test_run(self, mock_request):
         """测试搜索执行"""
-        from sage.libs.agentic.agents.agent import BochaSearch
+        from sage_libs.sage_agentic.agents.agent import BochaSearch
 
         # Mock response
         mock_response = Mock()
@@ -79,7 +79,7 @@ class TestBaseAgent:
 
     def test_init_with_config(self):
         """测试使用配置初始化Agent"""
-        from sage.libs.agentic.agents.agent import BaseAgent
+        from sage_libs.sage_agentic.agents.agent import BaseAgent
 
         config = {
             "search_api_key": "test_key",  # pragma: allowlist secret
@@ -96,7 +96,7 @@ class TestBaseAgent:
 
     def test_init_with_model(self):
         """测试使用模型初始化Agent"""
-        from sage.libs.agentic.agents.agent import BaseAgent
+        from sage_libs.sage_agentic.agents.agent import BaseAgent
 
         config = {"search_api_key": "test_key"}  # pragma: allowlist secret
         mock_model = Mock()
@@ -107,7 +107,7 @@ class TestBaseAgent:
 
     def test_tools_registration(self):
         """测试工具注册"""
-        from sage.libs.agentic.agents.agent import BaseAgent
+        from sage_libs.sage_agentic.agents.agent import BaseAgent
 
         config = {"search_api_key": "test_key"}  # pragma: allowlist secret
         mock_model = Mock()
@@ -120,7 +120,7 @@ class TestBaseAgent:
 
     def test_agent_has_required_attributes(self):
         """测试Agent必需属性"""
-        from sage.libs.agentic.agents.agent import BaseAgent
+        from sage_libs.sage_agentic.agents.agent import BaseAgent
 
         config = {"search_api_key": "test_key"}  # pragma: allowlist secret
         mock_model = Mock()
@@ -132,7 +132,7 @@ class TestBaseAgent:
 
     def test_init_without_model_raises_error(self):
         """测试没有提供model会报错"""
-        from sage.libs.agentic.agents.agent import BaseAgent
+        from sage_libs.sage_agentic.agents.agent import BaseAgent
 
         config = {"search_api_key": "test_key"}  # pragma: allowlist secret
 

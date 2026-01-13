@@ -3,8 +3,7 @@ Tests for tool selection schemas.
 """
 
 import pytest
-
-from sage.libs.agentic.agents.action.tool_selection.schemas import (
+from sage_libs.sage_agentic.agents.action.tool_selection.schemas import (
     EmbeddingSelectorConfig,
     KeywordSelectorConfig,
     SelectorConfig,

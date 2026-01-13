@@ -3,8 +3,7 @@ Tests for agent runtime module.
 """
 
 import pytest
-
-from sage.libs.agentic.agents.runtime import (
+from sage_libs.sage_agentic.agents.runtime import (
     BenchmarkAdapter,
     Orchestrator,
     PlannerConfig,

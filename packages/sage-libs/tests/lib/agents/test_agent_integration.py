@@ -23,9 +23,10 @@ except ImportError:
     ARXIV_TOOL_AVAILABLE = False
 
 try:
-    from sage.libs.agentic.agents.action.mcp_registry import MCPRegistry
-    from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
-    from sage.libs.agentic.agents.profile.profile import BaseProfile
+    from sage_libs.sage_agentic.agents.action.mcp_registry import MCPRegistry
+    from sage_libs.sage_agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
+    from sage_libs.sage_agentic.agents.profile.profile import BaseProfile
+
     from sage.middleware.operators.agent.runtime import AgentRuntime
 
     SAGE_COMPONENTS_AVAILABLE = True

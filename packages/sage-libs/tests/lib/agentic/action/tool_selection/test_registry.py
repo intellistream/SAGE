@@ -5,13 +5,12 @@ Tests for selector registry.
 from dataclasses import dataclass
 
 import pytest
-
-from sage.libs.agentic.agents.action.tool_selection.base import SelectorResources
-from sage.libs.agentic.agents.action.tool_selection.keyword_selector import KeywordSelector
-from sage.libs.agentic.agents.action.tool_selection.registry import (
+from sage_libs.sage_agentic.agents.action.tool_selection.base import SelectorResources
+from sage_libs.sage_agentic.agents.action.tool_selection.keyword_selector import KeywordSelector
+from sage_libs.sage_agentic.agents.action.tool_selection.registry import (
     SelectorRegistry,
 )
-from sage.libs.agentic.agents.action.tool_selection.schemas import (
+from sage_libs.sage_agentic.agents.action.tool_selection.schemas import (
     KeywordSelectorConfig,
 )
 
@@ -111,7 +110,7 @@ class TestRegistryIntegration:
 
     def test_full_workflow(self):
         """Test complete workflow: register -> configure -> create -> select."""
-        from sage.libs.agentic.agents.action.tool_selection.schemas import ToolSelectionQuery
+        from sage_libs.sage_agentic.agents.action.tool_selection.schemas import ToolSelectionQuery
 
         # Setup
         registry = SelectorRegistry()

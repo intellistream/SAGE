@@ -7,7 +7,7 @@ import pytest
 
 def test_planning_module_imports():
     """Test that all key components can be imported."""
-    from sage.libs.agentic.agents.planning import (
+    from sage_libs.sage_agentic.agents.planning import (
         BasePlanner,
         BaseTimingDecider,
         DependencyGraph,
@@ -38,7 +38,7 @@ def test_planning_module_imports():
 
 def test_plan_step_creation():
     """Test creating PlanStep instances."""
-    from sage.libs.agentic.agents.planning import PlanStep
+    from sage_libs.sage_agentic.agents.planning import PlanStep
 
     step = PlanStep(
         id=1,
@@ -58,7 +58,7 @@ def test_plan_step_creation():
 
 def test_plan_request_creation():
     """Test creating PlanRequest instances."""
-    from sage.libs.agentic.agents.planning import PlanRequest, ToolMetadata
+    from sage_libs.sage_agentic.agents.planning import PlanRequest, ToolMetadata
 
     tool = ToolMetadata(
         tool_id="tool_1",
@@ -77,7 +77,7 @@ def test_plan_request_creation():
 
 def test_timing_message_creation():
     """Test creating TimingMessage instances."""
-    from sage.libs.agentic.agents.planning import TimingMessage
+    from sage_libs.sage_agentic.agents.planning import TimingMessage
 
     message = TimingMessage(
         user_message="What's the weather?",
@@ -94,7 +94,7 @@ def test_timing_message_creation():
 
 def test_planner_config_defaults():
     """Test PlannerConfig default values."""
-    from sage.libs.agentic.agents.planning import PlannerConfig
+    from sage_libs.sage_agentic.agents.planning import PlannerConfig
 
     config = PlannerConfig()
 
@@ -108,7 +108,7 @@ def test_planner_config_defaults():
 
 def test_timing_config_defaults():
     """Test TimingConfig default values."""
-    from sage.libs.agentic.agents.planning import TimingConfig
+    from sage_libs.sage_agentic.agents.planning import TimingConfig
 
     config = TimingConfig()
 

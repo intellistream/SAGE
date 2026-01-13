@@ -3,8 +3,7 @@ Tests for Timing Decider modules.
 """
 
 import pytest
-
-from sage.libs.agentic.agents.planning import (
+from sage_libs.sage_agentic.agents.planning import (
     HybridTimingDecider,
     LLMBasedTimingDecider,
     RuleBasedTimingDecider,

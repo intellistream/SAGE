@@ -2,7 +2,7 @@
 Tests for HierarchicalPlanner module.
 """
 
-from sage.libs.agentic.agents.planning import (
+from sage_libs.sage_agentic.agents.planning import (
     HierarchicalPlanner,
     PlannerConfig,
     PlanRequest,
@@ -280,7 +280,7 @@ class TestHierarchicalPlanner:
         assert result.success is True
 
         # Verify no cycles in final plan
-        from sage.libs.agentic.agents.planning import DependencyGraph
+        from sage_libs.sage_agentic.agents.planning import DependencyGraph
 
         if len(result.steps) > 0:
             graph = DependencyGraph(result.steps)

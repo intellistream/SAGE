@@ -5,14 +5,13 @@ Tests for keyword selector implementation.
 from dataclasses import dataclass
 
 import pytest
-
-from sage.libs.agentic.agents.action.tool_selection.base import (
+from sage_libs.sage_agentic.agents.action.tool_selection.base import (
     SelectorResources,
 )
-from sage.libs.agentic.agents.action.tool_selection.keyword_selector import (
+from sage_libs.sage_agentic.agents.action.tool_selection.keyword_selector import (
     KeywordSelector,
 )
-from sage.libs.agentic.agents.action.tool_selection.schemas import (
+from sage_libs.sage_agentic.agents.action.tool_selection.schemas import (
     KeywordSelectorConfig,
     ToolSelectionQuery,
 )

@@ -1,7 +1,7 @@
 # refactor_wxh/MemoRAG/packages/sage-libs/tests/lib/agents/test_llm_planner.py
 import json
 
-from sage.libs.agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
+from sage_libs.sage_agentic.agents.planning.simple_llm_planner import SimpleLLMPlanner
 
 
 class DummyGeneratorOK:

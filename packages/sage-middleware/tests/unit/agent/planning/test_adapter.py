@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from sage_agentic.agents.planning.schemas import PlanResult, PlanStep
+from sage_libs.sage_agentic.agents.planning.schemas import PlanResult, PlanStep
 
 from sage.middleware.operators.agent.planning.planner_adapter import SageLibsPlannerAdapter
 

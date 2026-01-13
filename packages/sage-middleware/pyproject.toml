@@ -64,7 +64,7 @@ dependencies = [
     "isage-flow>=0.1.1",  # SageFlow stream processing engine (independent PyPI package)
     "isage-refiner>=0.1.0",  # SageRefiner context compression algorithms (independent PyPI package)
     "isage-libs",  # SAGE算法库（sage_refiner依赖）
-    # Note: isage-agentic moved to optional-dependencies (not yet published to PyPI)
+    "isage-agentic>=0.0.0.3",  # SAGE Agentic agents (PyPI: isage-agentic)
     # Note: isage-neuromem moved to optional-dependencies to avoid conflicts
     "bm25s>=0.2.13,<1.0.0",
     "rank-bm25>=0.2.0,<1.0.0",
@@ -110,11 +110,8 @@ vdb = [
 neuromem = [
     "isage-neuromem>=0.2.1.1",
 ]
-agentic = [
-    "isage-agentic>=0.0.0.3",  # SAGE Agentic agents (not yet published to PyPI)
-]
 all = [
-    "isage-middleware[vdb,neuromem,agentic]",
+    "isage-middleware[vdb,neuromem]",
 ]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
