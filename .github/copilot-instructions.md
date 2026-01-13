@@ -171,11 +171,10 @@ __author__ = "IntelliStream Team"
 __email__ = "shuhao_zhang@hust.edu.cn"
 ```
 
-**Architecture (L1-L6)** - CRITICAL: No upward dependencies
+**Architecture (L1-L5)** - CRITICAL: No upward dependencies
 
 ```
-L6: sage-cli, sage-tools               # CLI & Development Tools
-L5: sage-benchmark, sage-examples      # Applications & Benchmarks (独立仓库)
+L5: sage-cli, sage-tools               # CLI & Development Tools
 L4: sage-middleware                    # Operators (C++ extensions)
 L3: sage-kernel, sage-libs             # Core & Algorithms
 L2: sage-platform                      # Platform Services
@@ -185,13 +184,9 @@ L1: sage-common                        # Foundation
 **独立 LLM 仓库** (已从 SAGE 核心分离):
 - `sageLLM`: 统一 LLM 推理引擎，安装命令: `pip install isagellm`
 
-**L5 独立仓库** (Applications & Benchmarks):
-- `sage-benchmark`: Evaluation framework (独立 PyPI: isage-benchmark)
-- `sage-examples`: Examples and applications (原 sage-apps)
-
-**Independent Repositories**:
-- **sage-studio**: https://github.com/intellistream/sage-studio (Visual workflow builder, depends on SAGE core)
-- **sage-benchmark**: https://github.com/intellistream/sage-benchmark (Evaluation framework, 独立 PyPI 包)
+**Independent Repositories** (不在 SAGE 核心仓库，独立维护):
+- **sage-studio**: https://github.com/intellistream/sage-studio (Visual workflow builder)
+- **sage-benchmark**: https://github.com/intellistream/sage-benchmark (Evaluation framework, 独立 PyPI: isage-benchmark)
 - **sage-examples**: https://github.com/intellistream/sage-examples (Examples and applications, 原 sage-apps)
 
 **Independent Algorithm Libraries** (L3, 从 sage-libs 拆分，独立 PyPI 包):
@@ -248,7 +243,7 @@ Notes:
 - sageLLM 仍需遵循 SAGE Control Plane 的调度协议
 - SAGE 通过引擎抽象层（与 vLLM/LMDeploy 对齐）集成 sageLLM
 
-All in `/packages/<name>/`. L6 imports L1-L5, L5 imports L1-L4, etc.
+All in `/packages/<name>/`. L5 imports L1-L4, L4 imports L1-L3, etc.
 
 ## How Copilot Should Learn SAGE (Readme-First)
 
@@ -268,8 +263,7 @@ When answering questions or making code changes in this repo, the assistant **mu
   - `docs-public/docs_src/dev-notes/l2-platform/README.md`  
   - `docs-public/docs_src/dev-notes/l3-kernel/README.md` / `l3-libs/README.md`  
   - `docs-public/docs_src/dev-notes/l4-middleware/README.md`  
-  - `docs-public/docs_src/dev-notes/l5-apps/README.md`, `l5-benchmark/README.md`  
-  - `docs-public/docs_src/dev-notes/l6-cli/README.md`, `l6-studio/README.md`, `l6-gateway/README.md`
+  - `docs-public/docs_src/dev-notes/l5-cli/README.md`
 
 **🔍 When encountering difficulties or uncertainties:**
 
@@ -604,7 +598,7 @@ pre-commit run --all-files --config tools/pre-commit-config.yaml
 
 ```
 .github/workflows/      # CI/CD
-docs-public/docs_src/dev-notes/ # Dev docs (by layer: l1-l6, cross-layer)
+docs-public/docs_src/dev-notes/ # Dev docs (by layer: l1-l5, cross-layer)
 examples/               # apps/, tutorials/ (by layer)
 packages/               # 11 packages + meta
   sage-*/src/sage/      # Source
@@ -920,7 +914,7 @@ done
 
 - Architecture: `docs-public/docs_src/dev-notes/package-architecture.md`
 - Guides: `CONTRIBUTING.md` (CN), `DEVELOPER.md` (EN)
-- Dev notes: `docs/dev-notes/` (l1-l6, cross-layer/ci-cd/)
+- Dev notes: `docs/dev-notes/` (l1-l5, cross-layer/ci-cd/)
 
 ## LLM & Embedding Services - sageLLM 架构
 
@@ -937,7 +931,7 @@ done
 │                    Control Plane Mode (唯一模式)                         │
 │              （所有请求通过调度器统一路由）                               │
 ├─────────────────────────────────────────────────────────────────────────┤
-│                 sage.llm.gateway (L6 Gateway)                              │
+│                 isagellm.gateway (独立仓库 Gateway)                         │
 │              (OpenAI-Compatible REST API + Control Plane)               │
 │   /v1/chat/completions | /v1/embeddings | /v1/management/* | /sessions │
 ├─────────────────────────────────────────────────────────────────────────┤
