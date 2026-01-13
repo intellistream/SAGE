@@ -175,6 +175,7 @@ __email__ = "shuhao_zhang@hust.edu.cn"
 
 ```
 L6: sage-cli, sage-tools               # CLI & Development Tools
+L5: sage-benchmark, sage-examples      # Applications & Benchmarks (独立仓库)
 L4: sage-middleware                    # Operators (C++ extensions)
 L3: sage-kernel, sage-libs             # Core & Algorithms
 L2: sage-platform                      # Platform Services
@@ -183,14 +184,17 @@ L1: sage-common                        # Foundation
 
 **独立 LLM 仓库** (已从 SAGE 核心分离):
 - `sageLLM`: 统一 LLM 推理引擎，安装命令: `pip install isagellm`
+
+**L5 独立仓库** (Applications & Benchmarks):
 - `sage-benchmark`: Evaluation framework (独立 PyPI: isage-benchmark)
+- `sage-examples`: Examples and applications (原 sage-apps)
 
 **Independent Repositories**:
 - **sage-studio**: https://github.com/intellistream/sage-studio (Visual workflow builder, depends on SAGE core)
 - **sage-benchmark**: https://github.com/intellistream/sage-benchmark (Evaluation framework, 独立 PyPI 包)
 - **sage-examples**: https://github.com/intellistream/sage-examples (Examples and applications, 原 sage-apps)
 
-**Independent Algorithm Libraries** (从 sage-libs 拆分，独立 PyPI 包):
+**Independent Algorithm Libraries** (L3, 从 sage-libs 拆分，独立 PyPI 包):
 
 | 内部包名 | PyPI 包名 | Import 名 | 版本格式 | 描述 | 层级 |
 |---------|----------|-----------|---------|------|------|
