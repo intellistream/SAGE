@@ -32,13 +32,14 @@ from pathlib import Path
 # ============================================================================
 
 # 包的层级定义（根据 PACKAGE_ARCHITECTURE.md）
+# NOTE: sage-apps, sage-benchmark, sage-studio 已迁移到独立仓库，不再包含在此检查中
 LAYER_DEFINITION = {
     "L1": ["sage-common"],
     "L2": ["sage-platform"],
     "L3": ["sage-kernel", "sage-libs"],
     "L4": ["sage-middleware"],
-    "L5": ["sage-apps", "sage-benchmark"],
-    "L6": ["sage-studio", "sage-tools"],
+    "L5": [],  # sage-apps, sage-benchmark 已迁移到独立仓库
+    "L6": ["sage-tools"],  # sage-studio 已迁移到独立仓库
 }
 
 # 反向映射：包名 -> 层级
@@ -59,27 +60,7 @@ ALLOWED_DEPENDENCIES = {
         "sage-kernel",
         "sage-libs",
     },  # L4 -> L3, L2, L1
-    "sage-apps": {
-        "sage-common",
-        "sage-platform",
-        "sage-kernel",
-        "sage-libs",
-        "sage-middleware",
-    },  # L5 -> L4, L3, L2, L1
-    "sage-benchmark": {
-        "sage-common",
-        "sage-platform",
-        "sage-kernel",
-        "sage-libs",
-        "sage-middleware",
-    },  # L5 -> L4, L3, L2, L1
-    "sage-studio": {
-        "sage-common",
-        "sage-platform",
-        "sage-kernel",
-        "sage-libs",
-        "sage-middleware",
-    },  # L6 -> L4, L3, L2, L1
+    # NOTE: sage-apps, sage-benchmark, sage-studio 已迁移到独立仓库
     "sage-tools": {
         "sage-common",
         "sage-platform",
@@ -99,29 +80,25 @@ ALLOWED_DEPENDENCIES = {
 }
 
 # 包的根目录映射
+# NOTE: sage-apps, sage-benchmark, sage-studio 已迁移到独立仓库
 PACKAGE_PATHS = {
     "sage-common": "packages/sage-common/src",
     "sage-platform": "packages/sage-platform/src",
     "sage-kernel": "packages/sage-kernel/src",
     "sage-libs": "packages/sage-libs/src",
     "sage-middleware": "packages/sage-middleware/src",
-    "sage-apps": "packages/sage-apps/src",
-    "sage-benchmark": "packages/sage-benchmark/src",
-    "sage-studio": "packages/sage-studio/src",
     "sage-tools": "packages/sage-tools/src",
 }
 
 # 包名到 Python 模块路径的映射（处理共享命名空间的情况）
 # 大多数包: sage-xxx -> sage/xxx
+# NOTE: sage-apps, sage-benchmark, sage-studio 已迁移到独立仓库
 PACKAGE_MODULE_PATHS = {
     "sage-common": "sage/common",
     "sage-platform": "sage/platform",
     "sage-kernel": "sage/kernel",
     "sage-libs": "sage/libs",
     "sage-middleware": "sage/middleware",
-    "sage-apps": "sage/apps",
-    "sage-benchmark": "sage/benchmark",
-    "sage-studio": "sage/studio",
     "sage-tools": "sage/tools",
 }
 
@@ -189,6 +166,8 @@ ALLOWED_ROOT_FILES = {
     ".dockerignore",
     "codecov.yml",
     ".codecov.yml",
+    # 依赖管理
+    "dependencies-spec.yaml",  # 统一依赖版本规范
     # Shell 脚本
     "manage.sh",
     "quickstart.sh",
