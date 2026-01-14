@@ -22,12 +22,16 @@ Experience SAGE's visual pipeline editor and AI-powered chat assistant with RAG 
 **Option 2: Local Installation**
 
 ```bash
-git clone https://github.com/intellistream/SAGE.git
-cd SAGE
-./quickstart.sh --standard --yes
-sage studio start
+# 1. Install SAGE Studio (independent package)
+pip install isage-studio
+
+# 2. Start SAGE Studio
+sage-studio start
 # Visit http://localhost:4200
 ```
+
+> 💡 **Note**: SAGE Studio is an independent package. For SAGE core framework installation, see
+> [Installation](#installation) section below.
 
 ______________________________________________________________________
 
@@ -159,8 +163,38 @@ L1: sage-common                           # Foundation Layer (Config, Types, Uti
 
 - **sage-benchmark**: https://github.com/intellistream/sage-benchmark (PyPI: `isage-benchmark`)
 - **sage-examples**: https://github.com/intellistream/sage-examples (Tutorials & Applications)
-- **sage-studio**: https://github.com/intellistream/sage-studio (Visual Workflow Builder)
+- **sage-studio**: https://github.com/intellistream/sage-studio (PyPI: `isage-studio`)
 - **sageLLM**: LLM inference engine (PyPI: `isagellm`)
+- **SageEdge**: Edge aggregator for distributed deployment (PyPI: `isage-edge`)
+
+**Optional Dependencies** (independent PyPI packages):
+
+*sage-middleware optional dependencies:*
+
+| Package      | PyPI             | Category      | Description                                 |
+| ------------ | ---------------- | ------------- | ------------------------------------------- |
+| **SageVDB**  | `isage-vdb`      | `[vdb]`       | High-performance C++ vector database        |
+| **NeuroMem** | `isage-neuromem` | `[neuromem]`  | Brain-inspired memory system (VDB/KV/Graph) |
+| **SageFlow** | `isage-flow`     | `[streaming]` | Vector-native stream processing engine      |
+| **SageTSDB** | `isage-tsdb`     | `[streaming]` | Time-series database with C++ core          |
+
+*sage-libs optional dependencies (L3 algorithm libraries):*
+
+| Package         | PyPI            | Category   | Description                                                 |
+| --------------- | --------------- | ---------- | ----------------------------------------------------------- |
+| **SageANNS**    | `isage-anns`    | `[anns]`   | Approximate nearest neighbor search algorithms              |
+| **SageAMMs**    | `isage-amms`    | `[amms]`   | Approximate matrix multiplication                           |
+| **SageRefiner** | `isage-refiner` | `[libs]`\* | Context compression for RAG (LongRefiner, REFORM, Provence) |
+
+> \* SageRefiner is an L3 algorithm library, also available via `isage-middleware[libs]`
+
+```bash
+# Install with specific optional dependencies
+pip install isage-middleware[vdb]           # Vector database support
+pip install isage-middleware[streaming]     # Stream processing + time-series
+pip install isage-libs[anns]                # ANNS algorithms
+pip install isage-libs[amms]                # AMM algorithms
+```
 
 **Key Architectural Principles:**
 
@@ -176,23 +210,28 @@ Detailed package descriptions, dependency rules, and design principles
 
 **8 Core Packages**, each with clear responsibilities:
 
+- **sage** (meta): Meta-package that installs all SAGE components
 - **sage-common** (L1): Foundation utilities, configuration, logging
 - **sage-platform** (L2): Platform services - queue, storage abstractions
 - **sage-kernel** (L3): Distributed execution engine and runtime
 - **sage-libs** (L3): Algorithm library, RAG tools, Agent framework
 - **sage-middleware** (L4): Domain operators and middleware components
-- **sage-cli** (L5): Unified command-line interface
-- **sage-tools** (L5): Development tools and testing framework
+- **sage-cli** (L5): Unified command-line interface (`sage` command)
+- **sage-tools** (L5): Development tools and testing framework (`sage-dev` command)
 
 **Independent Repositories:**
 
 - **sage-examples**: Tutorials, examples, and production applications
   - Repository: [intellistream/sage-examples](https://github.com/intellistream/sage-examples)
-  - Includes: tutorials, RAG examples, application demos (video intelligence, medical diagnosis,
-    etc.)
-- **sage-benchmark**: Evaluation framework
+  - Includes: tutorials, RAG examples, application demos
+- **sage-benchmark**: Evaluation framework (PyPI: `isage-benchmark`)
   - Repository: [intellistream/sage-benchmark](https://github.com/intellistream/sage-benchmark)
+- **sage-studio**: Visual workflow builder (PyPI: `isage-studio`)
+  - Repository: [intellistream/sage-studio](https://github.com/intellistream/sage-studio)
 - **sageLLM**: LLM inference engine (PyPI: `isagellm`)
+
+> 💡 **Note**: All PyPI packages use `isage-` prefix (e.g., `pip install isage-vdb`) because `sage`
+> is already taken on PyPI.
 
 ### Production Features
 

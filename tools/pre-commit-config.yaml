@@ -340,6 +340,7 @@ repos:
         "dependencies-spec.yaml"
         "dependencies-spec.yaml"
         "tasks.md"
+        "SAGE.code-workspace"
       )
 
       # Allowed directories in project root (whitelist)

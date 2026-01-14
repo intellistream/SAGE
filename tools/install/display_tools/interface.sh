@@ -117,8 +117,8 @@ show_help() {
     echo -e "    ${DIM}适合: 应用开发、日常使用、大多数用户${NC}"
     echo ""
     echo -e "  ${BOLD}--full, -f${NC}         ${PURPLE}完整功能${NC}"
-    echo -e "    ${DIM}包含: Standard + apps, benchmark, studio (Web UI)${NC}"
-    echo -e "    ${DIM}适合: 需要示例应用和可视化界面${NC}"
+    echo -e "    ${DIM}包含: Standard + 完整功能组件${NC}"
+    echo -e "    ${DIM}适合: 需要完整功能的用户${NC}"
     echo ""
     echo -e "  ${BOLD}--dev, -d${NC}          ${YELLOW}开发模式 (默认)${NC}"
     echo -e "    ${DIM}包含: Full + sage-tools (sage-dev, pytest, pre-commit)${NC}"
@@ -201,8 +201,8 @@ show_install_success() {
             ;;
         "full")
             echo -e "${BLUE}已安装 (完整功能):${NC}"
-            echo_icon "✅" "Standard + apps, benchmark, studio" 1 1
-            echo_icon "✅" "示例应用 + Web UI 可视化界面" 1 1
+            echo_icon "✅" "Standard + 完整功能组件" 1 1
+            echo_icon "✅" "完整的 SAGE 框架功能" 1 1
             ;;
         "dev")
             echo -e "${BLUE}已安装 (开发模式):${NC}"
@@ -511,7 +511,8 @@ show_demo_footer() {
     echo ""
 }
 
-# 询问用户是否要启动服务（LLM / Studio / Hello World）
+# 询问用户是否要启动服务（LLM / Hello World）
+# 注意：SAGE Studio 需要单独安装 (pip install isage-studio)
 prompt_start_llm_service() {
     local mode="$1"
 
@@ -551,7 +552,8 @@ prompt_start_llm_service() {
         echo ""
         echo -e "${DIM}激活后可用以下命令启动服务:${NC}"
         echo -e "  ${CYAN}sage llm serve${NC}       # 启动 LLM 推理服务"
-        echo -e "  ${CYAN}sage studio start${NC}   # 启动 Studio Web 界面"
+        echo ""
+        echo -e "${DIM}💡 SAGE Studio 需要单独安装: pip install isage-studio${NC}"
         echo ""
         return 0
     fi
@@ -569,18 +571,13 @@ prompt_start_llm_service() {
         echo -e "      ${DIM}${YELLOW}⚠️  需要 GPU，当前未检测到${NC}"
     fi
     echo ""
-    echo -e "  ${BOLD}[3] sage studio start${NC} - 启动 Studio Web 界面"
-    if [ "$mode" = "full" ] || [ "$mode" = "dev" ]; then
-        echo -e "      ${DIM}图形化界面 (http://localhost:5173)，含 Chat/RAG 等功能${NC}"
-    else
-        echo -e "      ${DIM}${YELLOW}⚠️  需要 --full 或 --dev 模式安装${NC}"
-    fi
+    echo -e "  ${BOLD}[3] 跳过${NC}              - 稍后手动操作"
     echo ""
-    echo -e "  ${BOLD}[4] 跳过${NC}              - 稍后手动操作"
+    echo -e "${DIM}💡 SAGE Studio 需要单独安装: pip install isage-studio${NC}"
     echo ""
 
     # 交互式询问
-    echo -ne "${BOLD}请选择 [1/2/3/4]: ${NC}"
+    echo -ne "${BOLD}请选择 [1/2/3]: ${NC}"
     read -r choice
 
     case "$choice" in
@@ -681,202 +678,16 @@ prompt_start_llm_service() {
                 echo -e "  ${CYAN}SAGE_CHAT_BASE_URL=https://api.openai.com/v1${NC}"
             fi
             ;;
-        3)
-            if [ "$mode" = "full" ] || [ "$mode" = "dev" ]; then
-                echo ""
-                echo -e "${INFO} 正在启动 SAGE Studio..."
-                echo -e "${DIM}   这将同时启动前端界面和后端服务${NC}"
-                if [ "$has_gpu" = true ]; then
-                    echo -e "${DIM}   首次启动会下载 LLM 模型（可能需要 1-2 分钟）${NC}"
-                    echo -e "${DIM}   ${YELLOW}注意: LLM 启动可能需要 5 分钟，如需快速启动可选择跳过${NC}"
-                    echo ""
-                    echo -ne "${BOLD}是否启动本地 LLM？[Y/n]: ${NC}"
-                    read -r start_llm_choice
-                    if [[ "$start_llm_choice" =~ ^[Nn] ]]; then
-                        echo -e "${DIM}   将跳过本地 LLM 启动（可稍后使用 'sage llm serve' 启动）${NC}"
-                        local no_llm_flag="--no-llm"
-                    else
-                        local no_llm_flag=""
-                    fi
-                else
-                    local no_llm_flag="--no-llm"
-                fi
-                echo -e "${DIM}   ${YELLOW}提示: 启动过程中会显示进度信息...${NC}"
-                echo ""
-
-                if command -v sage &>/dev/null; then
-                    # 将日志重定向到临时文件，同时实时显示进度
-                    local studio_log="/tmp/sage_studio_start_$$.log"
-
-                    # 启动服务（后台运行，可能带 --no-llm 参数）
-                    sage studio start $no_llm_flag > "$studio_log" 2>&1 &
-                    local sage_pid=$!
-
-                    # 实时监控日志并显示关键进度
-                    local elapsed=0
-                    local max_wait=300  # 最多等待 5 分钟
-                    local last_status=""
-                    local status_shown=""
-
-                    echo -e "${CYAN}📦 启动进度:${NC}"
-
-                    while kill -0 $sage_pid 2>/dev/null && [ $elapsed -lt $max_wait ]; do
-                        # 尝试从日志中获取当前状态
-                        if [ -f "$studio_log" ]; then
-                            local new_status=""
-
-                            # 按顺序检测状态，只匹配最新的状态
-                            if grep -q "依赖检查失败" "$studio_log" 2>/dev/null; then
-                                new_status="failed"
-                            elif grep -qE "(Studio 启动成功|Studio started successfully)" "$studio_log" 2>/dev/null; then
-                                new_status="completed"
-                            elif grep -qE "(检查 npm 依赖|npm install)" "$studio_log" 2>/dev/null; then
-                                new_status="installing_deps"
-                            elif grep -q "启动 Studio 服务" "$studio_log" 2>/dev/null; then
-                                new_status="starting_frontend"
-                            elif grep -qE "(LLM.*started|Gateway.*started)" "$studio_log" 2>/dev/null; then
-                                new_status="llm_ready"
-                            elif grep -qE "(Waiting for LLM.*to be ready|Health check URL)" "$studio_log" 2>/dev/null; then
-                                new_status="waiting_llm"
-                            elif grep -qE "(启动 LLM 服务|Starting LLM)" "$studio_log" 2>/dev/null; then
-                                new_status="starting_llm"
-                            elif grep -qE "(检测到.*GPU|检查.*Node\.js)" "$studio_log" 2>/dev/null; then
-                                new_status="starting"
-                            fi
-
-                            # 只在状态改变时输出新消息
-                            if [ -n "$new_status" ] && [ "$new_status" != "$last_status" ]; then
-                                # 清除之前的进度指示器
-                                printf "\r\033[K"
-
-                                case "$new_status" in
-                                    "starting")
-                                        echo -e "   ${GREEN}✓${NC} 检查运行环境"
-                                        ;;
-                                    "starting_llm")
-                                        echo -e "   ${CYAN}⏳${NC} 启动 LLM 服务（首次约 1-2 分钟，加载模型到 GPU）..."
-                                        ;;
-                                    "waiting_llm")
-                                        echo -e "   ${CYAN}⏳${NC} 等待 LLM 服务就绪（最多 5 分钟）..."
-                                        ;;
-                                    "llm_ready")
-                                        echo -e "   ${GREEN}✓${NC} LLM 服务已就绪"
-                                        ;;
-                                    "starting_frontend")
-                                        echo -e "   ${CYAN}⏳${NC} 启动前端界面..."
-                                        ;;
-                                    "installing_deps")
-                                        echo -e "   ${CYAN}⏳${NC} 安装前端依赖（首次约 2-3 分钟）..."
-                                        ;;
-                                    "completed")
-                                        echo -e "   ${GREEN}✓${NC} Studio 启动成功"
-                                        last_status="$new_status"
-                                        break
-                                        ;;
-                                    "failed")
-                                        echo -e "   ${RED}✗${NC} 依赖检查失败"
-                                        last_status="$new_status"
-                                        break
-                                        ;;
-                                esac
-
-                                last_status="$new_status"
-                            fi
-
-                            # 只在长时间等待状态显示进度指示器和实时日志
-                            if [ "$last_status" = "waiting_llm" ]; then
-                                # 显示 LLM 日志的最新进展
-                                if [ -f "$studio_log" ]; then
-                                    local latest_llm_log
-                                    # 提取最后一条有意义的日志（过滤掉空行和进度条）
-                                    latest_llm_log=$(grep -E "(Initializing|Loading|Starting|Model loaded|vLLM)" "$studio_log" 2>/dev/null | tail -1 | cut -c1-80)
-                                    if [ -n "$latest_llm_log" ]; then
-                                        printf "\r   ${DIM}%s (%ds)${NC}" "$latest_llm_log" $elapsed
-                                    else
-                                        printf "\r   ${DIM}等待 LLM 启动... %ds${NC}" $elapsed
-                                    fi
-                                else
-                                    printf "\r   ${DIM}等待 LLM 启动... %ds${NC}" $elapsed
-                                fi
-                            elif [ "$last_status" = "installing_deps" ]; then
-                                printf "\r   ${DIM}安装依赖中 %ds...${NC}" $elapsed
-                            fi
-                        fi
-
-                        sleep 2
-                        elapsed=$((elapsed + 2))
-                    done
-
-                    # 清除进度行
-                    printf "\r\033[K"
-
-                    # 等待命令完成
-                    wait $sage_pid 2>/dev/null
-                    local exit_code=$?
-
-                    # 显示最终状态
-                    echo ""
-                    if [ $exit_code -eq 0 ]; then
-                        echo -e "${GREEN}✅ Studio 已成功启动${NC}"
-                        echo -e "${DIM}   前端地址: http://localhost:5173${NC}"
-                        echo -e "${DIM}   后端 API: http://localhost:8000${NC}"
-                        echo -e "${DIM}   状态查看: sage studio status${NC}"
-                        echo -e "${DIM}   停止服务: sage studio stop${NC}"
-                        echo ""
-                        echo -e "${CYAN}💡 提示: 在浏览器中打开 http://localhost:5173 开始使用 Studio${NC}"
-                    else
-                        echo -e "${RED}❌ Studio 启动失败${NC}"
-                        echo ""
-                        echo -e "${YELLOW}错误详情（最后 50 行）:${NC}"
-                        if [ -f "$studio_log" ]; then
-                            # 过滤出错误和警告信息
-                            echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                            grep -E "(❌|⚠️|ERROR|CRITICAL|依赖检查失败|Node\.js|版本)" "$studio_log" | tail -30 || tail -50 "$studio_log"
-                            echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                        fi
-                        echo ""
-                        echo -e "${YELLOW}📋 常见问题排查：${NC}"
-                        echo -e "  ${BOLD}1. Node.js 版本问题${NC}"
-                        echo -e "     ${DIM}检查: node --version  # 需要 v20+${NC}"
-                        echo -e "     ${DIM}修复: conda install -y nodejs=22 -c conda-forge${NC}"
-                        echo ""
-                        echo -e "  ${BOLD}2. LLM 服务启动超时${NC}"
-                        echo -e "     ${DIM}使用更小模型: sage studio start --llm-model Qwen/Qwen2.5-0.5B-Instruct${NC}"
-                        echo -e "     ${DIM}或跳过 LLM: sage studio start --no-llm${NC}"
-                        echo ""
-                        echo -e "  ${BOLD}3. 端口被占用${NC}"
-                        echo -e "     ${DIM}检查: sage studio status${NC}"
-                        echo -e "     ${DIM}清理: sage studio stop${NC}"
-                        echo ""
-                        echo -e "${BLUE}🔍 查看完整日志：${NC}"
-                        echo -e "  ${CYAN}tail -100 $studio_log${NC}"
-                        echo -e "  ${CYAN}sage studio logs --follow${NC}"
-                        echo ""
-                        echo -e "${DIM}   状态查看: sage studio status${NC}"
-                        echo -e "${DIM}   重新启动: sage studio start${NC}"
-                    fi
-
-                    # 清理日志
-                    rm -f "$studio_log"
-                else
-                    echo -e "${YELLOW}⚠️  sage 命令不可用，请手动启动:${NC}"
-                    echo -e "  ${CYAN}sage studio start${NC}"
-                fi
-            else
-                echo ""
-                echo -e "${YELLOW}⚠️  Studio 需要 --full 或 --dev 模式安装。${NC}"
-                echo -e "${DIM}请使用以下命令重新安装:${NC}"
-                echo -e "  ${CYAN}./quickstart.sh --full${NC}"
-                echo -e "  ${CYAN}./quickstart.sh --dev${NC}"
-            fi
-            ;;
-        4|"")
+        3|"")
             echo ""
             echo -e "${DIM}已跳过。稍后可用以下命令:${NC}"
             echo -e "  ${CYAN}git clone https://github.com/intellistream/sage-examples.git${NC}"
             echo -e "  ${CYAN}python sage-examples/tutorials/hello_world.py${NC}  # Hello World"
             echo -e "  ${CYAN}sage llm serve${NC}                                  # LLM 服务"
-            echo -e "  ${CYAN}sage studio start${NC}                               # Studio 界面"
+            echo ""
+            echo -e "${DIM}💡 SAGE Studio 需要单独安装:${NC}"
+            echo -e "  ${CYAN}pip install isage-studio${NC}"
+            echo -e "  ${CYAN}sage-studio start${NC}"
             ;;
         *)
             echo ""
