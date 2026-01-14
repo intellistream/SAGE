@@ -1,29 +1,14 @@
 [build-system]
-requires = [
-    "setuptools>=64",
-    "wheel",
-    "packaging>=24.2",
-]
+requires = ["setuptools>=64", "wheel", "packaging>=24.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "isage-platform"
-dynamic = [
-    "version",
-]
+dynamic = ["version"]
 description = "SAGE Platform Services - Queue, Storage, and Service Abstractions"
 readme = "README.md"
-authors = [
-    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
-]
-keywords = [
-    "ai",
-    "sage",
-    "platform",
-    "queue",
-    "storage",
-    "infrastructure",
-]
+authors = [{ name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" }]
+keywords = ["ai", "sage", "platform", "queue", "storage", "infrastructure"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -44,7 +29,7 @@ dependencies = [
     "fabric>=3.2.0,<4.0.0",
 ]
 
-license = {text = "MIT"}
+license = { text = "MIT" }
 
 [project.optional-dependencies]
 dev = [
@@ -66,15 +51,10 @@ attr = "sage.platform._version.__version__"
 
 [tool.setuptools.packages.find]
 namespaces = true
-where = [
-    "src",
-]
+where = ["src"]
 
 [tool.setuptools.package-data]
-"*" = [
-    "*.txt",
-    "*.md",
-]
+"*" = ["*.txt", "*.md"]
 
 [tool.ruff]
 extend = "../../tools/ruff.toml"
@@ -84,20 +64,10 @@ cache_dir = "../../.sage/cache/mypy"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-testpaths = [
-    "tests",
-    "src",
-]
-python_files = [
-    "test_*.py",
-    "*_test.py",
-]
-python_classes = [
-    "Test*",
-]
-python_functions = [
-    "test_*",
-]
+testpaths = ["tests", "src"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
 addopts = [
     "--benchmark-storage=../../.sage/benchmarks",
     "-o",
@@ -117,14 +87,8 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = [
-    "src/sage",
-]
-omit = [
-    "*/tests/*",
-    "*/test_*.py",
-    "*/_test_*.py",
-]
+source = ["src/sage"]
+omit = ["*/tests/*", "*/test_*.py", "*/_test_*.py"]
 
 [tool.coverage.report]
 exclude_lines = [

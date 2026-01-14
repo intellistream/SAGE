@@ -1,8 +1,5 @@
 [build-system]
-requires = [
-    "setuptools>=64",
-    "wheel",
-]
+requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 
@@ -12,9 +9,7 @@ dynamic = ["version"]
 description = "SAGE Middleware - Streaming-Augmented Generative Execution"
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [
-    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
-]
+authors = [{ name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" }]
 keywords = [
     "data",
     "api",
@@ -49,8 +44,8 @@ dependencies = [
 
     # Network utilities - required for operators
     "aiohttp>=3.12.0,<4.0.0",
-    "beautifulsoup4>=4.12.0,<5.0.0",  # Web scraping operators
-    "feedparser>=6.0.11,<7.0.0",  # RSS feed operators
+    "beautifulsoup4>=4.12.0,<5.0.0", # Web scraping operators
+    "feedparser>=6.0.11,<7.0.0",     # RSS feed operators
 
     # JSON handling - for LongRefiner
     "json_repair>=0.30.0,<1.0.0",
@@ -60,7 +55,7 @@ dependencies = [
     "rank-bm25>=0.2.0,<1.0.0",
     "PyStemmer>=3.0.0,<4.0.0",
 ]
-license = {text = "MIT"}
+license = { text = "MIT" }
 
 [project.optional-dependencies]
 dev = [
@@ -73,17 +68,17 @@ dev = [
 ]
 # Vector databases and storage
 vdb = [
-    "isage-vdb>=0.1.5",  # SageVDB vector database
-    "faiss-cpu>=1.7.0,<2.0.0",  # FAISS CPU backend
+    "isage-vdb>=0.1.5",        # SageVDB vector database
+    "faiss-cpu>=1.7.0,<2.0.0", # FAISS CPU backend
 ]
 # Memory system
 neuromem = [
-    "isage-neuromem>=0.2.1.1",  # NeuroMem memory system
+    "isage-neuromem>=0.2.1.1", # NeuroMem memory system
 ]
 # Streaming and time-series
 streaming = [
-    "isage-flow>=0.1.1",  # SageFlow stream processing
-    "isage-tsdb>=0.1.5",  # SageTSDB time series database
+    "isage-flow>=0.1.1", # SageFlow stream processing
+    "isage-tsdb>=0.1.5", # SageTSDB time series database
 ]
 # ML/AI - transformers, embeddings, etc.
 ml = [
@@ -98,13 +93,10 @@ ml = [
 ]
 # Prompt compression
 compression = [
-    "llmlingua>=0.2.0,<1.0.0",  # LLMLingua family
+    "llmlingua>=0.2.0,<1.0.0", # LLMLingua family
 ]
 # Task queue for distributed processing
-queue = [
-    "celery>=5.5.0,<6.0.0",
-    "flower>=2.0.0,<3.0.0",
-]
+queue = ["celery>=5.5.0,<6.0.0", "flower>=2.0.0,<3.0.0"]
 # Authentication and security
 auth = [
     "python-jose[cryptography]>=3.5.0,<4.0.0",
@@ -119,7 +111,7 @@ llm-providers = [
 ]
 # L3 Independent Algorithm Libraries
 libs = [
-    "isage-libs",  # Core interface library
+    "isage-libs",              # Core interface library
     "isage-agentic>=0.1.0.0",
     "isage-eval>=0.1.0.0",
     "isage-finetune>=0.1.0.0",
@@ -145,20 +137,10 @@ Issues = "https://github.com/intellistream/SAGE/issues"
 # ============================================================================
 
 [tool.pytest.ini_options]
-testpaths = [
-    "tests",
-    "src",
-]
-python_files = [
-    "test_*.py",
-    "*_test.py",
-]
-python_classes = [
-    "Test*",
-]
-python_functions = [
-    "test_*",
-]
+testpaths = ["tests", "src"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
 addopts = [
     "--benchmark-storage=../../.sage/benchmarks",
     "-o",
@@ -181,14 +163,8 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = [
-    "src/sage",
-]
-omit = [
-    "*/tests/*",
-    "*/test_*.py",
-    "*/_test_*.py",
-]
+source = ["src/sage"]
+omit = ["*/tests/*", "*/test_*.py", "*/_test_*.py"]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -209,9 +185,7 @@ extend-exclude = "/(\n    \\.git\n    | \\.venv\n    | build\n    | dist\n)/\n"
 profile = "black"
 multi_line_output = 3
 line_length = 100
-known_first_party = [
-    "sage",
-]
+known_first_party = ["sage"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -240,4 +214,4 @@ namespaces = true
 
 # Version from _version.py (setuptools-scm alternative for manual versioning)
 [tool.setuptools.dynamic]
-version = {attr = "sage.middleware._version.__version__"}
+version = { attr = "sage.middleware._version.__version__" }

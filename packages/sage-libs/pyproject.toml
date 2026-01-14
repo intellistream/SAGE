@@ -9,9 +9,7 @@ dynamic = ["version"]
 description = "SAGE Libraries - Streaming-Augmented Generative Execution"
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [
-    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
-]
+authors = [{ name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" }]
 keywords = [
     "applications",
     "examples",
@@ -24,11 +22,12 @@ keywords = [
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: System :: Distributed Computing",
 ]
-license = {text = "MIT"}
+license = { text = "MIT" }
 
 # 核心依赖 - 仅包含接口层所需的最小依赖
 # sage-libs 是接口层，具体实现在独立 PyPI 包中（isage-*）
@@ -57,38 +56,17 @@ dev = [
     "mypy>=1.7.0",
 ]
 # Algorithm implementations (independent repos)
-anns = [
-    "isage-anns>=0.1.0",
-]
-amms = [
-    "isage-amms>=0.1.0",
-]
+anns = ["isage-anns>=0.1.0"]
+amms = ["isage-amms>=0.1.0"]
 # L3 domain implementations
-finetune = [
-    "isage-finetune>=0.1.0",
-]
-agentic = [
-    "isage-agentic>=0.1.0",
-]
-rag = [
-    "isage-rag>=0.1.0",
-]
-intent = [
-    "isage-intent>=0.1.0",
-]
+finetune = ["isage-finetune>=0.1.0"]
+agentic = ["isage-agentic>=0.1.0"]
+rag = ["isage-rag>=0.1.0"]
+intent = ["isage-intent>=0.1.0"]
 # Heavy optional dependencies (moved from core)
-vdb = [
-    "chromadb>=1.0.20",
-    "pymilvus[model]>=2.4.0",
-]
-streaming = [
-    "kafka-python>=2.0.0",
-    "redis>=4.0.0",
-]
-notebook = [
-    "jupyter>=1.0.0",
-    "notebook>=6.0.0",
-]
+vdb = ["chromadb>=1.0.20", "pymilvus[model]>=2.4.0"]
+streaming = ["kafka-python>=2.0.0", "redis>=4.0.0"]
+notebook = ["jupyter>=1.0.0", "notebook>=6.0.0"]
 eval = [
     "datasets>=2.0.0",
     "evaluate>=0.4.0",
@@ -96,13 +74,8 @@ eval = [
     "rouge-score>=0.1.0",
     "bleu>=0.3.0",
 ]
-loaders = [
-    "PyPDF2>=3.0.0",
-    "python-docx>=0.8.11",
-]
-ocr = [
-    "easyocr>=1.7.0",
-]
+loaders = ["PyPDF2>=3.0.0", "python-docx>=0.8.11"]
+ocr = ["easyocr>=1.7.0"]
 llm = [
     "isagellm>=0.1.0",
     "transformers>=4.52.0,<4.54.0",
@@ -187,20 +160,10 @@ regex = '''__version__\s*=\s*["'](?P<value>[^"']+)["']'''
 extend = "../../tools/ruff.toml"
 
 [tool.pytest.ini_options]
-testpaths = [
-    "tests",
-    "src",
-]
-python_files = [
-    "test_*.py",
-    "*_test.py",
-]
-python_classes = [
-    "Test*",
-]
-python_functions = [
-    "test_*",
-]
+testpaths = ["tests", "src"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
 addopts = [
     "--benchmark-storage=../../.sage/benchmarks",
     "-o",
@@ -223,14 +186,8 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = [
-    "src/sage",
-]
-omit = [
-    "*/tests/*",
-    "*/test_*.py",
-    "*/_test_*.py",
-]
+source = ["src/sage"]
+omit = ["*/tests/*", "*/test_*.py", "*/_test_*.py"]
 # Disable coverage warning when no data is collected (e.g., all tests skipped)
 disable_warnings = ["no-data-collected"]
 

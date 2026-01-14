@@ -1,22 +1,14 @@
 [build-system]
-requires = [
-    "setuptools>=64",
-    "wheel",
-    "packaging>=24.2",
-]
+requires = ["setuptools>=64", "wheel", "packaging>=24.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "isage-kernel"
-dynamic = [
-    "version",
-]
+dynamic = ["version"]
 description = "SAGE Kernel Module - Streaming-Augmented Generative Execution"
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [
-    { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
-]
+authors = [{ name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" }]
 keywords = [
     "data",
     "reasoning",
@@ -49,7 +41,7 @@ dependencies = [
     # These are pulled in transitively via isage-platform dependency
 ]
 
-license = {text = "MIT"}
+license = { text = "MIT" }
 
 [project.optional-dependencies]
 dev = [
@@ -61,10 +53,7 @@ dev = [
     "mypy>=1.7.0",
 ]
 # Deep learning - for model execution and GPU computation
-ml = [
-    "torch>=2.7.0,<3.0.0",
-    "torchvision>=0.22.0,<1.0.0",
-]
+ml = ["torch>=2.7.0,<3.0.0", "torchvision>=0.22.0,<1.0.0"]
 # Web server - for serving kernel as HTTP service
 server = [
     "fastapi>=0.115.0,<1.0.0",
@@ -79,9 +68,7 @@ distributed = [
     "msgpack>=1.1.0,<2.0.0",
 ]
 # AWS - for cloud storage and services
-aws = [
-    "aioboto3>=14.1.0,<15.0.0",
-]
+aws = ["aioboto3>=14.1.0,<15.0.0"]
 # CLI - for interactive kernel management
 cli = [
     "typer>=0.15.0,<1.0.0",
@@ -92,14 +79,9 @@ cli = [
     "tabulate>=0.9.0,<1.0.0",
 ]
 # Build - for C++ extensions
-build = [
-    "Cython>=3.1.0,<4.0.0",
-    "pybind11>=3.0.0,<4.0.0",
-]
+build = ["Cython>=3.1.0,<4.0.0", "pybind11>=3.0.0,<4.0.0"]
 # Full installation with all optional dependencies
-all = [
-    "isage-kernel[ml,server,distributed,aws,cli,build]",
-]
+all = ["isage-kernel[ml,server,distributed,aws,cli,build]"]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Repository = "https://github.com/intellistream/SAGE.git"
@@ -110,43 +92,22 @@ Issues = "https://github.com/intellistream/SAGE/issues"
 "" = "src"
 
 [tool.setuptools.packages.find]
-where = [
-    "src",
-]
-include = [
-    "sage*",
-]
-exclude = [
-    "tests*",
-    "docs*",
-    "enterprise/*",
-    "commercial/*",
-]
+where = ["src"]
+include = ["sage*"]
+exclude = ["tests*", "docs*", "enterprise/*", "commercial/*"]
 namespaces = true
 
 [tool.setuptools.package-data]
-sage = [
-    "py.typed",
-]
+sage = ["py.typed"]
 
 [tool.setuptools.dynamic.version]
 attr = "sage.kernel._version.__version__"
 
 [tool.pytest.ini_options]
-testpaths = [
-    "tests",
-    "src",
-]
-python_files = [
-    "test_*.py",
-    "*_test.py",
-]
-python_classes = [
-    "Test*",
-]
-python_functions = [
-    "test_*",
-]
+testpaths = ["tests", "src"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
 addopts = [
     "--benchmark-storage=../../.sage/benchmarks",
     "-o",
@@ -181,14 +142,8 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-source = [
-    "src/sage",
-]
-omit = [
-    "*/tests/*",
-    "*/test_*.py",
-    "*/_test_*.py",
-]
+source = ["src/sage"]
+omit = ["*/tests/*", "*/test_*.py", "*/_test_*.py"]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -201,18 +156,12 @@ exclude_lines = [
 
 [tool.black]
 line-length = 100
-target-version = [
-    "py310",
-    "py311",
-    "py312",
-]
+target-version = ["py310", "py311", "py312"]
 include = "\\.pyi?$"
 extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.mypy_cache\n  | \\.pytest_cache\n  | \\.ruff_cache\n  | \\.venv\n  | build\n  | dist\n)/\n"
 
 [tool.mypy]
-python_dynamic = [
-    "version",
-]
+python_dynamic = ["version"]
 cache_dir = "../../.sage/cache/mypy"
 check_untyped_defs = true
 disallow_any_generics = true
@@ -225,9 +174,7 @@ warn_return_any = true
 strict_equality = true
 
 [[tool.mypy.overrides]]
-module = [
-    "sage.*",
-]
+module = ["sage.*"]
 ignore_missing_imports = true
 
 [tool.ruff]
