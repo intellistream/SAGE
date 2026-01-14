@@ -9,9 +9,26 @@
 
 **SAGE Platform** 提供核心基础设施抽象，位于基础层（`sage-common`）和执行引擎（`sage-kernel`）之间。这个第二层平台服务提供：
 
+## 🧭 Governance / 团队协作制度
+
+- `docs/governance/TEAM.md`
+
+- `docs/governance/MAINTAINERS.md`
+
+- `docs/governance/DEVELOPER_GUIDE.md`
+
+- `docs/governance/PR_CHECKLIST.md`
+
+- `docs/governance/SELF_HOSTED_RUNNER.md`
+
+- `docs/governance/TODO.md`
+
 - **队列抽象**：Python、Ray 和 RPC 队列的统一接口
+
 - **存储抽象**：可插拔的键值存储后端
+
 - **服务基类**：构建 SAGE 服务的基础
+
 - **平台接口**：分布式系统的通用模式
 
 该包使应用程序代码能够在本地和分布式执行模式之间无缝切换。

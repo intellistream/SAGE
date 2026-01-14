@@ -4,6 +4,15 @@
 
 **sage-libs** 是 SAGE 框架的算法库层，定位为 **接口/注册表层 (Interface Layer)**。
 
+## 🧭 Governance / 团队协作制度
+
+- `docs/governance/TEAM.md`
+- `docs/governance/MAINTAINERS.md`
+- `docs/governance/DEVELOPER_GUIDE.md`
+- `docs/governance/PR_CHECKLIST.md`
+- `docs/governance/SELF_HOSTED_RUNNER.md`
+- `docs/governance/TODO.md`
+
 核心设计原则：
 
 - 📦 **轻量级接口**：定义抽象基类和工厂函数

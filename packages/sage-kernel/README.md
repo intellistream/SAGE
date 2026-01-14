@@ -6,6 +6,15 @@
 
 **SAGE Kernel** 是 SAGE 框架的核心包，整合了原来的 `sage-kernel` 和 `sage-cli` 两个包的功能，提供数据流处理引擎、任务管理、运行时系统和命令行工具。
 
+## 🧭 Governance / 团队协作制度
+
+- `docs/governance/TEAM.md`
+- `docs/governance/MAINTAINERS.md`
+- `docs/governance/DEVELOPER_GUIDE.md`
+- `docs/governance/PR_CHECKLIST.md`
+- `docs/governance/SELF_HOSTED_RUNNER.md`
+- `docs/governance/TODO.md`
+
 ## � Package Contents
 
 **SAGE Kernel** 是 SAGE 框架的核心包，整合了原来的 `sage-kernel` 和 `sage-cli` 两个包的功能：

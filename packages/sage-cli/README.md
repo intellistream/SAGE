@@ -6,6 +6,15 @@ SAGE CLI (`sage-cli`) is the unified command-line interface for the SAGE (Stream
 Generative Execution) platform. It provides a comprehensive set of commands for managing clusters,
 deploying applications, and developing with SAGE.
 
+## 🧭 Governance / 团队协作制度
+
+- `docs/governance/TEAM.md`
+- `docs/governance/MAINTAINERS.md`
+- `docs/governance/DEVELOPER_GUIDE.md`
+- `docs/governance/PR_CHECKLIST.md`
+- `docs/governance/SELF_HOSTED_RUNNER.md`
+- `docs/governance/TODO.md`
+
 ## 🚀 Installation
 
 ```bash

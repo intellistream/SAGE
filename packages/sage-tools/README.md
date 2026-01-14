@@ -4,6 +4,15 @@
 
 SAGE Tools 提供了一整套开发、测试、部署和维护工具，帮助开发者高效地管理 SAGE 项目的全生命周期。
 
+## 🧭 Governance / 团队协作制度
+
+- `docs/governance/TEAM.md`
+- `docs/governance/MAINTAINERS.md`
+- `docs/governance/DEVELOPER_GUIDE.md`
+- `docs/governance/PR_CHECKLIST.md`
+- `docs/governance/SELF_HOSTED_RUNNER.md`
+- `docs/governance/TODO.md`
+
 ## 🛠️ Features
 
 ### 🔧 Development Toolkit (`sage.dev`)

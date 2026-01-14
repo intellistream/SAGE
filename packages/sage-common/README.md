@@ -9,11 +9,30 @@
 
 **SAGE Common** 提供所有 SAGE 包共用的基础工具和组件。 这是基础层（L1），提供：
 
+## 🧭 Governance / 团队协作制度
+
+- `docs/governance/TEAM.md`
+
+- `docs/governance/MAINTAINERS.md`
+
+- `docs/governance/DEVELOPER_GUIDE.md`
+
+- `docs/governance/PR_CHECKLIST.md`
+
+- `docs/governance/SELF_HOSTED_RUNNER.md`
+
+- `docs/governance/TODO.md`
+
 - **配置管理** - YAML/TOML 文件支持
+
 - **日志框架** - 自定义格式化器和处理程序
+
 - **网络工具** - TCP/UDP 通信支持
+
 - **序列化工具** - dill 和 pickle 支持
+
 - **系统工具** - 环境和进程管理
+
 - **嵌入服务** - sage_embedding、sage_llm
 
 该包确保 SAGE 生态系统的一致性并减少代码重复。

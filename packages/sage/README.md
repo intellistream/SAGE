@@ -30,6 +30,17 @@ from sage.common.config import get_user_paths
 
 这是 SAGE 的主要元包，提供分层的安装选项以适应不同使用场景。
 
+## 🧭 Governance / 团队协作制度
+
+本包的团队安排、负责人制度、协作流程与质量门槛见：
+
+- `docs/governance/TEAM.md`
+- `docs/governance/MAINTAINERS.md`
+- `docs/governance/DEVELOPER_GUIDE.md`
+- `docs/governance/PR_CHECKLIST.md`
+- `docs/governance/SELF_HOSTED_RUNNER.md`
+- `docs/governance/TODO.md`
+
 ## 🎯 安装方式
 
 ### 标准安装（推荐）✅
