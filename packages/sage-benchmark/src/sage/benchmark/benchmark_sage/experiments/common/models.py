@@ -145,8 +145,8 @@ class BenchmarkConfig:
     head_node: str = "sage-node-1"
     worker_nodes: list[str] = field(default_factory=list)
 
-    llm_base_url: str = "http://11.11.11.7:8903/v1"
-    llm_model: str = "Qwen/Qwen2.5-7B-Instruct"
+    llm_base_url: str = "http://11.11.11.7:8904/v1"
+    llm_model: str = "Qwen/Qwen2.5-3B-Instruct"
     max_tokens: int = 256
 
     embedding_base_url: str = "http://11.11.11.7:8090/v1"

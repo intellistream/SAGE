@@ -395,8 +395,8 @@ class MetricsSink(SinkFunction):
     # 问题：StopSignal 可能比数据先到达，而 Generator 还在等待 LLM 响应
     # Adaptive-RAG 等复杂场景可能需要多轮 LLM 调用，P99 可达 150+ 秒
     # 设置 drain_timeout=300s（总等待时间）和 quiet_period=90s（无数据静默期）
-    drain_timeout: float = 300.0
-    drain_quiet_period: float = 90.0
+    drain_timeout: float = 120.0
+    drain_quiet_period: float = 30.0
 
     def __init__(
         self,
@@ -573,8 +573,8 @@ class MetricsSink(SinkFunction):
 LLM_HOST = os.getenv("LLM_HOST", "11.11.11.7")
 EMBEDDING_BASE_URL = f"http://{LLM_HOST}:8090/v1"
 EMBEDDING_MODEL = "BAAI/bge-large-en-v1.5"
-LLM_BASE_URL = f"http://{LLM_HOST}:8903/v1"
-LLM_MODEL = "Qwen/Qwen2.5-7B-Instruct"
+LLM_BASE_URL = f"http://{LLM_HOST}:8904/v1"
+LLM_MODEL = "Qwen/Qwen2.5-3B-Instruct"
 
 
 def get_remote_embeddings(
@@ -1912,8 +1912,8 @@ class AdaptiveRAGResultSink(SinkFunction):
     # 问题：StopSignal 可能比数据先到达，而 Generator 还在等待 LLM 响应
     # Adaptive-RAG 等复杂场景可能需要多轮 LLM 调用，P99 可达 150+ 秒
     # 设置 drain_timeout=300s（总等待时间）和 quiet_period=90s（无数据静默期）
-    drain_timeout: float = 300.0
-    drain_quiet_period: float = 90.0
+    # drain_timeout: float = 300.0
+    # drain_quiet_period: float = 90.0
 
     def __init__(self, branch_name: str = "", **kwargs):
         super().__init__(**kwargs)

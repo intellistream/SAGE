@@ -596,6 +596,7 @@ def register_all_services(
     results["vector_db"] = register_vector_db_service(
         env,
         embedding_base_url=config.embedding_base_url,
+        embedding_model=config.embedding_model,
         knowledge_base=knowledge_base,
         node_ip=vdb_node_ip,
     )
