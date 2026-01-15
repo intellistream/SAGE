@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING
 
-
-
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.service_context import ServiceContext
     from sage.kernel.runtime.factory.service_factory import ServiceFactory
@@ -10,11 +8,7 @@ if TYPE_CHECKING:
 class ServiceTaskFactory:
     """服务任务工厂，负责创建服务任务（本地或Ray Actor），类似TaskFactory"""
 
-    def __init__(
-        self,
-        service_factory: "ServiceFactory",
-        remote: bool = False
-    ):
+    def __init__(self, service_factory: "ServiceFactory", remote: bool = False):
         """
         初始化服务任务工厂
 
@@ -25,7 +19,6 @@ class ServiceTaskFactory:
         self.service_factory = service_factory
         self.service_name = service_factory.service_name
         self.remote = remote
-
 
     def create_service_task(self, ctx: "ServiceContext | None" = None):
         """
@@ -43,7 +36,6 @@ class ServiceTaskFactory:
             from sage.kernel.utils.ray.actor import ActorWrapper
 
             ray_options = {"lifetime": "detached"}
-          
 
             # 直接创建Ray Actor，传入ServiceFactory和ctx
             ray_service_task = RayServiceTask.options(**ray_options).remote(  # type: ignore[attr-defined]

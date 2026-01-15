@@ -161,9 +161,7 @@ class PlacementExecutor:
         # 添加 runtime_env 支持： TaskFactory 获取 extra_python_paths
         extra_paths = getattr(task_node.task_factory, "extra_python_paths", None)
         extra_python_paths = (
-            extra_paths if isinstance(extra_paths, list) else (
-                [extra_paths] if extra_paths else []
-            )
+            extra_paths if isinstance(extra_paths, list) else ([extra_paths] if extra_paths else [])
         )
         if extra_python_paths:
             runtime_env = {"env_vars": {"PYTHONPATH": ":".join(extra_python_paths)}}
