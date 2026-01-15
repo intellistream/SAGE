@@ -22,9 +22,7 @@ __version__ = "0.1.0"
 __author__ = "IntelliStream Team"
 __email__ = "shuhao_zhang@hust.edu.cn"
 
-# Import interface components
-import warnings
-
+# Import interface components (no warning on import)
 from sage.libs.amms.interface import (
     AmmIndex,
     AmmIndexMeta,
@@ -34,13 +32,6 @@ from sage.libs.amms.interface import (
     register,
     registered,
     unregister,
-)
-
-warnings.warn(
-    "AMM implementations are being externalized to 'isage-amms'. Install the optional extra "
-    "[amms] or add 'isage-amms' to your environment to access concrete algorithms.",
-    DeprecationWarning,
-    stacklevel=2,
 )
 
 __all__ = [
