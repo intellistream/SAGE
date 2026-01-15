@@ -627,14 +627,19 @@ class LongBenchPromptor(MapOperator):
         """
         生成 LongBench 风格的 prompt。
 
-        输入格式（来自 LongBenchBatch）：
+        输入格式（来自 LongBenchBatch 或经过 Refiner）：
         {
             "query": str,           # 用户问题（原 input 字段）
-            "context": str,         # 长文本上下文
+            "context": str,         # 长文本上下文（原始）
+            "refining_results": List[str],  # 压缩后的上下文（可选，Refiner 输出）
             "references": list,     # 标准答案
             "_dataset": str,        # 数据集名称
             ...
         }
+
+        **上下文选择优先级**：
+        1. refining_results（如果存在且非空，来自 Refiner 压缩后的结果）
+        2. context（原始上下文，LongBench 自带）
 
         输出格式：
         [original_data, prompt_string]
@@ -647,8 +652,20 @@ class LongBenchPromptor(MapOperator):
         """
         # 获取必要字段
         dataset = data.get("_dataset", "")
-        context = data.get("context", "")
         query = data.get("query", "")
+
+        # 上下文选择优先级：refining_results > context
+        refining_results = data.get("refining_results", [])
+        if refining_results:
+            # Refiner 输出的压缩结果（List[str]），合并为单个字符串
+            if isinstance(refining_results, list):
+                context = "\n\n".join(refining_results)
+            else:
+                context = str(refining_results)
+            self.logger.info("LongBenchPromptor: Using refining_results (compressed context)")
+        else:
+            # 使用原始 context（LongBench 自带）
+            context = data.get("context", "")
 
         # 1. 获取数据集专用模板
         template = LONGBENCH_PROMPT_TEMPLATES.get(
