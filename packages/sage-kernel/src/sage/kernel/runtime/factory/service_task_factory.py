@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sage.kernel.utils.ray.ray_utils import normalize_extra_python_paths
+
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.context.service_context import ServiceContext
@@ -13,8 +13,7 @@ class ServiceTaskFactory:
     def __init__(
         self,
         service_factory: "ServiceFactory",
-        remote: bool = False,
-        extra_python_paths: list[str] | None = None,
+        remote: bool = False
     ):
         """
         初始化服务任务工厂
@@ -22,12 +21,11 @@ class ServiceTaskFactory:
         Args:
             service_factory: 服务工厂实例
             remote: 是否创建远程服务任务
-            extra_python_paths: 传递给 Ray runtime_env 的 python 路径
         """
         self.service_factory = service_factory
         self.service_name = service_factory.service_name
         self.remote = remote
-        self.extra_python_paths = normalize_extra_python_paths(extra_python_paths)
+
 
     def create_service_task(self, ctx: "ServiceContext | None" = None):
         """
@@ -45,10 +43,7 @@ class ServiceTaskFactory:
             from sage.kernel.utils.ray.actor import ActorWrapper
 
             ray_options = {"lifetime": "detached"}
-            if self.extra_python_paths:
-                ray_options["runtime_env"] = {
-                    "env_vars": {"PYTHONPATH": ":".join(self.extra_python_paths)}
-                }
+          
 
             # 直接创建Ray Actor，传入ServiceFactory和ctx
             ray_service_task = RayServiceTask.options(**ray_options).remote(  # type: ignore[attr-defined]
