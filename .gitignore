@@ -249,4 +249,8 @@ packages/sage-middleware/.cmake*
 coverage.json
 packages/sage-common/src/sage/common/components/sage_vllm/
 docs/*
-packages/sage-benchmark/src/sage/benchmark/benchmark_sage/experiments/exp1_single_vs_multi/results/
+
+# ============================================
+# Benchmark实验结果目录
+# ============================================
+packages/sage-benchmark/src/sage/benchmark/benchmark_sage/experiments/*/results/
