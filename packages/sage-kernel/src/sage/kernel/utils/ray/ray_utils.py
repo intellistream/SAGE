@@ -1,5 +1,3 @@
-from pathlib import Path
-
 try:
     import ray
 
@@ -14,25 +12,6 @@ try:
     SAGE_OUTPUT_PATHS_AVAILABLE = True
 except ImportError:
     SAGE_OUTPUT_PATHS_AVAILABLE = False
-
-
-def normalize_extra_python_paths(paths) -> list[str]:
-    """Normalize extra python paths to a string list."""
-    if paths is None:
-        return []
-    if isinstance(paths, str):
-        return [paths]
-    try:
-        iterable = list(paths)
-    except TypeError:
-        return [str(paths)]
-
-    normalized: list[str] = []
-    for item in iterable:
-        if item is None:
-            continue
-        normalized.append(str(item))
-    return normalized
 
 
 def get_sage_kernel_runtime_env():
@@ -78,51 +57,21 @@ def get_sage_kernel_runtime_env():
 
     runtime_env = {
         "py_modules": [sage_kernel_src],
-        "env_vars": {"PYTHONPATH": pythonpath},
+        "env_vars": {
+            "PYTHONPATH": pythonpath,
+            # 禁用代理，避免 Ray Actor 中 HTTP 请求受影响
+            "http_proxy": "",
+            "https_proxy": "",
+            "HTTP_PROXY": "",
+            "HTTPS_PROXY": "",
+            "all_proxy": "",
+            "ALL_PROXY": "",
+            "no_proxy": "*",
+            "NO_PROXY": "*",
+        },
     }
 
     return runtime_env
-
-
-def _prepare_ray_temp_dir() -> Path | None:
-    """Resolve the Ray temp directory, preferring SAGE-managed paths."""
-    import os
-
-    ray_temp_dir = None
-
-    if SAGE_OUTPUT_PATHS_AVAILABLE:
-        try:
-            sage_paths = get_sage_paths()  # type: ignore[possibly-unbound]
-            sage_paths.setup_environment_variables()
-            ray_temp_dir = sage_paths.get_ray_temp_dir()
-        except Exception as e:  # pragma: no cover - defensive path
-            print(f"Warning: Failed to set Ray temp directory via output_paths: {e}")
-
-    if ray_temp_dir is None:
-        try:
-            fallback = Path.home() / ".sage" / "temp" / "ray"
-            fallback.mkdir(parents=True, exist_ok=True)
-            os.environ.setdefault("SAGE_TEMP_DIR", str(fallback.parent))
-            os.environ.setdefault("RAY_TMPDIR", str(fallback))
-            ray_temp_dir = fallback
-            print(f"Ray will use fallback temp directory: {fallback}")
-        except Exception as e:  # pragma: no cover - defensive path
-            print(f"Warning: Failed to prepare fallback Ray temp directory: {e}")
-            return None
-
-    return ray_temp_dir
-
-
-def init_ray_with_sage_temp(**init_kwargs):
-    """Initialize Ray with SAGE temp directory defaults."""
-    if not RAY_AVAILABLE:
-        raise ImportError("Ray is not available")
-
-    ray_temp_dir = _prepare_ray_temp_dir()
-    if ray_temp_dir is not None:
-        init_kwargs.setdefault("_temp_dir", str(ray_temp_dir))
-
-    return ray.init(**init_kwargs)  # type: ignore[union-attr]
 
 
 def ensure_ray_initialized(runtime_env=None):
@@ -146,6 +95,18 @@ def ensure_ray_initialized(runtime_env=None):
             # 检测是否在CI环境中
             is_ci = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
 
+            # 首先尝试连接到现有的 Ray 集群
+            try:
+                ray.init(address="auto", ignore_reinit_error=True)  # type: ignore[union-attr]
+                nodes = ray.nodes()
+                alive_nodes = [n for n in nodes if n.get("Alive", False)]
+                print(f"Connected to existing Ray cluster with {len(alive_nodes)} nodes")
+                return
+            except ConnectionError:
+                print("No existing Ray cluster found, starting local Ray instance")
+            except Exception as e:
+                print(f"Failed to connect to Ray cluster: {e}, starting local Ray instance")
+
             # 准备初始化参数（本地模式）
             init_kwargs = {
                 "ignore_reinit_error": True,
@@ -155,6 +116,24 @@ def ensure_ray_initialized(runtime_env=None):
                 "log_to_driver": False,  # 减少日志输出
                 "include_dashboard": False,  # 禁用dashboard减少资源占用
             }
+
+            # 设置Ray临时目录到SAGE的temp目录
+            ray_temp_dir = None
+
+            # 使用统一的output_paths系统
+            if SAGE_OUTPUT_PATHS_AVAILABLE:
+                try:
+                    sage_paths = get_sage_paths()  # type: ignore[possibly-unbound]
+                    # 设置环境变量
+                    sage_paths.setup_environment_variables()
+                    ray_temp_dir = sage_paths.get_ray_temp_dir()
+                    init_kwargs["_temp_dir"] = str(ray_temp_dir)
+                    print(f"Ray will use SAGE temp directory: {ray_temp_dir}")
+                except Exception as e:
+                    print(f"Warning: Failed to set Ray temp directory via output_paths: {e}")
+
+            if ray_temp_dir is None:
+                print("SAGE paths not available, Ray will use default temp directory")
 
             # 如果提供了runtime_env，使用它；否则使用默认的sage配置
             if runtime_env is not None:
@@ -166,7 +145,7 @@ def ensure_ray_initialized(runtime_env=None):
                     init_kwargs["runtime_env"] = sage_runtime_env
 
             # 使用标准模式但限制资源，支持async actors和队列
-            init_ray_with_sage_temp(**init_kwargs)
+            ray.init(**init_kwargs)  # type: ignore[union-attr]
             mode = "CI mode" if is_ci else "standard mode"
             print(f"Ray initialized in {mode} with limited resources")
         except Exception as e:

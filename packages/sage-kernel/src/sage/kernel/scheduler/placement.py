@@ -24,8 +24,6 @@ Placement 执行层 - 统一的任务/服务放置接口
 
 from typing import TYPE_CHECKING, Any, Union
 
-from sage.kernel.utils.ray.ray_utils import normalize_extra_python_paths
-
 if TYPE_CHECKING:
     from sage.kernel.runtime.graph.graph_node import TaskNode
     from sage.kernel.runtime.graph.service_node import ServiceNode
@@ -161,8 +159,11 @@ class PlacementExecutor:
         ray_options = self._build_ray_options(decision)
 
         # 添加 runtime_env 支持： TaskFactory 获取 extra_python_paths
-        extra_python_paths = normalize_extra_python_paths(
-            getattr(task_node.task_factory, "extra_python_paths", None)
+        extra_paths = getattr(task_node.task_factory, "extra_python_paths", None)
+        extra_python_paths = (
+            extra_paths if isinstance(extra_paths, list) else (
+                [extra_paths] if extra_paths else []
+            )
         )
         if extra_python_paths:
             runtime_env = {"env_vars": {"PYTHONPATH": ":".join(extra_python_paths)}}

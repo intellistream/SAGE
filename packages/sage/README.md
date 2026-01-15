@@ -12,9 +12,12 @@ import sage
 
 # ✅ 正确：导入具体的子包
 import sage.common
-import sage.llm
 import sage.kernel
+import sage.middleware
 from sage.common.config import get_user_paths
+
+# 注意: sage.llm 已移至独立仓库 isagellm
+# pip install isagellm
 ```
 
 **为什么不能直接 `import sage`?**

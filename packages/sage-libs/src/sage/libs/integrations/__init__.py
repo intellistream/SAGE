@@ -5,9 +5,8 @@ This module provides integration with external services and libraries:
 - LLM clients (HuggingFace local inference)
 
 Note:
-    OpenAIClient has been migrated to sage.llm.UnifiedInferenceClient (L1).
-    Please update imports:
-        from sage.llm import UnifiedInferenceClient
+    LLM inference components have been moved to the independent `isagellm` package.
+    For LLM inference, SAGE uses vLLM as the backend engine.
 
     Vector store backends (ChromaBackend, MilvusBackend, ChromaVectorStoreAdapter)
     have been migrated to sage.middleware.components.vector_stores (L4).
