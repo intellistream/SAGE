@@ -80,6 +80,10 @@ _IMPORTS = {
         "sage.middleware.operators.rag.promptor",
         "QueryProfilerPromptor",
     ),
+    "LongBenchPromptor": (
+        "sage.middleware.operators.rag.promptor",
+        "LongBenchPromptor",
+    ),
     # Evaluation
     "F1Evaluate": ("sage.middleware.operators.rag.evaluate", "F1Evaluate"),
     "EMEvaluate": ("sage.middleware.operators.rag.evaluate", "EMEvaluate"),
@@ -103,6 +107,10 @@ _IMPORTS = {
     "CompressionRateEvaluate": (
         "sage.middleware.operators.rag.evaluate",
         "CompressionRateEvaluate",
+    ),
+    "LongBenchEvaluator": (
+        "sage.middleware.operators.rag.evaluate",
+        "LongBenchEvaluator",
     ),
     # Document Processing
     "CharacterSplitter": ("sage.libs.rag.chunk", "CharacterSplitter"),
