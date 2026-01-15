@@ -395,8 +395,8 @@ class MetricsSink(SinkFunction):
     # 问题：StopSignal 可能比数据先到达，而 Generator 还在等待 LLM 响应
     # Adaptive-RAG 等复杂场景可能需要多轮 LLM 调用，P99 可达 150+ 秒
     # 设置 drain_timeout=300s（总等待时间）和 quiet_period=90s（无数据静默期）
-    drain_timeout: float = 120.0
-    drain_quiet_period: float = 30.0
+    drain_timeout: float = 200
+    drain_quiet_period: float = 30
 
     def __init__(
         self,

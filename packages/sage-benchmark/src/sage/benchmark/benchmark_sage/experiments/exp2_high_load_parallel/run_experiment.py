@@ -96,19 +96,23 @@ def run_single_experiment(
     print(f"Config: {config_dict}")
     print(f"{'=' * 70}")
 
+    # 过滤掉描述性字段，只保留 BenchmarkConfig 接受的参数
+    filtered_config = {
+        k: v
+        for k, v in config_dict.items()
+        if k not in ["use_remote", "description"]
+    }
+    
     config = BenchmarkConfig(
         experiment_name=name,
         use_remote=config_dict.get("use_remote", True),
-        **{k: v for k, v in config_dict.items() if k != "use_remote"},
+        **filtered_config,
     )
 
     pipeline = SchedulingBenchmarkPipeline(config)
     pipeline.build_compute_pipeline(name)
 
-    if config.use_remote:
-        metrics = pipeline.run_with_warmup()
-    else:
-        metrics = pipeline.run()
+    metrics = pipeline.run()
 
     save_detailed_results(metrics, output_dir, name)
     metrics.print_summary()

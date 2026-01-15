@@ -67,10 +67,7 @@ def run_single_experiment(
     else:
         pipeline.build_rag_pipeline(name)
 
-    if config.use_remote:
-        metrics = pipeline.run_with_warmup()
-    else:
-        metrics = pipeline.run()
+    metrics = pipeline.run()
 
     save_detailed_results(metrics, output_dir, name)
     metrics.print_summary()
@@ -83,6 +80,7 @@ def run_concurrency_scaling_experiment(
     num_tasks: int = 500,
     num_nodes: int = 4,
     output_dir: str = None,
+    pipeline_type: str = "compute",
 ) -> list[tuple[str, BenchmarkMetrics]]:
     """
     并发度扩展实验。
@@ -121,6 +119,7 @@ def run_concurrency_scaling_experiment(
                 name=config_name,
                 config_dict=config,
                 output_dir=output_dir,
+                pipeline_type=pipeline_type,
             )
             results.append((config_name, metrics))
         except Exception as e:
@@ -445,6 +444,13 @@ def main():
     parser.add_argument("--concurrency", nargs="+", type=int, help="Concurrency levels to test")
     parser.add_argument("--tasks", type=int, default=500, help="Number of tasks")
     parser.add_argument("--output", type=str, help="Output directory")
+    parser.add_argument(
+        "--pipeline",
+        type=str,
+        default="compute",
+        choices=["compute", "llm", "rag"],
+        help="Pipeline type: compute (default), llm, or rag",
+    )
 
     args = parser.parse_args()
 
@@ -453,6 +459,7 @@ def main():
             concurrency_levels=args.concurrency,
             num_tasks=args.tasks,
             output_dir=args.output,
+            pipeline_type=args.pipeline,
         )
     else:
         run_full_experiment(quick_mode=args.quick)

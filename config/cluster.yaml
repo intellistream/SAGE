@@ -9,10 +9,10 @@ head:
   dashboard_host: "0.0.0.0"      # Dashboard 监听地址
   temp_dir: "/var/tmp/ray"
   log_dir: "/var/tmp/sage_head_logs"
-  conda_env: "base"              # Conda 环境名称 (base 或 sage)
+  conda_env: "sage"              # Conda 环境名称 (base 或 sage)
   python_path: ""                # 留空自动检测
   ray_command: ""                # 留空自动检测
-  num_cpus: 4                    # 容器实际分配的 CPU 核心数 (覆盖自动检测)
+  num_cpus: 8                    # 容器实际分配的 CPU 核心数 (覆盖自动检测)
   num_gpus: 0                    # GPU 数量
 
 # Worker 节点配置
@@ -20,7 +20,7 @@ worker:
   bind_host: "localhost"
   temp_dir: "/tmp/ray_worker"
   log_dir: "/tmp/sage_worker_logs"
-  num_cpus: 4                    # 每个 Worker 容器分配的 CPU 核心数
+  num_cpus: 8                    # 每个 Worker 容器分配的 CPU 核心数
   num_gpus: 0                    # 每个 Worker 容器的 GPU 数量
 
 # SSH 配置
@@ -41,7 +41,7 @@ remote:
   sage_home: "/home/sage"
   python_path: ""                # 留空自动检测
   ray_command: ""                # 留空自动检测
-  conda_env: "base"              # Worker 节点的 conda 环境名 (base 或 sage)
+  conda_env: "sage"              # Worker 节点的 conda 环境名 (base 或 sage)
 
 # Daemon 配置
 daemon:
