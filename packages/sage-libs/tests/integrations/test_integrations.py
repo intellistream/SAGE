@@ -6,8 +6,8 @@ For integration testing with real APIs, set environment variable:
 - HF_TOKEN
 
 Note:
-    OpenAIClient has been removed. OpenAI functionality is now provided by
-    sage.llm.UnifiedInferenceClient (L1).
+    OpenAIClient has been removed. For LLM inference, use vLLM directly
+    or install the independent package `isagellm` for advanced features.
 """
 
 from unittest.mock import MagicMock, patch

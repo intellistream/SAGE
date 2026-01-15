@@ -8,9 +8,6 @@ This module provides a consistent API for different embedding providers:
 - HuggingFace Transformer models (local, high quality)
 - OpenAI and other API-based services
 
-IMPORTANT: For LLM + Embedding combined usage, use UnifiedInferenceClient from
-sage.llm instead. This module is for embedding-only scenarios.
-
 Quick Start:
     >>> from sage.common.components.sage_embedding import get_embedding_model
     >>>
@@ -18,10 +15,13 @@ Quick Start:
     >>> emb = get_embedding_model("hash", dim=384)
     >>> vec = emb.embed("hello world")
     >>>
-    >>> # For combined LLM + Embedding, use UnifiedInferenceClient:
-    >>> from sage.llm import UnifiedInferenceClient
-    >>> client = UnifiedInferenceClient.create()
-    >>> vectors = client.embed(["text1", "text2"])
+    >>> # For batch embedding with HuggingFace models:
+    >>> emb_hf = get_embedding_model("hf", model="BAAI/bge-small-zh-v1.5")
+    >>> vectors = [emb_hf.embed(text) for text in ["text1", "text2"]]
+
+Note:
+    For LLM inference, SAGE uses vLLM as the backend engine.
+    LLM components have been moved to the independent `isagellm` package.
 
 Architecture:
     This is a L1 foundation component used by higher layers (L2-L5).

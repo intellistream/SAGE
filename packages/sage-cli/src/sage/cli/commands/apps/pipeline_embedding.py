@@ -57,9 +57,9 @@ class EmbeddingPipelineTemplates:
 
         # Configure embedding service
         if use_inference_engine:
-            # Use sagellm backend
+            # Use sagellm backend (requires isagellm package)
             config["services"]["sagellm"] = {  # type: ignore[index]
-                "class": "sage.llm.SageLLMService",
+                "class": "isagellm.SageLLMService",
                 "config": {
                     "model_id": llm_model,
                     "embedding_model_id": embedding_model,
@@ -198,7 +198,7 @@ Answer:""",
         # Configure services based on method
         if use_inference_engine:
             config["services"]["sagellm"] = {  # type: ignore[index]
-                "class": "sage.llm.SageLLMService",
+                "class": "isagellm.SageLLMService",
                 "config": {
                     "model_id": embedding_model,
                     "embedding_model_id": embedding_model,
@@ -430,9 +430,9 @@ Answer:""",
                         "normalize": True,
                     },
                 },
-                # vLLM for batch processing
+                # vLLM for batch processing (requires isagellm package)
                 "vllm": {
-                    "class": "sage.llm.VLLMService",
+                    "class": "isagellm.VLLMService",
                     "config": {
                         "model_id": "BAAI/bge-large-en-v1.5",
                         "embedding_model_id": "BAAI/bge-large-en-v1.5",
