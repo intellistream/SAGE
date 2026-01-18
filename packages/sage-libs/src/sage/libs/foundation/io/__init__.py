@@ -9,7 +9,7 @@ batches, sources, and sinks.
 Components:
 - Source: Data source abstractions
 - Sink: Data sink abstractions
-- Batch: Batch processing utilities
+- Batch: Batch processing utilities (HFDatasetBatch, FlashRAGBatch, LongBenchBatch)
 """
 
 # 直接从本包的_version模块加载版本信息
@@ -21,6 +21,12 @@ except ImportError:
     __author__ = "IntelliStream Team"
     __email__ = "shuhao_zhang@hust.edu.cn"
 
+from .batch import (
+    FlashRAGBatch,
+    HFDatasetBatch,
+    JSONLBatch,
+    LongBenchBatch,
+)
 from .sink import (
     FileSink,
     MemWriteSink,
@@ -61,4 +67,9 @@ __all__ = [
     "FileSink",
     "MemWriteSink",
     "PrintSink",
+    # Batch
+    "HFDatasetBatch",
+    "FlashRAGBatch",
+    "LongBenchBatch",
+    "JSONLBatch",
 ]

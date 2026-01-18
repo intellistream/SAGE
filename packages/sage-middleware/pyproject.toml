@@ -95,6 +95,12 @@ ml = [
 compression = [
     "llmlingua>=0.2.0,<1.0.0", # LLMLingua family
 ]
+# LongBench evaluation dependencies
+longbench = [
+    "jieba>=0.42.1,<1.0.0",           # Chinese tokenization (rouge_zh)
+    "fuzzywuzzy>=0.18.0,<1.0.0",      # Code similarity (code_sim)
+    "python-Levenshtein>=0.26.0,<1.0.0",  # Speed up fuzzywuzzy
+]
 # Task queue for distributed processing
 queue = ["celery>=5.5.0,<6.0.0", "flower>=2.0.0,<3.0.0"]
 # Authentication and security
@@ -122,7 +128,7 @@ libs = [
 ]
 # Full installation with all optional dependencies
 all = [
-    "isage-middleware[vdb,neuromem,streaming,ml,compression,queue,auth,llm-providers,libs]",
+    "isage-middleware[vdb,neuromem,streaming,ml,compression,longbench,queue,auth,llm-providers,libs]",
 ]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"

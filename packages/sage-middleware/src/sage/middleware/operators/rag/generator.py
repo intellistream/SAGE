@@ -148,6 +148,10 @@ class OpenAIGenerator(MapOperator):
             if param in self.config:
                 generate_kwargs[param] = self.config[param]
 
+        # 如果上游（如 LongBenchPromptor）传递了 _max_gen_tokens，优先使用
+        if isinstance(original_data, dict) and "_max_gen_tokens" in original_data:
+            generate_kwargs["max_tokens"] = original_data["_max_gen_tokens"]
+
         # 使用 OpenAI 客户端调用 chat completions API
         completion = self.model.chat.completions.create(
             model=self.model_name,

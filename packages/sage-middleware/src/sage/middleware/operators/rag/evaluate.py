@@ -656,3 +656,432 @@ class CompressionRateEvaluate(MapOperator):
 
         print(f"\033[93m[Compression Rate] : {compression_rate:.2f}×\033[0m")
         return data
+
+
+# ============================================================================
+# LongBench Evaluator - 用于 LongBench 基准测试
+# ============================================================================
+
+# 数据集到评估指标的映射（来自 LongBench/eval.py）
+LONGBENCH_DATASET_TO_METRIC: dict[str, str] = {
+    # QA 任务 - F1 score
+    "narrativeqa": "qa_f1",
+    "qasper": "qa_f1",
+    "multifieldqa_en": "qa_f1",
+    "hotpotqa": "qa_f1",
+    "2wikimqa": "qa_f1",
+    "musique": "qa_f1",
+    "triviaqa": "qa_f1",
+    # 中文 QA（需要 jieba 分词）
+    "multifieldqa_zh": "qa_f1_zh",
+    # 摘要任务 - ROUGE score
+    "gov_report": "rouge",
+    "qmsum": "rouge",
+    "multi_news": "rouge",
+    "samsum": "rouge",
+    # 中文摘要（需要 jieba 分词）
+    "dureader": "rouge_zh",
+    "vcsum": "rouge_zh",
+    # 分类任务（需要 all_classes 参数）
+    "trec": "classification",
+    "lsht": "classification",
+    # 检索任务
+    "passage_retrieval_en": "retrieval",
+    "passage_retrieval_zh": "retrieval_zh",
+    "passage_count": "count",
+    # 代码任务（需要 fuzzywuzzy）
+    "lcc": "code_sim",
+    "repobench-p": "code_sim",
+}
+
+# 需要取第一行的数据集
+LONGBENCH_FIRST_LINE_DATASETS: set[str] = {"trec", "triviaqa", "samsum", "lsht"}
+
+
+def _longbench_normalize_answer(s: str) -> str:
+    """LongBench 英文答案标准化（与原始实现一致）"""
+
+    def remove_articles(text: str) -> str:
+        return re.sub(r"\b(a|an|the)\b", " ", text)
+
+    def white_space_fix(text: str) -> str:
+        return " ".join(text.split())
+
+    def remove_punc(text: str) -> str:
+        exclude = set(string.punctuation)
+        return "".join(ch for ch in text if ch not in exclude)
+
+    def lower(text: str) -> str:
+        return text.lower()
+
+    return white_space_fix(remove_articles(remove_punc(lower(s))))
+
+
+def _longbench_normalize_zh_answer(s: str) -> str:
+    """LongBench 中文答案标准化（与原始实现一致）"""
+
+    def white_space_fix(text: str) -> str:
+        return "".join(text.split())
+
+    def remove_punc(text: str) -> str:
+        cn_punctuation = (
+            "！？｡。＂＃＄％＆＇（）＊＋，－／：；＜＝＞＠［＼］＾＿｀｛｜｝～｟｠｢｣､、〃》「」『』【】〔〕〖〗〘〙〚〛〜〝〞〟〰〾〿–—''‛"
+            "„‟…‧﹏."
+        )
+        all_punctuation = set(string.punctuation + cn_punctuation)
+        return "".join(ch for ch in text if ch not in all_punctuation)
+
+    def lower(text: str) -> str:
+        return text.lower()
+
+    return white_space_fix(remove_punc(lower(s)))
+
+
+def _longbench_f1_score(prediction_tokens: list, ground_truth_tokens: list) -> float:
+    """LongBench F1 分数计算（token 级别）"""
+    common = Counter(prediction_tokens) & Counter(ground_truth_tokens)
+    num_same = sum(common.values())
+    if num_same == 0:
+        return 0.0
+    precision = 1.0 * num_same / len(prediction_tokens)
+    recall = 1.0 * num_same / len(ground_truth_tokens)
+    f1 = (2 * precision * recall) / (precision + recall)
+    return f1
+
+
+def longbench_qa_f1_score(prediction: str, ground_truth: str, **kwargs) -> float:
+    """LongBench QA F1 分数（英文）"""
+    normalized_prediction = _longbench_normalize_answer(prediction)
+    normalized_ground_truth = _longbench_normalize_answer(ground_truth)
+    prediction_tokens = normalized_prediction.split()
+    ground_truth_tokens = normalized_ground_truth.split()
+    if not prediction_tokens or not ground_truth_tokens:
+        return float(prediction_tokens == ground_truth_tokens)
+    return _longbench_f1_score(prediction_tokens, ground_truth_tokens)
+
+
+def longbench_qa_f1_zh_score(prediction: str, ground_truth: str, **kwargs) -> float:
+    """LongBench QA F1 分数（中文，需要 jieba）"""
+    try:
+        import jieba
+    except ImportError:
+        raise ImportError(
+            "jieba is required for Chinese evaluation. Install with: pip install jieba"
+        )
+
+    prediction_tokens = list(jieba.cut(prediction, cut_all=False))
+    ground_truth_tokens = list(jieba.cut(ground_truth, cut_all=False))
+    prediction_tokens = [_longbench_normalize_zh_answer(token) for token in prediction_tokens]
+    ground_truth_tokens = [_longbench_normalize_zh_answer(token) for token in ground_truth_tokens]
+    prediction_tokens = [token for token in prediction_tokens if len(token) > 0]
+    ground_truth_tokens = [token for token in ground_truth_tokens if len(token) > 0]
+    if not prediction_tokens or not ground_truth_tokens:
+        return float(prediction_tokens == ground_truth_tokens)
+    return _longbench_f1_score(prediction_tokens, ground_truth_tokens)
+
+
+def longbench_rouge_score(prediction: str, ground_truth: str, **kwargs) -> float:
+    """LongBench ROUGE-L F1 分数"""
+    try:
+        rouge = Rouge()
+        scores = rouge.get_scores([prediction], [ground_truth], avg=True)
+        return scores["rouge-l"]["f"]
+    except Exception:
+        return 0.0
+
+
+def longbench_rouge_zh_score(prediction: str, ground_truth: str, **kwargs) -> float:
+    """LongBench ROUGE-L F1 分数（中文，需要 jieba）"""
+    try:
+        import jieba
+    except ImportError:
+        raise ImportError(
+            "jieba is required for Chinese evaluation. Install with: pip install jieba"
+        )
+
+    prediction = " ".join(list(jieba.cut(prediction, cut_all=False)))
+    ground_truth = " ".join(list(jieba.cut(ground_truth, cut_all=False)))
+    return longbench_rouge_score(prediction, ground_truth)
+
+
+def longbench_classification_score(prediction: str, ground_truth: str, **kwargs) -> float:
+    """LongBench 分类任务分数（需要 all_classes 参数）"""
+    all_classes = kwargs.get("all_classes", [])
+    if not all_classes:
+        return 0.0
+
+    em_match_list = []
+    for class_name in all_classes:
+        if class_name in prediction:
+            em_match_list.append(class_name)
+
+    # 移除部分匹配
+    for match_term in em_match_list.copy():
+        if match_term in ground_truth and match_term != ground_truth:
+            em_match_list.remove(match_term)
+
+    if ground_truth in em_match_list:
+        score = 1.0 / len(em_match_list)
+    else:
+        score = 0.0
+    return score
+
+
+def longbench_retrieval_score(prediction: str, ground_truth: str, **kwargs) -> float:
+    """LongBench 检索任务分数（英文）"""
+    pattern = r"Paragraph (\d+)"
+    matches = re.findall(pattern, ground_truth)
+    if not matches:
+        return 0.0
+    ground_truth_id = matches[0]
+    numbers = re.findall(r"\d+", prediction)
+    right_num = sum(1 for number in numbers if str(number) == str(ground_truth_id))
+    return 0.0 if len(numbers) == 0 else float(right_num / len(numbers))
+
+
+def longbench_retrieval_zh_score(prediction: str, ground_truth: str, **kwargs) -> float:
+    """LongBench 检索任务分数（中文）"""
+    pattern = r"段落(\d+)"
+    matches = re.findall(pattern, ground_truth)
+    if not matches:
+        return 0.0
+    ground_truth_id = matches[0]
+    numbers = re.findall(r"\d+", prediction)
+    right_num = sum(1 for number in numbers if str(number) == str(ground_truth_id))
+    return 0.0 if len(numbers) == 0 else float(right_num / len(numbers))
+
+
+def longbench_count_score(prediction: str, ground_truth: str, **kwargs) -> float:
+    """LongBench 计数任务分数"""
+    numbers = re.findall(r"\d+", prediction)
+    right_num = sum(1 for number in numbers if str(number) == str(ground_truth))
+    return 0.0 if len(numbers) == 0 else float(right_num / len(numbers))
+
+
+def longbench_code_sim_score(prediction: str, ground_truth: str, **kwargs) -> float:
+    """LongBench 代码相似度分数（需要 fuzzywuzzy）"""
+    try:
+        from fuzzywuzzy import fuzz
+    except ImportError:
+        raise ImportError(
+            "fuzzywuzzy is required for code evaluation. "
+            "Install with: pip install fuzzywuzzy python-Levenshtein"
+        )
+
+    # 代码后处理：取第一行有效代码（跳过注释和代码块标记）
+    all_lines = prediction.lstrip("\n").split("\n")
+    processed_prediction = ""
+    for line in all_lines:
+        if ("`" not in line) and ("#" not in line) and ("//" not in line):
+            processed_prediction = line
+            break
+
+    return fuzz.ratio(processed_prediction, ground_truth) / 100.0
+
+
+# 指标函数映射
+LONGBENCH_METRIC_FUNCTIONS = {
+    "qa_f1": longbench_qa_f1_score,
+    "qa_f1_zh": longbench_qa_f1_zh_score,
+    "rouge": longbench_rouge_score,
+    "rouge_zh": longbench_rouge_zh_score,
+    "classification": longbench_classification_score,
+    "retrieval": longbench_retrieval_score,
+    "retrieval_zh": longbench_retrieval_zh_score,
+    "count": longbench_count_score,
+    "code_sim": longbench_code_sim_score,
+}
+
+
+class LongBenchEvaluator(MapOperator):
+    """
+    LongBench 专用评估器。
+
+    功能：
+    1. 根据数据集自动选择评估指标
+    2. 支持标准版单一分数和 LongBench-E 长度分桶
+    3. 集成所有 LongBench 指标函数
+    4. 预测结果后处理（特定数据集只取第一行）
+    5. 正确传递 all_classes 给分类任务
+
+    输入数据格式（来自 Generator）：
+    {
+        "query": str,
+        "generated": str,          # 模型生成的答案
+        "references": List[str],   # 标准答案列表
+        "_dataset": str,           # 数据集名称
+        "all_classes": List[str],  # 分类任务类别（可选）
+        "length": int,             # 原始长度（LongBench-E 分桶用）
+    }
+
+    配置参数：
+        - longbench_e_buckets: bool - 是否输出 LongBench-E 分桶分数
+    """
+
+    def __init__(self, config: dict | None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config or {}
+        self.longbench_e_buckets = self.config.get("longbench_e_buckets", False)
+
+        # 分数收集器（用于计算平均分）
+        self._scores: list[float] = []
+        self._dataset_scores: dict[str, list[float]] = {}
+
+        # LongBench-E 分桶分数
+        self._bucket_scores: dict[str, list[float]] = {
+            "0-4k": [],
+            "4-8k": [],
+            "8k+": [],
+        }
+
+    def _post_process_prediction(self, pred: str, dataset: str) -> str:
+        """预测结果后处理"""
+        # 对于特定数据集，只取第一行
+        if dataset in LONGBENCH_FIRST_LINE_DATASETS:
+            pred = pred.lstrip("\n").split("\n")[0]
+        return pred
+
+    def _get_length_bucket(self, length: int) -> str:
+        """根据长度获取分桶名称"""
+        if length < 4000:
+            return "0-4k"
+        elif length < 8000:
+            return "4-8k"
+        else:
+            return "8k+"
+
+    def _compute_score(
+        self,
+        pred: str,
+        ground_truths: list[str],
+        dataset: str,
+        all_classes: list[str] | None = None,
+    ) -> float:
+        """计算单个样本的分数"""
+        # 获取指标类型
+        metric_type = LONGBENCH_DATASET_TO_METRIC.get(dataset, "qa_f1")
+        metric_fn = LONGBENCH_METRIC_FUNCTIONS.get(metric_type, longbench_qa_f1_score)
+
+        # 预处理预测结果
+        pred = self._post_process_prediction(pred, dataset)
+
+        # 对所有参考答案计算分数，取最高
+        best_score = 0.0
+        for ground_truth in ground_truths:
+            try:
+                score = metric_fn(pred, ground_truth, all_classes=all_classes or [])
+                best_score = max(best_score, score)
+            except Exception as e:
+                self.logger.warning(f"Error computing score for {dataset}: {e}")
+
+        return best_score
+
+    def execute(self, data):
+        """执行评估"""
+        # Handle StopSignal - 输出汇总统计
+        if isinstance(data, StopSignal):
+            self._print_summary()
+            return data
+
+        # 获取必要字段
+        dataset = data.get("_dataset", "unknown")
+        pred = data.get("generated", "")
+        references = data.get("references", [])
+        all_classes = data.get("all_classes")
+        length = data.get("length", 0)
+
+        # 计算分数
+        score = self._compute_score(pred, references, dataset, all_classes)
+
+        # 分数 * 100（与原始 LongBench 一致）
+        score_percent = round(score * 100, 2)
+
+        # 收集分数
+        self._scores.append(score)
+        if dataset not in self._dataset_scores:
+            self._dataset_scores[dataset] = []
+        self._dataset_scores[dataset].append(score)
+
+        # LongBench-E 分桶
+        if self.longbench_e_buckets and length > 0:
+            bucket = self._get_length_bucket(length)
+            self._bucket_scores[bucket].append(score)
+
+        # 打印单个样本分数
+        metric_type = LONGBENCH_DATASET_TO_METRIC.get(dataset, "qa_f1")
+        print(f"\033[92m[LongBench {dataset}] {metric_type}: {score_percent}\033[0m")
+
+        # 将分数添加到数据中
+        data["longbench_score"] = score
+        data["longbench_score_percent"] = score_percent
+        data["longbench_metric"] = metric_type
+
+        return data
+
+    def _print_summary(self):
+        """打印汇总统计"""
+        if not self._scores:
+            print("\n" + "=" * 80)
+            print("No LongBench samples processed")
+            print("=" * 80)
+            return
+
+        print("\n" + "=" * 80)
+        print(f"LONGBENCH EVALUATION SUMMARY ({len(self._scores)} samples)")
+        print("=" * 80)
+
+        # 总体平均分
+        avg_score = sum(self._scores) / len(self._scores) * 100
+        print(f"\033[92m[Overall Average Score]: {avg_score:.2f}\033[0m")
+
+        # 按数据集分组的平均分
+        if self._dataset_scores:
+            print("\n--- Per-Dataset Scores ---")
+            for dataset, scores in sorted(self._dataset_scores.items()):
+                avg = sum(scores) / len(scores) * 100
+                metric_type = LONGBENCH_DATASET_TO_METRIC.get(dataset, "qa_f1")
+                print(f"  {dataset} ({metric_type}): {avg:.2f} ({len(scores)} samples)")
+
+        # LongBench-E 分桶分数
+        if self.longbench_e_buckets:
+            print("\n--- LongBench-E Length Buckets ---")
+            for bucket, scores in self._bucket_scores.items():
+                if scores:
+                    avg = sum(scores) / len(scores) * 100
+                    print(f"  {bucket}: {avg:.2f} ({len(scores)} samples)")
+
+        print("=" * 80 + "\n")
+
+    def get_results(self) -> dict:
+        """获取评估结果（用于程序化访问）"""
+        results = {
+            "overall_score": sum(self._scores) / len(self._scores) * 100 if self._scores else 0,
+            "sample_count": len(self._scores),
+            "per_dataset": {},
+        }
+
+        for dataset, scores in self._dataset_scores.items():
+            results["per_dataset"][dataset] = {
+                "score": sum(scores) / len(scores) * 100 if scores else 0,
+                "count": len(scores),
+                "metric": LONGBENCH_DATASET_TO_METRIC.get(dataset, "qa_f1"),
+            }
+
+        if self.longbench_e_buckets:
+            results["buckets"] = {}
+            for bucket, scores in self._bucket_scores.items():
+                results["buckets"][bucket] = {
+                    "score": sum(scores) / len(scores) * 100 if scores else 0,
+                    "count": len(scores),
+                }
+
+        return results
+
+    def __del__(self):
+        """对象销毁时自动打印汇总（如果有数据）"""
+        try:
+            if self._scores:
+                self._print_summary()
+        except Exception:
+            # 忽略析构时的错误
+            pass
