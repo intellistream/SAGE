@@ -58,16 +58,18 @@ dev = [
 # Algorithm implementations (independent repos)
 anns = ["isage-anns>=0.1.0"]
 amms = ["isage-amms>=0.1.0"]
-# L3 domain implementations
+# L3 domain implementations (independent repos)
 finetune = ["isage-finetune>=0.1.0"]
 agentic = ["isage-agentic>=0.1.0"]
 rag = ["isage-rag>=0.1.0"]
-intent = ["isage-intent>=0.1.0"]
+eval = ["isage-eval>=0.1.0"]
+privacy = ["isage-privacy>=0.1.0"]
+safety = ["isage-safety>=0.1.0"]
 # Heavy optional dependencies (moved from core)
 vdb = ["chromadb>=1.0.20", "pymilvus[model]>=2.4.0"]
 streaming = ["kafka-python>=2.0.0", "redis>=4.0.0"]
 notebook = ["jupyter>=1.0.0", "notebook>=6.0.0"]
-eval = [
+metrics = [
     "datasets>=2.0.0",
     "evaluate>=0.4.0",
     "rouge>=1.0.0",
@@ -90,7 +92,7 @@ training = [
     "trl>=0.20.0,<0.21.0",
 ]
 all = [
-    "isage-libs[dev,anns,amms,finetune,agentic,rag,intent,vdb,streaming,notebook,eval,loaders,ocr,llm,training]",
+    "isage-libs[dev,anns,amms,finetune,agentic,rag,eval,privacy,safety,vdb,streaming,notebook,metrics,loaders,ocr,llm,training]",
 ]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"

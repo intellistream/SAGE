@@ -1,18 +1,33 @@
-"""Unified Fine-tuning interfaces.
+"""SAGE Fine-tuning Module - Training Interfaces.
 
-Status: implementations have been externalized to the `isage-finetune` package. This module now
-exposes only the registry/interfaces. Install the external package to obtain concrete trainers:
+This module provides the **interface layer** (abstract base classes and factory)
+for fine-tuning implementations. Concrete trainers are in the external package
+`isage-finetune`.
 
-    pip install isage-finetune
+Architecture:
+    sage.libs.finetune (this module) - Interface layer (ABCs, factory, configs)
+    isage-finetune (external PyPI)   - Implementations (SFT, LoRA, DPO trainers)
+
+Installation:
+    pip install isage-finetune    # Install implementations
     # or
-    pip install -e packages/sage-libs[finetune]
+    pip install isage-libs[finetune]
 
-The external package will automatically register its implementations with the factory.
+Usage:
+    from sage.libs.finetune.interface import (
+        FineTuner, DatasetLoader, TrainingConfig, LoRAConfig,
+        create_trainer, create_loader, registered_trainers,
+    )
+
+    # Create trainer (requires isage-finetune installed)
+    trainer = create_trainer("sft", config=TrainingConfig(...))
+    trainer.train(dataset)
+
+External implementations auto-register when imported.
+See: https://github.com/intellistream/sage-finetune
 """
 
 from __future__ import annotations
-
-import warnings
 
 from sage.libs.finetune.interface import (
     DatasetLoader,
@@ -31,17 +46,8 @@ from sage.libs.finetune.interface import (
 # Try to auto-import external package if available
 try:
     import isage_finetune  # noqa: F401
-
-    _EXTERNAL_AVAILABLE = True
 except ImportError:
-    _EXTERNAL_AVAILABLE = False
-    warnings.warn(
-        "Fine-tuning implementations not available. Install 'isage-finetune' package:\n"
-        "  pip install isage-finetune\n"
-        "or: pip install isage-libs[finetune]",
-        ImportWarning,
-        stacklevel=2,
-    )
+    pass  # Implementations not installed, factory will raise if user tries to create
 
 __all__ = [
     # Base classes

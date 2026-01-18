@@ -1,12 +1,24 @@
+"""HuggingFace local inference client.
+
+This module provides a simple client for running HuggingFace models locally.
+For production use with remote LLM services, use:
+
+    from isagellm import UnifiedInferenceClient
+    client = UnifiedInferenceClient.create()
+
+Note:
+    This client is kept for local development and testing scenarios
+    where you want to run models directly on your machine without
+    external services.
+"""
+
+import logging
+from typing import Any
+
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# DEFAULT_MODELS = {
-#     "llama": "meta-llama/Llama-2-7b-chat-hf",
-#     "mistral": "mistralai/Mistral-7B-v0.1",
-#     "falcon": "tiiuae/falcon-7b-instruct",
-#     "gptj": "EleutherAI/gpt-j-6B"
-# }
+logger = logging.getLogger(__name__)
 
 
 class HFClient:
@@ -41,11 +53,22 @@ class HFClient:
 
         return model, tokenizer
 
-    def generate(self, prompt, **kwargs):
-        # 设置生成参数
+    def generate(self, prompt: str | list[dict[str, str]], **kwargs: Any) -> str:
+        """Generate text from a prompt.
+
+        Args:
+            prompt: Either a string prompt or a list of message dicts
+                   with 'role' and 'content' keys.
+            **kwargs: Generation parameters:
+                - max_new_tokens: Maximum tokens to generate (default: 128)
+                - temperature: Sampling temperature (default: 0.3)
+
+        Returns:
+            Generated text response.
+        """
         generation_kwargs = {
-            "max_new_tokens": kwargs.get("max_new_tokens", 128),  # 减少生成长度
-            "temperature": kwargs.get("temperature", 0.3),  # 降低temperature
+            "max_new_tokens": kwargs.get("max_new_tokens", 128),
+            "temperature": kwargs.get("temperature", 0.3),
             "do_sample": True,
             "pad_token_id": self.tokenizer.eos_token_id,
             "eos_token_id": self.tokenizer.eos_token_id,
@@ -53,7 +76,6 @@ class HFClient:
 
         # Construct prompt text
         if isinstance(prompt, list):
-            # 使用简单的格式化，避免复杂的chat template
             input_prompt = ""
             for message in prompt:
                 role = message["role"]
@@ -62,10 +84,10 @@ class HFClient:
                     input_prompt += f"System: {content}\n\n"
                 elif role == "user":
                     input_prompt += f"User: {content}\n\nAssistant: "
-        elif isinstance(prompt, str):
+        else:
             input_prompt = prompt
 
-        print(f"Input prompt: {input_prompt[:200]}...")  # 调试信息
+        logger.debug("Input prompt: %s...", input_prompt[:200])
 
         # Tokenize input
         input_ids = self.tokenizer(
@@ -73,23 +95,23 @@ class HFClient:
             return_tensors="pt",
             padding=True,
             truncation=True,
-            max_length=1024,  # 限制输入长度
+            max_length=1024,
         ).to(self.device)
 
-        print(f"Input token length: {input_ids['input_ids'].shape[1]}")  # 调试信息
+        logger.debug("Input token length: %d", input_ids["input_ids"].shape[1])
 
         # Generate output
         try:
-            with torch.no_grad():  # 节省内存
+            with torch.no_grad():
                 output = self.model.generate(**input_ids, **generation_kwargs)
         except Exception as e:
-            print(f"Generation error: {e}")
-            return "Generation failed due to an error."
+            logger.exception("Generation failed: %s", e)
+            raise RuntimeError(f"Generation failed: {e}") from e
 
         # Decode output
         response_text = self.tokenizer.decode(
             output[0][input_ids["input_ids"].shape[1] :], skip_special_tokens=True
         ).strip()
 
-        print(f"Generated response: {response_text}")  # 调试信息
+        logger.debug("Generated response: %s", response_text)
         return response_text
