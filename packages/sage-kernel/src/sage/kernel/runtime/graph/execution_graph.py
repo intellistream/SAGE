@@ -165,9 +165,9 @@ class ExecutionGraph:
                 # 获取 extra_python_paths 用于 Ray runtime_env
                 extra_paths = getattr(env, "extra_python_paths", None)
                 extra_python_paths = (
-                    extra_paths if isinstance(extra_paths, list) else (
-                        [extra_paths] if extra_paths else []
-                    )
+                    extra_paths
+                    if isinstance(extra_paths, list)
+                    else ([extra_paths] if extra_paths else [])
                 )
 
                 service_task_factory = ServiceTaskFactory(

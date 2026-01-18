@@ -159,11 +159,11 @@ def start(
 
     console.print(f"[blue]🚀 启动 SAGE Gateway (端口 {port})...[/blue]")
 
-    # Build command
+    # Build command (requires isagellm package)
     cmd = [
         sys.executable,
         "-m",
-        "sage.llm.gateway",
+        "isagellm.gateway",
         "--host",
         host,
         "--port",

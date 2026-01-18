@@ -251,11 +251,11 @@ def start_server(
         "log_level": log_level,
     }
 
-    # Build command to run the server
+    # Build command to run the server (requires isagellm package)
     cmd = [
         sys.executable,
         "-m",
-        "sage.llm.unified_api_server",
+        "isagellm.unified_api_server",
         "--host",
         final_config["host"],
         "--port",

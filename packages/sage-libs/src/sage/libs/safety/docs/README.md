@@ -97,7 +97,7 @@ if result.decision == PolicyDecision.DENY:
 ## Used By
 
 - `sage.libs.agentic.agents.runtime` - Tool call validation
-- `sage.llm.gateway` - Request filtering
+- `isagellm.gateway` - Request filtering (independent package)
 - Custom applications requiring content safety
 
 ## Limitations

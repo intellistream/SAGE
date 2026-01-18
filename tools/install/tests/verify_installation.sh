@@ -123,8 +123,8 @@ main() {
     run_test "导入 sage.kernel" "python3 -c 'import sage.kernel'"
     run_test "导入 sage.libs" "python3 -c 'import sage.libs'"
     run_test "导入 sage.middleware" "python3 -c 'import sage.middleware'"
-    run_test "导入 sage.llm" "python3 -c 'import sage.llm'"
-    run_test "导入 sage.llm.gateway" "python3 -c 'import sage.llm.gateway'"
+    # Note: sage.llm has been moved to independent package isagellm
+    # run_test "导入 isagellm" "python3 -c 'import isagellm'"  # optional
 
     # 3. 关键依赖检查
     print_test_header "📚 3. 关键依赖检查"
