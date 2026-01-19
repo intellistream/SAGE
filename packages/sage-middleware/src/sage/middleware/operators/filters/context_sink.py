@@ -19,11 +19,11 @@ class ContextFileSink(SinkFunction):
     @staticmethod
     def get_default_template_directory() -> str:
         """
-        获取默认的模板数据目录，始终在项目根目录下创建
-        项目根目录被定义为当前工作目录
+        获取默认的模板数据目录，统一存储在 .sage/data 下
+        符合 SAGE 架构设计原则：所有运行时数据应在 .sage/ 目录下
         """
         project_root = Path(os.getcwd())  # 获取当前工作目录
-        template_data_dir = project_root / "data" / "model_context"
+        template_data_dir = project_root / ".sage" / "data" / "model_context"
         template_data_dir.mkdir(parents=True, exist_ok=True)
         return str(template_data_dir)
 

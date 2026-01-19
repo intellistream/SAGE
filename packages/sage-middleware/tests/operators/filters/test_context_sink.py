@@ -26,7 +26,7 @@ class TestContextFileSinkInitialization:
             "sage.middleware.operators.filters.context_sink.os.getcwd", return_value=str(tmp_path)
         ):
             default_dir = ContextFileSink.get_default_template_directory()
-            expected = str(tmp_path / "data" / "model_context")
+            expected = str(tmp_path / ".sage" / "data" / "model_context")
             assert default_dir == expected
             assert Path(default_dir).exists()
 
@@ -117,10 +117,10 @@ class TestContextFileSinkDirectorySetup:
         config = {"base_directory": None, "stage_directory": "stage1"}
         with patch(
             "sage.middleware.operators.filters.context_sink.ContextFileSink.get_default_template_directory",
-            return_value=str(tmp_path / "data" / "model_context"),
+            return_value=str(tmp_path / ".sage" / "data" / "model_context"),
         ):
             sink = ContextFileSink(config=config)
-            assert str(sink.base_directory).endswith("data/model_context")
+            assert str(sink.base_directory).endswith(".sage/data/model_context")
 
     def test_setup_directories_auto_create_disabled(self, tmp_path):
         """Test directory setup with auto_create_dirs disabled."""
