@@ -934,6 +934,11 @@ class LongBenchEvaluator(MapOperator):
             "8k+": [],
         }
 
+        # 时间收集器（支持所有数据集）
+        self._refine_times: list[float] = []
+        self._generate_times: list[float] = []
+        self._retrieve_times: list[float] = []
+
     def _post_process_prediction(self, pred: str, dataset: str) -> str:
         """预测结果后处理"""
         # 对于特定数据集，只取第一行
@@ -1007,14 +1012,28 @@ class LongBenchEvaluator(MapOperator):
             bucket = self._get_length_bucket(length)
             self._bucket_scores[bucket].append(score)
 
-        # 打印单个样本分数
+        # 打印单个样本分数和时间
         metric_type = LONGBENCH_DATASET_TO_METRIC.get(dataset, "qa_f1")
-        print(f"\033[92m[LongBench {dataset}] {metric_type}: {score_percent}\033[0m")
+
+        # 计算单个 QA 的总时间
+        total_qa_time = (
+            data.get("retrieve_time", 0) + data.get("refine_time", 0) + data.get("generate_time", 0)
+        )
+        time_str = f" (time={total_qa_time:.3f}s)" if total_qa_time > 0 else ""
+        print(f"\033[92m[LongBench {dataset}] {metric_type}: {score_percent}{time_str}\033[0m")
 
         # 将分数添加到数据中
         data["longbench_score"] = score
         data["longbench_score_percent"] = score_percent
         data["longbench_metric"] = metric_type
+
+        # 收集时间数据（由 MapOperator 自动添加）
+        if "refine_time" in data:
+            self._refine_times.append(data["refine_time"])
+        if "generate_time" in data:
+            self._generate_times.append(data["generate_time"])
+        if "retrieve_time" in data:
+            self._retrieve_times.append(data["retrieve_time"])
 
         return data
 
@@ -1050,6 +1069,34 @@ class LongBenchEvaluator(MapOperator):
                     avg = sum(scores) / len(scores) * 100
                     print(f"  {bucket}: {avg:.2f} ({len(scores)} samples)")
 
+        # 时间统计（支持所有数据集）
+        has_time_data = self._refine_times or self._generate_times or self._retrieve_times
+        if has_time_data:
+            print("\n--- Timing Statistics (seconds) ---")
+            if self._retrieve_times:
+                avg_retrieve = sum(self._retrieve_times) / len(self._retrieve_times)
+                total_retrieve = sum(self._retrieve_times)
+                print(
+                    f"  Retrieve: avg={avg_retrieve:.3f}s, total={total_retrieve:.2f}s ({len(self._retrieve_times)} samples)"
+                )
+            if self._refine_times:
+                avg_refine = sum(self._refine_times) / len(self._refine_times)
+                total_refine = sum(self._refine_times)
+                print(
+                    f"  Refine:   avg={avg_refine:.3f}s, total={total_refine:.2f}s ({len(self._refine_times)} samples)"
+                )
+            if self._generate_times:
+                avg_generate = sum(self._generate_times) / len(self._generate_times)
+                total_generate = sum(self._generate_times)
+                print(
+                    f"  Generate: avg={avg_generate:.3f}s, total={total_generate:.2f}s ({len(self._generate_times)} samples)"
+                )
+            # 总时间
+            total_time = (
+                sum(self._retrieve_times) + sum(self._refine_times) + sum(self._generate_times)
+            )
+            print(f"  \033[92mTotal Pipeline Time: {total_time:.2f}s\033[0m")
+
         print("=" * 80 + "\n")
 
     def get_results(self) -> dict:
@@ -1074,6 +1121,27 @@ class LongBenchEvaluator(MapOperator):
                     "score": sum(scores) / len(scores) * 100 if scores else 0,
                     "count": len(scores),
                 }
+
+        # 时间统计
+        results["timing"] = {}
+        if self._retrieve_times:
+            results["timing"]["retrieve"] = {
+                "avg": sum(self._retrieve_times) / len(self._retrieve_times),
+                "total": sum(self._retrieve_times),
+                "count": len(self._retrieve_times),
+            }
+        if self._refine_times:
+            results["timing"]["refine"] = {
+                "avg": sum(self._refine_times) / len(self._refine_times),
+                "total": sum(self._refine_times),
+                "count": len(self._refine_times),
+            }
+        if self._generate_times:
+            results["timing"]["generate"] = {
+                "avg": sum(self._generate_times) / len(self._generate_times),
+                "total": sum(self._generate_times),
+                "count": len(self._generate_times),
+            }
 
         return results
 
