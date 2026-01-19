@@ -225,6 +225,12 @@ examples/medical_diagnosis/data/test_results/
 /.vscode/
 
 # ============================================
+# Workspace 相关目录（独立仓库，不在主仓库中跟踪）
+# ============================================
+# docs-public 是旧的 submodule 名称，现在是独立的 SAGE-Pub 仓库
+docs-public/
+
+# ============================================
 # 一些测试文件
 # ============================================
 !examples/memory/data/neuromem/vdb_collection/RAGMemoryCollection/indexes/test_index/faiss.index
