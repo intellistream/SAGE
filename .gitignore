@@ -29,14 +29,17 @@ install.log
 .sage/tmp/
 .sage/cache/
 .sage/build/
+.sage/htmlcov/
+.sage/benchmarks/
 /.cmake-build/
 /deps/sageFlow/installation/dist/
 /deps/sageFlow/installation/sageflow.egg-info/
 /deps/sageFlow/installation/build/
 /.idea/deployment.xml
 /.idea/misc.xml
+# 根目录构建产物（已统一到 .sage/build/）
 /build/
-/build/
+/htmlcov/
 /installation/sageflow.egg-info/
 /installation/build/
 /installation/dist/

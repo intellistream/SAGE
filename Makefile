@@ -110,11 +110,15 @@ build:
 clean:
 	@echo "🧹 清理构建产物..."
 	@echo "  • 清理 Python 包构建产物..."
-	@sage-dev package pypi clean || true
+	@find packages -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+	@find packages -type d -name "dist" -exec rm -rf {} + 2>/dev/null || true
+	@find packages -type d -name "build" -exec rm -rf {} + 2>/dev/null || true
 	@echo "  • 清理 C++ 扩展构建产物..."
-	@rm -rf .sage/build/
+	@rm -rf .sage/build/*
+	@echo "  • 清理测试和覆盖率产物..."
+	@rm -rf .sage/htmlcov/ .sage/cache/pytest/ .sage/cache/mypy/ .sage/cache/ruff/
 	@echo "  • 清理旧的构建目录（已废弃）..."
-	@rm -rf build/
+	@rm -rf build/ htmlcov/
 	@rm -rf packages/sage-middleware/build/
 	@rm -rf packages/sage-middleware/lib/
 	@rm -rf packages/sage-middleware/bin/
