@@ -1,0 +1,40 @@
+======================================================================
+Benchmark Results: single_node
+======================================================================
+Timestamp: 2026-01-20T07:54:52.893052
+
+Configuration:
+  experiment_name: single_node
+  num_tasks: 5000
+  task_complexity: medium
+  parallelism: 1
+  num_nodes: 1
+  scheduler_type: load_aware
+  scheduler_strategy: spread
+  use_remote: True
+  pipeline_stages: 3
+  enable_rag: True
+  enable_llm: True
+
+Results:
+  Total Tasks:       5000
+  Successful:        5000
+  Failed:            0
+  Duration:          86.43s
+
+  Throughput:        57.85 tasks/sec
+  Avg Latency:       15.50 ms
+  P50 Latency:       14.74 ms
+  P95 Latency:       22.51 ms
+  P99 Latency:       23.25 ms
+
+  Scheduling Latency: 0.00 ms
+  Queue Latency:      0.00 ms
+  Execution Latency:  0.00 ms
+
+  Node Balance:      100.00%
+
+  Node Distribution:
+    sage-node-6: 5000 (100.0%)
+
+======================================================================

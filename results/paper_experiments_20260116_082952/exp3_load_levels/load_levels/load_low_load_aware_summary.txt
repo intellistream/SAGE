@@ -1,0 +1,43 @@
+======================================================================
+Benchmark Results: load_low_load_aware
+======================================================================
+Timestamp: 2026-01-16T09:36:04.803162
+
+Configuration:
+  experiment_name: load_low_load_aware
+  num_tasks: 100
+  task_complexity: medium
+  parallelism: 4
+  num_nodes: 2
+  scheduler_type: load_aware
+  scheduler_strategy: spread
+  use_remote: True
+  pipeline_stages: 3
+  enable_rag: True
+  enable_llm: True
+
+Results:
+  Total Tasks:       100
+  Successful:        100
+  Failed:            0
+  Duration:          6.60s
+
+  Throughput:        15.14 tasks/sec
+  Avg Latency:       188.82 ms
+  P50 Latency:       152.07 ms
+  P95 Latency:       415.36 ms
+  P99 Latency:       447.31 ms
+
+  Scheduling Latency: 0.00 ms
+  Queue Latency:      0.00 ms
+  Execution Latency:  0.00 ms
+
+  Node Balance:      100.00%
+
+  Node Distribution:
+    sage-node-1: 25 (25.0%)
+    sage-node-14: 25 (25.0%)
+    sage-node-16: 25 (25.0%)
+    sage-node-4: 25 (25.0%)
+
+======================================================================

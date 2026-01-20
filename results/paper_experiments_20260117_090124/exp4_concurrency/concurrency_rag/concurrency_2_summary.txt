@@ -1,0 +1,40 @@
+======================================================================
+Benchmark Results: concurrency_2
+======================================================================
+Timestamp: 2026-01-17T12:44:39.201485
+
+Configuration:
+  experiment_name: concurrency_2
+  num_tasks: 5000
+  task_complexity: medium
+  parallelism: 2
+  num_nodes: 1
+  scheduler_type: fifo
+  scheduler_strategy: spread
+  use_remote: False
+  pipeline_stages: 3
+  enable_rag: True
+  enable_llm: True
+
+Results:
+  Total Tasks:       5000
+  Successful:        4914
+  Failed:            0
+  Duration:          1249.88s
+
+  Throughput:        3.93 tasks/sec
+  Avg Latency:       552.06 ms
+  P50 Latency:       554.62 ms
+  P95 Latency:       1038.20 ms
+  P99 Latency:       1076.80 ms
+
+  Scheduling Latency: 0.00 ms
+  Queue Latency:      0.00 ms
+  Execution Latency:  486.74 ms
+
+  Node Balance:      100.00%
+
+  Node Distribution:
+    sage-node-1: 4914 (100.0%)
+
+======================================================================

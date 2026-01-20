@@ -1,0 +1,49 @@
+======================================================================
+Benchmark Results: scheduler_fifo_medium
+======================================================================
+Timestamp: 2026-01-16T09:34:31.328997
+
+Configuration:
+  experiment_name: scheduler_fifo_medium
+  num_tasks: 200
+  task_complexity: medium
+  parallelism: 16
+  num_nodes: 4
+  scheduler_type: fifo
+  scheduler_strategy: spread
+  use_remote: True
+  pipeline_stages: 3
+  enable_rag: True
+  enable_llm: True
+
+Results:
+  Total Tasks:       200
+  Successful:        200
+  Failed:            0
+  Duration:          11.05s
+
+  Throughput:        18.11 tasks/sec
+  Avg Latency:       684.30 ms
+  P50 Latency:       667.50 ms
+  P95 Latency:       1106.43 ms
+  P99 Latency:       1203.70 ms
+
+  Scheduling Latency: 0.00 ms
+  Queue Latency:      0.00 ms
+  Execution Latency:  0.00 ms
+
+  Node Balance:      59.94%
+
+  Node Distribution:
+    sage-node-1: 24 (12.0%)
+    sage-node-10: 24 (12.0%)
+    sage-node-12: 12 (6.0%)
+    sage-node-14: 25 (12.5%)
+    sage-node-16: 13 (6.5%)
+    sage-node-2: 26 (13.0%)
+    sage-node-3: 13 (6.5%)
+    sage-node-5: 13 (6.5%)
+    sage-node-7: 37 (18.5%)
+    sage-node-8: 13 (6.5%)
+
+======================================================================

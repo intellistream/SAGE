@@ -1,0 +1,15 @@
+Parallel Jobs Execution Report
+================================================================================
+
+Total Duration: 187.34s
+Total Jobs: 3
+Successful: 3
+Failed: 0
+
+Individual Job Results:
+--------------------------------------------------------------------------------
+Job ID   Pipeline     Status   Duration   Throughput    Avg Lat    P99 Lat
+--------------------------------------------------------------------------------
+     0        rag    SUCCESS     187.3s      49.01/s    1143.1ms    6869.5ms
+     1    compute    SUCCESS     184.8s      49.69/s    1143.1ms    6869.5ms
+     2        llm    SUCCESS     182.7s      50.25/s    1143.1ms    6869.5ms

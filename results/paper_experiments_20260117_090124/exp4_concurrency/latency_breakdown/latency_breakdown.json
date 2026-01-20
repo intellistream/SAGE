@@ -1,0 +1,23 @@
+[
+  {
+    "name": "complexity_light",
+    "scheduling_latency_ms": 0.0,
+    "queue_latency_ms": 0.0,
+    "execution_latency_ms": 0.0,
+    "total_latency_ms": 2085.2502489566805
+  },
+  {
+    "name": "complexity_medium",
+    "scheduling_latency_ms": 0.0,
+    "queue_latency_ms": 0.0,
+    "execution_latency_ms": 0.0,
+    "total_latency_ms": 2655.772223711014
+  },
+  {
+    "name": "complexity_heavy",
+    "scheduling_latency_ms": 0.0,
+    "queue_latency_ms": 0.0,
+    "execution_latency_ms": 0.0,
+    "total_latency_ms": 4613.077017391811
+  }
+]

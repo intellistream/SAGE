@@ -1,0 +1,37 @@
+==========================================================================================
+Benchmark Comparison Report
+==========================================================================================
+Generated: 2026-01-17T08:28:07.289925
+Number of experiments: 3
+
+Experiment                   Tasks   Throughput    Avg Lat    P99 Lat    Balance
+------------------------- -------- ------------ ---------- ---------- ----------
+depth_shallow_medium           200      19.74/s    427.6ms   1040.2ms     86.1%
+depth_medium_medium            200      14.46/s    799.1ms   1536.1ms     96.0%
+depth_deep_medium              200      10.02/s   2248.9ms   4559.8ms     96.0%
+
+==========================================================================================
+
+Detailed Comparison:
+------------------------------------------------------------------------------------------
+
+[depth_shallow_medium]
+  Config: tasks=200, parallelism=16, nodes=4, scheduler=load_aware
+  Throughput: 19.74 tasks/sec
+  Latency: avg=427.6ms, p50=409.9ms, p99=1040.2ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 13, Balance: 86.1%
+
+[depth_medium_medium]
+  Config: tasks=200, parallelism=16, nodes=4, scheduler=load_aware
+  Throughput: 14.46 tasks/sec
+  Latency: avg=799.1ms, p50=788.5ms, p99=1536.1ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 16, Balance: 96.0%
+
+[depth_deep_medium]
+  Config: tasks=200, parallelism=16, nodes=4, scheduler=load_aware
+  Throughput: 10.02 tasks/sec
+  Latency: avg=2248.9ms, p50=2163.7ms, p99=4559.8ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 16, Balance: 96.0%

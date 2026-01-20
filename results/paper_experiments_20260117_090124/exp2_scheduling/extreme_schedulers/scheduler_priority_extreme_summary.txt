@@ -1,0 +1,37 @@
+======================================================================
+Benchmark Results: scheduler_priority_extreme
+======================================================================
+Timestamp: 2026-01-17T10:53:37.754731
+
+Configuration:
+  experiment_name: scheduler_priority_extreme
+  num_tasks: 5000
+  task_complexity: medium
+  parallelism: 128
+  num_nodes: 16
+  scheduler_type: priority
+  scheduler_strategy: spread
+  use_remote: True
+  pipeline_stages: 3
+  enable_rag: True
+  enable_llm: True
+
+Results:
+  Total Tasks:       5000
+  Successful:        0
+  Failed:            0
+  Duration:          60.07s
+
+  Throughput:        0.00 tasks/sec
+  Avg Latency:       0.00 ms
+  P50 Latency:       0.00 ms
+  P95 Latency:       0.00 ms
+  P99 Latency:       0.00 ms
+
+  Scheduling Latency: 0.00 ms
+  Queue Latency:      0.00 ms
+  Execution Latency:  0.00 ms
+
+  Node Balance:      100.00%
+
+======================================================================

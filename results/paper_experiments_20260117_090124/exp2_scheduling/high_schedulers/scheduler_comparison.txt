@@ -1,0 +1,42 @@
+==========================================================================================
+Benchmark Comparison Report
+==========================================================================================
+Generated: 2026-01-17T10:35:32.957973
+Number of experiments: 4
+
+Experiment                   Tasks   Throughput    Avg Lat    P99 Lat    Balance
+------------------------- -------- ------------ ---------- ---------- ----------
+scheduler_fifo_high           2477       4.21/s  15415.2ms  29998.7ms     52.4%
+scheduler_load_aware_spread_high        0       0.00/s      0.0ms      0.0ms    100.0%
+scheduler_load_aware_pack_high        0       0.00/s      0.0ms      0.0ms    100.0%
+scheduler_priority_high          0       0.00/s      0.0ms      0.0ms    100.0%
+
+==========================================================================================
+
+Detailed Comparison:
+------------------------------------------------------------------------------------------
+
+[scheduler_fifo_high]
+  Config: tasks=2500, parallelism=64, nodes=8, scheduler=fifo
+  Throughput: 4.21 tasks/sec
+  Latency: avg=15415.2ms, p50=15319.6ms, p99=29998.7ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 16, Balance: 52.4%
+
+[scheduler_load_aware_spread_high]
+  Config: tasks=2500, parallelism=64, nodes=8, scheduler=load_aware
+  Throughput: 0.00 tasks/sec
+  Latency: avg=0.0ms, p50=0.0ms, p99=0.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+
+[scheduler_load_aware_pack_high]
+  Config: tasks=2500, parallelism=64, nodes=8, scheduler=load_aware
+  Throughput: 0.00 tasks/sec
+  Latency: avg=0.0ms, p50=0.0ms, p99=0.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+
+[scheduler_priority_high]
+  Config: tasks=2500, parallelism=64, nodes=8, scheduler=priority
+  Throughput: 0.00 tasks/sec
+  Latency: avg=0.0ms, p50=0.0ms, p99=0.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms

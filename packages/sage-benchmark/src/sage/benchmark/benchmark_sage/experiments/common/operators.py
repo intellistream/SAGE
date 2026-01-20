@@ -722,7 +722,7 @@ class FiQATaskSource(SourceFunction):
         if self.current_index >= self.num_tasks:
             # 不需要额外等待，StopSignal 会在下游 drain 完成后才传播
             return StopSignal("All tasks generated")
-
+        self.logger.info(f"[FiQATaskSource] Generating task {self.current_index + 1}/{self.num_tasks}")
         self._load_queries()
         assert self._queries is not None
 
@@ -730,7 +730,7 @@ class FiQATaskSource(SourceFunction):
         query_idx = self.current_index % len(self._queries)
         query_data = self._queries[query_idx]
         self.current_index += 1
-
+        self.logger.info(f"[FiQATaskSource] Generated task {self.current_index} with query ID {query_data['id']}")
         state = TaskState(
             task_id=f"fiqa_{self.current_index:05d}",
             query=query_data["text"],

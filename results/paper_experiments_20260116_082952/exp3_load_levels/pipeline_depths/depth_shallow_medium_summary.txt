@@ -1,0 +1,52 @@
+======================================================================
+Benchmark Results: depth_shallow_medium
+======================================================================
+Timestamp: 2026-01-17T08:27:26.044471
+
+Configuration:
+  experiment_name: depth_shallow_medium
+  num_tasks: 200
+  task_complexity: medium
+  parallelism: 16
+  num_nodes: 4
+  scheduler_type: load_aware
+  scheduler_strategy: spread
+  use_remote: True
+  pipeline_stages: 2
+  enable_rag: True
+  enable_llm: True
+
+Results:
+  Total Tasks:       200
+  Successful:        200
+  Failed:            0
+  Duration:          10.13s
+
+  Throughput:        19.74 tasks/sec
+  Avg Latency:       427.58 ms
+  P50 Latency:       409.86 ms
+  P95 Latency:       814.38 ms
+  P99 Latency:       1040.23 ms
+
+  Scheduling Latency: 0.00 ms
+  Queue Latency:      0.00 ms
+  Execution Latency:  0.00 ms
+
+  Node Balance:      86.14%
+
+  Node Distribution:
+    sage-node-1: 16 (8.0%)
+    sage-node-10: 16 (8.0%)
+    sage-node-11: 16 (8.0%)
+    sage-node-12: 16 (8.0%)
+    sage-node-13: 16 (8.0%)
+    sage-node-14: 16 (8.0%)
+    sage-node-15: 16 (8.0%)
+    sage-node-16: 16 (8.0%)
+    sage-node-2: 8 (4.0%)
+    sage-node-4: 16 (8.0%)
+    sage-node-7: 16 (8.0%)
+    sage-node-8: 16 (8.0%)
+    sage-node-9: 16 (8.0%)
+
+======================================================================

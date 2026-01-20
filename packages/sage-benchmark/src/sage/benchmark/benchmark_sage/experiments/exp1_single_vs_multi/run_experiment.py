@@ -44,7 +44,7 @@ EXPERIMENT_CONFIGS = {
         "description": "单节点 ",
         "use_remote": True,
         "num_nodes": 1,
-        "parallelism": 4,
+        "parallelism": 1,
     },
     "multi_4_nodes": {
         "description": "多节点 (4 nodes)",

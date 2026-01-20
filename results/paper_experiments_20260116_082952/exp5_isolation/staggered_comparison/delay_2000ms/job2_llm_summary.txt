@@ -1,0 +1,47 @@
+======================================================================
+Benchmark Results: job2_llm
+======================================================================
+Timestamp: 2026-01-16T11:26:20.438054
+
+Configuration:
+  experiment_name: job2_llm
+  num_tasks: 3000
+  task_complexity: medium
+  parallelism: 8
+  num_nodes: 4
+  scheduler_type: load_aware
+  scheduler_strategy: spread
+  use_remote: True
+  pipeline_stages: 3
+  enable_rag: True
+  enable_llm: True
+
+Results:
+  Total Tasks:       3000
+  Successful:        6000
+  Failed:            0
+  Duration:          186.35s
+
+  Throughput:        32.20 tasks/sec
+  Avg Latency:       310.96 ms
+  P50 Latency:       163.66 ms
+  P95 Latency:       762.93 ms
+  P99 Latency:       837.90 ms
+
+  Scheduling Latency: 0.00 ms
+  Queue Latency:      0.00 ms
+  Execution Latency:  0.00 ms
+
+  Node Balance:      100.00%
+
+  Node Distribution:
+    sage-node-10: 750 (12.5%)
+    sage-node-11: 750 (12.5%)
+    sage-node-12: 750 (12.5%)
+    sage-node-13: 750 (12.5%)
+    sage-node-15: 750 (12.5%)
+    sage-node-7: 750 (12.5%)
+    sage-node-8: 750 (12.5%)
+    sage-node-9: 750 (12.5%)
+
+======================================================================

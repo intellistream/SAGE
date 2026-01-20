@@ -1,0 +1,55 @@
+======================================================================
+Benchmark Results: scheduler_fifo_high
+======================================================================
+Timestamp: 2026-01-17T10:32:32.690367
+
+Configuration:
+  experiment_name: scheduler_fifo_high
+  num_tasks: 2500
+  task_complexity: medium
+  parallelism: 64
+  num_nodes: 8
+  scheduler_type: fifo
+  scheduler_strategy: spread
+  use_remote: True
+  pipeline_stages: 3
+  enable_rag: True
+  enable_llm: True
+
+Results:
+  Total Tasks:       2500
+  Successful:        2477
+  Failed:            0
+  Duration:          587.90s
+
+  Throughput:        4.21 tasks/sec
+  Avg Latency:       15415.19 ms
+  P50 Latency:       15319.60 ms
+  P95 Latency:       28393.20 ms
+  P99 Latency:       29998.71 ms
+
+  Scheduling Latency: 0.00 ms
+  Queue Latency:      0.00 ms
+  Execution Latency:  0.00 ms
+
+  Node Balance:      52.37%
+
+  Node Distribution:
+    sage-node-1: 309 (12.5%)
+    sage-node-10: 76 (3.1%)
+    sage-node-11: 117 (4.7%)
+    sage-node-12: 77 (3.1%)
+    sage-node-13: 194 (7.8%)
+    sage-node-14: 310 (12.5%)
+    sage-node-15: 117 (4.7%)
+    sage-node-16: 77 (3.1%)
+    sage-node-2: 232 (9.4%)
+    sage-node-3: 116 (4.7%)
+    sage-node-4: 116 (4.7%)
+    sage-node-5: 115 (4.6%)
+    sage-node-6: 193 (7.8%)
+    sage-node-7: 117 (4.7%)
+    sage-node-8: 194 (7.8%)
+    sage-node-9: 117 (4.7%)
+
+======================================================================

@@ -1,0 +1,22 @@
+{
+  "total_duration": 130.48619771003723,
+  "num_jobs": 1,
+  "num_successful": 1,
+  "num_failed": 0,
+  "jobs": [
+    {
+      "job_id": 0,
+      "pipeline_type": "rag",
+      "success": true,
+      "duration": 130.45729660987854,
+      "start_time": 1768562980.5988865,
+      "end_time": 1768563111.056183,
+      "throughput": 23.129456290043425,
+      "avg_latency_ms": 27308.547079664822,
+      "p95_latency_ms": 47029.98638153076,
+      "p99_latency_ms": 49442.37399101257,
+      "total_tasks": 3000,
+      "node_balance_score": 0.983400947041733
+    }
+  ]
+}

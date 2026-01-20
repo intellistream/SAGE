@@ -1,0 +1,55 @@
+======================================================================
+Benchmark Results: load_medium_load_aware
+======================================================================
+Timestamp: 2026-01-17T10:57:13.518238
+
+Configuration:
+  experiment_name: load_medium_load_aware
+  num_tasks: 1000
+  task_complexity: medium
+  parallelism: 16
+  num_nodes: 4
+  scheduler_type: load_aware
+  scheduler_strategy: spread
+  use_remote: True
+  pipeline_stages: 3
+  enable_rag: True
+  enable_llm: True
+
+Results:
+  Total Tasks:       1000
+  Successful:        1000
+  Failed:            0
+  Duration:          83.41s
+
+  Throughput:        11.99 tasks/sec
+  Avg Latency:       797.32 ms
+  P50 Latency:       762.66 ms
+  P95 Latency:       1516.13 ms
+  P99 Latency:       1860.66 ms
+
+  Scheduling Latency: 0.00 ms
+  Queue Latency:      0.00 ms
+  Execution Latency:  0.00 ms
+
+  Node Balance:      99.20%
+
+  Node Distribution:
+    sage-node-1: 62 (6.2%)
+    sage-node-10: 63 (6.3%)
+    sage-node-11: 63 (6.3%)
+    sage-node-12: 63 (6.3%)
+    sage-node-13: 63 (6.3%)
+    sage-node-14: 62 (6.2%)
+    sage-node-15: 63 (6.3%)
+    sage-node-16: 62 (6.2%)
+    sage-node-2: 62 (6.2%)
+    sage-node-3: 62 (6.2%)
+    sage-node-4: 62 (6.2%)
+    sage-node-5: 62 (6.2%)
+    sage-node-6: 62 (6.2%)
+    sage-node-7: 63 (6.3%)
+    sage-node-8: 63 (6.3%)
+    sage-node-9: 63 (6.3%)
+
+======================================================================

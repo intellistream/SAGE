@@ -1,0 +1,55 @@
+======================================================================
+Benchmark Results: complexity_heavy
+======================================================================
+Timestamp: 2026-01-17T13:34:52.252157
+
+Configuration:
+  experiment_name: complexity_heavy
+  num_tasks: 5000
+  task_complexity: heavy
+  parallelism: 32
+  num_nodes: 8
+  scheduler_type: load_aware
+  scheduler_strategy: spread
+  use_remote: True
+  pipeline_stages: 3
+  enable_rag: True
+  enable_llm: True
+
+Results:
+  Total Tasks:       5000
+  Successful:        4998
+  Failed:            0
+  Duration:          521.97s
+
+  Throughput:        9.58 tasks/sec
+  Avg Latency:       4613.08 ms
+  P50 Latency:       4477.44 ms
+  P95 Latency:       8912.92 ms
+  P99 Latency:       11037.98 ms
+
+  Scheduling Latency: 0.00 ms
+  Queue Latency:      0.00 ms
+  Execution Latency:  0.00 ms
+
+  Node Balance:      99.78%
+
+  Node Distribution:
+    sage-node-1: 312 (6.2%)
+    sage-node-10: 313 (6.3%)
+    sage-node-11: 313 (6.3%)
+    sage-node-12: 313 (6.3%)
+    sage-node-13: 313 (6.3%)
+    sage-node-14: 312 (6.2%)
+    sage-node-15: 313 (6.3%)
+    sage-node-16: 312 (6.2%)
+    sage-node-2: 312 (6.2%)
+    sage-node-3: 312 (6.2%)
+    sage-node-4: 312 (6.2%)
+    sage-node-5: 311 (6.2%)
+    sage-node-6: 311 (6.2%)
+    sage-node-7: 313 (6.3%)
+    sage-node-8: 313 (6.3%)
+    sage-node-9: 313 (6.3%)
+
+======================================================================

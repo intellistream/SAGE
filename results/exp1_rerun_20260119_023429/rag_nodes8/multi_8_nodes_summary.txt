@@ -1,0 +1,47 @@
+======================================================================
+Benchmark Results: multi_8_nodes
+======================================================================
+Timestamp: 2026-01-19T03:34:59.961417
+
+Configuration:
+  experiment_name: multi_8_nodes
+  num_tasks: 5000
+  task_complexity: medium
+  parallelism: 8
+  num_nodes: 8
+  scheduler_type: load_aware
+  scheduler_strategy: spread
+  use_remote: True
+  pipeline_stages: 3
+  enable_rag: True
+  enable_llm: True
+
+Results:
+  Total Tasks:       5000
+  Successful:        4769
+  Failed:            0
+  Duration:          417.80s
+
+  Throughput:        11.41 tasks/sec
+  Avg Latency:       137456.18 ms
+  P50 Latency:       135146.18 ms
+  P95 Latency:       257551.99 ms
+  P99 Latency:       271331.33 ms
+
+  Scheduling Latency: 0.00 ms
+  Queue Latency:      0.00 ms
+  Execution Latency:  0.00 ms
+
+  Node Balance:      97.00%
+
+  Node Distribution:
+    sage-node-1: 601 (12.6%)
+    sage-node-14: 601 (12.6%)
+    sage-node-16: 621 (13.0%)
+    sage-node-2: 577 (12.1%)
+    sage-node-3: 624 (13.1%)
+    sage-node-4: 587 (12.3%)
+    sage-node-5: 573 (12.0%)
+    sage-node-6: 585 (12.3%)
+
+======================================================================

@@ -1536,7 +1536,7 @@ class SchedulingBenchmarkPipeline:
 
         # Source -> Classifier (use LLM for classification)
         classified_stream = (
-            env.from_source(AdaptiveRAGQuerySource, queries=queries, delay=0.1)
+            env.from_source(FiQATaskSource,num_tasks=self.config.num_tasks,)
             .map(
                 QueryClassifier,
                 parallelism=self.config.parallelism,

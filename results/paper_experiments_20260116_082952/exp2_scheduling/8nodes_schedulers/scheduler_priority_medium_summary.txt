@@ -1,0 +1,40 @@
+======================================================================
+Benchmark Results: scheduler_priority_medium
+======================================================================
+Timestamp: 2026-01-16T09:35:46.572178
+
+Configuration:
+  experiment_name: scheduler_priority_medium
+  num_tasks: 200
+  task_complexity: medium
+  parallelism: 16
+  num_nodes: 4
+  scheduler_type: priority
+  scheduler_strategy: spread
+  use_remote: True
+  pipeline_stages: 3
+  enable_rag: True
+  enable_llm: True
+
+Results:
+  Total Tasks:       200
+  Successful:        200
+  Failed:            0
+  Duration:          19.95s
+
+  Throughput:        10.03 tasks/sec
+  Avg Latency:       9766.43 ms
+  P50 Latency:       9765.41 ms
+  P95 Latency:       13258.28 ms
+  P99 Latency:       14375.61 ms
+
+  Scheduling Latency: 0.00 ms
+  Queue Latency:      0.00 ms
+  Execution Latency:  0.00 ms
+
+  Node Balance:      100.00%
+
+  Node Distribution:
+    sage-node-5: 200 (100.0%)
+
+======================================================================

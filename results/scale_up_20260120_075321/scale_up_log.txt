@@ -1,0 +1,50 @@
+=============================================================================
+ SAGE Scale Up 实验 - LLM 和 RAG Service Pipeline 扩展性测试
+ 开始时间: 2026-01-20 07:53:21
+ 结果目录: results/scale_up_20260120_075321
+ 快速模式: false
+ 任务数: 5000
+ Pipeline: llm,rag_service
+ 节点规模: 1,2,4,8
+=============================================================================
+[2026-01-20 07:53:21] 将运行 8 个实验配置
+[2026-01-20 07:53:21] ========== 开始 llm Pipeline 扩展性测试 ==========
+[2026-01-20 07:53:21] 开始实验: pipeline=llm, nodes=1, tasks=5000
+[2026-01-20 07:54:54] [DONE] llm_nodes1 完成，结果保存至: results/scale_up_20260120_075321/llm_nodes1
+[2026-01-20 07:54:54] [Cleanup] 正在清理集群资源...
+[2026-01-20 07:54:59] [Cleanup] 清理完成
+[2026-01-20 07:54:59] 开始实验: pipeline=llm, nodes=2, tasks=5000
+[2026-01-20 07:56:33] [DONE] llm_nodes2 完成，结果保存至: results/scale_up_20260120_075321/llm_nodes2
+[2026-01-20 07:56:33] [Cleanup] 正在清理集群资源...
+[2026-01-20 07:56:39] [Cleanup] 清理完成
+[2026-01-20 07:56:39] 开始实验: pipeline=llm, nodes=4, tasks=5000
+[2026-01-20 07:58:12] [DONE] llm_nodes4 完成，结果保存至: results/scale_up_20260120_075321/llm_nodes4
+[2026-01-20 07:58:12] [Cleanup] 正在清理集群资源...
+[2026-01-20 07:58:17] [Cleanup] 清理完成
+[2026-01-20 07:58:17] 开始实验: pipeline=llm, nodes=8, tasks=5000
+[2026-01-20 07:59:47] [DONE] llm_nodes8 完成，结果保存至: results/scale_up_20260120_075321/llm_nodes8
+[2026-01-20 07:59:47] [Cleanup] 正在清理集群资源...
+[2026-01-20 07:59:53] [Cleanup] 清理完成
+[2026-01-20 07:59:53] ========== llm Pipeline 测试完成 ==========
+[2026-01-20 07:59:53] ========== 开始 rag_service Pipeline 扩展性测试 ==========
+[2026-01-20 07:59:53] 开始实验: pipeline=rag_service, nodes=1, tasks=5000
+[2026-01-20 08:13:26] [DONE] rag_service_nodes1 完成，结果保存至: results/scale_up_20260120_075321/rag_service_nodes1
+[2026-01-20 08:13:26] [Cleanup] 正在清理集群资源...
+[2026-01-20 08:13:31] [Cleanup] 清理完成
+[2026-01-20 08:13:31] 开始实验: pipeline=rag_service, nodes=2, tasks=5000
+[2026-01-20 08:27:04] [DONE] rag_service_nodes2 完成，结果保存至: results/scale_up_20260120_075321/rag_service_nodes2
+[2026-01-20 08:27:04] [Cleanup] 正在清理集群资源...
+[2026-01-20 08:27:09] [Cleanup] 清理完成
+[2026-01-20 08:27:09] 开始实验: pipeline=rag_service, nodes=4, tasks=5000
+[2026-01-20 08:37:21] [DONE] rag_service_nodes4 完成，结果保存至: results/scale_up_20260120_075321/rag_service_nodes4
+[2026-01-20 08:37:21] [Cleanup] 正在清理集群资源...
+[2026-01-20 08:37:26] [Cleanup] 清理完成
+[2026-01-20 08:37:26] 开始实验: pipeline=rag_service, nodes=8, tasks=5000
+[2026-01-20 08:44:11] [DONE] rag_service_nodes8 完成，结果保存至: results/scale_up_20260120_075321/rag_service_nodes8
+[2026-01-20 08:44:11] [Cleanup] 正在清理集群资源...
+[2026-01-20 08:44:17] [Cleanup] 清理完成
+[2026-01-20 08:44:17] ========== rag_service Pipeline 测试完成 ==========
+[2026-01-20 08:44:17] Scale Up 实验完成
+[2026-01-20 08:44:17] 总耗时: 50分56秒
+[2026-01-20 08:44:17] 结果目录: results/scale_up_20260120_075321
+[2026-01-20 08:44:17] 日志文件: results/scale_up_20260120_075321/scale_up_log.txt

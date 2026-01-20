@@ -16,38 +16,38 @@ enforces scheduling policies under mixed workloads. This design collapses a frag
 optimizable system boundary, so that placement, batching, streaming state maintenance, and SLO-aware
 execution become first-class concerns rather than application glue.
 
-\begin{figure}[t]
+\begin{figure}[ht]
+\centering
+\fbox{\parbox{0.95\linewidth}{
+      \vspace{0.35cm}
       \centering
-      % TODO: Replace with an actual architecture diagram (PDF/SVG/PNG).
-      \fbox{\parbox{0.95\linewidth}{
-            \vspace{0.35cm}
-            \centering
-            	extbf{Placeholder: SAGE end-to-end architecture (L1--L6).}\\
-            Show the six layers, downward-only dependencies, and the main data/control paths\\
-            (Gateway $\rightarrow$ Runtime $\rightarrow$ Middleware/Engines; Control Plane/Benchmarks).
-            \vspace{0.35cm}
-      }}
-      \caption{SAGE is organized as a strict six-layer system (L1--L6) with downward-only dependencies.
-      The gateway and developer tooling sit at the top, while the runtime and performance-critical inference
-      components are isolated below to enable reproducible evolution and cross-stage optimization.}
-      \label{fig:sage_architecture}
+      \textbf{Placeholder: SAGE end-to-end architecture (L1--L5).}\\
+      Show the five layers, downward-only dependencies, and the main data/control paths\\
+      (CLI/Tools $\rightarrow$ Middleware $\rightarrow$ Runtime/Libs $\rightarrow$ Platform $\rightarrow$ Foundation).
+      \vspace{0.35cm}
+}}
+\caption{SAGE is organized as a strict five-layer system (L1--L5) with downward-only dependencies. Developer tooling and CLI (L5) sit at the top, while the runtime (L3) and performance-critical C++ middleware operators (L4) are isolated below to enable reproducible evolution and cross-stage optimization.}
 \end{figure}
 
 \subsection{Architectural Philosophy}
-SAGE is built as a modular monolith with a strict six-layer architecture (L1--L6) and downward-only
-dependencies. This design ensures that high-level interfaces (L6) and applications (L5) can evolve
-independently from the performance-critical middleware (L4) and core runtime (L3), while platform services
-(L2) and foundational utilities (L1) provide a stable base.
+SAGE is built as a modular monolith with a strict five-layer architecture (L1--L5) and downward-only
+dependencies. This design ensures that developer tooling (L5) can evolve independently from the 
+performance-critical middleware (L4) and core runtime (L3), while platform services (L2) and foundational 
+utilities (L1) provide a stable base.
 
 \begin{itemize}
-  \item \textbf{L6 Interfaces \& L5 Applications}: User-facing gateways, CLI tools, and end-to-end
-        applications.
-  \item \textbf{L4 Middleware}: The "heavy lifting" layer containing specialized inference components for
-        vector search, streaming semantic state, memory, and refinement.
-  \item \textbf{L3 Core Runtime}: The distributed dataflow engine responsible for scheduling, operator
-        execution, and fault tolerance.
-  \item \textbf{L2 Platform \& L1 Foundation}: Shared infrastructure for storage, queues, configuration,
-        and unified client interfaces.
+  \item \textbf{L5 Interface}: Developer-facing CLI (\texttt{sage-cli}) and development tools 
+        (\texttt{sage-tools}) for pipeline deployment, testing, and quality assurance.
+  \item \textbf{L4 Middleware}: Performance-critical C++ operators and specialized inference components,
+        including SageVDB (vector search), SageFlow (streaming semantic state), NeuroMem (structured memory),
+        and context refinement modules.
+  \item \textbf{L3 Core}: The streaming runtime (\texttt{sage-kernel}) responsible for dataflow scheduling,
+        operator execution, and fault tolerance; plus algorithm libraries (\texttt{sage-libs}) for RAG,
+        agents, and workflow optimization.
+  \item \textbf{L2 Platform}: Shared infrastructure for storage backends, queue abstractions, and service
+        lifecycle management.
+  \item \textbf{L1 Foundation}: Core utilities, configuration management, type definitions, and unified
+        embedding interfaces.
 \end{itemize}
 
 \subsection{Pipeline-First Abstraction}
@@ -64,9 +64,7 @@ resource-aware placement, batching across stages, and end-to-end SLO tracking.
             \vspace{0.35cm}
             \centering
             	extbf{Placeholder: Pipeline-first execution view.}\\
-            Depict a single request flowing through operators: ingest/session\\
-            $\rightarrow$ retrieval (SageDB) $\rightarrow$ refinement (sageRefiner)\\
-            $\rightarrow$ generation (LLM) with streaming output; show backpressure and batching points.
+            Depict a single request flowing through operators: (CLI/Tools $\rightarrow$ Middleware $\rightarrow$ Runtime/Libs $\rightarrow$ Platform $\rightarrow$ Foundation).
             \vspace{0.35cm}
       }}
       \caption{Pipeline-first execution: SAGE represents an LLM application as a dataflow graph whose operators

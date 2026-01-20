@@ -1,0 +1,55 @@
+======================================================================
+Benchmark Results: job1_compute
+======================================================================
+Timestamp: 2026-01-17T14:19:27.665952
+
+Configuration:
+  experiment_name: job1_compute
+  num_tasks: 5000
+  task_complexity: medium
+  parallelism: 8
+  num_nodes: 4
+  scheduler_type: load_aware
+  scheduler_strategy: spread
+  use_remote: True
+  pipeline_stages: 3
+  enable_rag: True
+  enable_llm: True
+
+Results:
+  Total Tasks:       5000
+  Successful:        13960
+  Failed:            0
+  Duration:          294.68s
+
+  Throughput:        47.37 tasks/sec
+  Avg Latency:       10221.34 ms
+  P50 Latency:       467.22 ms
+  P95 Latency:       55760.97 ms
+  P99 Latency:       70657.03 ms
+
+  Scheduling Latency: 0.00 ms
+  Queue Latency:      0.00 ms
+  Execution Latency:  0.00 ms
+
+  Node Balance:      56.71%
+
+  Node Distribution:
+    sage-node-1: 531 (3.8%)
+    sage-node-10: 1250 (9.0%)
+    sage-node-11: 1250 (9.0%)
+    sage-node-12: 1250 (9.0%)
+    sage-node-13: 1250 (9.0%)
+    sage-node-14: 506 (3.6%)
+    sage-node-15: 1250 (9.0%)
+    sage-node-16: 481 (3.4%)
+    sage-node-2: 504 (3.6%)
+    sage-node-3: 477 (3.4%)
+    sage-node-4: 507 (3.6%)
+    sage-node-5: 485 (3.5%)
+    sage-node-6: 469 (3.4%)
+    sage-node-7: 1250 (9.0%)
+    sage-node-8: 1250 (9.0%)
+    sage-node-9: 1250 (9.0%)
+
+======================================================================

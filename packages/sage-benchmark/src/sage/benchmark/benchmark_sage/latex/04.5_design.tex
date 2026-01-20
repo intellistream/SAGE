@@ -1,255 +1,97 @@
 \section{Design Details}
 \label{sec:design_details}
-This section details the key mechanisms that enable SAGE to execute these pipelines efficiently on
-heterogeneous resources. We discuss the programming model, the runtime execution engine, the integrated
-middleware components, and the control plane for hybrid workloads.
 
-\subsection{Programming Model: Pipelines as Declarative Dataflows}
-\label{subsec:dd_dataflow_model}
+\paragraph{Design goals.}
+SAGE targets hybrid RAG/agent workloads in which each query triggers a multi-stage pipeline---retrieval over vector/text indices, memory read/write, optional refinement (e.g., compression or reranking), and final generation/tool use---and the same workload must scale from local runs to heterogeneous clusters. 
+First, we prioritize \emph{composability} by making the pipeline (a dataflow DAG of operators) the primary abstraction, so retrieval, memory, refinement, and generation are expressed as interchangeable stages rather than entangled control flow. 
+Second, we emphasize \emph{resource-aware execution} by supporting explicit placement and scheduling over CPU-only and GPU nodes, enabling mixed deployments where embedding/retrieval-heavy stages can run on CPUs while generation-heavy stages are assigned to GPUs. 
+Third, we enforce \emph{isolation and stability} through streaming-style flow control (bounded queues/backpressure) and policy-driven routing decisions, so slow or bursty stages do not destabilize the rest of the pipeline. 
+This architecture also supports rigorous, repeatable system evaluation by representing each workflow as a declarative DAG with interchangeable operators, which enables controlled ablations and fair comparisons; we describe the evaluation methodology in \S\ref{sec:experiments}.
 
-SAGE expresses an application as a directed acyclic graph (DAG) where nodes are operators and edges are
-typed record streams.
-% ... (Dataflow details) ...
-At runtime, each stream element is represented as a \,\emph{Packet}---a self-contained record carrying
-payload and routing metadata. Concretely, a packet contains the user payload (\texttt{data}), an event
-timestamp in milliseconds (\texttt{timestamp}), an optional key for stateful processing (\texttt{key}), and
-partitioning annotations (\texttt{partition\_strategy}, \texttt{partition\_key}) that guide downstream routing.
-Additional fields (e.g., \texttt{source} and a free-form \texttt{metadata} map) support provenance and
-application-specific tags. Partition metadata can be propagated along the graph (inheritance) and updated
-at boundaries when an operator re-keys the stream.
+\subsection{Architecture Overview and Layering}
+\label{subsec:dd_arch_overview}
 
-Operators follow a minimal contract: they consume packets, optionally maintain operator-local state, and
-emit zero or more output packets. Stateless transformations are expressed as map-style operators, while
-stateful operators use the packet \texttt{key} to define per-key state access. In the base operator
-implementation, the runtime sets the ``current key'' context before invoking the user-defined execution
-logic and clears it afterward, ensuring keyed state is consistently scoped to the triggering record.
-For fault tolerance, operators expose \texttt{get\_state}/\texttt{restore\_state} to serialize and restore
-checkpointable state (with explicit include/exclude lists). Finally, batching is represented at the record
-level by treating \texttt{data} as an opaque payload: a packet may carry a single item or a collection (e.g.,
-a list of texts for embeddings), allowing batch-aware operators to exploit vectorized execution without
-changing the streaming interface. Exceptions raised inside operator logic propagate to the task boundary,
-where the configured recovery strategy (restart- or checkpoint-based) can be applied.
+SAGE is organized as a layered modular monolith with \textbf{one-way dependencies} to keep the system extensible while avoiding architectural erosion. Concretely, code in higher layers may depend only on lower layers (L5$\rightarrow$L4$\rightarrow$L3$\rightarrow$L2$\rightarrow$L1), and \emph{reverse} (``upward'') dependencies are disallowed. This separation makes it possible to evolve execution/runtime mechanisms independently from domain operators, and to enforce clean boundaries between reusable primitives (types, configs, algorithms) and runtime-bound components (operators, backends, C++ extensions). When cross-layer instantiation is required (e.g., a lower layer needs to trigger creation of a higher-layer implementation), SAGE uses explicit registration/factory hooks rather than direct imports, preserving the one-way dependency invariant.
 
-\subsection{Compilation and Runtime Execution}
-\label{subsec:dd_runtime}
+\paragraph{Core packages by layer.}
+\begin{itemize}
+  \item \textbf{L1 (Foundation): \texttt{sage-common}.} Shared types, configuration, and utilities (e.g., standardized ports and environment keys), intended to be dependency-minimal and reusable across the stack.
+  \item \textbf{L2 (Platform services): \texttt{sage-platform}.} Abstract services such as queue/storage/service lifecycles that underpin distributed execution without tying the design to a single backend.
+  \item \textbf{L3 (Core): \texttt{sage-kernel}, \texttt{sage-libs}.} The dataflow runtime and execution engine live in \texttt{sage-kernel}, while \texttt{sage-libs} provides algorithmic building blocks (e.g., RAG utilities and agentic logic) that remain runnable without heavyweight external services.
+  \item \textbf{L4 (Domain/middleware): \texttt{sage-middleware}.} Domain operators and runtime-bound components for end-to-end pipelines (retrieval/memory/refinement/generation connectors), including performance-critical C++ extensions (e.g., streaming/vector and memory backends) exposed via Python bindings.
+  \item \textbf{L5 (Interfaces and tooling): \texttt{sage-cli}, \texttt{sage-tools}.} User-facing command-line entry points and developer tooling (testing, quality checks, maintenance workflows).
+\end{itemize}
+In addition, SAGE ships a lightweight meta-package \texttt{sage} (PyPI: \texttt{isage}) that aggregates the core packages for installation convenience, without changing the layer boundaries above.
 
-\paragraph{Compilation.}
-The system compiles logical dataflows into physical execution plans, resolving operator placement (CPU vs
-GPU) and parallelism strategies.
-Compilation performs two core rewrites that bridge the logical DAG and the physical execution plan.
-First, each logical operator is expanded into \emph{parallel task replicas} according to its configured
-parallelism. Second, each logical edge between an upstream operator (parallelism $m$) and a downstream
-operator (parallelism $n$) is materialized as an all-to-all set of physical channels ($m\times n$), each
-backed by a serializable queue descriptor. This expansion yields a concrete \emph{execution graph} whose
-nodes are task contexts (operator replica + resources) and whose edges are concrete queue endpoints.
+\paragraph{Independent repositories (outside the core).}
+Several ecosystem components are intentionally maintained outside the SAGE core repository and are treated as external dependencies: \textbf{\texttt{isagellm}} (LLM control plane/gateway and unified inference client), \textbf{\texttt{isage-benchmark}} (evaluation framework), \textbf{\texttt{sage-studio}} (visual workflow builder), and \textbf{\texttt{sage-examples}} (tutorials and applications). This separation keeps the core layering stable and lightweight while allowing fast iteration on product-facing services and benchmarking infrastructure.
 
-Placement constraints are expressed as part of the per-task context and translated by the placement
-executor into the cluster scheduler's native hints. In the Ray-backed deployment, placement decisions are
-compiled into \texttt{NodeAffinitySchedulingStrategy} (hard affinity) and resource requirements (e.g.,
-			\texttt{num\_cpus}, \texttt{num\_gpus}, \texttt{memory}, and custom resources), enabling the compiler/scheduler
-to co-locate GPU-heavy stages (e.g., decoding) while pinning CPU-heavy stages (e.g., retrieval/refinement)
-to CPU nodes. Service-style components (e.g., middleware microservices) are compiled similarly but may
-add explicit request/response queue mappings, enabling RPC-like interactions over the same queue substrate.
+\subsection{Compilation and Execution Graph}
+\label{subsec:dd_compilation}
+SAGE compiles a user-authored \emph{logical} pipeline DAG (a sequence of transformations registered in the environment) into a \emph{physical} execution graph that is explicit about parallelism, communication, and routing. Concretely, the runtime component \texttt{ExecutionGraph} in \texttt{sage-kernel} lowers each logical operator (a \texttt{BaseTransformation}) into a set of \emph{task replicas} according to its declared parallelism; each replica is represented as a \texttt{TaskNode} and is associated with a \texttt{TaskFactory} that instantiates the runnable task. For every logical edge between operators, the compiler then materializes a complete bipartite set of physical edges between upstream replicas and downstream replicas (i.e., an $m{\times}n$ expansion when the upstream and downstream parallelisms are $m$ and $n$), producing an execution graph in which the degree of fan-out and fan-in is no longer implicit.
 
-\paragraph{Scheduling and Queueing.}
-Operators execute over bounded queues with backpressure. The runtime scheduler manages concurrency to
-prevent slow stages (e.g., refinement) from starving latency-sensitive stages (e.g., decoding).
-Scheduling is performed at the granularity of \emph{task replicas}: each physical operator instance is
-executed as an independent worker that repeatedly dequeues input packets, applies operator logic, and
-routes outputs to downstream queues. Routing supports common dataflow patterns, including hash partitioning
-and broadcast; the routing policy is chosen via the packet's partition annotations and determines how
-packets are mapped to the $n$ downstream replicas.
+Edges are \emph{materialized as bounded channels} by allocating queue descriptors for communication at the node level. In particular, each task replica owns a bounded input channel (implemented as a platform-specific queue descriptor, e.g., Python queues locally or Ray queues remotely), and all upstream replicas targeting that replica write into this queue; this implements backpressure because the router performs blocking queue writes when the channel is full. Multi-input operators are supported by tagging each physical edge with an explicit input index, so that downstream tasks can demultiplex incoming packets by logical input port even though the physical channel is shared.
 
-Backpressure is enforced directly in the router via blocking enqueues on bounded queues: when a downstream
-queue reaches capacity, the upstream \texttt{put} call blocks (with a finite timeout) instead of dropping
-records, naturally propagating congestion backward through the pipeline. This mechanism is uniform across
-local and distributed execution because both are expressed in terms of queue descriptors. The queue
-descriptor abstraction also supports lazy initialization and serialization, which is crucial for deploying
-graphs across processes/nodes; the runtime pre-initializes descriptors before launching workers to avoid
-deadlocks caused by concurrent, cross-actor queue initialization.
+Fan-out and fan-in become first-class objects in the execution graph and routing layer. Fan-out is represented by grouping the outgoing physical edges of a replica into explicit output groups (one group per downstream logical connection), which are compiled into \texttt{downstream\_groups} inside \texttt{TaskContext}. At runtime, the \texttt{BaseRouter} uses these groups to implement policy-driven delivery, including round-robin routing across downstream replicas, broadcast, and partitioned (hash) routing based on packet metadata. Symmetrically, fan-in is realized by multiple upstream replicas writing into the same bounded input queue of each downstream replica, making contention and flow control explicit and observable in the physical plan.
 
-\paragraph{Distributed Execution.}
-The runtime supports local and distributed deployment via a unified queue abstraction, allowing seamless
-scaling from a single node to a cluster.
-In local mode, the pipeline is executed within a single process using the same execution graph abstraction
-as in the distributed setting. In distributed mode, task replicas are deployed as Ray actors/workers, and
-queue descriptors are serialized and shipped to the appropriate workers, providing a uniform channel API
-regardless of placement. The dispatcher orchestrates the deployment by (i) constructing the physical graph,
-(ii) applying the placement executor's decisions, and (iii) coordinating lifecycle signals such as
-termination and end-of-stream propagation (including join-specific stop-signal handling).
+\subsection{Scheduling, Placement, and Backpressure}
+\label{subsec:dd_scheduling}
 
-Failure recovery is configured through a fault-tolerance strategy factory that can instantiate restart-based
-policies (e.g., fixed-delay, exponential backoff, or failure-rate aware restarts) or checkpoint-based
-policies. Checkpointing leverages the operator-level \texttt{get\_state}/\texttt{restore\_state} contract to
-materialize recoverable state snapshots, while restart policies provide best-effort recovery for stateless
-or externally checkpointed stages. Together, these mechanisms allow the same application definition to scale
-from single-node debugging to cluster execution with explicit recovery semantics.
+At runtime, each task replica executes a simple \emph{worker loop} in \texttt{sage-kernel}: (i) dequeue one item from its input channel, (ii) execute the operator logic on that item, and (iii) route any emitted outputs to downstream replicas using partition hints carried in the data packet. Concretely, non-source tasks block on \texttt{get()} over a queue descriptor, then invoke \texttt{operator.receive\_packet(packet)}; downstream delivery is handled by the router (\texttt{BaseRouter}), which inspects \texttt{Packet} metadata (e.g., \texttt{partition\_key} and \texttt{partition\_strategy}) to implement round-robin, broadcast, or hash-partitioned routing across downstream replicas.
 
-\subsection{Inference Components as First-Class Operators}
-\label{subsec:dd_components}
+SAGE enforces stability via \emph{bounded queues} and \emph{backpressure propagation}. Each replica is provisioned with a bounded input channel (queue descriptors in \texttt{sage-platform} such as \texttt{PythonQueueDescriptor} locally or \texttt{RayQueueDescriptor} in distributed mode), and all upstream replicas write into these bounded channels. The router performs blocking \texttt{put()} into downstream queues; when a downstream stage is saturated (e.g., a GPU-heavy generation operator under bursty arrivals), queue occupancy naturally throttles upstream producers, preventing unbounded buffering and limiting interference across pipeline stages. This mechanism is particularly important for mixed workloads that combine retrieval/memory stages (often CPU-bound and parallel) with generation or refinement stages (often GPU-bound and latency-sensitive), since it provides isolation without requiring global synchronization.
 
-SAGE integrates critical inference subsystems directly into the middleware layer (L4) as composable
-operators, avoiding the overhead and opacity of external black-box services.
+Placement and scheduling are coordinated by \texttt{Dispatcher} in \texttt{sage-kernel}, which separates \emph{decision} from \emph{execution}. A scheduler (\texttt{BaseScheduler} and its implementations) produces a \texttt{PlacementDecision} that can encode (a) resource requirements (CPU/GPU/memory/custom resources) and (b) target-node affinity in distributed settings. The \texttt{PlacementExecutor} then translates this decision into physical placement—e.g., mapping resource requests to Ray actor options (\texttt{num\_cpus}, \texttt{num\_gpus}, memory) and optionally enforcing node affinity—so that GPU-heavy stages can be steered toward GPU nodes while retrieval or preprocessing can be placed on CPU-only nodes. Together, the scheduler/placement split and the queue-based backpressure provide a resource-aware execution model that scales across heterogeneous CPU/GPU clusters while maintaining predictable behavior under load.
 
-\paragraph{Vector Storage and Search (SageDB).}
-A C++ vector database core providing pluggable ANNS algorithms and metadata filtering.
-SageDB stores float32 vectors and associates each vector with a 64-bit identifier and a string-valued
-metadata map. Its configuration exposes both algorithm selection and index hyperparameters. The index type
-is chosen from \texttt{FLAT} (exact), \texttt{IVF\_FLAT}, \texttt{IVF\_PQ}, \texttt{HNSW}, or \texttt{AUTO},
-and the distance metric can be \texttt{L2}, \texttt{INNER\_PRODUCT}, or \texttt{COSINE}. For IVF-based indices,
-the configuration includes \texttt{nlist} (cluster count), \texttt{m} (sub-quantizers), and \texttt{nbits}; for
-HNSW, it includes \texttt{M} and \texttt{efConstruction}. Query-time parameters are specified via
-			\texttt{SearchParams} (e.g., \texttt{k}, \texttt{nprobe}, optional \texttt{radius}, and whether to include
-metadata), and SageDB additionally supports metadata-aware filtering through a predicate-based
-			\texttt{filtered\_search} interface.
+\subsection{State Management and Fault Tolerance}
+\label{subsec:dd_ft}
 
-The API provides single and batch insertion (\texttt{add}/\texttt{add\_batch}), updates and deletions
-(\texttt{update}/\texttt{remove}), and batch querying. Persistence is supported through explicit
-			\texttt{save}/\texttt{load} calls that serialize the vector store, metadata store, and index state to a
-user-provided path, enabling offline index construction and warm-started deployment.
+SAGE distinguishes between \emph{transient} execution state (in-flight packets buffered in bounded queues) and \emph{durable} operator/task state (e.g., counters, caches, aggregation tables) that must be preserved to avoid recomputation. To make state explicit and composable, SAGE exposes a uniform state interface at the runtime boundary: each task can materialize a self-contained snapshot via \texttt{get\_state()} and rehydrate from a snapshot via \texttt{restore\_state(state)}. Concretely, the task-level snapshot aggregates (i) task metadata and progress counters and (ii) operator-provided state when available; operator state can in turn include user-function state when the operator wraps a stateful function. This layered snapshot structure lets SAGE checkpoint at a stable runtime boundary without requiring application code to understand queue internals or replica placement decisions (implemented in \texttt{sage-kernel}, e.g., \texttt{runtime/task/base\_task.py}).
 
-\paragraph{Vector-Native Stream Processing (sageFlow).}
-An engine for incrementally maintaining semantic state (e.g., document streams) using windowed vector
-operations.
-sageFlow provides streaming operators over vector-native records with explicit window semantics. Windows
-are parameterized by a \texttt{WindowType} (\texttt{Tumbling} or \texttt{Sliding}), a \texttt{window\_size},
-and (for sliding windows) a \texttt{slide\_size}. The corresponding \texttt{WindowOperator} implementations
-maintain per-window buffers and guard window state with mutexes to support concurrent ingestion.
+Fault tolerance is configured declaratively through the environment configuration (\texttt{env.config["fault\_tolerance"]}) and instantiated by the kernel at submission time (see \texttt{sage-kernel/fault\_tolerance/factory.py}). SAGE currently provides two built-in recovery policies. (1) \textbf{Checkpoint-based recovery} periodically persists task snapshots at a user-configurable interval (\texttt{checkpoint\_interval}) and retries recovery up to \texttt{max\_recovery\_attempts}. In the steady state, the worker loop opportunistically triggers checkpoint writes while processing (and also forces a checkpoint on exceptions to maximize recovery fidelity). Checkpoints are managed by a checkpoint manager (\texttt{CheckpointManagerImpl}) that versions snapshots by task identifier and timestamp and stores them under a configurable directory (default \texttt{.sage/checkpoints}) (see \texttt{sage-kernel/fault\_tolerance/impl/checkpoint\_recovery.py} and \texttt{.../checkpoint\_impl.py}). Upon failure, the recovery handler loads the most recent checkpoint and requests a task restart with state restoration through the dispatcher. The dispatcher stops and cleans up the failed task, re-creates a fresh replica using the normal scheduling/placement path, restores state, and resumes execution (see \texttt{runtime/dispatcher.py}, \texttt{restart\_task\_with\_state}).
 
-To handle out-of-order arrivals, sageFlow includes a Flink-style watermarking component
-(\texttt{LateArrivalHandler}). The handler tracks the maximum observed event timestamp and advances the
-watermark as \texttt{max\_seen\_timestamp - watermark\_delay}. Records are classified as on-time, late (within
-an allowed lateness bound), or too-late (beyond allowed lateness), and late records can be buffered with
-summary statistics for monitoring and tuning.
+(2) \textbf{Restart-based recovery} targets stateless (or externally stateful) stages, where correctness does not require restoring in-memory state and the simplest recovery is to restart computation. SAGE parameterizes restart policies via explicit restart strategies (e.g., fixed delay, exponential backoff, and failure-rate based control), allowing users to trade off recovery aggressiveness versus stability under repeated failures (see \texttt{sage-kernel/fault\_tolerance/impl/restart\_strategy.py} and \texttt{.../restart\_recovery.py}). In the current implementation, checkpoint-based recovery provides end-to-end task restart \emph{with} state restoration via the dispatcher, while restart-based recovery provides the restart policy surface (and job-level restart helper) and is being integrated with dispatcher-driven task restarts for fully stateless pipelines.
 
-Beyond window aggregation, sageFlow exposes join operators whose behavior is configured via a rich
-			\texttt{JoinStrategyConfig}. The configuration captures the join algorithm family (including brute force and
-multiple ANN-accelerated strategies), partitioning strategy, and window state management. Join methods are
-registered through a join-method registry, enabling pluggable algorithm implementations while preserving a
-stable operator-level interface.
+For distributed (remote) execution, SAGE complements exception-driven recovery with active liveness monitoring. A heartbeat monitor periodically polls each remote task for heartbeat statistics and treats repeated timeouts/stale heartbeats as failures; such failures are forwarded into the same fault-handler interface, ensuring a single recovery entry point regardless of whether failures manifest as explicit exceptions or as silent task death (implemented in \texttt{sage-kernel/runtime/heartbeat\_monitor.py}). Resource cleanup is centralized via a lifecycle manager that performs best-effort task/actor cleanup and termination with bounded waiting, preventing leaked resources from compounding failures during recovery (see \texttt{sage-kernel/fault\_tolerance/impl/lifecycle\_impl.py}).
 
-\paragraph{Structured Memory (NeuromMem).}
-Backends for short-term session history and persistent semantic memory, supporting VDB, KV, and Graph
-storage.
-NeuromMem exposes a uniform store/recall interface across multiple memory backends. At the service level,
-memory backends implement \texttt{insert(entry, vector, metadata, ...)} and
-			\texttt{retrieve(query, vector, metadata, top\_k, ...)}; deletion is supported via \texttt{delete(entry\_id)}.
-For example, the short-term memory service maintains a bounded FIFO queue of recent dialogue entries and
-stores them in a VDB collection; it can retrieve either (i) semantically similar entries via a vector index
-(\texttt{global\_index}) or (ii) the most recent entries in temporal order when no vector query is provided.
-The VDB service generalizes this model to multiple pre-existing collections and supports both ``passive''
-insertion (default collection) and ``active'' insertion (explicit target collection and priority hints).
+Finally, durable state requires a storage boundary that is stable across process restarts and placement changes. SAGE factors storage access into an L2 abstraction layer: \texttt{sage-platform} defines backend-agnostic key-value storage interfaces (\texttt{BaseKVBackend}) and provides lightweight implementations (e.g., in-memory dict with explicit load/store) with optional filesystem support (e.g., HDFS integration) (\texttt{sage-platform/storage/*}). While the current checkpoint manager persists snapshots to the local filesystem by default, this layering makes it straightforward to route checkpoints or auxiliary operator state to alternative backends by implementing the same storage interface, without entangling fault-tolerance logic with any particular storage system.
 
-The gateway binds memory to sessions and selects a backend based on access patterns: \emph{short-term}
-storage provides low-latency recency windows; \emph{VDB} enables semantic recall through similarity search;
-\emph{KV} supports fast exact-match retrieval (e.g., by keys/attributes); and \emph{Graph} captures relational
-structure for reasoning over entities and links. This design allows the same conversational interface to
-mix recency, semantic similarity, and symbolic lookup within a single pipeline.
+\subsection{Middleware Operators for RAG Pipelines}
+\label{subsec:dd_middleware}
 
-\paragraph{Context Refinement (sageRefiner).}
-Operators for compressing and distilling retrieved context to optimize token budgets.
-sageRefiner is implemented as a middleware service plus a pipeline operator adapter. The operator consumes
-the user query and raw retrieval results and produces a refined document set (\texttt{refining\_results})
-that is subsequently fed into the generator/decoder stage. This placement makes refinement an explicit
-pipeline stage that can be profiled and scheduled independently.
+A practical RAG system is not a single “retrieval call” followed by a single “generation call”: it is a multi-stage subsystem that must (i) access external indices and memory, (ii) transform and filter retrieved evidence, (iii) construct prompts with provenance, and (iv) invoke LLM inference and downstream tools. In SAGE, we therefore promote RAG subsystems to \emph{first-class operators} in the dataflow graph, rather than hiding them behind black-box library calls. This design gives the runtime visibility into stage boundaries and costs—enabling pipeline-wide scheduling, parallelism scaling, backpressure propagation, and monitoring at the same granularity as other streaming transformations—while also making cross-stage optimizations (e.g., batching, caching, and placement decisions for retrieval-heavy vs.\ LLM-heavy stages) explicit and composable. Concretely, these domain operators live in the L4 middleware layer (not L3 libraries) because they depend on “upward” runtime-bound capabilities such as vector stores, memory backends, and refinement services.
 
-Algorithm selection is handled dynamically by \texttt{RefinerService}. The current implementation supports
-three modes: \texttt{LONG\_REFINER} (a long-context refinement algorithm), \texttt{SIMPLE} (lightweight
-compression), and \texttt{NONE} (pass-through). To reduce repeated computation, the service optionally
-enables an LRU cache with TTL, keyed by the tuple \{query, documents, budget\}; it also records per-request
-metrics such as refine time and token counts, which can be surfaced in benchmark traces.
+SAGE’s middleware layer provides a set of reusable operator namespaces for RAG and agentic applications (\texttt{packages/sage-middleware/src/sage/middleware/operators/}):
+\textbf{(i) \texttt{operators/rag}} encapsulates canonical RAG stages—retrieval, reranking, refinement, prompting, generation, evaluation, and lightweight orchestration. For example, \texttt{RAGPipeline} composes a retriever/reranker/refiner/generator sequence (\texttt{operators/rag/pipeline.py}); retrievers such as \texttt{ChromaRetriever} and \texttt{Milvus*Retriever} expose retrieval as a map-style operator (\texttt{operators/rag/retriever.py}); prompt construction is implemented as a prompt operator (e.g., \texttt{QAPromptor}, \texttt{operators/rag/promptor.py}); and generation is implemented via OpenAI-compatible endpoints (including local OpenAI-compatible services) or via the internal SageLLM generator (\texttt{operators/rag/generator.py}). Importantly, context compression is also modeled as an operator: \texttt{RefinerOperator} wraps external refinement compressors (LongRefiner/REFORM/Provence) from the independent \texttt{isage-refiner} package (\texttt{operators/rag/refiner.py}), so compression becomes a schedulable, monitorable stage rather than a hidden post-processing step.
 
-\paragraph{Time-Series Operators (sageTSDB).}
-Primitives for windowing and joining out-of-order streams, enabling temporal analytics alongside LLM
-reasoning.
-sageTSDB adopts an event-time model in which each data point is a \texttt{TimeSeriesData} record carrying a
-millisecond timestamp, a scalar or vector value, and optional \texttt{tags}/\texttt{fields} maps. Queries are
-specified by an explicit \texttt{TimeRange} (with automatic conversion from \texttt{datetime}) and optional
-tag predicates; results can be further processed via window-based aggregations.
+\textbf{(ii) \texttt{operators/llm}} provides LLM inference as an operator with a backend-decoupled engine factory interface. The primary entry point is \texttt{SageLLMGenerator} (\texttt{operators/llm/sagellm\_generator.py}), which normalizes inputs (context/prompt/options), instantiates an engine via a factory (no hard-coded backend classes), and exposes synchronous or streaming generation. This supports treating LLM inference uniformly as a dataflow transformation—subject to the same runtime controls (parallelism, placement, backpressure) as non-LLM stages.
 
-For out-of-order ingestion, the default stream-join algorithm buffers each input stream and maintains a
-watermark defined as \texttt{latest\_timestamp - max\_delay}. Records with timestamps not exceeding the
-watermark are considered ready for processing, while later records remain buffered until the watermark
-advances. Join semantics are window-based: two records are eligible to join when
-$|t_\ell - t_r| \leq \texttt{window\_size}$, with optional equi-join on a tag key (hash join) or a fallback
-nested-loop join.
+\textbf{(iii) \texttt{operators/tools}} exposes tool invocation as operators for agentic/RAG workflows (e.g., web search, paper search, URL text extraction, and optional heavy tools such as image captioning). This makes tool calls explicit nodes in the graph, enabling consistent logging, throttling, and policy routing across heterogeneous external services (\texttt{operators/tools/\_\_init\_\_.py}).
 
-Window aggregation supports tumbling, sliding, and session windows. Tumbling windows align timestamps to
-fixed boundaries; sliding windows emit overlapping windows controlled by \texttt{slide\_interval}; and
-session windows merge events separated by gaps no larger than \texttt{session\_gap}. Aggregations include
-			\texttt{sum}, \texttt{avg}, \texttt{min}, \texttt{max}, \texttt{count}, and related functions.
+Under the hood, these operators are backed by core middleware components (\texttt{packages/sage-middleware/src/sage/middleware/components/}) that provide the runtime-facing “systems” a RAG pipeline needs:
+\textbf{(a) \texttt{sage\_db}} integrates a vector database backend via a compatibility layer to the independent C++-backed SageVDB package (\texttt{isage-vdb}, Python import \texttt{sagevdb}) (\texttt{components/sage\_db/\_\_init\_\_.py}).
+\textbf{(b) \texttt{sage\_mem}} exposes memory backends as a namespace package, with NeuroMem-backed collections/managers provided by the independent \texttt{isage-neuromem} package (\texttt{components/sage\_mem/\_\_init\_\_.py}).
+\textbf{(c) \texttt{sage\_refiner}} is integrated at the operator level (via \texttt{RefinerOperator}) through the independent \texttt{isage-refiner} package (import \texttt{sage\_refiner}); this keeps compression/refinement as an explicit pipeline stage while allowing the underlying algorithms to evolve independently.
+\textbf{(d) \texttt{sage\_flow}} provides vector-native streaming building blocks and micro-service wrappers, integrating the independent \texttt{isage-flow} package and its C++ extension for high-throughput streaming vector processing (\texttt{components/sage\_flow/\_\_init\_\_.py}).
+\textbf{(e) \texttt{sage\_tsdb}} provides time-series storage and streaming analytics hooks via the independent C++-backed \texttt{isage-tsdb} package (import \texttt{sage\_tsdb}), plus SAGE-specific algorithms/services for windowing and out-of-order stream joins (\texttt{components/sage\_tsdb/\_\_init\_\_.py}).
 
-\subsection{Gateway and Unified Control Plane}
-\label{subsec:dd_control_plane}
+Finally, placing these subsystems in L4 is also a performance choice. Vector search, vector-native streaming operators, and time-series window/join primitives benefit from native implementations (C++ cores with Python bindings) to reduce per-record overhead and to enable batched execution paths. By integrating these high-performance backends as middleware components and exposing their use through explicit operators, SAGE can combine domain-level performance (native backends) with system-level optimization (graph-visible stages under the unified scheduler/backpressure runtime).
 
-\paragraph{Gateway Data Plane.}
-The SAGE Gateway exposes OpenAI-compatible endpoints while managing stateful sessions. It implements a
-\emph{Pipeline-as-a-Service} architecture for RAG requests, keeping the pipeline resident in memory to avoid
-re-initialization overhead.
-The gateway's data plane implements a queue-based \emph{bridge} between HTTP request handlers and a
-persistent in-process SAGE pipeline. Each incoming chat request is packaged into a payload and submitted to
-a \texttt{PipelineBridge}; submission returns a per-request response queue. A long-lived pipeline job
-(``Source $\rightarrow$ Map $\rightarrow$ Sink'') continuously polls the bridge for new requests, performs
-retrieval and generation, and pushes results back to the corresponding response queue. The HTTP handler then
-blocks on \texttt{response\_queue.get(timeout)} to deliver the response (or a timeout error) to the caller.
-This design isolates the pipeline's execution thread(s) from the web server event loop while preserving a
-simple request/response abstraction.
+\subsection{Algorithmic Libraries and Agentic Tooling}
+\label{subsec:dd_libs}
 
-Session state is managed by a \texttt{SessionManager} with pluggable persistence backends. By default,
-sessions are stored as JSON under \texttt{\$HOME/.sage/gateway/sessions.json}. An alternative backend uses
-NeuromMem storage engines (\texttt{TextStorage} + \texttt{MetadataStorage}) and persists under
-			\texttt{\$HOME/.sage/gateway/neuromem\_sessions/}, enabling session recovery across gateway restarts without
-external services. In addition, the session layer can bind a per-session memory backend
-(short-term/VDB/KV/Graph) to support retrieval-augmented and memory-augmented conversations.
+SAGE separates \emph{algorithmic building blocks} from \emph{runtime-bound execution}, enabling rapid iteration without entangling methods with placement, backends, or orchestration details. The L3 package \texttt{sage-libs} is explicitly designed as an interface/registry layer: it defines abstract base classes, typed data structures, and factory/registration APIs (\texttt{register\_*}/\texttt{create\_*}) for core domains such as agentic reasoning, RAG, fine-tuning, evaluation, privacy, safety, and algorithmic primitives (e.g., ANN/AMM) (see \texttt{packages/sage-libs/README.md} and \texttt{sage/libs/\_\_init\_\_.py}). In this design, \texttt{sage-libs} modules remain independent of runtime placement and external services: a planner, reranker, or safety policy can be swapped without changing how the pipeline is scheduled, replicated, or backpressured.
 
-\paragraph{Unified Control Plane (sageLLM).}
-For hybrid workloads, the control plane coordinates multiple LLM and embedding backends. It handles service
-discovery, health monitoring, and policy-driven routing (e.g., separating prefill/decode or prioritizing
-latency-critical requests).
-The control plane represents each backend as an execution instance with an explicit instance type
-(e.g., LLM-only, embedding-only, or mixed). Incoming requests are first classified by a request classifier
-using a content-driven priority rule: explicit request type overrides inference; otherwise, non-empty
-			\texttt{embedding\_texts} implies an embedding request, and the default falls back to chat-style LLM requests
-for backward compatibility. The classifier then filters candidate instances by compatibility, ensuring that
-embedding requests are routed only to embedding-capable instances while excluding embedding-only instances
-from LLM scheduling.
+Concretely, \texttt{sage-libs} provides (i) \textbf{agentic interfaces} (\texttt{sage.libs.agentic.interface}) that standardize agents, planners, tool selectors, and orchestration components, with concrete implementations intended to live in external packages (e.g., \texttt{isage-agentic}); (ii) \textbf{RAG utilities and interfaces} (\texttt{sage.libs.rag}), including typed RAG artifacts for pipeline interoperability (\texttt{sage.libs.rag.types}) and lightweight built-ins such as document loaders and chunkers (\texttt{sage.libs.rag.document\_loaders}, \texttt{sage.libs.rag.chunk}), while retrievers/rerankers/pipelines are instantiated via registries (\texttt{sage.libs.rag.interface}); (iii) \textbf{integrations} that are local and algorithmic (e.g., a HuggingFace client wrapper for local inference, \texttt{sage.libs.integrations.huggingface}), and (iv) \textbf{built-in utilities} for data operations and basic processing (\texttt{foundation/}, \texttt{dataops/}) that support experimental pipelines with minimal external dependencies. In addition, \texttt{sage-libs} provides interface layers for evaluation, fine-tuning, privacy/unlearning, and safety guardrails, again emphasizing pluggability through registries and externalized heavyweight implementations.
 
-Hybrid workload handling is implemented by \texttt{HybridSchedulingPolicy}. The policy groups pending
-requests by type, batches embedding requests by model (target \texttt{embedding\_batch\_size} with a bounded
-wait time), and schedules embeddings to specialized instances when available (optionally falling back to
-mixed instances). LLM requests are scheduled via a configurable fallback policy (FIFO, priority, SLO-aware,
-or adaptive), and the overall ordering between embeddings and LLMs is controlled by an explicit embedding
-priority setting.
+The boundary with L4 middleware is deliberate: \textbf{libs provide reusable algorithms; middleware wraps them as operators}. Middleware (\texttt{sage-middleware}) is allowed to depend on runtime-bound backends and services (vector stores, memory systems, refinement engines, external APIs) and exposes these capabilities as schedulable dataflow operators (e.g., RAG retrievers, promptors, generators, tool operators). By keeping \texttt{sage-libs} focused on interfaces, policies, and lightweight utilities, SAGE makes it easy to compose and ablate algorithmic choices—e.g., swapping a retriever, reranker, refiner policy, planner strategy, or safety filter—without rewriting pipeline orchestration. This separation supports systematic evaluation: experiments can vary a single algorithmic component while holding the execution graph and runtime controls fixed, yielding cleaner ablations and more repeatable comparisons across agentic and RAG workloads.
 
-Engine lifecycle is managed by the control plane manager through explicit engine registration
-(\texttt{register\_engine} with \{engine\_id, model\_id, host, port, engine\_kind\}) and background health
-checks. When enabled, the manager performs auto-restart with bounded retry counts and exponential backoff
-once consecutive failures exceed a threshold. The same manager optionally enables prefill/decode separation
-via a dedicated routing strategy, allowing policy-controlled isolation between latency-sensitive decoding
-and throughput-oriented prefilling.
+\subsection{Inference Engine Integration}
+\label{subsec:dd_inference}
+SAGE treats LLM/embedding inference as an \emph{external service interface} rather than a library-internal dependency, decoupling the dataflow runtime from model serving. Concretely, SAGE integrates with the independent \texttt{isagellm} Gateway/Control Plane, which exposes OpenAI-compatible endpoints (e.g., \texttt{/v1/chat/completions} and \texttt{/v1/embeddings}) and manages underlying inference engines (e.g., vLLM-based backends) as separately scalable services. This separation allows SAGE pipelines to remain portable across deployment environments: the same compiled execution graph can target different model servers by changing only endpoint configuration (e.g., \texttt{base\_url}, model identifier), without modifying operator logic or the kernel scheduler.
 
-\subsection{Benchmark Harness}
-\label{subsec:dd_benchmark}
+At the operator level, generation and embedding are implemented as request/response calls to OpenAI-compatible APIs. For example, RAG generation operators instantiate a standard OpenAI client with a configurable \texttt{base\_url} and issue chat-completion requests with structured \texttt{messages} payloads, while embedding components similarly invoke the OpenAI embeddings API and return dense vectors for downstream retrieval and indexing. Because these operators depend only on a stable HTTP contract, SAGE can route requests through the Gateway/Control Plane (for unified engine management and admission control) or directly to a compatible backend, keeping the pipeline runtime agnostic to the concrete inference implementation.
 
-SAGE includes a dual-view benchmark suite:
-(1) \textbf{System Metrics}: Throughput, TTFT/TBT, tail latency, and SLO compliance.
-(2) \textbf{Agent Metrics}: Tool selection accuracy, planning quality, and timing.
-This allows users to measure the cost of algorithmic improvements (e.g., better planning) on system load.
-System-level benchmarks generate mixed OpenAI-compatible traffic against the gateway endpoints
-			\texttt{/v1/chat/completions} (LLM) and \texttt{/v1/embeddings} (embedding). Workloads are parameterized by a
-total request count, a request rate, an LLM/embedding mix ratio, and an arrival process
-(\texttt{constant}, \texttt{poisson}, or \texttt{bursty}); the generator produces per-request payloads from a
-fixed prompt/text pool to provide deterministic, reproducible load. Experiments report throughput and
-latency percentiles (p50/p95/p99) computed over successful requests.
+This service-oriented interface also enables \emph{independent scaling} of inference backends versus pipeline stages. In practice, preprocessing, retrieval, and postprocessing stages can be replicated and scheduled on CPU-rich nodes, while LLM/embedding throughput is scaled by adding or resizing dedicated inference engines behind the Gateway/Control Plane. The two dimensions of parallelism—(i) dataflow operator replication in the SAGE execution graph and (ii) inference-engine provisioning in the serving layer—can therefore be tuned separately to meet latency/throughput targets and to reduce resource contention between GPU-bound model execution and CPU-bound orchestration.
 
-SLO compliance is defined in terms of per-type p99 latency thresholds. The benchmark configuration exposes
-			\texttt{slo\_chat\_p99\_ms} and \texttt{slo\_embedding\_p99\_ms} (defaulting to 500ms and 100ms,
-respectively), and the experiment computes an overall satisfaction rate as the fraction of successful
-requests whose end-to-end latency meets the threshold of their request type.
-
-For agent evaluation, SAGE includes three JSONL split files for tool selection, task planning, and timing
-judgment under \texttt{packages/sage-benchmark/src/sage/data/sources/agent\_benchmark/splits/}. Tool
-selection uses a tool catalog stored as \texttt{tool\_catalog.jsonl} (loaded by \texttt{SageToolsLoader})
-under \texttt{packages/sage-benchmark/src/sage/data/sources/agent\_tools/data/}. Runtime-generated benchmark
-artifacts (prepared splits, candidate pools, and results) are written to the repository-local
-			\texttt{.sage/benchmark/\{data,results\}/} directories, which are treated as ephemeral and are not committed.
+Finally, the same pattern generalizes beyond LLMs: any request/response service (LLM, embedding, reranking, moderation, or domain tools) can be wrapped as an operator with explicit resource annotations (e.g., CPU/GPU requirements, concurrency limits, and batching policies). These annotations allow SAGE’s runtime to incorporate service calls into its placement and backpressure mechanisms, preserving end-to-end stability while supporting heterogeneous backends and evolving model-serving stacks.

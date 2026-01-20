@@ -35,6 +35,30 @@ ssh:
     port: 22
   - host: "sage-node-4"
     port: 22
+  - host: "sage-node-5"
+    port: 22
+  - host: "sage-node-6"
+    port: 22
+  - host: "sage-node-7"
+    port: 22
+  - host: "sage-node-8"
+    port: 22
+  - host: "sage-node-9"
+    port: 22
+  - host: "sage-node-10"
+    port: 22
+  - host: "sage-node-11"
+  #   port: 22
+  # - host: "sage-node-12"
+  #   port: 22
+  # - host: "sage-node-13"
+  #   port: 22
+  # - host: "sage-node-14"
+  #   port: 22
+  # - host: "sage-node-15"
+  #   port: 22
+  # - host: "sage-node-16"
+  #   port: 22
 
 # 远程节点配置
 remote:

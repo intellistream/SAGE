@@ -1,0 +1,37 @@
+==========================================================================================
+Benchmark Comparison Report
+==========================================================================================
+Generated: 2026-01-17T13:34:52.289742
+Number of experiments: 3
+
+Experiment                   Tasks   Throughput    Avg Lat    P99 Lat    Balance
+------------------------- -------- ------------ ---------- ---------- ----------
+complexity_light              5000       9.54/s   2085.3ms   5747.8ms     99.8%
+complexity_medium             5000       9.02/s   2655.8ms   7056.7ms     99.8%
+complexity_heavy              4998       9.58/s   4613.1ms  11038.0ms     99.8%
+
+==========================================================================================
+
+Detailed Comparison:
+------------------------------------------------------------------------------------------
+
+[complexity_light]
+  Config: tasks=5000, parallelism=32, nodes=8, scheduler=load_aware
+  Throughput: 9.54 tasks/sec
+  Latency: avg=2085.3ms, p50=1950.4ms, p99=5747.8ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 16, Balance: 99.8%
+
+[complexity_medium]
+  Config: tasks=5000, parallelism=32, nodes=8, scheduler=load_aware
+  Throughput: 9.02 tasks/sec
+  Latency: avg=2655.8ms, p50=2518.4ms, p99=7056.7ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 16, Balance: 99.8%
+
+[complexity_heavy]
+  Config: tasks=5000, parallelism=32, nodes=8, scheduler=load_aware
+  Throughput: 9.58 tasks/sec
+  Latency: avg=4613.1ms, p50=4477.4ms, p99=11038.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 16, Balance: 99.8%

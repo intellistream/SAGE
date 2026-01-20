@@ -1,0 +1,68 @@
+{
+  "timestamp": "2026-01-20T09:16:26.033610",
+  "experiment_name": "single_node",
+  "metrics": {
+    "total_tasks": 10,
+    "successful_tasks": 10,
+    "failed_tasks": 0,
+    "total_duration_sec": 11.70315670967102,
+    "throughput_tasks_per_sec": 0.8544703149823158,
+    "avg_latency_ms": 3204.931402206421,
+    "p50_latency_ms": 2855.175256729126,
+    "p95_latency_ms": 6541.609525680542,
+    "p99_latency_ms": 6541.609525680542,
+    "avg_scheduling_latency_ms": 0.0,
+    "avg_queue_latency_ms": 0.0,
+    "avg_execution_latency_ms": 0.0,
+    "node_distribution": {
+      "sage-node-9": 10
+    },
+    "node_throughput": {
+      "sage-node-9": 1.692599891566851
+    },
+    "node_balance_score": 1.0,
+    "config": {
+      "experiment_name": "single_node",
+      "num_tasks": 10,
+      "task_complexity": "medium",
+      "parallelism": 1,
+      "num_nodes": 1,
+      "scheduler_type": "load_aware",
+      "scheduler_strategy": "spread",
+      "use_remote": true,
+      "pipeline_stages": 3,
+      "enable_rag": true,
+      "enable_llm": true
+    }
+  },
+  "latency_details": {
+    "total_latencies_ms": [
+      776494.7414398193,
+      1581579.2083740234,
+      1649269.8192596436,
+      2067398.7865447998,
+      2569339.9906158447,
+      2855175.256729126,
+      3286821.8421936035,
+      5059911.251068115,
+      5661713.600158691,
+      6541609.525680542
+    ],
+    "scheduling_latencies_ms": [],
+    "execution_latencies_ms": []
+  },
+  "node_latencies_ms": {
+    "sage-node-9": [
+      776494.7414398193,
+      1581579.2083740234,
+      1649269.8192596436,
+      2067398.7865447998,
+      2569339.9906158447,
+      2855175.256729126,
+      3286821.8421936035,
+      5059911.251068115,
+      5661713.600158691,
+      6541609.525680542
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+==========================================================================================
+Benchmark Comparison Report
+==========================================================================================
+Generated: 2026-01-17T10:59:13.676964
+Number of experiments: 4
+
+Experiment                   Tasks   Throughput    Avg Lat    P99 Lat    Balance
+------------------------- -------- ------------ ---------- ---------- ----------
+load_low_load_aware              0       0.00/s      0.0ms      0.0ms    100.0%
+load_medium_load_aware        1000      11.99/s    797.3ms   1860.7ms     99.2%
+load_high_load_aware             0       0.00/s      0.0ms      0.0ms    100.0%
+load_extreme_load_aware          0       0.00/s      0.0ms      0.0ms    100.0%
+
+==========================================================================================
+
+Detailed Comparison:
+------------------------------------------------------------------------------------------
+
+[load_low_load_aware]
+  Config: tasks=500, parallelism=4, nodes=2, scheduler=load_aware
+  Throughput: 0.00 tasks/sec
+  Latency: avg=0.0ms, p50=0.0ms, p99=0.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+
+[load_medium_load_aware]
+  Config: tasks=1000, parallelism=16, nodes=4, scheduler=load_aware
+  Throughput: 11.99 tasks/sec
+  Latency: avg=797.3ms, p50=762.7ms, p99=1860.7ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 16, Balance: 99.2%
+
+[load_high_load_aware]
+  Config: tasks=2500, parallelism=64, nodes=8, scheduler=load_aware
+  Throughput: 0.00 tasks/sec
+  Latency: avg=0.0ms, p50=0.0ms, p99=0.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+
+[load_extreme_load_aware]
+  Config: tasks=5000, parallelism=128, nodes=16, scheduler=load_aware
+  Throughput: 0.00 tasks/sec
+  Latency: avg=0.0ms, p50=0.0ms, p99=0.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms

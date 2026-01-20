@@ -1,0 +1,80 @@
+=============================================================================
+ SAGE 实验一重跑 - 横向扩展实验 (Horizontal Scalability)
+ 开始时间: 2026-01-19 02:34:29
+ 结果目录: results/exp1_rerun_20260119_023429
+ 快速模式: false
+ 任务数: 5000
+ Pipeline: compute,rag,mixed
+ 节点规模: 1,2,4,8,16
+=============================================================================
+[2026-01-19 02:34:29] 将运行 15 个实验配置
+[2026-01-19 02:34:29] ========== 开始 compute Pipeline 横向扩展测试 ==========
+[2026-01-19 02:34:29] 开始实验: pipeline=compute, nodes=1, tasks=5000
+[2026-01-19 02:36:47] [DONE] compute_nodes1 完成，结果保存至: results/exp1_rerun_20260119_023429/compute_nodes1
+[2026-01-19 02:36:47] [Cleanup] 正在清理集群资源...
+[2026-01-19 02:36:52] [Cleanup] 清理完成
+[2026-01-19 02:36:53] 开始实验: pipeline=compute, nodes=2, tasks=5000
+[2026-01-19 02:38:31] [DONE] compute_nodes2 完成，结果保存至: results/exp1_rerun_20260119_023429/compute_nodes2
+[2026-01-19 02:38:31] [Cleanup] 正在清理集群资源...
+[2026-01-19 02:38:36] [Cleanup] 清理完成
+[2026-01-19 02:38:36] 开始实验: pipeline=compute, nodes=4, tasks=5000
+[2026-01-19 02:40:11] [DONE] compute_nodes4 完成，结果保存至: results/exp1_rerun_20260119_023429/compute_nodes4
+[2026-01-19 02:40:11] [Cleanup] 正在清理集群资源...
+[2026-01-19 02:40:16] [Cleanup] 清理完成
+[2026-01-19 02:40:16] 开始实验: pipeline=compute, nodes=8, tasks=5000
+[2026-01-19 02:42:31] [DONE] compute_nodes8 完成，结果保存至: results/exp1_rerun_20260119_023429/compute_nodes8
+[2026-01-19 02:42:31] [Cleanup] 正在清理集群资源...
+[2026-01-19 02:42:36] [Cleanup] 清理完成
+[2026-01-19 02:42:36] 开始实验: pipeline=compute, nodes=16, tasks=5000
+[2026-01-19 02:47:01] [DONE] compute_nodes16 完成，结果保存至: results/exp1_rerun_20260119_023429/compute_nodes16
+[2026-01-19 02:47:01] [Cleanup] 正在清理集群资源...
+[2026-01-19 02:47:07] [Cleanup] 清理完成
+[2026-01-19 02:47:07] ========== compute Pipeline 测试完成 ==========
+[2026-01-19 02:47:07] ========== 开始 rag Pipeline 横向扩展测试 ==========
+[2026-01-19 02:47:07] 开始实验: pipeline=rag, nodes=1, tasks=5000
+[2026-01-19 03:00:38] [DONE] rag_nodes1 完成，结果保存至: results/exp1_rerun_20260119_023429/rag_nodes1
+[2026-01-19 03:00:38] [Cleanup] 正在清理集群资源...
+[2026-01-19 03:00:43] [Cleanup] 清理完成
+[2026-01-19 03:00:43] 开始实验: pipeline=rag, nodes=2, tasks=5000
+[2026-01-19 03:14:14] [DONE] rag_nodes2 完成，结果保存至: results/exp1_rerun_20260119_023429/rag_nodes2
+[2026-01-19 03:14:14] [Cleanup] 正在清理集群资源...
+[2026-01-19 03:14:19] [Cleanup] 清理完成
+[2026-01-19 03:14:19] 开始实验: pipeline=rag, nodes=4, tasks=5000
+[2026-01-19 03:27:50] [DONE] rag_nodes4 完成，结果保存至: results/exp1_rerun_20260119_023429/rag_nodes4
+[2026-01-19 03:27:50] [Cleanup] 正在清理集群资源...
+[2026-01-19 03:27:56] [Cleanup] 清理完成
+[2026-01-19 03:27:56] 开始实验: pipeline=rag, nodes=8, tasks=5000
+[2026-01-19 03:35:01] [DONE] rag_nodes8 完成，结果保存至: results/exp1_rerun_20260119_023429/rag_nodes8
+[2026-01-19 03:35:01] [Cleanup] 正在清理集群资源...
+[2026-01-19 03:35:06] [Cleanup] 清理完成
+[2026-01-19 03:35:06] 开始实验: pipeline=rag, nodes=16, tasks=5000
+[2026-01-19 03:39:56] [DONE] rag_nodes16 完成，结果保存至: results/exp1_rerun_20260119_023429/rag_nodes16
+[2026-01-19 03:39:56] [Cleanup] 正在清理集群资源...
+[2026-01-19 03:40:01] [Cleanup] 清理完成
+[2026-01-19 03:40:01] ========== rag Pipeline 测试完成 ==========
+[2026-01-19 03:40:01] ========== 开始 mixed Pipeline 横向扩展测试 ==========
+[2026-01-19 03:40:01] 开始实验: pipeline=mixed, nodes=1, tasks=5000
+[2026-01-19 03:53:32] [DONE] mixed_nodes1 完成，结果保存至: results/exp1_rerun_20260119_023429/mixed_nodes1
+[2026-01-19 03:53:32] [Cleanup] 正在清理集群资源...
+[2026-01-19 03:53:37] [Cleanup] 清理完成
+[2026-01-19 03:53:37] 开始实验: pipeline=mixed, nodes=2, tasks=5000
+[2026-01-19 04:07:07] [DONE] mixed_nodes2 完成，结果保存至: results/exp1_rerun_20260119_023429/mixed_nodes2
+[2026-01-19 04:07:07] [Cleanup] 正在清理集群资源...
+[2026-01-19 04:07:12] [Cleanup] 清理完成
+[2026-01-19 04:07:12] 开始实验: pipeline=mixed, nodes=4, tasks=5000
+[2026-01-19 04:20:44] [DONE] mixed_nodes4 完成，结果保存至: results/exp1_rerun_20260119_023429/mixed_nodes4
+[2026-01-19 04:20:44] [Cleanup] 正在清理集群资源...
+[2026-01-19 04:20:49] [Cleanup] 清理完成
+[2026-01-19 04:20:49] 开始实验: pipeline=mixed, nodes=8, tasks=5000
+[2026-01-19 04:32:57] [DONE] mixed_nodes8 完成，结果保存至: results/exp1_rerun_20260119_023429/mixed_nodes8
+[2026-01-19 04:32:57] [Cleanup] 正在清理集群资源...
+[2026-01-19 04:33:02] [Cleanup] 清理完成
+[2026-01-19 04:33:02] 开始实验: pipeline=mixed, nodes=16, tasks=5000
+[2026-01-19 04:41:31] [DONE] mixed_nodes16 完成，结果保存至: results/exp1_rerun_20260119_023429/mixed_nodes16
+[2026-01-19 04:41:31] [Cleanup] 正在清理集群资源...
+[2026-01-19 04:41:36] [Cleanup] 清理完成
+[2026-01-19 04:41:36] ========== mixed Pipeline 测试完成 ==========
+[2026-01-19 04:41:36] 实验一重跑完成
+[2026-01-19 04:41:36] 总耗时: 127分7秒
+[2026-01-19 04:41:36] 结果目录: results/exp1_rerun_20260119_023429
+[2026-01-19 04:41:36] 日志文件: results/exp1_rerun_20260119_023429/exp1_rerun_log.txt

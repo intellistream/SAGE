@@ -443,6 +443,8 @@ def main():
     parser.add_argument("--quick", action="store_true", help="Quick test mode")
     parser.add_argument("--concurrency", nargs="+", type=int, help="Concurrency levels to test")
     parser.add_argument("--tasks", type=int, default=500, help="Number of tasks")
+    parser.add_argument("--nodes", type=int, default=8, help="Number of nodes")
+    parser.add_argument("--parallelism", type=int, default=32, help="Parallelism level")
     parser.add_argument("--output", type=str, help="Output directory")
     parser.add_argument(
         "--pipeline",
@@ -451,10 +453,40 @@ def main():
         choices=["compute", "llm", "rag"],
         help="Pipeline type: compute (default), llm, or rag",
     )
+    parser.add_argument(
+        "--latency-breakdown",
+        action="store_true",
+        help="Run latency breakdown experiment (light/medium/heavy complexity)",
+    )
+    parser.add_argument(
+        "--scheduler-overhead",
+        action="store_true",
+        help="Run scheduler overhead comparison experiment",
+    )
+    parser.add_argument(
+        "--schedulers",
+        nargs="+",
+        default=["fifo", "load_aware", "round_robin", "priority"],
+        help="Schedulers to test for overhead experiment",
+    )
 
     args = parser.parse_args()
 
-    if args.concurrency:
+    if args.latency_breakdown:
+        run_latency_breakdown_experiment(
+            parallelism=args.parallelism,
+            num_tasks=args.tasks,
+            num_nodes=args.nodes,
+            output_dir=args.output,
+        )
+    elif args.scheduler_overhead:
+        run_scheduler_overhead_experiment(
+            schedulers=args.schedulers,
+            num_tasks=args.tasks,
+            parallelism=args.parallelism,
+            output_dir=args.output,
+        )
+    elif args.concurrency:
         run_concurrency_scaling_experiment(
             concurrency_levels=args.concurrency,
             num_tasks=args.tasks,

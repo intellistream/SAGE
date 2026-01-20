@@ -1,0 +1,50 @@
+{
+  "total_duration": 192.89274525642395,
+  "num_jobs": 3,
+  "num_successful": 3,
+  "num_failed": 0,
+  "jobs": [
+    {
+      "job_id": 0,
+      "pipeline_type": "rag",
+      "success": true,
+      "duration": 186.14442586898804,
+      "start_time": 1768562780.516777,
+      "end_time": 1768562966.661203,
+      "throughput": 48.65126055001056,
+      "avg_latency_ms": 1357.0492731170466,
+      "p95_latency_ms": 5907.0234298706055,
+      "p99_latency_ms": 10009.333848953247,
+      "total_tasks": 3000,
+      "node_balance_score": 0.6746870254996904
+    },
+    {
+      "job_id": 1,
+      "pipeline_type": "compute",
+      "success": true,
+      "duration": 186.00400352478027,
+      "start_time": 1768562785.517885,
+      "end_time": 1768562971.5218885,
+      "throughput": 32.92244756072255,
+      "avg_latency_ms": 303.98345192273456,
+      "p95_latency_ms": 759.2213153839111,
+      "p99_latency_ms": 836.9016647338867,
+      "total_tasks": 3000,
+      "node_balance_score": 1.0
+    },
+    {
+      "job_id": 2,
+      "pipeline_type": "llm",
+      "success": true,
+      "duration": 182.86036276817322,
+      "start_time": 1768562790.518401,
+      "end_time": 1768562973.3787637,
+      "throughput": 16.744869489078095,
+      "avg_latency_ms": 76.23756623268127,
+      "p95_latency_ms": 112.47992515563965,
+      "p99_latency_ms": 124.39084053039551,
+      "total_tasks": 3000,
+      "node_balance_score": 1.0
+    }
+  ]
+}

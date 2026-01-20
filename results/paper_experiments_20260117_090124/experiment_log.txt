@@ -1,0 +1,25 @@
+=============================================================================
+ SAGE 论文实验套件
+ 开始时间: 2026-01-17 09:01:24
+ 结果目录: results/paper_experiments_20260117_090124
+ 快速模式: false
+=============================================================================
+2026-01-17 10:22:39 - 实验1: 横向扩展 完成
+2026-01-17 10:54:44 - 实验2: 调度策略 完成
+2026-01-17 11:04:15 - 实验3: 负载级别 完成
+2026-01-17 13:59:31 - 实验4: 并发与延迟 完成
+[ERROR] exp5_heterogeneous_concurrent 执行失败
+[ERROR] exp5_large_scale_heterogeneous 执行失败
+2026-01-17 15:04:01 - 实验5: 多管道隔离 完成
+实验摘要:
+----------------------------------------
+total 32
+drwxrwxr-x  7 sage sage 4096 Jan 17 13:59 .
+drwxrwxr-x  5 sage sage 4096 Jan 17 09:01 ..
+drwxrwxr-x 13 sage sage 4096 Jan 17 10:14 exp1_scalability
+drwxrwxr-x  4 sage sage 4096 Jan 17 10:36 exp2_scheduling
+drwxrwxr-x  4 sage sage 4096 Jan 17 11:00 exp3_load_levels
+drwxrwxr-x  6 sage sage 4096 Jan 17 13:34 exp4_concurrency
+drwxrwxr-x  5 sage sage 4096 Jan 17 14:34 exp5_isolation
+-rw-rw-r--  1 sage sage  713 Jan 17 15:04 experiment_log.txt
+----------------------------------------

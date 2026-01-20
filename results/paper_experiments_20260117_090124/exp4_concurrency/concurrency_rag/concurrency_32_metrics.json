@@ -1,0 +1,39 @@
+{
+  "timestamp": "2026-01-17T13:07:48.033557",
+  "experiment_name": "concurrency_32",
+  "metrics": {
+    "total_tasks": 5000,
+    "successful_tasks": 0,
+    "failed_tasks": 0,
+    "total_duration_sec": 60.07085418701172,
+    "throughput_tasks_per_sec": 0.0,
+    "avg_latency_ms": 0.0,
+    "p50_latency_ms": 0.0,
+    "p95_latency_ms": 0.0,
+    "p99_latency_ms": 0.0,
+    "avg_scheduling_latency_ms": 0.0,
+    "avg_queue_latency_ms": 0.0,
+    "avg_execution_latency_ms": 0.0,
+    "node_distribution": {},
+    "node_balance_score": 1.0,
+    "config": {
+      "experiment_name": "concurrency_32",
+      "num_tasks": 5000,
+      "task_complexity": "medium",
+      "parallelism": 32,
+      "num_nodes": 4,
+      "scheduler_type": "load_aware",
+      "scheduler_strategy": "spread",
+      "use_remote": true,
+      "pipeline_stages": 3,
+      "enable_rag": true,
+      "enable_llm": true
+    }
+  },
+  "latency_details": {
+    "total_latencies_ms": [],
+    "scheduling_latencies_ms": [],
+    "execution_latencies_ms": []
+  },
+  "node_latencies_ms": {}
+}

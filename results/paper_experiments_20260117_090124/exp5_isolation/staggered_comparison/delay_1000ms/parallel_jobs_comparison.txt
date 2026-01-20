@@ -1,0 +1,37 @@
+==========================================================================================
+Benchmark Comparison Report
+==========================================================================================
+Generated: 2026-01-17T14:20:57.533651
+Number of experiments: 3
+
+Experiment                   Tasks   Throughput    Avg Lat    P99 Lat    Balance
+------------------------- -------- ------------ ---------- ---------- ----------
+job0_rag                     14597      37.86/s  12787.1ms  79335.8ms     62.9%
+job1_compute                 13960      47.37/s  10221.3ms  70657.0ms     56.7%
+job2_llm                     13960      47.56/s  10221.3ms  70657.0ms     56.7%
+
+==========================================================================================
+
+Detailed Comparison:
+------------------------------------------------------------------------------------------
+
+[job0_rag]
+  Config: tasks=5000, parallelism=8, nodes=4, scheduler=load_aware
+  Throughput: 37.86 tasks/sec
+  Latency: avg=12787.1ms, p50=497.6ms, p99=79335.8ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 16, Balance: 62.9%
+
+[job1_compute]
+  Config: tasks=5000, parallelism=8, nodes=4, scheduler=load_aware
+  Throughput: 47.37 tasks/sec
+  Latency: avg=10221.3ms, p50=467.2ms, p99=70657.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 16, Balance: 56.7%
+
+[job2_llm]
+  Config: tasks=5000, parallelism=8, nodes=4, scheduler=load_aware
+  Throughput: 47.56 tasks/sec
+  Latency: avg=10221.3ms, p50=467.2ms, p99=70657.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 16, Balance: 56.7%

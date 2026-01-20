@@ -1,0 +1,71 @@
+==========================================================================================
+Benchmark Comparison Report
+==========================================================================================
+Generated: 2026-01-17T15:03:22.236098
+Number of experiments: 8
+
+Experiment                   Tasks   Throughput    Avg Lat    P99 Lat    Balance
+------------------------- -------- ------------ ---------- ---------- ----------
+job0_rag                      9583      19.68/s  99599.9ms 203051.8ms     98.0%
+job1_rag                      9583      19.47/s  99599.9ms 203051.8ms     98.0%
+job2_rag                         0       0.00/s      0.0ms      0.0ms    100.0%
+job3_rag                         0       0.00/s      0.0ms      0.0ms    100.0%
+job4_rag                         0       0.00/s      0.0ms      0.0ms    100.0%
+job5_rag                         0       0.00/s      0.0ms      0.0ms    100.0%
+job6_rag                         0       0.00/s      0.0ms      0.0ms    100.0%
+job7_rag                         0       0.00/s      0.0ms      0.0ms    100.0%
+
+==========================================================================================
+
+Detailed Comparison:
+------------------------------------------------------------------------------------------
+
+[job0_rag]
+  Config: tasks=5000, parallelism=8, nodes=4, scheduler=load_aware
+  Throughput: 19.68 tasks/sec
+  Latency: avg=99599.9ms, p50=99541.1ms, p99=203051.8ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 8, Balance: 98.0%
+
+[job1_rag]
+  Config: tasks=5000, parallelism=8, nodes=4, scheduler=load_aware
+  Throughput: 19.47 tasks/sec
+  Latency: avg=99599.9ms, p50=99541.1ms, p99=203051.8ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 8, Balance: 98.0%
+
+[job2_rag]
+  Config: tasks=5000, parallelism=8, nodes=4, scheduler=load_aware
+  Throughput: 0.00 tasks/sec
+  Latency: avg=0.0ms, p50=0.0ms, p99=0.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+
+[job3_rag]
+  Config: tasks=5000, parallelism=8, nodes=4, scheduler=load_aware
+  Throughput: 0.00 tasks/sec
+  Latency: avg=0.0ms, p50=0.0ms, p99=0.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+
+[job4_rag]
+  Config: tasks=5000, parallelism=8, nodes=4, scheduler=load_aware
+  Throughput: 0.00 tasks/sec
+  Latency: avg=0.0ms, p50=0.0ms, p99=0.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+
+[job5_rag]
+  Config: tasks=5000, parallelism=8, nodes=4, scheduler=load_aware
+  Throughput: 0.00 tasks/sec
+  Latency: avg=0.0ms, p50=0.0ms, p99=0.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+
+[job6_rag]
+  Config: tasks=5000, parallelism=8, nodes=4, scheduler=load_aware
+  Throughput: 0.00 tasks/sec
+  Latency: avg=0.0ms, p50=0.0ms, p99=0.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+
+[job7_rag]
+  Config: tasks=5000, parallelism=8, nodes=4, scheduler=load_aware
+  Throughput: 0.00 tasks/sec
+  Latency: avg=0.0ms, p50=0.0ms, p99=0.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms

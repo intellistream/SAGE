@@ -1,0 +1,45 @@
+==========================================================================================
+Benchmark Comparison Report
+==========================================================================================
+Generated: 2026-01-16T09:35:46.575493
+Number of experiments: 4
+
+Experiment                   Tasks   Throughput    Avg Lat    P99 Lat    Balance
+------------------------- -------- ------------ ---------- ---------- ----------
+scheduler_fifo_medium          200      18.11/s    684.3ms   1203.7ms     59.9%
+scheduler_load_aware_spread_medium      200      14.66/s    875.4ms   1840.8ms     96.0%
+scheduler_load_aware_pack_medium      200       6.42/s  20193.4ms  25130.4ms    100.0%
+scheduler_priority_medium      200      10.03/s   9766.4ms  14375.6ms    100.0%
+
+==========================================================================================
+
+Detailed Comparison:
+------------------------------------------------------------------------------------------
+
+[scheduler_fifo_medium]
+  Config: tasks=200, parallelism=16, nodes=4, scheduler=fifo
+  Throughput: 18.11 tasks/sec
+  Latency: avg=684.3ms, p50=667.5ms, p99=1203.7ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 10, Balance: 59.9%
+
+[scheduler_load_aware_spread_medium]
+  Config: tasks=200, parallelism=16, nodes=4, scheduler=load_aware
+  Throughput: 14.66 tasks/sec
+  Latency: avg=875.4ms, p50=858.2ms, p99=1840.8ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 16, Balance: 96.0%
+
+[scheduler_load_aware_pack_medium]
+  Config: tasks=200, parallelism=16, nodes=4, scheduler=load_aware
+  Throughput: 6.42 tasks/sec
+  Latency: avg=20193.4ms, p50=20472.1ms, p99=25130.4ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 1, Balance: 100.0%
+
+[scheduler_priority_medium]
+  Config: tasks=200, parallelism=16, nodes=4, scheduler=priority
+  Throughput: 10.03 tasks/sec
+  Latency: avg=9766.4ms, p50=9765.4ms, p99=14375.6ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 1, Balance: 100.0%

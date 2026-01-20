@@ -117,6 +117,18 @@ def run_single_pipeline(
             pipeline.build_llm_pipeline(name)
         elif pipeline_type == "rag":
             pipeline.build_rag_pipeline(name)
+        elif pipeline_type == "rag_service":
+            pipeline.build_rag_service_pipeline(name)
+        elif pipeline_type == "simple_rag":
+            pipeline.build_simple_rag_pipeline(name)
+        elif pipeline_type == "adaptive_rag":
+            # Adaptive-RAG: 根据 num_tasks 生成 queries
+            from common.operators import SAMPLE_QUERIES
+            num_tasks = config_dict.get("num_tasks", 100)
+            queries = [SAMPLE_QUERIES[i % len(SAMPLE_QUERIES)] for i in range(num_tasks)]
+            pipeline.build_adaptive_rag_pipeline(name, queries=queries, max_iterations=3)
+        elif pipeline_type == "mixed":
+            pipeline.build_mixed_pipeline(name)
         else:
             raise ValueError(f"Unknown pipeline type: {pipeline_type}")
 

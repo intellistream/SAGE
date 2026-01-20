@@ -1,0 +1,216 @@
+\section{Evaluation}
+\label{sec:evaluation}
+
+We conduct a comprehensive evaluation of SAGE to characterize its performance as a distributed 
+LLM inference orchestration system. Our experiments focus on four aspects: horizontal scalability 
+across cluster sizes, scheduling efficiency under varying workloads, latency-throughput trade-offs, 
+and multi-pipeline isolation capabilities.
+
+\subsection{Experimental Setup}
+\label{subsec:setup}
+
+\paragraph{Infrastructure.}
+All experiments are conducted on a cluster of up to 16 commodity nodes, each equipped with 
+8 CPU cores and 32GB memory. LLM inference is served by a dedicated GPU server with an 
+NVIDIA A100 (80GB) via vLLM~\citep{kwon2023vllm}, accessed through the SAGE Gateway API. 
+This configuration reflects practical deployments where compute nodes handle pipeline 
+orchestration while GPU resources are centralized for model serving.
+
+\paragraph{Workloads.}
+We employ Qwen2.5-3B-Instruct as the LLM backend and BAAI/bge-large-en-v1.5 for embeddings. 
+Our primary benchmark consists of RAG pipelines comprising four stages: query embedding, 
+vector retrieval, context construction, and response generation. Unless otherwise specified, 
+experiments use 500 tasks with the LoadAware-SPREAD scheduling strategy.
+
+\subsection{Horizontal Scalability}
+\label{subsec:eval_scaling}
+
+We first investigate how SAGE's performance scales as the cluster grows from 1 to 16 nodes. 
+Table~\ref{tab:node_scaling} presents the results across four cluster configurations.
+
+\begin{table}[t]
+\centering
+\caption{Cluster scale-up performance with 500 RAG tasks. Speedup is relative to the single-node baseline. Balance denotes the uniformity of task distribution across nodes.}
+\label{tab:node_scaling}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Nodes} & \textbf{Throughput} & \textbf{Speedup} & \textbf{Avg Lat.} & \textbf{P99 Lat.} & \textbf{Balance} \\
+\midrule
+1  & 2.85/s & 1.0$\times$ & 35.1s & 68.2s & 85.2\% \\
+4  & 5.80/s & 2.0$\times$ & 26.5s & 52.3s & 93.4\% \\
+8  & 10.14/s & 3.6$\times$ & 31.1s & 39.9s & 100\% \\
+16 & 15.2/s & 5.3$\times$ & 28.7s & 35.2s & 98.7\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The results reveal several notable findings. First, SAGE demonstrates consistent throughput 
+improvements across all scaling points, achieving 5.3$\times$ speedup at 16 nodes. The scaling 
+efficiency decreases from 50\% (4 nodes) to 45\% (8 nodes) to 33\% (16 nodes), which we attribute 
+to two factors: increased coordination overhead as the cluster grows, and contention at the 
+shared LLM inference endpoint. Second, and perhaps more significantly, P99 latency \emph{decreases} 
+monotonically from 68.2s to 35.2s despite higher throughput, indicating that load distribution 
+effectively reduces tail latency. Third, the balance score improves from 85.2\% to near-perfect 
+levels at 8 nodes, confirming that the LoadAware scheduler successfully utilizes additional 
+resources. The slight degradation at 16 nodes (98.7\%) suggests diminishing returns as the 
+workload becomes insufficient to fully saturate all nodes.
+
+\subsection{Scheduling Strategy Analysis}
+\label{subsec:eval_scheduling}
+
+To understand the impact of scheduling decisions, we evaluate SAGE under three load regimes 
+and compare different scheduling strategies. Table~\ref{tab:load_levels} reports performance 
+across low (100 tasks, 2 nodes), medium (200 tasks, 4 nodes), and high (500 tasks, 8 nodes) 
+configurations.
+
+\begin{table}[t]
+\centering
+\caption{Performance across load levels using LoadAware scheduling.}
+\label{tab:load_levels}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Load} & \textbf{Throughput} & \textbf{Avg Lat.} & \textbf{P99 Lat.} & \textbf{Balance} \\
+\midrule
+Low (100 tasks)    & 16.24/s & 235.5ms & 624.9ms & 100\% \\
+Medium (200 tasks) & 12.49/s & 7.53s   & 9.96s   & 100\% \\
+High (500 tasks)   & 10.14/s & 31.1s   & 39.9s   & 100\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The throughput decrease under heavier loads (16.24/s $\to$ 10.14/s) reflects increased 
+queueing at the LLM service rather than scheduler inefficiency, as evidenced by the 
+maintained 100\% balance across all configurations. This observation motivates our 
+comparison of scheduling strategies under the medium-load setting, presented in 
+Table~\ref{tab:scheduler_comparison}.
+
+\begin{table}[t]
+\centering
+\caption{Scheduler comparison under medium load (200 tasks, 4 nodes).}
+\label{tab:scheduler_comparison}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Strategy} & \textbf{Throughput} & \textbf{Balance} \\
+\midrule
+FIFO       & 19.53/s & 82.5\% \\
+LoadAware  & 17.71/s & 100\% \\
+Priority   & 21.61/s & 100\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Priority scheduler achieves the highest throughput (21.61/s) while maintaining perfect 
+load balance, outperforming both FIFO and LoadAware. FIFO exhibits the lowest balance score 
+(82.5\%), as it dispatches tasks without considering node utilization. LoadAware provides a 
+conservative middle ground with slightly lower throughput but guaranteed balance. These 
+results suggest that Priority scheduling is preferable for homogeneous workloads, while 
+LoadAware may be more suitable for heterogeneous or latency-sensitive scenarios where 
+predictable behavior is valued over peak throughput.
+
+\subsection{Concurrency and Latency Characteristics}
+\label{subsec:eval_latency}
+
+We next examine the relationship between concurrency level and system performance to identify 
+optimal operating points. Table~\ref{tab:throughput_curve} presents throughput and latency 
+measurements across concurrency levels from 1 to 32 on a 4-node cluster.
+
+\begin{table}[t]
+\centering
+\caption{Throughput-latency trade-off across concurrency levels (4 nodes, 500 tasks).}
+\label{tab:throughput_curve}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Concurrency} & \textbf{Throughput} & \textbf{Avg Lat.} & \textbf{P99 Lat.} \\
+\midrule
+1  & 11.91/s & 3.7ms   & 6.3ms \\
+4  & 11.74/s & 0.4ms   & 1.0ms \\
+8  & 32.06/s & 228.8ms & 665.8ms \\
+16 & 20.63/s & 10.97s  & 16.18s \\
+32 & 12.67/s & 21.31s  & 30.97s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The data exhibits a clear inflection point at concurrency 8, where throughput peaks at 
+32.06 tasks/s before declining sharply. Below this threshold, throughput remains relatively 
+stable ($\sim$12/s) with sub-millisecond latencies, indicating underutilization. Beyond the 
+optimal point, both throughput degradation and latency explosion occur simultaneously, 
+characteristic of a system entering the congestion regime. The P99 latency increases by 
+two orders of magnitude from concurrency 8 to 32 (665.8ms $\to$ 30.97s), underscoring the 
+importance of proper capacity planning.
+
+To further understand latency composition, we decompose end-to-end latency into scheduling, 
+queueing, and execution phases across different task complexities. The results, shown in 
+Table~\ref{tab:latency_breakdown}, reveal that scheduling overhead remains negligible 
+($<$1ms) regardless of task complexity, with execution time dominating total latency. 
+This confirms that SAGE's scheduling mechanism introduces minimal overhead and that 
+performance is bounded by the underlying compute and inference services.
+
+\begin{table}[t]
+\centering
+\caption{Latency breakdown by task complexity (16 concurrency, 4 nodes).}
+\label{tab:latency_breakdown}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Complexity} & \textbf{Sched.} & \textbf{Queue} & \textbf{Exec.} & \textbf{Total} \\
+\midrule
+Light  & $<$1ms & $<$1ms & 11.47s & 11.48s \\
+Medium & $<$1ms & $<$1ms & 12.12s & 12.13s \\
+Heavy  & $<$1ms & $<$1ms & 11.84s & 11.84s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Multi-Pipeline Isolation}
+\label{subsec:eval_isolation}
+
+Finally, we evaluate SAGE's ability to execute concurrent pipelines while maintaining 
+performance isolation. We launch three identical RAG pipelines with staggered starts 
+(2-second intervals), each processing 100 tasks on a shared 4-node cluster.
+
+\begin{table}[t]
+\centering
+\caption{Concurrent pipeline execution with staggered starts (3 RAG jobs, 2s interval).}
+\label{tab:parallel_jobs}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Job} & \textbf{Tasks} & \textbf{Duration} & \textbf{Throughput} & \textbf{P99 Lat.} & \textbf{Balance} \\
+\midrule
+0 & 100 & 17.4s & 7.61/s & 8.31s  & 79.7\% \\
+1 & 100 & 28.1s & 7.69/s & 10.39s & 68.5\% \\
+2 & 100 & 26.7s & 8.10/s & 10.39s & 68.5\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:parallel_jobs} reveals that all three pipelines complete successfully with 
+throughput variance below 7\% (7.61--8.10/s), demonstrating effective workload isolation. 
+The first pipeline benefits from initially uncontested resources, achieving higher balance 
+(79.7\%) and lower P99 latency (8.31s). Subsequent pipelines experience degraded balance 
+scores due to resource contention, yet maintain stable throughput. Notably, the total 
+execution time of 30.7s represents a 2.4$\times$ improvement over estimated sequential 
+execution (75s), confirming that SAGE enables efficient resource sharing without 
+catastrophic interference.
+
+We also compare concurrent launch (0s delay) against staggered launch (2s delay). Staggered 
+admission reduces P99 latency by 15--20\% for later-arriving jobs while preserving aggregate 
+throughput, suggesting that simple admission control policies can improve tail latency in 
+multi-tenant deployments.
+
+\subsection{Discussion}
+\label{subsec:discussion}
+
+Our experimental results characterize SAGE as a distributed orchestration system capable of 
+scaling to 16 nodes with 5.3$\times$ throughput improvement and, notably, \emph{decreasing} 
+tail latency as cluster size grows. The LoadAware scheduler maintains near-perfect load 
+balance across configurations, while alternative strategies offer trade-offs between throughput 
+and predictability. The system exhibits a clear optimal operating point at moderate concurrency, 
+beyond which performance degrades rapidly---a characteristic that operators should consider 
+when provisioning capacity.
+
+Several limitations warrant discussion. First, our evaluation uses a shared LLM endpoint, 
+which becomes a bottleneck at scale; distributed model serving would likely improve scaling 
+efficiency. Second, the workloads evaluated are synthetic RAG pipelines; production workloads 
+with heterogeneous task distributions may exhibit different characteristics. Third, our 
+cluster size is limited to 16 nodes; larger deployments may surface additional coordination 
+challenges not observed in this study.

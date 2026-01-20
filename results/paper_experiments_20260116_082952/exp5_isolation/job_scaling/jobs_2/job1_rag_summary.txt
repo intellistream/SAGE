@@ -1,0 +1,47 @@
+======================================================================
+Benchmark Results: job1_rag
+======================================================================
+Timestamp: 2026-01-16T11:34:41.553058
+
+Configuration:
+  experiment_name: job1_rag
+  num_tasks: 3000
+  task_complexity: medium
+  parallelism: 8
+  num_nodes: 4
+  scheduler_type: load_aware
+  scheduler_strategy: spread
+  use_remote: True
+  pipeline_stages: 3
+  enable_rag: True
+  enable_llm: True
+
+Results:
+  Total Tasks:       3000
+  Successful:        5961
+  Failed:            0
+  Duration:          166.70s
+
+  Throughput:        35.76 tasks/sec
+  Avg Latency:       6567.14 ms
+  P50 Latency:       6148.79 ms
+  P95 Latency:       13040.08 ms
+  P99 Latency:       15736.49 ms
+
+  Scheduling Latency: 0.00 ms
+  Queue Latency:      0.00 ms
+  Execution Latency:  0.00 ms
+
+  Node Balance:      99.02%
+
+  Node Distribution:
+    sage-node-1: 742 (12.4%)
+    sage-node-14: 734 (12.3%)
+    sage-node-16: 752 (12.6%)
+    sage-node-2: 752 (12.6%)
+    sage-node-3: 752 (12.6%)
+    sage-node-4: 741 (12.4%)
+    sage-node-5: 736 (12.3%)
+    sage-node-6: 752 (12.6%)
+
+======================================================================

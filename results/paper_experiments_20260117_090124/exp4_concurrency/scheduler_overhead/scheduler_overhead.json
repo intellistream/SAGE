@@ -1,0 +1,20 @@
+[
+  {
+    "scheduler": "fifo",
+    "scheduling_latency_ms": 0.0,
+    "throughput": 9.44815890863745,
+    "node_balance_score": 0.4701390371050156
+  },
+  {
+    "scheduler": "load_aware",
+    "scheduling_latency_ms": 0.0,
+    "throughput": 9.384061080309595,
+    "node_balance_score": 0.9984
+  },
+  {
+    "scheduler": "priority",
+    "scheduling_latency_ms": 0.0,
+    "throughput": 12.728198309810251,
+    "node_balance_score": 1.0
+  }
+]

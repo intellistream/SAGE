@@ -1,0 +1,60 @@
+==========================================================================================
+Benchmark Comparison Report
+==========================================================================================
+Generated: 2026-01-16T11:08:42.386959
+Number of experiments: 6
+
+Experiment                   Tasks   Throughput    Avg Lat    P99 Lat    Balance
+------------------------- -------- ------------ ---------- ---------- ----------
+concurrency_1                 5000       3.52/s    678.8ms   1329.6ms    100.0%
+concurrency_2                 4511       5.81/s    270.5ms    526.2ms    100.0%
+concurrency_4                 4813      12.17/s    113.2ms    210.4ms    100.0%
+concurrency_8                 4918      23.46/s  45879.7ms  89545.8ms     97.7%
+concurrency_16                4995      15.64/s   3242.0ms   7835.2ms     97.6%
+concurrency_32                   0       0.00/s      0.0ms      0.0ms    100.0%
+
+==========================================================================================
+
+Detailed Comparison:
+------------------------------------------------------------------------------------------
+
+[concurrency_1]
+  Config: tasks=5000, parallelism=1, nodes=1, scheduler=fifo
+  Throughput: 3.52 tasks/sec
+  Latency: avg=678.8ms, p50=685.6ms, p99=1329.6ms
+  Scheduling: 0.0ms, Execution: 282.2ms
+  Nodes: 1, Balance: 100.0%
+
+[concurrency_2]
+  Config: tasks=5000, parallelism=2, nodes=1, scheduler=fifo
+  Throughput: 5.81 tasks/sec
+  Latency: avg=270.5ms, p50=274.7ms, p99=526.2ms
+  Scheduling: 0.0ms, Execution: 273.8ms
+  Nodes: 1, Balance: 100.0%
+
+[concurrency_4]
+  Config: tasks=5000, parallelism=4, nodes=1, scheduler=fifo
+  Throughput: 12.17 tasks/sec
+  Latency: avg=113.2ms, p50=118.0ms, p99=210.4ms
+  Scheduling: 0.0ms, Execution: 290.5ms
+  Nodes: 1, Balance: 100.0%
+
+[concurrency_8]
+  Config: tasks=5000, parallelism=8, nodes=4, scheduler=load_aware
+  Throughput: 23.46 tasks/sec
+  Latency: avg=45879.7ms, p50=44636.2ms, p99=89545.8ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 8, Balance: 97.7%
+
+[concurrency_16]
+  Config: tasks=5000, parallelism=16, nodes=4, scheduler=load_aware
+  Throughput: 15.64 tasks/sec
+  Latency: avg=3242.0ms, p50=3148.6ms, p99=7835.2ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 16, Balance: 97.6%
+
+[concurrency_32]
+  Config: tasks=5000, parallelism=32, nodes=4, scheduler=load_aware
+  Throughput: 0.00 tasks/sec
+  Latency: avg=0.0ms, p50=0.0ms, p99=0.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms

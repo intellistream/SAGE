@@ -1,0 +1,37 @@
+==========================================================================================
+Benchmark Comparison Report
+==========================================================================================
+Generated: 2026-01-17T13:59:26.369874
+Number of experiments: 3
+
+Experiment                   Tasks   Throughput    Avg Lat    P99 Lat    Balance
+------------------------- -------- ------------ ---------- ---------- ----------
+scheduler_fifo                5000       9.45/s   2563.0ms   6943.9ms     47.0%
+scheduler_load_aware          5000       9.38/s   2540.5ms   7024.2ms     99.8%
+scheduler_priority            5000      12.73/s   4384.0ms  31147.0ms    100.0%
+
+==========================================================================================
+
+Detailed Comparison:
+------------------------------------------------------------------------------------------
+
+[scheduler_fifo]
+  Config: tasks=5000, parallelism=32, nodes=4, scheduler=fifo
+  Throughput: 9.45 tasks/sec
+  Latency: avg=2563.0ms, p50=2446.5ms, p99=6943.9ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 16, Balance: 47.0%
+
+[scheduler_load_aware]
+  Config: tasks=5000, parallelism=32, nodes=4, scheduler=load_aware
+  Throughput: 9.38 tasks/sec
+  Latency: avg=2540.5ms, p50=2409.8ms, p99=7024.2ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 16, Balance: 99.8%
+
+[scheduler_priority]
+  Config: tasks=5000, parallelism=32, nodes=4, scheduler=priority
+  Throughput: 12.73 tasks/sec
+  Latency: avg=4384.0ms, p50=1656.8ms, p99=31147.0ms
+  Scheduling: 0.0ms, Execution: 0.0ms
+  Nodes: 1, Balance: 100.0%

@@ -1,0 +1,55 @@
+======================================================================
+Benchmark Results: concurrency_16
+======================================================================
+Timestamp: 2026-01-17T11:31:42.660103
+
+Configuration:
+  experiment_name: concurrency_16
+  num_tasks: 5000
+  task_complexity: medium
+  parallelism: 16
+  num_nodes: 4
+  scheduler_type: load_aware
+  scheduler_strategy: spread
+  use_remote: True
+  pipeline_stages: 3
+  enable_rag: True
+  enable_llm: True
+
+Results:
+  Total Tasks:       5000
+  Successful:        5000
+  Failed:            0
+  Duration:          261.15s
+
+  Throughput:        19.15 tasks/sec
+  Avg Latency:       701.29 ms
+  P50 Latency:       696.24 ms
+  P95 Latency:       1128.35 ms
+  P99 Latency:       1244.78 ms
+
+  Scheduling Latency: 0.00 ms
+  Queue Latency:      0.00 ms
+  Execution Latency:  0.00 ms
+
+  Node Balance:      99.84%
+
+  Node Distribution:
+    sage-node-1: 312 (6.2%)
+    sage-node-10: 313 (6.3%)
+    sage-node-11: 313 (6.3%)
+    sage-node-12: 313 (6.3%)
+    sage-node-13: 313 (6.3%)
+    sage-node-14: 312 (6.2%)
+    sage-node-15: 313 (6.3%)
+    sage-node-16: 312 (6.2%)
+    sage-node-2: 312 (6.2%)
+    sage-node-3: 312 (6.2%)
+    sage-node-4: 312 (6.2%)
+    sage-node-5: 312 (6.2%)
+    sage-node-6: 312 (6.2%)
+    sage-node-7: 313 (6.3%)
+    sage-node-8: 313 (6.3%)
+    sage-node-9: 313 (6.3%)
+
+======================================================================
