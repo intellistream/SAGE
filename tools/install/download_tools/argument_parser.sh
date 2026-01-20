@@ -98,6 +98,7 @@ VERIFY_DEPS_STRICT=false
 AUTO_VENV=false  # 新增：自动创建虚拟环境
 SKIP_HOOKS=false
 HOOKS_MODE="auto"
+SETUP_WORKSPACE=false  # 新增：设置 workspace 依赖
 HOOKS_PROFILE="lightweight"
 USE_PIP_MIRROR=true  # 默认启用pip镜像自动检测（中国用户自动使用清华源）
 MIRROR_SOURCE="auto"
@@ -476,6 +477,10 @@ show_parameter_help() {
     echo -e "  ${BOLD}--skip-hooks${NC}                             ${YELLOW}跳过 Git hooks 安装${NC}"
     echo -e "    ${DIM}稍后可手动运行 'sage-dev maintain hooks install'${NC}"
     echo ""
+    echo -e "  ${BOLD}--workspace${NC}                              ${GREEN}设置 workspace 依赖${NC}"
+    echo -e "    ${DIM}克隆 SAGE-Pub 和 sage-team-info 仓库${NC}"
+    echo -e "    ${DIM}用于 VS Code 多文件夹编辑（SAGE.code-workspace）${NC}"
+    echo ""
     echo -e "  ${BOLD}--hooks-mode <auto|background|sync>${NC}      ${GREEN}控制 hooks 安装方式${NC}"
     echo -e "    ${DIM}auto: 交互式安装后台运行，其余场景同步${NC}"
     echo -e "    ${DIM}background: 总是异步，安装更快${NC}"
@@ -768,6 +773,9 @@ parse_arguments() {
 
         if [[ "$param" == "--skip-hooks" ]]; then
             SKIP_HOOKS=true
+            shift
+        elif [[ "$param" == "--workspace" ]]; then
+            SETUP_WORKSPACE=true
             shift
         elif [[ "$param" == --hooks-mode=* ]]; then
             set_hooks_mode_value "${param#*=}"
@@ -1064,6 +1072,10 @@ get_hooks_profile_value() {
 
 should_use_pip_mirror() {
     echo "$USE_PIP_MIRROR"
+}
+
+get_setup_workspace() {
+    echo "$SETUP_WORKSPACE"
 }
 
 get_mirror_source_value() {
