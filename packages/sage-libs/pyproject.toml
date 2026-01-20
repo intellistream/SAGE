@@ -92,7 +92,7 @@ training = [
     "trl>=0.20.0,<0.21.0",
 ]
 all = [
-    "isage-libs[dev,anns,amms,finetune,agentic,rag,eval,privacy,safety,vdb,streaming,notebook,metrics,loaders,ocr,llm,training]",
+    "isage-libs[dev,anns,amms,finetune,agentic,rag,metrics,privacy,safety,vdb,streaming,notebook,metrics,loaders,ocr,llm,training]",
 ]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
