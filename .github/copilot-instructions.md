@@ -43,42 +43,43 @@ Rationale: keep the codebase clean; avoid长期兼容层造成的隐式依赖和
 - **Script**: `tools/hooks/check_libs_middleware_import.sh --all-files`
 - **Policy doc**: `docs-public/docs_src/dev-notes/cross-layer/MIDDLEWARE_COMPONENT_PROMOTION_POLICY.md`
 
-### ❌ NEVER BYPASS CONTROL PLANE - ABSOLUTE RULE
+### ❗ LLM Control Plane - IN INDEPENDENT REPOSITORY
 
-**ALL LLM engine operations MUST go through Control Plane. Direct engine startup is FORBIDDEN.**
+**LLM engine management has been moved to the independent `isagellm` package.**
 
-This is a **non-negotiable architectural constraint**. Violating this breaks resource management, scheduling, and monitoring.
+SAGE core uses **vLLM** directly as the inference backend. If you need advanced features
+like Control Plane scheduling, request routing, or unified client, install `isagellm`.
 
-#### ❌ FORBIDDEN Operations:
+#### SAGE Core (vLLM backend):
 
 ```bash
-sage llm serve -m <model>              # ❌ Command removed
-python -m vllm.entrypoints.openai      # ❌ Direct vLLM
-requests.post("http://localhost:8001/v1/...")  # ❌ Direct endpoint
+# Start vLLM directly for inference
+python -m vllm.entrypoints.openai.api_server \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --port 8001
 ```
 
 ```python
-from vllm import LLM  # ❌ Direct import
-engine = LLM(model="...")  # ❌ Direct instantiation
+# Use OpenAI-compatible client to access vLLM
+import openai
+client = openai.OpenAI(base_url="http://localhost:8001/v1", api_key="dummy")
+response = client.chat.completions.create(
+    model="Qwen/Qwen2.5-7B-Instruct",
+    messages=[{"role": "user", "content": "Hello"}]
+)
 ```
 
-#### ✅ CORRECT Operations:
+#### With isagellm (optional, for advanced scheduling):
 
 ```bash
-sage llm engine start <model> --engine-kind llm    # ✅ Control Plane
-sage llm engine list                               # ✅ Managed
-sage llm engine stop <id>                          # ✅ Controlled
+pip install isagellm
+sage llm engine start <model> --engine-kind llm    # Control Plane
 ```
 
 ```python
-from sage.llm import UnifiedInferenceClient
-client = UnifiedInferenceClient.create()  # ✅ Auto-routes through Control Plane
-response = client.chat([{"role": "user", "content": "Hello"}])
+from isagellm import UnifiedInferenceClient
+client = UnifiedInferenceClient.create()  # Auto-routes through Control Plane
 ```
-
-**Why**: Resource management, load balancing, fault tolerance, monitoring, SLO-aware scheduling.
-
-**Enforcement**: Pre-commit hooks, CI/CD checks, code review. Commands `sage llm serve/run/stop/restart/status/logs` have been completely deleted.
 
 ## CRITICAL Coding Principles
 
@@ -170,6 +171,106 @@ __version__ = "0.2.0"
 __author__ = "IntelliStream Team"
 __email__ = "shuhao_zhang@hust.edu.cn"
 ```
+
+### 🚨 Auto-Version Bump and Publish on Commit - CRITICAL
+
+**When modifying any package, automatically bump version by 0.0.0.1 and publish to PyPI.**
+
+This is a **mandatory workflow** for all package modifications to ensure version consistency and rapid iteration.
+
+#### Rule: Per-Commit Version Increment
+
+**For EVERY commit that modifies a package:**
+
+1. **Detect affected packages**: Check which `packages/sage-*/` directories have changes
+2. **Bump version**: Increment the 4th digit by 1 (e.g., `0.2.4.0` → `0.2.4.1`)
+3. **Update `_version.py`**: Modify the `__version__` string in affected package
+4. **Publish to PyPI**: Use `sage-pypi-publisher` to publish the new version
+
+#### Implementation
+
+**Manual workflow** (until Git hooks are set up):
+```bash
+# 1. After making changes to a package (e.g., sage-common)
+cd /path/to/sage-pypi-publisher
+./publish.sh sage-common --auto-bump patch  # Increments last digit
+
+# 2. For multiple affected packages
+./publish.sh sage-common sage-libs --auto-bump patch
+```
+
+**Automated via Git Hook** (recommended setup):
+
+Create/update `.git/hooks/post-commit`:
+```bash
+#!/bin/bash
+# Auto version bump and publish on commit
+
+SAGE_ROOT="$(git rev-parse --show-toplevel)"
+PUBLISHER_PATH="$HOME/sage-pypi-publisher"  # Adjust path as needed
+
+if [ ! -d "$PUBLISHER_PATH" ]; then
+    echo "⚠️  sage-pypi-publisher not found at $PUBLISHER_PATH"
+    echo "   Clone it: git clone https://github.com/intellistream/sage-pypi-publisher.git"
+    exit 0
+fi
+
+# Detect modified packages
+affected_packages=$(git diff HEAD~1 HEAD --name-only | \
+    grep '^packages/' | \
+    cut -d'/' -f2 | \
+    sort -u)
+
+if [ -z "$affected_packages" ]; then
+    echo "✅ No packages affected"
+    exit 0
+fi
+
+echo "📦 Affected packages: $affected_packages"
+read -p "🚀 Auto-publish to PyPI? (y/N) " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    cd "$PUBLISHER_PATH"
+    for pkg in $affected_packages; do
+        echo "Publishing $pkg..."
+        ./publish.sh "$pkg" --auto-bump patch --no-dry-run
+    done
+fi
+```
+
+#### Version Format
+
+SAGE uses **4-digit semantic versioning**: `MAJOR.MINOR.PATCH.BUILD`
+
+- **MAJOR** (0): Breaking changes (rare)
+- **MINOR** (2): Feature additions
+- **PATCH** (4): Bug fixes
+- **BUILD** (0-99): Per-commit increments (**auto-bumped on every commit**)
+
+Examples:
+- `0.2.4.0` → `0.2.4.1` (commit 1)
+- `0.2.4.1` → `0.2.4.2` (commit 2)
+- After 99 builds: `0.2.4.99` → `0.2.5.0` (bump PATCH, reset BUILD)
+
+#### Rationale
+
+- **Rapid iteration**: Every commit creates a publishable version
+- **Clear tracking**: Build number shows commit count since last patch
+- **CI/CD friendly**: Automated testing can reference exact versions
+- **No version conflicts**: Monotonically increasing versions
+- **PyPI compliance**: Follows semantic versioning best practices
+
+#### When NOT to auto-publish
+
+- **Docs-only changes**: If only `docs/`, `README.md`, or `CHANGELOG.md` modified
+- **Tool changes**: If only `tools/` modified (unless `sage-tools` package itself changed)
+- **CI/CD changes**: If only `.github/workflows/` modified
+- **Test-only changes**: If only `tests/` modified without code changes
+
+**Copilot should:**
+1. **Before committing**: Remind user to bump version if package code changed
+2. **After committing**: Suggest running publish script for affected packages
+3. **When asked "ready to commit?"**: Check if version bump is needed
 
 **Architecture (L1-L5)** - CRITICAL: No upward dependencies
 
@@ -691,17 +792,29 @@ port = 8001  # 不要这样写
 
 **配置文件位置**: `packages/sage-common/src/sage/common/config/ports.py`
 
-## API Client Usage - CRITICAL
+## API Client Usage
 
-**UnifiedInferenceClient must be created via the factory** (direct instantiation is intentionally blocked).
+**For LLM inference, SAGE uses vLLM as the backend engine.**
+
+Use standard OpenAI-compatible clients to access vLLM:
 
 ```python
-from sage.llm import UnifiedInferenceClient
+import openai
 
-client = UnifiedInferenceClient.create()
+# Connect to local vLLM server
+client = openai.OpenAI(base_url="http://localhost:8001/v1", api_key="dummy")
+response = client.chat.completions.create(
+    model="Qwen/Qwen2.5-7B-Instruct",
+    messages=[{"role": "user", "content": "Hello"}]
+)
 ```
 
-If you see code attempting `UnifiedInferenceClient(...)`, treat it as a bug and refactor to `create()`.
+**For advanced scheduling features**, install `isagellm` (independent package):
+
+```python
+from isagellm import UnifiedInferenceClient
+client = UnifiedInferenceClient.create()
+```
 
 ## Dependency Management - CRITICAL
 
@@ -945,12 +1058,14 @@ done
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-*可选 Edge 层*: `isage-edge` (8899, 独立包) 挂载整个 `sage.llm.gateway` 应用（包含 Control Plane、RAG Pipeline、Session Management）。默认挂载在 `/`（保持 `/v1/*` 兼容），或使用 `--llm-prefix` 挂载在自定义前缀。未启动 edge 时，直接访问 Gateway 即可。安装: `pip install isage-edge`
+*可选 Edge 层*: `isage-edge` (8899, 独立包) 挂载整个 `isagellm.gateway` 应用（包含 Control Plane、RAG Pipeline、Session Management）。默认挂载在 `/`（保持 `/v1/*` 兼容），或使用 `--llm-prefix` 挂载在自定义前缀。未启动 edge 时，直接访问 Gateway 即可。安装: `pip install isage-edge`
 
-### 推荐用法：Control Plane 模式
+### 推荐用法：isagellm Control Plane 模式
+
+> **Note**: 以下功能需要安装独立包 `isagellm`。
 
 ```python
-from sage.llm import UnifiedInferenceClient
+from isagellm import UnifiedInferenceClient
 
 # 默认（推荐）: 自动检测本地/远端端点，优先本地
 client = UnifiedInferenceClient.create()
@@ -961,9 +1076,7 @@ client = UnifiedInferenceClient.create(
   default_llm_model="Qwen/Qwen2.5-7B-Instruct",
   default_embedding_model="BAAI/bge-m3",
 )
-
-# 内嵌 Control Plane: 在当前进程启动调度器（实验性，适合离线批处理）
-# embedded mode deprecated; use control_plane_url instead
+```
 
 ### 启动服务栈
 
@@ -1060,21 +1173,23 @@ packages/sage-common/src/sage/common/components/
     factory.py              # EmbeddingFactory (本地模型)
 ```
 
-### 客户端模式对比（统一 Control Plane）
+### 客户端模式对比（isagellm Control Plane）
 
 > Simple 模式已移除；所有请求都经由 Control Plane。
 > **Note**: 以下功能需要安装独立包 `isagellm`。
 
 | 模式 | 创建方式 | 调度 | 适用场景 |
-|------|----------|------|---------|
+|------|----------|------|---------||
 | 自动检测 | `UnifiedInferenceClient.create()` | 自动探测本地/远端端点，统一调度 | 默认推荐（本地开发、单机实验） |
 | 外部 Control Plane | `UnifiedInferenceClient.create(control_plane_url=...)` | 通过已运行的 Control Plane/Gateway 路由 | 生产部署、网关统一入口 |
 | 内嵌 Control Plane (deprecated) | 使用 control_plane_url 或本地 Gateway | 在进程内启动调度器 | 离线批处理/无外部服务时 |
 
 ### 内嵌模式 (VLLMService) - 批处理专用
 
+> **Note**: 以下功能需要安装独立包 `isagellm`。
+
 ```python
-from sage.llm import VLLMService
+from isagellm import VLLMService
 
 # 进程内加载模型，适合批处理任务
 service = VLLMService({

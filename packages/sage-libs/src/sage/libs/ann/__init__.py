@@ -8,8 +8,6 @@ algorithms. Benchmarks remain in `sage-benchmark/benchmark_anns` (L5).
 
 from __future__ import annotations
 
-import warnings
-
 from sage.libs.ann.interface import (
     AnnIndex,
     AnnIndexMeta,
@@ -18,13 +16,6 @@ from sage.libs.ann.interface import (
     create,
     register,
     registered,
-)
-
-warnings.warn(
-    "ANNS implementations have moved to the external package 'isage-anns'. "
-    "Install the optional extra [anns] or add 'isage-anns' to your environment.",
-    DeprecationWarning,
-    stacklevel=2,
 )
 
 __all__ = [

@@ -28,9 +28,9 @@ class TaskFactory:
         # Extra Python paths for Ray runtime_env
         # Must be passed explicitly since env attribute is excluded during serialization
         self.extra_python_paths: list[str] = (
-            extra_python_paths if isinstance(extra_python_paths, list) else (
-                [extra_python_paths] if extra_python_paths else []
-            )
+            extra_python_paths
+            if isinstance(extra_python_paths, list)
+            else ([extra_python_paths] if extra_python_paths else [])
         )
 
     def create_task(

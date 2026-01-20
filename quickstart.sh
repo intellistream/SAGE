@@ -463,6 +463,22 @@ main() {
 
         show_usage_tips "$mode"
 
+        # 设置 workspace 依赖（如果指定了 --workspace）
+        local setup_workspace=$(get_setup_workspace)
+        if [ "$setup_workspace" = "true" ]; then
+            echo ""
+            echo -e "${INFO} 设置 workspace 依赖..."
+            if [ -f "$SAGE_ROOT/tools/scripts/setup_workspace_deps.sh" ]; then
+                if bash "$SAGE_ROOT/tools/scripts/setup_workspace_deps.sh"; then
+                    echo -e "${GREEN}✅ Workspace 依赖设置完成${NC}"
+                else
+                    echo -e "${YELLOW}⚠️  Workspace 设置遇到问题，但不影响 SAGE 使用${NC}"
+                fi
+            else
+                echo -e "${YELLOW}⚠️  Workspace 设置脚本未找到${NC}"
+            fi
+        fi
+
         # 显示快速启动服务菜单（交互模式）
         # 注意：已由 show_usage_tips 内部调用 prompt_start_llm_service
         # if [ "$(get_auto_confirm)" != "true" ] && [ -z "${CI:-}" ] && [ -z "${GITHUB_ACTIONS:-}" ]; then

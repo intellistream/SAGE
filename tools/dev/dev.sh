@@ -201,9 +201,11 @@ cmd_clean() {
 
     print_info "Removing build directories..."
     rm -rf build/ dist/ .eggs/
+    rm -rf .sage/build/*
 
     print_info "Removing test and coverage artifacts..."
-    rm -rf .pytest_cache/ .coverage htmlcov/ .mypy_cache/ .ruff_cache/
+    rm -rf .pytest_cache/ .coverage .sage/htmlcov/ .mypy_cache/ .ruff_cache/
+    rm -rf .sage/cache/pytest/ .sage/cache/mypy/ .sage/cache/ruff/
 
     print_info "Removing empty directories in packages..."
     # Find and remove empty directories in packages, excluding .git directories

@@ -3,6 +3,11 @@
 > A declarative, composable framework for building transparent LLM-powered systems through dataflow
 > abstractions.
 
+> 📚 **Documentation Note**: Links referencing `docs-public/` point to the
+> [SAGE-Pub](https://github.com/intellistream/SAGE-Pub) repository, which contains comprehensive
+> documentation. Clone it separately if needed:
+> `git clone https://github.com/intellistream/SAGE-Pub.git`
+
 ## 🚀 Quick Start
 
 ### Try SAGE Studio

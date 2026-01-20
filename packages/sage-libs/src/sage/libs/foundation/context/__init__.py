@@ -1,4 +1,12 @@
-"""Context management for LLMs - business context and compression algorithms."""
+"""Context management for LLMs.
+
+Note:
+    Context compression algorithms have been migrated to isage-refiner.
+    Install with: pip install isage-refiner
+
+    For SAGE middleware integration with context compression,
+    see sage.middleware.components.sage_refiner.
+"""
 
 from . import compression
 

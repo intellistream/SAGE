@@ -20,7 +20,7 @@ class TestImageCaptioner:
         except (ImportError, AttributeError):
             pytest.skip("ImageCaptioner not available")
 
-    @patch("sage.llm.UnifiedInferenceClient.create")
+    @patch("isagellm.UnifiedInferenceClient.create")
     def test_image_captioner_execute(self, mock_unified_client):
         """Test ImageCaptioner execute method"""
         try:
