@@ -21,6 +21,10 @@ except ImportError:
     __author__ = "IntelliStream Team"
     __email__ = "shuhao_zhang@hust.edu.cn"
 
+from .batch import (
+    HFDatasetBatch,
+    JSONLBatch,
+)
 from .sink import (
     FileSink,
     MemWriteSink,
@@ -61,4 +65,7 @@ __all__ = [
     "FileSink",
     "MemWriteSink",
     "PrintSink",
+    # Batch
+    "HFDatasetBatch",
+    "JSONLBatch",
 ]
