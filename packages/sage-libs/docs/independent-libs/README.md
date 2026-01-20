@@ -4,7 +4,7 @@
 
 ## 库概览
 
-| 内部包名      | PyPI 包名        | 导入名                    | 文档                                                                             | 描述                                     |
+| 内部包名      | PyPI 包名        | 导入命名空间              | 文档                                                                             | 描述                                     |
 | ------------- | ---------------- | ------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------- |
 | sage-rag      | `isage-rag`      | `sage_libs.sage_rag`      | [COPILOT_INSTRUCTIONS_isage-rag.md](COPILOT_INSTRUCTIONS_isage-rag.md)           | RAG 实现 (Loaders, Chunkers, Retrievers) |
 | sage-agentic  | `isage-agentic`  | `sage_libs.sage_agentic`  | [COPILOT_INSTRUCTIONS_isage-agentic.md](COPILOT_INSTRUCTIONS_isage-agentic.md)   | Agent 实现 (ReAct, PlanExecute, Reflex)  |
