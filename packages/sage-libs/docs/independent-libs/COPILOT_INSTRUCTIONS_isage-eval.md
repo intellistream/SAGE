@@ -350,7 +350,7 @@ sage-eval/                          # 独立仓库根目录
 # ❌ 错误：Judge 内部创建 LLM 客户端
 class FaithfulnessJudge(BaseLLMJudge):
     def __init__(self):
-        from isagellm import UnifiedInferenceClient
+        from sage.llm import UnifiedInferenceClient
         self.llm = UnifiedInferenceClient.create()  # ❌ 隐式依赖
 
 # ✅ 正确：通过依赖注入
