@@ -1,31 +1,31 @@
-"""agentic compatibility layer.
+"""SAGE Agentic Module - Agent Framework Interfaces.
 
-⚠️ DEPRECATION NOTICE:
-agentic implementations have been externalized to isage-agentic.
+This module provides the **interface layer** (abstract base classes and factory)
+for agent implementations. Concrete implementations are in the external package
+`isage-agentic`.
+
+Architecture:
+    sage.libs.agentic (this module) - Interface layer (ABCs, factory, types)
+    isage-agentic (external PyPI)   - Implementations (ReActAgent, PlanExecute, etc.)
 
 Installation:
-    pip install isage-agentic
+    pip install isage-agentic    # Install implementations
+    # or
+    pip install isage-libs[agentic]
 
 Usage:
-    # Use the interface layer
-    from sage.libs.agentic.interface import create, register
+    from sage.libs.agentic.interface import (
+        BaseAgent, AgentConfig, AgentOutput,
+        create, register, registered,
+    )
 
-    # Or import from external package
-    from isage_agentic import *
+    # Create agent (requires isage-agentic installed)
+    agent = create("react", config=AgentConfig(...))
+    output = agent.run("What is the weather?")
 
-Repository: https://github.com/intellistream/sage-agentic
-PyPI: https://pypi.org/project/isage-agentic/
+External implementations auto-register when imported.
+See: https://github.com/intellistream/sage-agentic
 """
-
-import warnings
 
 # Re-export interface
 from .interface import *  # noqa: F401, F403
-
-warnings.warn(
-    "sage.libs.agentic implementations have been externalized. "
-    "Install 'isage-agentic' for concrete implementations: "
-    "pip install isage-agentic",
-    DeprecationWarning,
-    stacklevel=2,
-)
