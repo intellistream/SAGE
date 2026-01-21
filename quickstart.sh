@@ -76,6 +76,9 @@ pre_check_system_environment
 # 根据偏移探测结果设置Unicode符号
 setup_unicode_symbols
 
+# 初始化可选功能标志（防止 unbound variable 错误）
+SAGE_SET_SKIP_SMUDGE="${SAGE_SET_SKIP_SMUDGE:-0}"
+
 # 主函数
 main() {
     # 运行日志管理
