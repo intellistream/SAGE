@@ -10,7 +10,7 @@ import time
 
 import ray
 
-from sage.kernel.utils.ray.ray_utils import init_ray_with_sage_temp
+from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
 
 
 def verify_optimization():
@@ -20,7 +20,7 @@ def verify_optimization():
 
     # 初始化Ray
     if not ray.is_initialized():
-        init_ray_with_sage_temp(ignore_reinit_error=True)
+        ensure_ray_initialized()
         print("✅ Ray initialized")
 
     try:
