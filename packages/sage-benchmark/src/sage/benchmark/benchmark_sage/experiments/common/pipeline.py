@@ -748,11 +748,11 @@ class SchedulingBenchmarkPipeline:
 
     def _get_retriever_config(self) -> dict[str, Any]:
         """Get retriever configuration.
-        
+
         支持两种 retriever 类型:
         - simple: 使用内置 SAMPLE_KNOWLEDGE_BASE + 远程 embedding 服务
         - wiki18_faiss: 使用 Wiki18FAISSRetriever (需要预构建 FAISS 索引)
-        
+
         配置示例 (在 BenchmarkConfig 中):
             retriever_type="wiki18_faiss"
             wiki18_index_path="/path/to/wiki18_maxp.index"

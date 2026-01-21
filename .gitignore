@@ -254,3 +254,4 @@ docs/*
 # Benchmark实验结果目录
 # ============================================
 packages/sage-benchmark/src/sage/benchmark/benchmark_sage/experiments/*/results/
+results/

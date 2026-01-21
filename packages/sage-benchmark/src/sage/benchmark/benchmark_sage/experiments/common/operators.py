@@ -396,7 +396,7 @@ class MetricsSink(SinkFunction):
     # Adaptive-RAG 等复杂场景可能需要多轮 LLM 调用，P99 可达 150+ 秒
     # 设置 drain_timeout=300s（总等待时间）和 quiet_period=90s（无数据静默期）
     drain_timeout: float = 200
-    drain_quiet_period: float = 30
+    drain_quiet_period: float = 90
 
     def __init__(
         self,
@@ -423,6 +423,8 @@ class MetricsSink(SinkFunction):
         self.fail_count = 0
         self.latencies: list[float] = []
         self.node_stats: dict[str, int] = {}
+        # 算子级别统计：{"stage_1_FiQAFAISSRetriever": {"count": N, "total_time": T, "throughput": N/T}}
+        self.operator_stats: dict[str, dict[str, float]] = {}
 
         # 创建唯一的输出文件
         self._start_time = time.time()
@@ -471,6 +473,7 @@ class MetricsSink(SinkFunction):
                     "total_latency_ms",
                     task.total_latency * 1000 if hasattr(task, "total_latency") else 0,
                 ),
+                "stage_timings": getattr(task, "stage_timings", {}),
                 "timestamp": time.time(),
             }
             with open(self.metrics_output_file, "a") as f:
@@ -488,6 +491,20 @@ class MetricsSink(SinkFunction):
         try:
             elapsed = time.time() - self._start_time
             avg_latency = sum(self.latencies) / len(self.latencies) if self.latencies else 0
+            
+            # 计算每个算子的吞吐量
+            operator_throughput = {}
+            for stage_key, stats in self.operator_stats.items():
+                count = stats["count"]
+                total_time_sec = stats["total_time"]  # 已经是秒为单位
+                if total_time_sec > 0:
+                    operator_throughput[stage_key] = {
+                        "count": count,
+                        "total_time_sec": total_time_sec,
+                        "throughput_tasks_per_sec": count / total_time_sec,
+                        "avg_latency_ms": total_time_sec * 1000 / count,
+                    }
+            
             summary = {
                 "type": "summary",
                 "total_tasks": self.count,
@@ -497,6 +514,7 @@ class MetricsSink(SinkFunction):
                 "throughput": self.count / elapsed if elapsed > 0 else 0,
                 "avg_latency_ms": avg_latency,
                 "node_distribution": self.node_stats,
+                "operator_throughput": operator_throughput,
             }
             with open(self.metrics_output_file, "a") as f:
                 f.write(json.dumps(summary) + "\n")
@@ -534,8 +552,26 @@ class MetricsSink(SinkFunction):
         # 更新节点统计
         if state.node_id:
             self.node_stats[state.node_id] = self.node_stats.get(state.node_id, 0) + 1
+        
+        # 更新算子级别统计
+        if hasattr(state, "stage_timings"):
+            # DEBUG: 打印 stage_timings
+            if self.count <= 3:  # 只打印前3个任务
+                import sys
+                print(f"[DEBUG] Task {self.count} stage_timings: {state.stage_timings}", file=sys.stderr, flush=True)
+            
+            for stage_key, timing in state.stage_timings.items():
+                if "duration" in timing:
+                    if stage_key not in self.operator_stats:
+                        self.operator_stats[stage_key] = {"count": 0, "total_time": 0.0}
+                    self.operator_stats[stage_key]["count"] += 1
+                    # duration 已经是秒为单位
+                    self.operator_stats[stage_key]["total_time"] += timing["duration"]
 
         # 写入文件 (Remote 模式可用)
+        if self.count <= 3:  # DEBUG
+            import sys
+            print(f"[DEBUG execute] About to write task {self.count}, has stage_timings: {hasattr(state, 'stage_timings')}, value: {getattr(state, 'stage_timings', 'NO ATTR')}", file=sys.stderr, flush=True)
         self._write_task_to_file(state)
 
         # 记录到共享收集器 (仅 Local 模式有效)
@@ -951,6 +987,14 @@ class FiQAFAISSRetriever(MapFunction):
             traceback.print_exc()
 
         state.mark_completed()
+        
+        # DEBUG: FiQAFAISSRetriever - 记录 stage_timings
+        try:
+            with open("/tmp/operator_debug.log", "a") as f:
+                f.write(f"[FiQAFAISSRetriever] stage_timings: {getattr(state, 'stage_timings', 'NO ATTR')}\n")
+        except:
+            pass
+        
         return state
 
     def _save_retrieval_result(self, state: TaskState, retrieval_time: float) -> None:
