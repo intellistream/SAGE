@@ -15,7 +15,7 @@ import ray
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
 from sage.kernel.scheduler.node_selector import NodeSelector
-from sage.kernel.utils.ray.ray_utils import init_ray_with_sage_temp
+from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
 
 # ============================================================
 # 示例 1: 查看集群节点信息
@@ -27,7 +27,7 @@ def example_inspect_cluster():
 
     # 初始化 Ray（如果还没初始化）
     if not ray.is_initialized():
-        init_ray_with_sage_temp()
+        ensure_ray_initialized()
 
     # 获取所有节点
     nodes = ray.nodes()

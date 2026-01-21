@@ -28,7 +28,6 @@ sys.path.insert(0, os.path.abspath(sage_kernel_src))
 try:
     from sage.kernel.utils.ray.ray_utils import (  # noqa: F401
         ensure_ray_initialized,
-        init_ray_with_sage_temp,
     )
     from sage.platform.queue import (
         BaseQueueDescriptor,  # noqa: F401
@@ -378,7 +377,7 @@ class TestRayQueueConcurrency:
         print("\n=== 测试Ray队列Actor通信 ===")
 
         if not ray.is_initialized():
-            init_ray_with_sage_temp(ignore_reinit_error=True)
+            ensure_ray_initialized()
 
         try:
             # 创建Ray队列描述符
