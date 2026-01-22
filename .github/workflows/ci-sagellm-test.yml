@@ -89,6 +89,9 @@ jobs:
           # These provide sage_libs.* implementations
           pip install isage-agentic isage-finetune isage-rag isage-eval isage-privacy isage-safety
 
+          # Install data management package (provides sage.data.*)
+          pip install isage-data
+
           # Install ANNS and vector database packages for tests
           pip install isage-vdb chromadb pymilvus
 
@@ -111,6 +114,9 @@ jobs:
 
           # Install torch for tests that import HFClient or other torch-dependent modules
           pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+          # Install transformers for HFClient tests
+          pip install transformers
 
           # Install datasets for agent training tests
           pip install datasets
