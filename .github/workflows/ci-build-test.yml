@@ -137,6 +137,22 @@ jobs:
           echo "✅ 安装完成"
         timeout-minutes: 25
 
+      - name: Install Optional Dependencies
+        run: |
+          echo "📦 安装可选依赖（用于测试）..."
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # 安装可选的算法库（测试需要）
+          pip install --no-cache-dir \
+            isage-agentic \
+            isage-finetune \
+            isage-rag \
+            isage-eval \
+            isage-privacy \
+            isage-safety
+
+          echo "✅ 可选依赖安装完成"
+
       - name: Verify PyPI Packages
         run: |
           echo "📦 验证独立 PyPI 包安装状态..."
