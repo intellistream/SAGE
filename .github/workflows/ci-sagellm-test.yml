@@ -109,6 +109,12 @@ jobs:
         run: |
           pip install pytest pytest-cov pytest-timeout pytest-xdist
 
+          # Install torch for tests that import HFClient or other torch-dependent modules
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+          # Install datasets for agent training tests
+          pip install datasets
+
       - name: Run SageLLM Mock Tests
         run: |
           echo "🧪 Running SageLLM mock backend tests..."
