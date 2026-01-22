@@ -152,7 +152,8 @@ jobs:
             isage-rag \
             isage-eval \
             isage-privacy \
-            isage-safety
+            isage-safety \
+            isage-data
 
           # 安装向量数据库SDK（测试需要）
           pip install --no-cache-dir \
@@ -169,7 +170,15 @@ jobs:
             boto3 \
             datasets \
             torch \
-            torchvision
+            torchvision \
+            transformers \
+            peft \
+            numpy
+
+          # 安装测试依赖（MCP server tests需要）
+          pip install --no-cache-dir \
+            fastapi \
+            httpx
 
           echo "✅ 可选依赖安装完成"
 
