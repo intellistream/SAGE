@@ -121,6 +121,12 @@ jobs:
           # Install datasets for agent training tests
           pip install datasets
 
+          # Install peft for LoRA fine-tuning in AgentSFTTrainer
+          pip install peft
+
+          # Install numpy for evaluator metrics
+          pip install numpy
+
       - name: Run SageLLM Mock Tests
         run: |
           echo "🧪 Running SageLLM mock backend tests..."
