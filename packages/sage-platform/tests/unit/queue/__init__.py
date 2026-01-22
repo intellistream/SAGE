@@ -1,3 +1,0 @@
-"""
-Queue descriptor tests
-"""

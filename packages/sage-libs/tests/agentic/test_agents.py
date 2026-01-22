@@ -56,7 +56,7 @@ class TestBochaSearch:
         assert search.url == "https://api.bochaai.com/v1/web-search"
         assert search.headers["Authorization"] == "test_key"  # pragma: allowlist secret
 
-    @patch("sage.libs.agentic.agents.agent.requests.request")
+    @patch("sage_libs.sage_agentic.agents.agent.requests.request")
     def test_run(self, mock_request):
         """测试搜索执行"""
         from sage_libs.sage_agentic.agents.agent import BochaSearch

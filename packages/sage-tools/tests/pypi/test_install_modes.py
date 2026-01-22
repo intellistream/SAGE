@@ -12,9 +12,8 @@ import pytest
 @pytest.mark.parametrize(
     "mode,description",
     [
-        ("minimal", "最小化安装 - 核心功能"),
-        ("standard", "标准安装 - 常用功能"),
         ("dev", "开发模式 - 开发工具"),
+        ("all", "完整安装 - 所有功能"),
     ],
 )
 def test_install_mode(mode, description):
@@ -30,10 +29,9 @@ def test_install_mode(mode, description):
         "packages/sage-common",
         "packages/sage-kernel",
         "packages/sage-tools",
+        "packages/sage-middleware",
+        "packages/sage-libs",
     ]
-
-    if mode in ["standard", "dev"]:
-        packages_to_check.extend(["packages/sage-middleware", "packages/sage-libs"])
 
     # 检查所有必需的包目录是否存在且有pyproject.toml
     for package in packages_to_check:
@@ -66,9 +64,8 @@ def test_install_mode(mode, description):
 def main():
     """主测试函数"""
     modes = {
-        "minimal": "最小化安装 - 核心功能",
-        "standard": "标准安装 - 常用功能",
         "dev": "开发模式 - 开发工具",
+        "all": "完整安装 - 所有功能",
     }
 
     results = {}

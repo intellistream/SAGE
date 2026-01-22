@@ -435,7 +435,8 @@ class TestAdapterRegistryReActIntegration:
 
     def test_registry_has_react_planner(self):
         """Test that registry contains ReAct planner."""
-        from sage.benchmark.benchmark_agent.adapter_registry import get_adapter_registry
+        pytest.importorskip("sage_benchmark", reason="isage-benchmark not installed")
+        from sage_benchmark.benchmark_agent.adapter_registry import get_adapter_registry
 
         registry = get_adapter_registry()
         strategies = registry.list_strategies()
@@ -445,7 +446,8 @@ class TestAdapterRegistryReActIntegration:
 
     def test_create_react_planner_from_registry(self):
         """Test creating ReAct planner from registry."""
-        from sage.benchmark.benchmark_agent.adapter_registry import get_adapter_registry
+        pytest.importorskip("sage_benchmark", reason="isage-benchmark not installed")
+        from sage_benchmark.benchmark_agent.adapter_registry import get_adapter_registry
 
         registry = get_adapter_registry()
         planner = registry.get("planner.react")
@@ -455,8 +457,9 @@ class TestAdapterRegistryReActIntegration:
 
     def test_react_planner_plan_method(self):
         """Test ReAct planner's plan method through adapter."""
-        from sage.benchmark.benchmark_agent.adapter_registry import get_adapter_registry
-        from sage.benchmark.benchmark_agent.experiments.planning_exp import PlanningTask
+        pytest.importorskip("sage_benchmark", reason="isage-benchmark not installed")
+        from sage_benchmark.benchmark_agent.adapter_registry import get_adapter_registry
+        from sage_benchmark.benchmark_agent.experiments.planning_exp import PlanningTask
 
         registry = get_adapter_registry()
         planner = registry.get("planner.react")
