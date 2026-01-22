@@ -1,3 +1,0 @@
-"""
-sage-platform tests
-"""

@@ -81,6 +81,19 @@ jobs:
 
           echo "✅ SAGE packages installed"
 
+      - name: Install L3 Independent Packages
+        run: |
+          echo "📦 Installing L3 domain-specific packages (isage-* namespace)..."
+
+          # Install independent L3 algorithm and domain packages
+          # These provide sage_libs.* implementations
+          pip install isage-agentic isage-finetune isage-rag isage-eval isage-privacy isage-safety
+
+          # Install ANNS and vector database packages for tests
+          pip install isage-vdb chromadb pymilvus
+
+          echo "✅ L3 packages installed"
+
       - name: Install isagellm
         run: |
           echo "🚀 Installing isagellm (SageLLM inference engine)..."

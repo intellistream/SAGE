@@ -16,8 +16,9 @@ from datasets import Dataset
 from sage.data.sources.agent_sft import AgentSFTDataLoader
 from sage.data.sources.agent_sft.schemas import AgentSFTDialog
 from sage.data.sources.agent_tools import AgentToolsDataLoader
-from sage.libs.finetune.data import format_alpaca_sample, format_conversation_sample
 
+# Note: format_alpaca_sample and format_conversation_sample are no longer available
+# in sage_libs.sage_finetune. Using inline implementations instead.
 from .data_formatter import AgentSFTFormatter
 
 logger = logging.getLogger(__name__)
@@ -324,14 +325,17 @@ class AgentDialogProcessor:
             return formatted["text"]
 
         if {"instruction", "output"}.issubset(formatted.keys()):
-            normalized = format_alpaca_sample(
-                {
-                    "instruction": formatted["instruction"],
-                    "input": formatted.get("input", ""),
-                    "output": formatted["output"],
-                }
-            )
-            return normalized["text"]
+            # Inline implementation of format_alpaca_sample
+            instruction = formatted["instruction"]
+            input_text = formatted.get("input", "")
+            output = formatted["output"]
+
+            if input_text:
+                text = f"### Instruction:\n{instruction}\n\n### Input:\n{input_text}\n\n### Response:\n{output}"
+            else:
+                text = f"### Instruction:\n{instruction}\n\n### Response:\n{output}"
+
+            return text
 
         if "conversations" in formatted:
             conversations = []
@@ -341,8 +345,20 @@ class AgentDialogProcessor:
                 role = self._normalize_role(role)
                 conversations.append({"role": role, "content": value})
 
-            normalized = format_conversation_sample({"conversations": conversations})
-            return normalized["text"]
+            # Inline implementation of format_conversation_sample
+            text_parts = []
+            for conv in conversations:
+                role = conv["role"]
+                content = conv["content"]
+                if role == "user":
+                    text_parts.append(f"User: {content}")
+                elif role == "assistant":
+                    text_parts.append(f"Assistant: {content}")
+                else:
+                    text_parts.append(f"{role.capitalize()}: {content}")
+
+            text = "\n\n".join(text_parts)
+            return text
 
         raise ValueError("Unsupported formatted sample structure")
 

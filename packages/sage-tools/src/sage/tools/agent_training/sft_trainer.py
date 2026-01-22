@@ -18,8 +18,8 @@ from transformers import (
     TrainingArguments,
 )
 
-# Import SIAS components from their new location
-from sage.libs.sias import CoresetSelector, OnlineContinualLearner
+# Import SIAS components from middleware (they live in L4, not L3)
+from sage.middleware.components.sage_sias import CoresetSelector, OnlineContinualLearner
 
 from .config import AgentSFTConfig
 from .dialog_processor import AgentDialogProcessor, ProcessedDialog
