@@ -167,7 +167,9 @@ jobs:
             zhipuai \
             cohere \
             boto3 \
-            datasets
+            datasets \
+            torch \
+            torchvision
 
           echo "✅ 可选依赖安装完成"
 

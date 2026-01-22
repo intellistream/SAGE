@@ -7,7 +7,6 @@ This validates the configuration file added/modified in commit 12aec700c63407e1f
 import os
 
 import pytest
-from sage_libs.sage_agentic.agents.mcp.registry import MCPRegistry
 
 from sage.common.utils.config.loader import load_config
 
@@ -227,6 +226,9 @@ class TestConfigWithComponents:
 
         # Should be able to create registry (even if tool import fails)
         try:
+            # Try to import MCPRegistry (optional dependency)
+            from sage_libs.sage_agentic.agents.mcp.registry import MCPRegistry
+
             registry = MCPRegistry()
             assert registry is not None
 
@@ -237,5 +239,8 @@ class TestConfigWithComponents:
                 assert "class" in tool_config
                 assert "init_kwargs" in tool_config
 
+        except ImportError:
+            # isage-agentic not installed, skip MCP registry test
+            pytest.skip("sage_libs.sage_agentic not available (optional dependency)")
         except Exception as e:
             pytest.fail(f"Registry creation failed: {e}")
