@@ -155,8 +155,18 @@ class LLMClient:
             try:
                 # Use /models endpoint for health check (works for OpenAI-compatible APIs)
                 resp = httpx.get(f"{self.config.api_base}/models", timeout=5.0)
-                if resp.status_code not in (200, 401, 403):
-                    # 401/403 means the endpoint is reachable but auth failed (which is OK for health check)
+                if resp.status_code == 200:
+                    # Service is available and accessible
+                    pass
+                elif resp.status_code in (401, 403):
+                    # Service exists but requires authentication - skip tests without valid API key
+                    logger.warning(
+                        f"{self.config.name}: Authentication required (status {resp.status_code}), skipping tests"
+                    )
+                    self._available = False
+                    return False
+                else:
+                    # Other error status
                     logger.warning(
                         f"{self.config.name}: Health check failed (status {resp.status_code})"
                     )

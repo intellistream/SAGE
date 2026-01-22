@@ -317,7 +317,8 @@ class TestGorillaAdapterRegistry:
 
     def test_registry_has_gorilla(self):
         """Test that AdapterRegistry has gorilla selector registered."""
-        from sage.benchmark.benchmark_agent.adapter_registry import get_adapter_registry
+        pytest.importorskip("sage_benchmark", reason="isage-benchmark not installed")
+        from sage_benchmark.benchmark_agent.adapter_registry import get_adapter_registry
 
         registry = get_adapter_registry()
         strategies = registry.list_strategies()
