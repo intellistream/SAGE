@@ -127,7 +127,7 @@ class RayTask(BaseTask):
                 else:
                     # 最后一次：短暂阻塞（0.1秒）
                     self.input_buffer.put(packet, block=True, timeout=0.1)  # type: ignore[union-attr]
-                
+
                 # 成功：更新计数并返回
                 self.packet_count += 1
                 if attempt > 0:
@@ -135,11 +135,11 @@ class RayTask(BaseTask):
                         f"RayTask.put_packet succeeded for {self.ctx.name} after {attempt + 1} attempts"
                     )
                 return True
-                
+
             except Full:
                 # 队列满：非最后一次则重试
                 if attempt < max_retries - 1:
-                    backoff_time = 0.01 * (2 ** attempt)  # 指数退避：10ms, 20ms, 40ms...
+                    backoff_time = 0.01 * (2**attempt)  # 指数退避：10ms, 20ms, 40ms...
                     self.logger.debug(
                         f"RayTask.put_packet: Queue full for {self.ctx.name}, "
                         f"retry {attempt + 1}/{max_retries} after {backoff_time:.3f}s"
@@ -153,7 +153,7 @@ class RayTask(BaseTask):
                     )
                     self.error_count += 1
                     return False
-                    
+
             except Exception as e:
                 # 其他异常：直接失败
                 self.logger.error(
@@ -161,7 +161,7 @@ class RayTask(BaseTask):
                 )
                 self.error_count += 1
                 return False
-        
+
         # 不应到达此处
         return False
 
