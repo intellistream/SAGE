@@ -154,6 +154,21 @@ jobs:
             isage-privacy \
             isage-safety
 
+          # 安装向量数据库SDK（测试需要）
+          pip install --no-cache-dir \
+            pymilvus \
+            chromadb
+
+          # 安装AI工具SDK（测试需要）
+          pip install --no-cache-dir \
+            easyocr \
+            ollama \
+            tenacity \
+            zhipuai \
+            cohere \
+            boto3 \
+            datasets
+
           echo "✅ 可选依赖安装完成"
 
       - name: Verify PyPI Packages
