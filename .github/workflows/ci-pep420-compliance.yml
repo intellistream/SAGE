@@ -97,7 +97,6 @@ jobs:
         run: |
           # Install minimal set for testing
           pip install -e packages/sage-common --no-deps
-          pip install -e packages/sage-llm-core --no-deps
           pip install -e packages/sage-platform --no-deps
           pip install -e packages/sage-kernel --no-deps
           pip install -e packages/sage-libs --no-deps
