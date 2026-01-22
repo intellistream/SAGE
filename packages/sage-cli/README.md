@@ -2,6 +2,9 @@
 
 > **Unified Command Line Interface for SAGE Platform**
 
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](../../LICENSE)
+
 SAGE CLI (`sage-cli`) is the unified command-line interface for the SAGE (Streaming-Augmented
 Generative Execution) platform. It provides a comprehensive set of commands for managing clusters,
 deploying applications, and developing with SAGE.
@@ -14,6 +17,23 @@ deploying applications, and developing with SAGE.
 - `docs/governance/PR_CHECKLIST.md`
 - `docs/governance/SELF_HOSTED_RUNNER.md`
 - `docs/governance/TODO.md`
+
+## 📋 Overview
+
+**SAGE CLI** is the unified command-line interface for SAGE platform, providing commands for:
+
+- **Cluster Management**: Start/stop Ray clusters, manage head/worker nodes
+- **LLM Services**: Launch and manage LLM inference services
+- **Development**: Tools for testing, quality checks, and project management
+- **Monitoring**: System diagnostics and status checks
+
+## ✨ Features
+
+- **Unified Interface**: Single `sage` command for all platform operations
+- **Cluster Orchestration**: Full Ray cluster lifecycle management
+- **LLM Integration**: Start LLM services with automatic model loading
+- **Interactive Chat**: Built-in chat interface for testing
+- **Development Tools**: Via separate `sage-dev` command from sage-tools package
 
 ## 🚀 Installation
 
@@ -80,21 +100,46 @@ Development command groups include:
 - `sage-dev resource` - Resource management
 - `sage-dev github` - GitHub utilities
 
-## 🔧 Quick Start
+## 📖 Quick Start
+
+### Basic Commands
 
 ```bash
 # Check system status
 sage doctor
 
+# View version
+sage version
+
+# Get help
+sage --help
+sage <command> --help
+```
+
+### Cluster Management
+
+```bash
 # Start a cluster
 sage cluster start
 
 # View cluster status
 sage cluster status
 
-# Get help
-sage --help
-sage <command> --help
+# Stop cluster
+sage cluster stop
+```
+
+### LLM Service
+
+```bash
+# Start LLM service
+sage llm start --model Qwen/Qwen2.5-7B-Instruct
+
+# Check status
+sage llm status
+
+# Interactive chat
+sage chat
 ```
 
 ### Development Tools
@@ -111,7 +156,55 @@ sage-dev quality check
 sage-dev project test
 ```
 
-## 📚 Documentation
+## � Configuration
+
+SAGE CLI reads configuration from:
+
+- `~/.sage/config.yaml` - User configuration
+- `./config/config.yaml` - Project configuration
+- Environment variables: `SAGE_*`
+
+```yaml
+# config.yaml example
+cluster:
+  head_node: localhost
+  workers: 4
+
+llm:
+  model: Qwen/Qwen2.5-7B-Instruct
+  port: 8001
+```
+
+## 📦 Package Structure
+
+```
+sage-cli/
+├── src/
+│   └── sage/
+│       └── cli/
+│           ├── commands/      # Command implementations
+│           ├── cluster/       # Cluster management
+│           └── llm/           # LLM service commands
+├── tests/
+├── pyproject.toml
+└── README.md
+```
+
+## 🧪 Testing
+
+```bash
+# Run CLI tests
+pytest packages/sage-cli/tests/
+
+# Test specific command
+sage --help
+sage cluster --help
+
+# Run integration tests
+sage-dev project test --package sage-cli
+```
+
+## �📚 Documentation
 
 For detailed documentation, see:
 

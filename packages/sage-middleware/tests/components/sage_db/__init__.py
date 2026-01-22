@@ -1,1 +1,0 @@
-"""SAGE DB component tests."""

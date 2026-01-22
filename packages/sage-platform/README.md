@@ -5,7 +5,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](../../LICENSE)
 
-## 📋 概述
+## 📋 Overview
 
 **SAGE Platform** 提供核心基础设施抽象，位于基础层（`sage-common`）和执行引擎（`sage-kernel`）之间。这个第二层平台服务提供：
 
@@ -33,13 +33,84 @@
 
 该包使应用程序代码能够在本地和分布式执行模式之间无缝切换。
 
-## ✨ 核心特性
+## ✨ Features
 
 - **多态队列**：Python Queue、Ray Queue 和 RPC Queue 的单一 API
 - **可插拔存储**：内存、Redis 和自定义存储后端
 - **服务框架**：构建平台服务的基类
 - **类型安全**：完整的类型提示和运行时验证
 - **零开销**：本地执行的最小抽象成本
+
+## 🚀 Quick Start
+
+### 使用队列
+
+```python
+from sage.platform.queue import PythonQueueDescriptor
+
+# 创建队列
+queue_desc = PythonQueueDescriptor(maxsize=100)
+queue_desc.put("message")
+item = queue_desc.get()
+print(item)  # "message"
+```
+
+### 使用存储
+
+```python
+from sage.platform.storage.kv_backend import DictKVBackend
+
+# 创建存储
+backend = DictKVBackend()
+backend.set("user:123", {"name": "Alice", "age": 30})
+user = backend.get("user:123")
+print(user["name"])  # "Alice"
+```
+
+### 创建服务
+
+```python
+from sage.platform.service import BaseService
+
+class MyService(BaseService):
+    def setup(self):
+        self.logger.info("Service starting...")
+
+    def process(self, data):
+        return f"Processed: {data}"
+
+    def teardown(self):
+        self.logger.info("Service stopped")
+
+service = MyService()
+result = service.call("input data")
+```
+
+## 🚀 Installation
+
+```bash
+# Basic installation
+pip install isage-platform
+
+# Development installation
+cd packages/sage-platform
+pip install -e .
+```
+
+## 📦 Package Structure
+
+```
+sage-platform/
+├── src/
+│   └── sage/
+│       └── platform/
+│           ├── queue/          # Queue abstractions
+│           ├── storage/        # Storage backends
+│           └── service/        # Service base classes
+├── tests/
+├── pyproject.toml
+└── README.md
+```
 
 ## 组件
 
@@ -243,7 +314,7 @@ result = service.process({"data": [1, 2, 3]})
 print(result)  # {"status": "success", "result": [2, 4, 6]}
 ```
 
-## 🔧 配置
+## 🔧 Configuration
 
 服务可以通过环境变量或配置文件进行配置：
 
@@ -306,7 +377,7 @@ L5: sage-cli            ← 命令行接口
 - ✅ 正确的依赖方向
 - ✅ 更好的组件间可重用性
 
-## 🧪 测试
+## 🧪 Testing
 
 ```bash
 # 运行单元测试
@@ -319,18 +390,18 @@ pytest tests/integration
 pytest --cov=sage.platform --cov-report=html
 ```
 
-## 📚 文档
+## 📚 Documentation
 
 - **用户指南**：查看 [docs-public](https://intellistream.github.io/SAGE-Pub/guides/packages/sage-platform/)
 - **API 参考**：查看包的文档字符串和类型提示
 - **架构**：查看
   [平台层设计](https://intellistream.github.io/SAGE-Pub/concepts/architecture/design-decisions/l2-platform-layer/)
 
-## 🤝 贡献
+## 🤝 Contributing
 
 欢迎贡献！请查看 [CONTRIBUTING.md](../../CONTRIBUTING.md) 了解指南。
 
-## 📄 许可证
+## 📄 License
 
 该项目采用 MIT 许可证 - 详情请查看 [LICENSE](../../LICENSE) 文件。
 

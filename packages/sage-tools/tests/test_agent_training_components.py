@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
-# Import SIAS components from new location
-from sage.libs.sias import CoresetSelector, OnlineContinualLearner
+# Import SIAS components from middleware
+from sage.middleware.components.sage_sias import CoresetSelector, OnlineContinualLearner
 from sage.tools.agent_training.data_formatter import AgentSFTFormatter
 from sage.tools.agent_training.dialog_processor import AgentDialogProcessor, ProcessedDialog
 
@@ -135,18 +135,27 @@ def test_online_continual_learner_replays_buffer_samples():
 
 @pytest.mark.unit
 def test_dialog_processor_emits_metrics_for_coreset():
-    processor = AgentDialogProcessor()
-    sample = ProcessedDialog(
-        dialog_id="dlg-metrics",
-        task_type="tool_selection",
-        text="plan tool call plan tool call",
-        metadata={"loss": 0.5},
-        target_tools=["web_search"],
-        split="train",
-        source="agent_sft",
-    )
+    from unittest.mock import MagicMock, patch
 
-    metrics = processor._compute_dialog_metrics(sample)  # pylint: disable=protected-access
-    assert metrics["loss"] == pytest.approx(0.5)
-    assert metrics["token_length"] > 0
-    assert 0 < metrics["lexical_diversity"] <= 1
+    # Mock AgentToolsDataLoader to avoid data directory dependency
+    mock_loader = MagicMock()
+    mock_loader.tool_definitions = {}  # Empty tool definitions
+
+    with patch(
+        "sage.tools.agent_training.dialog_processor.AgentToolsDataLoader", return_value=mock_loader
+    ):
+        processor = AgentDialogProcessor()
+        sample = ProcessedDialog(
+            dialog_id="dlg-metrics",
+            task_type="tool_selection",
+            text="plan tool call plan tool call",
+            metadata={"loss": 0.5},
+            target_tools=["web_search"],
+            split="train",
+            source="agent_sft",
+        )
+
+        metrics = processor._compute_dialog_metrics(sample)  # pylint: disable=protected-access
+        assert metrics["loss"] == pytest.approx(0.5)
+        assert metrics["token_length"] > 0
+        assert 0 < metrics["lexical_diversity"] <= 1

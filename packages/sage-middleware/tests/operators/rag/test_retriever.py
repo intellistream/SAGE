@@ -16,6 +16,14 @@ except ImportError as e:
     RETRIEVER_AVAILABLE = False
     pytestmark = pytest.mark.skip(f"Retriever module not available: {e}")
 
+# 检查 pymilvus.model 是否可用（新版本）
+try:
+    import pymilvus.model  # noqa: F401
+
+    PYMILVUS_MODEL_AVAILABLE = True
+except (ImportError, AttributeError):
+    PYMILVUS_MODEL_AVAILABLE = False
+
 
 @pytest.fixture
 def chroma_config():
@@ -735,6 +743,9 @@ def mock_sparse_embeddings():
 
 
 @pytest.mark.unit
+@pytest.mark.skipif(
+    not PYMILVUS_MODEL_AVAILABLE, reason="pymilvus.model not available (requires pymilvus>=2.3.0)"
+)
 class TestMilvusSparseRetriever:
     """测试MilvusSparseRetriever类"""
 
