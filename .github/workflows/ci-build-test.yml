@@ -102,6 +102,9 @@ jobs:
           SAGE_SKIP_CPP_EXTENSIONS=false
           SAGE_LOG_LEVEL=INFO
           SAGE_TEST_MODE=true
+
+          # Ray Configuration (fix ray.dag.compiled_dag_node error)
+          RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO=0
           EOF
 
           echo "✅ .env 文件创建完成"
