@@ -691,7 +691,11 @@ class TestErrorHandling:
         # 这里测试目录创建失败的情况
         with sage_temp_directory() as temp_dir:
             invalid_file_path = os.path.join(temp_dir, "invalid", "path", "test.log")
-            with patch("logging.FileHandler", side_effect=OSError("Cannot create file")):
+            # 需要patch CustomLogger模块中的RotatingFileHandler
+            with patch(
+                "sage.common.utils.logging.custom_logger.RotatingFileHandler",
+                side_effect=OSError("Cannot create file"),
+            ):
                 logger = CustomLogger([(invalid_file_path, "INFO")])
 
                 # logger应该能正常创建，但文件handler为None

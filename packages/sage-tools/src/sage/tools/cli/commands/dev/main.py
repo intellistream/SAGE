@@ -391,26 +391,35 @@ def quality(
         console.print("📚 运行 dev-notes 文档规范检查...")
         console.print("=" * 60)
         try:
+            from pathlib import Path
+
             from sage.tools.dev.tools.devnotes_checker import DevNotesChecker
 
-            checker = DevNotesChecker(root_dir=str(project_dir))
-            if all_files:
-                result = checker.check_all()
+            # 检查 dev-notes 目录是否存在（SAGE-Pub 独立仓库）
+            devnotes_dir = project_dir / "docs-public" / "docs_src" / "dev-notes"
+            if not devnotes_dir.exists():
+                console.print(
+                    "[yellow]⚠️  dev-notes 目录不存在，跳过检查（需要 SAGE-Pub 仓库）[/yellow]"
+                )
             else:
-                result = checker.check_changed()
+                checker = DevNotesChecker(root_dir=str(project_dir))
+                if all_files:
+                    result = checker.check_all()
+                else:
+                    result = checker.check_changed()
 
-            if result.get("passed", False):
-                console.print("[green]✅ Dev-notes 文档规范检查通过[/green]")
-            else:
-                issues = result.get("issues", [])
-                console.print(f"[red]❌ 发现 {len(issues)} 个文档问题[/red]")
-                for issue in issues[:5]:  # 只显示前5个
-                    console.print(
-                        f"   • {issue.get('file', 'unknown')}: {issue.get('message', '')}"
-                    )
-                if len(issues) > 5:
-                    console.print(f"   ... 还有 {len(issues) - 5} 个问题")
-                extra_checks_passed = False
+                if result.get("passed", False):
+                    console.print("[green]✅ Dev-notes 文档规范检查通过[/green]")
+                else:
+                    issues = result.get("issues", [])
+                    console.print(f"[red]❌ 发现 {len(issues)} 个文档问题[/red]")
+                    for issue in issues[:5]:  # 只显示前5个
+                        console.print(
+                            f"   • {issue.get('file', 'unknown')}: {issue.get('message', '')}"
+                        )
+                    if len(issues) > 5:
+                        console.print(f"   ... 还有 {len(issues) - 5} 个问题")
+                    extra_checks_passed = False
         except Exception as e:
             console.print(f"[yellow]⚠️  文档检查失败: {e}[/yellow]")
             if not warn_only:
