@@ -4,8 +4,6 @@ Remote Environment Heartbeat Fault Tolerance Implementation
 为 RayTask 添加心跳发送功能,支持 Remote 环境下的故障检测和恢复。
 """
 
-from queue import Full
-from time import sleep
 from typing import TYPE_CHECKING, Any
 
 import ray
