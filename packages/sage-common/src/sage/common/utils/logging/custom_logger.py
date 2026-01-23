@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import threading
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from .custom_formatter import CustomFormatter  # 假设有一个自定义格式化器
@@ -267,12 +268,22 @@ class CustomLogger:
                 handler.setFormatter(formatter)
                 return handler
             else:
-                # 文件输出
+                # 文件输出 - 使用 RotatingFileHandler 实现日志轮换
                 file_path = config["resolved_path"]
                 log_dir = os.path.dirname(file_path)
                 if log_dir:  # 如果有目录路径
                     os.makedirs(log_dir, exist_ok=True)
-                handler = logging.FileHandler(file_path, encoding="utf-8")
+
+                # 日志轮换配置
+                # maxBytes: 单个文件最大 50MB
+                # backupCount: 最多保留 5 个旧文件（总大小约 250MB）
+                handler = RotatingFileHandler(
+                    filename=file_path,
+                    mode="a",
+                    maxBytes=50 * 1024 * 1024,  # 50MB
+                    backupCount=5,
+                    encoding="utf-8",
+                )
                 handler.setFormatter(formatter)
                 return handler
 
