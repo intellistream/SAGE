@@ -120,7 +120,15 @@ jobs:
           echo "🔍 发现支持测试模式的 examples..."
 
           # 查找所有支持 SAGE_TEST_MODE 或 SAGE_EXAMPLES_MODE 的文件
-          examples=$(grep -r "SAGE_TEST_MODE\|SAGE_EXAMPLES_MODE" packages/*/examples --include="*.py" -l | sort)
+          # 使用 || true 防止 grep 没有匹配时返回 exit code 1
+          examples=$(grep -r "SAGE_TEST_MODE\|SAGE_EXAMPLES_MODE" packages/*/examples --include="*.py" -l 2>/dev/null | sort || true)
+
+          if [ -z "$examples" ]; then
+            echo "⚠️  未发现支持测试模式的 examples"
+            echo "count=0" >> $GITHUB_OUTPUT
+            echo "" > /tmp/testable_examples.txt
+            exit 0
+          fi
 
           echo "发现的 examples:"
           echo "$examples" | while read -r file; do
@@ -149,7 +157,17 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
 
           # 读取 examples 列表
+          if [ ! -f /tmp/testable_examples.txt ]; then
+            echo "⚠️  未发现 testable examples 列表文件"
+            exit 0
+          fi
+
           examples=$(cat /tmp/testable_examples.txt)
+
+          if [ -z "$examples" ]; then
+            echo "⚠️  没有需要测试的 examples"
+            exit 0
+          fi
 
           # 计数器
           passed=0

@@ -368,9 +368,23 @@ check_pip_mode_requirements() {
         return 1
     fi
 
-    local python_version=$(python3 --version 2>&1 | cut -d' ' -f2)
-    local python_major=$(echo $python_version | cut -d. -f1)
-    local python_minor=$(echo $python_version | cut -d. -f2)
+    # 更健壮的版本提取方法（兼容各种系统）
+    local python_version=$(python3 --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+
+    # 如果提取失败，尝试备用方法
+    if [ -z "$python_version" ]; then
+        python_version=$(python3 --version 2>&1 | awk '{print $2}')
+    fi
+
+    # 仍然失败，报错
+    if [ -z "$python_version" ] || [ "$python_version" = "line" ]; then
+        echo -e "${CROSS} 无法检测 Python 版本，请检查 python3 命令"
+        echo -e "${DIM}输出: $(python3 --version 2>&1)${NC}"
+        return 1
+    fi
+
+    local python_major=$(echo "$python_version" | cut -d. -f1)
+    local python_minor=$(echo "$python_version" | cut -d. -f2)
 
     echo -e "${CHECK} Python 版本: $python_version"
 

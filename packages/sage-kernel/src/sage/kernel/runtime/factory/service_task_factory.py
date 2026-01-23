@@ -59,7 +59,9 @@ class ServiceTaskFactory:
                 # Use PYTHONPATH environment variable so Ray workers can find custom modules
                 runtime_env = {"env_vars": {"PYTHONPATH": ":".join(self.extra_python_paths)}}
                 ray_options["runtime_env"] = runtime_env
-                logger.info(f"[ServiceTaskFactory] Creating RayServiceTask with runtime_env: {runtime_env}")
+                logger.info(
+                    f"[ServiceTaskFactory] Creating RayServiceTask with runtime_env: {runtime_env}"
+                )
 
             # 直接创建Ray Actor，传入ServiceFactory和ctx
             ray_service_task = RayServiceTask.options(**ray_options).remote(  # type: ignore[attr-defined]

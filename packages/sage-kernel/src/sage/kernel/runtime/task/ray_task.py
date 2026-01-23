@@ -4,8 +4,6 @@ Remote Environment Heartbeat Fault Tolerance Implementation
 为 RayTask 添加心跳发送功能,支持 Remote 环境下的故障检测和恢复。
 """
 
-from queue import Full
-from time import sleep
 from typing import TYPE_CHECKING, Any
 
 import ray
@@ -104,66 +102,33 @@ class RayTask(BaseTask):
 
     def put_packet(self, packet: "Packet", max_retries: int = 3):
         """
-        向任务的输入缓冲区放入数据包（带重试机制）
+        向任务的输入缓冲区放入数据包（阻塞模式）
 
         Args:
             packet: 要放入的数据包
-            max_retries: 最大重试次数（默认3次）
+            max_retries: 保留参数（兼容性，阻塞模式下不使用）
 
         Returns:
             True 如果成功，False 如果失败
 
         Note:
-            使用混合策略：
-            1. 前 N-1 次尝试非阻塞 + 指数退避
-            2. 最后一次尝试短时阻塞（0.1秒）
-            这样既保持高吞吐，又降低丢包率
+            使用完全阻塞模式，直到队列有空间可用
         """
-        for attempt in range(max_retries):
-            try:
-                if attempt < max_retries - 1:
-                    # 前 N-1 次：非阻塞尝试
-                    self.input_buffer.put(packet, block=False)  # type: ignore[union-attr]
-                else:
-                    # 最后一次：短暂阻塞（0.1秒）
-                    self.input_buffer.put(packet, block=True, timeout=0.1)  # type: ignore[union-attr]
-                
-                # 成功：更新计数并返回
-                self.packet_count += 1
-                if attempt > 0:
-                    self.logger.debug(
-                        f"RayTask.put_packet succeeded for {self.ctx.name} after {attempt + 1} attempts"
-                    )
-                return True
-                
-            except Full:
-                # 队列满：非最后一次则重试
-                if attempt < max_retries - 1:
-                    backoff_time = 0.01 * (2 ** attempt)  # 指数退避：10ms, 20ms, 40ms...
-                    self.logger.debug(
-                        f"RayTask.put_packet: Queue full for {self.ctx.name}, "
-                        f"retry {attempt + 1}/{max_retries} after {backoff_time:.3f}s"
-                    )
-                    sleep(backoff_time)
-                else:
-                    # 最后一次也失败：记录并返回失败
-                    self.logger.warning(
-                        f"RayTask.put_packet: Packet dropped for {self.ctx.name} "
-                        f"after {max_retries} retries (queue persistently full)"
-                    )
-                    self.error_count += 1
-                    return False
-                    
-            except Exception as e:
-                # 其他异常：直接失败
-                self.logger.error(
-                    f"RayTask.put_packet failed for {self.ctx.name}: {type(e).__name__}: {e}"
-                )
-                self.error_count += 1
-                return False
-        
-        # 不应到达此处
-        return False
+        try:
+            # 完全阻塞模式：等待直到队列有空间
+            self.input_buffer.put(packet, block=True)  # type: ignore[union-attr]
+            self.logger.debug(f"RayTask.put_packet succeeded for {self.ctx.name}")
+            # 成功：更新计数并返回
+            self.packet_count += 1
+            return True
+
+        except Exception as e:
+            # 其他异常：直接失败
+            self.logger.error(
+                f"RayTask.put_packet failed for {self.ctx.name}: {type(e).__name__}: {e}"
+            )
+            self.error_count += 1
+            return False
 
     def stop(self) -> None:
         """

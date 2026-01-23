@@ -97,6 +97,7 @@ try:
         head_app,
         job_app,
         jobmanager_app,
+        logs_app,
         version_app,
         worker_app,
     )
@@ -148,6 +149,12 @@ try:
             docs_app,
             name="docs",
             help="📚 文档管理 - 预览、构建和部署文档 (serve, build, install-deps, info)",
+        )
+    if logs_app:
+        app.add_typer(
+            logs_app,
+            name="logs",
+            help="📝 日志管理 - 清理和查看日志文件 (clean, list, info)",
         )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 platform 命令组: {e}[/yellow]")

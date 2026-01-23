@@ -81,6 +81,12 @@ except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 docs 命令: {e}[/yellow]")
     docs_app = None
 
+try:
+    from .logs import app as logs_app
+except ImportError as e:
+    console.print(f"[yellow]警告: 无法导入 logs 命令: {e}[/yellow]")
+    logs_app = None
+
 # 导出所有命令
 __all__ = [
     "cluster_app",
@@ -93,4 +99,5 @@ __all__ = [
     "version_app",
     "extensions_app",
     "docs_app",
+    "logs_app",
 ]
