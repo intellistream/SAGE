@@ -144,6 +144,78 @@ check_memory() {
     fi
 }
 
+# 检查是否在 conda base 环境
+check_conda_base_environment() {
+    echo -e "${BLUE}🔍 检查 Conda 环境...${NC}"
+
+    # 检查是否使用 conda
+    if [ -z "$CONDA_DEFAULT_ENV" ]; then
+        echo -e "${DIM}   未检测到 Conda 环境${NC}"
+        return 0  # 不使用 conda，跳过检查
+    fi
+
+    # 检查是否在 base 环境
+    if [ "$CONDA_DEFAULT_ENV" = "base" ]; then
+        echo -e "${YELLOW}   ⚠️  检测到您正在使用 Conda base 环境${NC}"
+        echo -e "${RED}   ❌ 不建议在 base 环境中安装 SAGE${NC}"
+        echo ""
+        echo -e "${YELLOW}   为什么不应该使用 base 环境：${NC}"
+        echo -e "${DIM}   • 可能导致环境污染和依赖冲突${NC}"
+        echo -e "${DIM}   • 影响其他项目的正常运行${NC}"
+        echo -e "${DIM}   • 难以卸载和清理${NC}"
+        echo ""
+        echo -e "${GREEN}   建议操作：${NC}"
+        echo -e "${DIM}   1. 创建专用 sage 环境：${NC}"
+        echo -e "      ${CYAN}conda create -n sage python=3.11 -y${NC}"
+        echo -e "      ${CYAN}conda activate sage${NC}"
+        echo -e ""
+        echo -e "${DIM}   2. 然后重新运行安装脚本：${NC}"
+        echo -e "      ${CYAN}./quickstart.sh --dev --yes${NC}"
+        echo ""
+
+        # 检查是否在 CI 环境
+        if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ] || [ -n "$GITLAB_CI" ]; then
+            echo -e "${YELLOW}   ⚠️  检测到 CI 环境，跳过交互式提示${NC}"
+            return 1  # CI 环境返回警告但继续
+        fi
+
+        # 提供交互式选项（仅在交互式终端）
+        if [ -t 0 ]; then  # 只在交互式终端中提示
+            read -p "是否自动创建并切换到 sage 环境? (y/N): " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                echo -e "${BLUE}🔧 正在创建 sage 环境...${NC}"
+                if conda create -n sage python=3.11 -y; then
+                    echo -e "${GREEN}✅ sage 环境创建成功${NC}"
+                    echo ""
+                    echo -e "${YELLOW}⚠️  请手动激活 sage 环境后重新运行安装：${NC}"
+                    echo -e "   ${CYAN}conda activate sage${NC}"
+                    echo -e "   ${CYAN}./quickstart.sh --dev --yes${NC}"
+                    exit 0
+                else
+                    echo -e "${RED}❌ 创建环境失败${NC}"
+                    return 1
+                fi
+            else
+                echo -e "${YELLOW}⚠️  继续在 base 环境安装可能导致问题${NC}"
+                read -p "确定要继续吗? (y/N): " -n 1 -r
+                echo
+                if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                    echo -e "${YELLOW}已取消安装${NC}"
+                    exit 0
+                fi
+            fi
+        else
+            # 非交互且非CI模式，仅警告
+            echo -e "${YELLOW}   ⚠️  非交互模式，请手动切换到专用环境${NC}"
+            return 1
+        fi
+    else
+        echo -e "${GREEN}   ✅ 使用专用环境: $CONDA_DEFAULT_ENV${NC}"
+        return 0
+    fi
+}
+
 # 检查 CUDA 可用性
 check_cuda_availability() {
     echo -e "${BLUE}🔍 检查 CUDA 环境...${NC}"
@@ -270,6 +342,16 @@ run_environment_prechecks() {
     local network_status="UNKNOWN"
     local memory_status="UNKNOWN"
     local cuda_status="UNKNOWN"
+    local conda_env_status="UNKNOWN"
+
+    # 检查 Conda base 环境（最优先）
+    if check_conda_base_environment; then
+        conda_env_status="PASS"
+    else
+        conda_env_status="WARN"
+        # base 环境警告但不阻止安装（用户可能选择继续）
+    fi
+    echo ""
 
     # 检查磁盘空间
     if check_disk_space; then

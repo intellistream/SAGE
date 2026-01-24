@@ -129,9 +129,13 @@ main() {
     # 3. 关键依赖检查
     print_test_header "📚 3. 关键依赖检查"
     run_test "numpy 可用" "python3 -c 'import numpy; print(numpy.__version__)'"
-    run_test "pandas 可用" "python3 -c 'import pandas'"
-    run_test "torch 可用" "python3 -c 'import torch'"
-    run_test "transformers 可用" "python3 -c 'import transformers'"
+
+    # 可选依赖（--dev 模式不包含，仅在 --full 模式中安装）
+    echo ""
+    echo -e "${DIM}以下为可选依赖，失败不影响核心功能：${NC}"
+    run_warning_test "pandas 可用" "python3 -c 'import pandas'"
+    run_warning_test "torch 可用" "python3 -c 'import torch'"
+    run_warning_test "transformers 可用" "python3 -c 'import transformers'"
 
     # 4. SAGE 子包版本一致性检查
     print_test_header "🔍 4. 版本一致性检查"

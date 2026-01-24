@@ -60,10 +60,11 @@ git checkout main-dev
 
 **`--dev` 模式会自动：**
 
-- ✅ 同步唯一的 Git submodule：`docs-public`（无需手动运行 `./manage.sh`）
 - ✅ 安装所有开发依赖（pytest, pre-commit, 代码检查工具等）
 - ✅ 配置 Git hooks（自动代码质量检查）
 - ✅ 安装 sage-dev 工具（用于维护和测试）
+
+> 💡 **注意**: 文档已迁移到独立的 [SAGE-Pub](https://github.com/intellistream/SAGE-Pub) 仓库。
 
 > 💡 **不确定该选哪种模式？** 请参考
 > [README.md 中的安装模式决策树](./README.md#-%E5%BA%94%E8%AF%A5%E9%80%89%E6%8B%A9%E5%93%AA%E7%A7%8D%E5%AE%89%E8%A3%85%E6%A8%A1%E5%BC%8F)
@@ -84,6 +85,49 @@ git checkout main-dev
    git checkout main-dev
    ```
 
+1. **(Recommended) Setup workspace dependencies**
+
+   If you plan to use the `SAGE.code-workspace` for multi-folder editing in VS Code:
+
+   **Option 1: During installation (recommended)**
+
+   ```bash
+   # Automatically setup workspace during installation
+   ./quickstart.sh --dev --yes --workspace
+   ```
+
+   **Option 2: After installation**
+
+   ```bash
+   # Standalone script
+   ./tools/scripts/setup_workspace_deps.sh
+   ```
+
+   This will:
+
+   - ✅ Clone `SAGE-Pub` repository (documentation)
+   - ✅ Optionally clone `sage-team-info` if you're a core team member
+
+   **Or manually:**
+
+   ```bash
+   # Clone SAGE-Pub (documentation repository)
+   cd ..
+   git clone https://github.com/intellistream/SAGE-Pub.git
+   cd SAGE-Pub && git checkout main-dev && cd ../SAGE
+
+   # Clone sage-team-info (optional, for core team members only)
+   cd ..
+   git clone https://github.com/intellistream/sage-team-info.git
+   cd SAGE
+   ```
+
+   > 💡 **Note**:
+   >
+   > - `SAGE-Pub` is an independent repository for SAGE documentation
+   > - `sage-team-info` is an optional private repository for team documentation
+   > - If you skip these, VS Code may show warnings which you can safely ignore
+
 1. **Recommended: Use quickstart with dev mode**
 
    ```bash
@@ -93,13 +137,10 @@ git checkout main-dev
 
    **Or, if you prefer manual setup:**
 
-   a. **Initialize submodules**
+   a. **Install development dependencies**
 
    ```bash
-   # Use the maintenance tool (recommended) for the only submodule docs-public
-   ./tools/maintenance/sage-maintenance.sh submodule init
-
-   # This will initialize docs-public and switch it to the correct branch (main-dev)
+   pip install -e ".[dev]"
    ```
 
    b. **Initialize the developer CLI**
@@ -121,34 +162,13 @@ git checkout main-dev
    ./tools/maintenance/sage-maintenance.sh doctor
    ```
 
-### Submodule Management
+### Repository Management
 
-SAGE now has a single Git submodule: `docs-public` (SAGE-Pub). Use the maintenance tool for all
-operations:
+**SAGE-Pub Documentation**: The comprehensive documentation is maintained in a separate repository.
+See [Setup workspace dependencies](#1-recommended-setup-workspace-dependencies) for cloning
+instructions.
 
-```bash
-# Initialize docs-public (first time or after clone)
-./tools/maintenance/sage-maintenance.sh submodule init
-
-# Check docs-public status
-./tools/maintenance/sage-maintenance.sh submodule status
-
-# Fix detached HEAD (after switching SAGE branch)
-./tools/maintenance/sage-maintenance.sh submodule switch
-
-# Update docs-public to latest remote version
-./tools/maintenance/sage-maintenance.sh submodule update
-```
-
-⚠️ **Always use the maintenance tool instead of raw Git commands:**
-
-```bash
-# ❌ Don't use (causes detached HEAD)
-git submodule update --init
-
-# ✅ Use this instead
-./tools/maintenance/sage-maintenance.sh submodule init
-```
+**Git Workflow**: Use feature branches for development, submit PRs to `main-dev` branch.
 
 For more details, see [tools/maintenance/README.md](tools/maintenance/README.md).
 

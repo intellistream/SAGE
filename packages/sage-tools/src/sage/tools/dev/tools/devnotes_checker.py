@@ -57,7 +57,7 @@ class DevNotesChecker:
 
     def __init__(self, root_dir: Path | str, strict: bool = False):
         self.root_dir = Path(root_dir) if isinstance(root_dir, str) else root_dir
-        self.devnotes_dir = self.root_dir / "docs" / "dev-notes"
+        self.devnotes_dir = self.root_dir / "docs-public" / "docs_src" / "dev-notes"
         self.strict = strict
         self.errors: list[str] = []
         self.warnings: list[str] = []
@@ -224,9 +224,9 @@ class DevNotesChecker:
 
         if project_root_files:
             self.errors.append(
-                f"❌ 项目根目录下有 {len(project_root_files)} 个 markdown 文件应该移到 docs/dev-notes/ 下:\n"
+                f"❌ 项目根目录下有 {len(project_root_files)} 个 markdown 文件应该移到 docs-public/docs_src/dev-notes/ 下:\n"
                 + "\n".join(
-                    f"   - {f.name} → 建议移到 docs/dev-notes/<category>/"
+                    f"   - {f.name} → 建议移到 docs-public/docs_src/dev-notes/<category>/"
                     for f in project_root_files[:10]
                 )
             )
@@ -239,7 +239,9 @@ class DevNotesChecker:
     def check_changed_files(self, changed_files: list[str]) -> tuple[int, int]:
         """检查变更的文件"""
         devnotes_files = [
-            f for f in changed_files if f.startswith("docs/dev-notes/") and f.endswith(".md")
+            f
+            for f in changed_files
+            if f.startswith("docs-public/docs_src/dev-notes/") and f.endswith(".md")
         ]
 
         if not devnotes_files:
@@ -367,7 +369,7 @@ class DevNotesChecker:
             print("   **Author**: Your Name")
             print("   **Summary**: Brief description")
             print("3. 文件名不应包含日期（日期在元数据中标注）")
-            print("\n📖 详细规范请参考: docs/dev-notes/TEMPLATE.md")
+            print("\n📖 详细规范请参考: docs-public/docs_src/dev-notes/TEMPLATE.md")
             return False
 
 

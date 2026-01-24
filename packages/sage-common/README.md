@@ -5,7 +5,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](../../LICENSE)
 
-## 📋 概述
+## 📋 Overview
 
 **SAGE Common** 提供所有 SAGE 包共用的基础工具和组件。 这是基础层（L1），提供：
 
@@ -37,7 +37,7 @@
 
 该包确保 SAGE 生态系统的一致性并减少代码重复。
 
-## ✨ 核心特性
+## ✨ Features
 
 - **统一配置** - YAML/TOML 配置加载和验证
 - **高级日志** - 彩色输出、结构化日志、自定义格式器
@@ -45,6 +45,39 @@
 - **灵活序列化** - 多种后端（dill、pickle、JSON）
 - **系统管理** - 环境检测、进程控制
 - **LLM 集成** - 嵌入和 vLLM 服务
+
+## 🚀 Quick Start
+
+### 配置管理
+
+```python
+from sage.common.utils.config import load_config
+
+# 加载 YAML 配置
+config = load_config("config.yaml")
+print(config["database"]["host"])
+```
+
+### 日志记录
+
+```python
+from sage.common.utils.logging import get_logger
+
+logger = get_logger(__name__)
+logger.info("Processing started")
+logger.error("An error occurred", extra={"user_id": 123})
+```
+
+### 序列化
+
+```python
+from sage.common.utils.serialization import UniversalSerializer
+
+serializer = UniversalSerializer()
+data = {"key": "value", "nested": {"data": [1, 2, 3]}}
+serialized = serializer.serialize(data)
+deserialized = serializer.deserialize(serialized)
+```
 
 ## 核心模块
 
@@ -55,7 +88,7 @@
 - **utils.system** - 环境和进程管理的系统工具
 - **\_version** - 版本管理
 
-## 📦 包结构
+## 📦 Package Structure
 
 ```
 sage-common/
@@ -78,7 +111,7 @@ sage-common/
 └── README.md
 ```
 
-## 🚀 安装
+## 🚀 Installation
 
 ### 基础安装
 
@@ -162,7 +195,7 @@ serialized = serialize(data, format="dill")
 restored = deserialize(serialized, format="dill")
 ```
 
-## 🔧 配置
+## 🔧 Configuration
 
 配置文件通常使用 YAML 或 TOML 格式：
 
@@ -182,7 +215,7 @@ embedding:
   device: cuda
 ```
 
-## 🧪 测试
+## 🧪 Testing
 
 ```bash
 # 运行单元测试
@@ -195,17 +228,17 @@ pytest tests/integration
 pytest --cov=sage.common --cov-report=html
 ```
 
-## 📚 文档
+## 📚 Documentation
 
 - **用户指南** - 查看 [docs-public](https://intellistream.github.io/SAGE-Pub/guides/packages/sage-common/)
 - **API 参考** - 查看包文档字符串和类型提示
 - **示例** - 查看各模块中的 `examples/` 目录
 
-## 🤝 贡献
+## 🤝 Contributing
 
 欢迎贡献！请查看 [CONTRIBUTING.md](../../CONTRIBUTING.md) 了解指导原则。
 
-## 📄 许可证
+## 📄 License
 
 该项目采用 MIT 许可证 - 详情请查看 [LICENSE](../../LICENSE) 文件。
 

@@ -100,28 +100,34 @@ class RayTask(BaseTask):
         """获取当前状态"""
         return "running" if self.is_running else "stopped"
 
-    def put_packet(self, packet: "Packet"):
+    def put_packet(self, packet: "Packet", max_retries: int = 3):
         """
-        向任务的输入缓冲区放入数据包
+        向任务的输入缓冲区放入数据包（阻塞模式）
 
         Args:
             packet: 要放入的数据包
+            max_retries: 保留参数（兼容性，阻塞模式下不使用）
 
         Returns:
-            True 如果成功
+            True 如果成功，False 如果失败
+
+        Note:
+            使用完全阻塞模式，直到队列有空间可用
         """
         try:
-            self.logger.debug(
-                f"RayTask.put_packet called for {self.ctx.name} with packet: {packet}"
-            )
-            # 使用非阻塞方式放入数据包 (input_buffer 在运行时总是有值)
-            self.input_buffer.put(packet, block=False)  # type: ignore[union-attr]
-            self.packet_count += 1  # 更新计数
+            # 完全阻塞模式：等待直到队列有空间
+            self.input_buffer.put(packet, block=True)  # type: ignore[union-attr]
             self.logger.debug(f"RayTask.put_packet succeeded for {self.ctx.name}")
+            # 成功：更新计数并返回
+            self.packet_count += 1
             return True
+
         except Exception as e:
-            self.logger.error(f"RayTask.put_packet failed for {self.ctx.name}: {e}")
-            self.error_count += 1  # 更新错误计数
+            # 其他异常：直接失败
+            self.logger.error(
+                f"RayTask.put_packet failed for {self.ctx.name}: {type(e).__name__}: {e}"
+            )
+            self.error_count += 1
             return False
 
     def stop(self) -> None:

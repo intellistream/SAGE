@@ -102,6 +102,9 @@ jobs:
           SAGE_SKIP_CPP_EXTENSIONS=false
           SAGE_LOG_LEVEL=INFO
           SAGE_TEST_MODE=true
+
+          # Ray Configuration (fix ray.dag.compiled_dag_node error)
+          RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO=0
           EOF
 
           echo "✅ .env 文件创建完成"
@@ -136,6 +139,48 @@ jobs:
 
           echo "✅ 安装完成"
         timeout-minutes: 25
+
+      - name: Install Optional Dependencies
+        run: |
+          echo "📦 安装可选依赖（用于测试）..."
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # 安装可选的算法库（测试需要）
+          pip install --no-cache-dir \
+            isage-agentic \
+            isage-finetune \
+            isage-rag \
+            isage-eval \
+            isage-privacy \
+            isage-safety \
+            isage-data
+
+          # 安装向量数据库SDK（测试需要）
+          pip install --no-cache-dir \
+            pymilvus \
+            chromadb
+
+          # 安装AI工具SDK（测试需要）
+          pip install --no-cache-dir \
+            easyocr \
+            ollama \
+            tenacity \
+            zhipuai \
+            cohere \
+            boto3 \
+            datasets \
+            torch \
+            torchvision \
+            transformers \
+            peft \
+            numpy
+
+          # 安装测试依赖（MCP server tests需要）
+          pip install --no-cache-dir \
+            fastapi \
+            httpx
+
+          echo "✅ 可选依赖安装完成"
 
       - name: Verify PyPI Packages
         run: |

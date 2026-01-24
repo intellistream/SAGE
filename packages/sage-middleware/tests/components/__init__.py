@@ -1,1 +1,0 @@
-"""sage-middleware components tests."""

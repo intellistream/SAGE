@@ -81,6 +81,22 @@ jobs:
 
           echo "✅ SAGE packages installed"
 
+      - name: Install L3 Independent Packages
+        run: |
+          echo "📦 Installing L3 domain-specific packages (isage-* namespace)..."
+
+          # Install independent L3 algorithm and domain packages
+          # These provide sage_libs.* implementations
+          pip install isage-agentic isage-finetune isage-rag isage-eval isage-privacy isage-safety
+
+          # Install data management package (provides sage.data.*)
+          pip install isage-data
+
+          # Install ANNS and vector database packages for tests
+          pip install isage-vdb chromadb pymilvus
+
+          echo "✅ L3 packages installed"
+
       - name: Install isagellm
         run: |
           echo "🚀 Installing isagellm (SageLLM inference engine)..."
@@ -94,7 +110,22 @@ jobs:
 
       - name: Install Test Dependencies
         run: |
-          pip install pytest pytest-cov pytest-timeout pytest-xdist
+          pip install pytest pytest-cov pytest-timeout pytest-xdist pytest-mock
+
+          # Install torch for tests that import HFClient or other torch-dependent modules
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+          # Install transformers for HFClient tests
+          pip install transformers
+
+          # Install datasets for agent training tests
+          pip install datasets
+
+          # Install peft for LoRA fine-tuning in AgentSFTTrainer
+          pip install peft
+
+          # Install numpy for evaluator metrics
+          pip install numpy
 
       - name: Run SageLLM Mock Tests
         run: |

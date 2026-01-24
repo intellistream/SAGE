@@ -5,11 +5,17 @@
 			"path": "."
 		},
 		{
-			"name": "SAGE-Docs",
+			"name": "SAGE-Pub",
 			"path": "../SAGE-Pub"
 		},
 		{
 			"path": "../sage-team-info"
+		},
+		{
+			"path": "../sageData"
+		},
+		{
+			"path": "../sage-pypi-publisher"
 		}
 	],
 	"settings": {
@@ -94,7 +100,9 @@
 				"type": "debugpy",
 				"request": "launch",
 				"module": "sage.tools.cli",
-				"args": ["--help"],
+				"args": [
+					"--help"
+				],
 				"console": "integratedTerminal",
 				"cwd": "${workspaceFolder:SAGE}"
 			},
@@ -103,7 +111,11 @@
 				"type": "debugpy",
 				"request": "launch",
 				"module": "pytest",
-				"args": ["${file}", "-v", "--tb=short"],
+				"args": [
+					"${file}",
+					"-v",
+					"--tb=short"
+				],
 				"console": "integratedTerminal",
 				"cwd": "${workspaceFolder:SAGE}"
 			}

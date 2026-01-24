@@ -515,9 +515,10 @@ class TestPlacementExecutor:
         assert executor.placement_stats["local_tasks"] == 1
         task_node.task_factory.create_task.assert_called_once()
 
+    @patch("ray.util.scheduling_strategies.NodeAffinitySchedulingStrategy")
     @patch("sage.kernel.utils.ray.actor.ActorWrapper")
     @patch("sage.kernel.runtime.task.ray_task.RayTask")
-    def test_place_remote_task_default(self, mock_ray_task, mock_wrapper):
+    def test_place_remote_task_default(self, mock_ray_task, mock_wrapper, mock_strategy):
         """测试放置远程任务（默认配置）"""
         executor = PlacementExecutor()
 
@@ -528,10 +529,12 @@ class TestPlacementExecutor:
         task_node.task_factory = Mock()
         task_node.task_factory.remote = True
         task_node.task_factory.operator_factory = Mock()
+        task_node.task_factory.extra_python_paths = None
 
-        # Mock Ray Actor
-        mock_actor = Mock()
-        mock_ray_task.options.return_value.remote.return_value = mock_actor
+        # Mock Ray Actor with proper options chain
+        mock_options = Mock()
+        mock_options.remote = Mock(return_value=Mock())
+        mock_ray_task.options = Mock(return_value=mock_options)
         mock_wrapped = Mock()
         mock_wrapper.return_value = mock_wrapped
 
@@ -546,9 +549,10 @@ class TestPlacementExecutor:
         assert executor.placement_stats["remote_tasks"] == 1
         mock_ray_task.options.assert_called_once()
 
+    @patch("ray.util.scheduling_strategies.NodeAffinitySchedulingStrategy")
     @patch("sage.kernel.utils.ray.actor.ActorWrapper")
     @patch("sage.kernel.runtime.task.ray_task.RayTask")
-    def test_place_remote_task_with_node(self, mock_ray_task, mock_wrapper):
+    def test_place_remote_task_with_node(self, mock_ray_task, mock_wrapper, mock_strategy):
         """测试放置远程任务（指定节点）"""
         executor = PlacementExecutor()
 
@@ -559,12 +563,17 @@ class TestPlacementExecutor:
         task_node.task_factory = Mock()
         task_node.task_factory.remote = True
         task_node.task_factory.operator_factory = Mock()
+        task_node.task_factory.extra_python_paths = None
 
-        # Mock Ray Actor
-        mock_actor = Mock()
-        mock_ray_task.options.return_value.remote.return_value = mock_actor
+        # Mock Ray Actor with proper options chain
+        mock_options = Mock()
+        mock_options.remote = Mock(return_value=Mock())
+        mock_ray_task.options = Mock(return_value=mock_options)
         mock_wrapped = Mock()
         mock_wrapper.return_value = mock_wrapped
+
+        # Mock scheduling strategy to return a valid object
+        mock_strategy.return_value = "mocked_scheduling_strategy"
 
         # Mock decision (with node) - 使用有效的 Ray node_id 格式
         valid_node_id = "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcd"
