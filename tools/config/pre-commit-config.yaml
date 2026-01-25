@@ -233,6 +233,7 @@ repos:
         "testing"
         "archive"
         "research_work"
+        "hooks"
       )
 
       # Get all first-level directories under docs-public/docs_src/dev-notes/
@@ -346,6 +347,7 @@ repos:
         "packages"
         "data"
         "tools"
+        "hooks"
       )
 
       violations=""
