@@ -144,15 +144,15 @@ class SageFlowJoinOperator(MapFunction):
 
         # SageFlow components (lazy init)
         self._env: StreamEnvironment | None = None
-        self._query_source: SimpleStreamSource | None = None
-        self._doc_source: SimpleStreamSource | None = None
+        self._left_source: SimpleStreamSource | None = None
+        self._right_source: SimpleStreamSource | None = None
         self._pipeline: Stream | None = None
         self._initialized = False
         self._lock = threading.Lock()
 
         # Result collection
-        self._result_queue: queue.Queue[tuple[int, int]] = queue.Queue()
-        self._current_query_id: int | None = None
+        # Store pairs: (left_uid, right_uid, similarity)
+        self._result_queue: queue.Queue[tuple[int, int, float]] = queue.Queue()
 
     def _init_sageflow(self) -> None:
         """Initialize SageFlow pipeline lazily."""
