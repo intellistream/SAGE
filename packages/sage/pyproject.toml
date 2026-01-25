@@ -53,7 +53,8 @@ all = [
     "isage-libs>=0.1.0",
     "isage-middleware>=0.1.0",
     "isage-cli>=0.1.0",
-    "isage-studio>=0.1.0",
+    # Note: isage-studio is excluded to avoid circular dependency
+    # Install separately: pip install isage-studio
     "isagellm[gateway]>=0.1.0",
 ]
 
