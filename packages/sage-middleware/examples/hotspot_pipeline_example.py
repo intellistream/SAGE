@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import time
 from typing import Any
 
@@ -11,6 +12,7 @@ from sage.common.core.functions.sink_function import SinkFunction
 from sage.kernel.api import LocalEnvironment
 from sage.middleware.components.sage_flow.hotspot import SageFlowHotspotPairCoMap
 from sage.middleware.components.sage_flow.hotspot_flatten import HotspotPairListFlatten
+from sage.middleware.components.sage_flow.vllm_embedding import VLLMEmbeddingMap
 
 
 class OpenAIEmbeddingMap(MapFunction):
@@ -44,7 +46,6 @@ class OpenAIEmbeddingMap(MapFunction):
 
         vec = self._embedder.embed(text)
         emb = np.array(vec, dtype=np.float32)
-        # 归一化（避免不同服务默认是否 normalize 不一致导致阈值难调）
         emb = emb / (np.linalg.norm(emb) + 1e-8)
 
         return {**data, "embedding": emb}
@@ -63,17 +64,44 @@ class HotspotCollectorSink(SinkFunction):
 
 
 def main():
-    print("=" * 70)
-    print("SAGE x SageFlow: Hotspot News Aggregation (Real Embeddings)")
-    print("=" * 70)
+    parser = argparse.ArgumentParser(
+        description="Hotspot news aggregation using SAGE runtime + SageFlow join."
+    )
+    parser.add_argument(
+        "--embedding-mode",
+        choices=["remote", "vllm"],
+        default="remote",
+        help="Embedding mode: 'remote' uses OpenAI-compatible API, 'vllm' uses in-process vLLM embedding.",
+    )
+    parser.add_argument(
+        "--embedding-base-url",
+        default="http://localhost:8090/v1",
+        help="OpenAI-compatible embedding base_url (remote mode).",
+    )
+    parser.add_argument(
+        "--embedding-model",
+        default="BAAI/bge-large-en-v1.5",
+        help="Embedding model name (remote mode).",
+    )
+    parser.add_argument(
+        "--vllm-model",
+        default="jinaai/jina-embeddings-v2-small-en",
+        help="vLLM embedding model id (vllm mode).",
+    )
+    parser.add_argument(
+        "--similarity-threshold",
+        type=float,
+        default=0.75,
+        help="SageFlow join similarity threshold.",
+    )
+    parser.add_argument("--top-k", type=int, default=10, help="Top-K hotspot pairs to print.")
 
-    # 你提供的 embedding 服务配置
-    embedding_base_url = "http://localhost:8090/v1"
-    embedding_model = "BAAI/bge-large-en-v1.5"
+    args = parser.parse_args()
 
-    # SageFlow join 阈值：真实 embedding 下通常需要你按实际服务调一下
-    similarity_threshold = 0.75
-    top_k = 10
+    print("=" * 70)
+    print("SAGE x SageFlow: Hotspot News Aggregation")
+    print("=" * 70)
+    print(f"Embedding mode: {args.embedding_mode}")
 
     env = LocalEnvironment("hotspot-detection-pipeline")
 
@@ -96,21 +124,39 @@ def main():
         {"id": "B07", "platform": "Platform-B", "title": "Boston Celtics trade update"},
     ]
 
-    embed_map = OpenAIEmbeddingMap(
-        base_url=embedding_base_url,
-        model=embedding_model,
-        api_key="dummy",
-        text_field="title",
-    )
+    if args.embedding_mode == "remote":
+        embed_map = OpenAIEmbeddingMap(
+            base_url=args.embedding_base_url,
+            model=args.embedding_model,
+            api_key="dummy",
+            text_field="title",
+        )
+        dim = embed_map.dim
+        print(f"Embedding base_url: {args.embedding_base_url}")
+        print(f"Embedding model: {args.embedding_model}")
+        print(f"Embedding dim: {dim}")
 
-    dim = embed_map.dim
-    print(f"Embedding model: {embedding_model}")
-    print(f"Embedding base_url: {embedding_base_url}")
-    print(f"Embedding dim: {dim}")
-    print(f"SageFlow similarity_threshold: {similarity_threshold}")
+        stream_a = env.from_batch(docs_a).map(lambda x: embed_map.execute(x))
+        stream_b = env.from_batch(docs_b).map(lambda x: embed_map.execute(x))
 
-    stream_a = env.from_batch(docs_a).map(lambda x: embed_map.execute(x))
-    stream_b = env.from_batch(docs_b).map(lambda x: embed_map.execute(x))
+    else:
+        vllm_map = VLLMEmbeddingMap(
+            model=args.vllm_model,
+            text_field="title",
+            normalize=True,
+            enforce_eager=True,
+        )
+        dim = vllm_map.get_dim()
+        if dim <= 0:
+            raise RuntimeError("Failed to infer embedding dim from vLLM model")
+
+        print(f"vLLM model: {args.vllm_model}")
+        print(f"Embedding dim: {dim}")
+
+        stream_a = env.from_batch(docs_a).map(lambda x: vllm_map.execute(x))
+        stream_b = env.from_batch(docs_b).map(lambda x: vllm_map.execute(x))
+
+    print(f"SageFlow similarity_threshold: {args.similarity_threshold}")
 
     all_hotspots: list[dict[str, Any]] = []
 
@@ -119,7 +165,7 @@ def main():
         .comap(
             SageFlowHotspotPairCoMap,
             dim=dim,
-            similarity_threshold=similarity_threshold,
+            similarity_threshold=args.similarity_threshold,
         )
         .flatmap(HotspotPairListFlatten)
         .sink(HotspotCollectorSink, results_list=all_hotspots)
@@ -130,7 +176,7 @@ def main():
     env.submit(autostop=True)
     print(f"Pipeline finished in {time.time() - start_time:.2f}s")
 
-    print(f"\nTop-{top_k} hotspot pairs:")
+    print(f"\nTop-{args.top_k} hotspot pairs:")
     print("-" * 70)
 
     if not all_hotspots:
@@ -139,7 +185,7 @@ def main():
 
     sorted_hotspots = sorted(all_hotspots, key=lambda p: p.get("similarity", 0.0), reverse=True)
 
-    for i, pair in enumerate(sorted_hotspots[:top_k]):
+    for i, pair in enumerate(sorted_hotspots[: args.top_k]):
         left = pair.get("left", {})
         right = pair.get("right", {})
         sim = pair.get("similarity", 0.0)
