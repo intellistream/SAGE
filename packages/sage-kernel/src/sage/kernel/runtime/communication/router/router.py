@@ -78,7 +78,7 @@ class BaseRouter(ABC):  # noqa: B024
                 try:
                     # 通过连接的队列描述符获取队列并发送停止信号
                     queue = connection.queue_descriptor.get_queue()
-                    queue.put_nowait(stop_signal)
+                    queue.put(stop_signal,block=True)  # 阻塞发送，30秒超时
                     self.logger.debug(f"Sent stop signal to {connection.target_name}")
                 except Exception as e:
                     self.logger.error(
@@ -225,7 +225,7 @@ class BaseRouter(ABC):  # noqa: B024
 
             # 使用阻塞的put()方法实现背压，而不是put_nowait()
             # 这样当队列满时会自动等待，实现背压机制
-            target_queue.put(routed_packet, timeout=30)  # 30秒超时防止死锁
+            target_queue.put(routed_packet, block=True)  # 30秒超时防止死锁
             self.logger.debug(
                 f"Router {self.name}: Successfully sent packet to {connection.target_name}"
             )
