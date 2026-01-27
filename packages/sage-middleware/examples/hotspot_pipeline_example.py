@@ -15,8 +15,68 @@ from sage.middleware.components.sage_flow.hotspot_flatten import HotspotPairList
 from sage.middleware.components.sage_flow.vllm_embedding import VLLMEmbeddingMap
 
 
+class ExplainableMockEmbeddingMap(MapFunction):
+    """不依赖外部服务的 mock embedding。
+
+    目标：
+    - 同主题/同实体的新闻标题生成相近向量，确保 join 能产出热点 pair。
+    - 仍然是确定性的（同一 title 每次得到相同向量），便于复现实验。
+    """
+
+    def __init__(
+        self,
+        dim: int = 128,
+        text_field: str = "title",
+        normalize: bool = True,
+    ):
+        super().__init__()
+        self.dim = dim
+        self.text_field = text_field
+        self.normalize = normalize
+
+        # 主题基向量：让同主题文本更接近
+        self._topic_vecs = {
+            "nvidia": self._base_vec("topic:nvidia"),
+            "apple": self._base_vec("topic:apple"),
+            "google": self._base_vec("topic:google"),
+            "microsoft": self._base_vec("topic:microsoft"),
+            "nba": self._base_vec("topic:nba"),
+            "world cup": self._base_vec("topic:worldcup"),
+            "fifa": self._base_vec("topic:fifa"),
+        }
+
+    def _base_vec(self, seed_text: str) -> np.ndarray:
+        seed = hash(seed_text) % (2**32)
+        rng = np.random.default_rng(seed)
+        v = rng.standard_normal(self.dim).astype(np.float32)
+        v = v / (np.linalg.norm(v) + 1e-8)
+        return v
+
+    def execute(self, data: dict[str, Any]) -> dict[str, Any]:
+        text = str(data.get(self.text_field, ""))
+        if not text:
+            return {**data, "embedding": None}
+
+        lower = text.lower()
+        topic = None
+        for k in self._topic_vecs.keys():
+            if k in lower:
+                topic = k
+                break
+
+        base = self._topic_vecs.get(topic) if topic else self._base_vec("topic:other")
+        tweak = self._base_vec(f"title:{lower}") * 0.12
+        emb = base + tweak
+        if self.normalize:
+            emb = emb / (np.linalg.norm(emb) + 1e-8)
+        return {**data, "embedding": emb}
+
+
 class OpenAIEmbeddingMap(MapFunction):
-    """使用 SAGE 内置 EmbeddingFactory(openai) 调用 OpenAI-compatible embeddings 服务。"""
+    """使用 SAGE 内置 EmbeddingFactory(openai) 调用 OpenAI-compatible embeddings 服务。
+
+    注意：外部服务不可用时会导致 pipeline 阻塞，所以这里加了超时与异常日志。
+    """
 
     def __init__(
         self,
@@ -24,19 +84,31 @@ class OpenAIEmbeddingMap(MapFunction):
         model: str,
         api_key: str = "dummy",
         text_field: str = "title",
+        timeout_s: float = 20.0,
     ):
         super().__init__()
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.api_key = api_key
         self.text_field = text_field
+        self.timeout_s = timeout_s
 
-        self._embedder = EmbeddingFactory.create(
-            "openai",
-            base_url=self.base_url,
-            model=self.model,
-            api_key=self.api_key,
-        )
+        try:
+            self._embedder = EmbeddingFactory.create(
+                "openai",
+                base_url=self.base_url,
+                model=self.model,
+                api_key=self.api_key,
+                timeout=self.timeout_s,
+            )
+        except TypeError:
+            self._embedder = EmbeddingFactory.create(
+                "openai",
+                base_url=self.base_url,
+                model=self.model,
+                api_key=self.api_key,
+            )
+
         self.dim = int(self._embedder.get_dim())
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -44,11 +116,20 @@ class OpenAIEmbeddingMap(MapFunction):
         if not text:
             return {**data, "embedding": None}
 
-        vec = self._embedder.embed(text)
-        emb = np.array(vec, dtype=np.float32)
-        emb = emb / (np.linalg.norm(emb) + 1e-8)
-
-        return {**data, "embedding": emb}
+        try:
+            vec = self._embedder.embed(text)
+            emb = np.array(vec, dtype=np.float32)
+            emb = emb / (np.linalg.norm(emb) + 1e-8)
+            return {**data, "embedding": emb}
+        except Exception as e:
+            try:
+                self.logger.error(
+                    f"Embedding request failed (base_url={self.base_url}, model={self.model}, timeout_s={self.timeout_s}): {e}",
+                    exc_info=True,
+                )
+            except Exception:
+                pass
+            return {**data, "embedding": None, "embedding_error": str(e)}
 
 
 class HotspotCollectorSink(SinkFunction):
@@ -69,13 +150,18 @@ def main():
     )
     parser.add_argument(
         "--embedding-mode",
-        choices=["remote", "vllm"],
-        default="remote",
-        help="Embedding mode: 'remote' uses OpenAI-compatible API, 'vllm' uses in-process vLLM embedding.",
+        choices=["mock", "remote", "vllm"],
+        default="mock",
+        help="Embedding mode: mock(no deps), remote(OpenAI-compatible API), vllm(in-process vLLM).",
     )
+
+    # mock
+    parser.add_argument("--mock-dim", type=int, default=128, help="Embedding dim for mock mode.")
+
+    # remote
     parser.add_argument(
         "--embedding-base-url",
-        default="http://localhost:8090/v1",
+        default="http://11.11.11.7:8090/v1",
         help="OpenAI-compatible embedding base_url (remote mode).",
     )
     parser.add_argument(
@@ -84,15 +170,31 @@ def main():
         help="Embedding model name (remote mode).",
     )
     parser.add_argument(
-        "--vllm-model",
-        default="jinaai/jina-embeddings-v2-small-en",
-        help="vLLM embedding model id (vllm mode).",
+        "--embedding-timeout-s",
+        type=float,
+        default=20.0,
+        help="Timeout seconds for remote embedding request.",
     )
+
+    # vllm
+    parser.add_argument(
+        "--vllm-model",
+        default="Qwen/Qwen2-0.5B-Instruct",
+        help="vLLM model id (vllm mode).",
+    )
+
+    # join
     parser.add_argument(
         "--similarity-threshold",
         type=float,
-        default=0.75,
+        default=0.80,
         help="SageFlow join similarity threshold.",
+    )
+    parser.add_argument(
+        "--window-size-ms",
+        type=int,
+        default=10000,
+        help="SageFlow join window size in milliseconds (default: 10000 = 10s).",
     )
     parser.add_argument("--top-k", type=int, default=10, help="Top-K hotspot pairs to print.")
 
@@ -124,20 +226,24 @@ def main():
         {"id": "B07", "platform": "Platform-B", "title": "Boston Celtics trade update"},
     ]
 
-    if args.embedding_mode == "remote":
+    if args.embedding_mode == "mock":
+        embed_map = ExplainableMockEmbeddingMap(dim=args.mock_dim, text_field="title")
+        dim = embed_map.dim
+        print(f"Mock embedding dim: {dim}")
+
+    elif args.embedding_mode == "remote":
         embed_map = OpenAIEmbeddingMap(
             base_url=args.embedding_base_url,
             model=args.embedding_model,
             api_key="dummy",
             text_field="title",
+            timeout_s=args.embedding_timeout_s,
         )
         dim = embed_map.dim
         print(f"Embedding base_url: {args.embedding_base_url}")
         print(f"Embedding model: {args.embedding_model}")
         print(f"Embedding dim: {dim}")
-
-        stream_a = env.from_batch(docs_a).map(lambda x: embed_map.execute(x))
-        stream_b = env.from_batch(docs_b).map(lambda x: embed_map.execute(x))
+        print(f"Embedding timeout: {args.embedding_timeout_s}s")
 
     else:
         vllm_map = VLLMEmbeddingMap(
@@ -149,23 +255,37 @@ def main():
         dim = vllm_map.get_dim()
         if dim <= 0:
             raise RuntimeError("Failed to infer embedding dim from vLLM model")
-
         print(f"vLLM model: {args.vllm_model}")
         print(f"Embedding dim: {dim}")
 
-        stream_a = env.from_batch(docs_a).map(lambda x: vllm_map.execute(x))
-        stream_b = env.from_batch(docs_b).map(lambda x: vllm_map.execute(x))
-
     print(f"SageFlow similarity_threshold: {args.similarity_threshold}")
+    print(f"SageFlow window_size_ms: {args.window_size_ms}")
 
     all_hotspots: list[dict[str, Any]] = []
 
+    # 创建流并直接添加所有数据
+    stream_a = env.from_batch(docs_a)
+    stream_b = env.from_batch(docs_b)
+
+    # 应用embedding转换
+    if args.embedding_mode == "mock":
+        stream_a = stream_a.map(lambda x: embed_map.execute(x))
+        stream_b = stream_b.map(lambda x: embed_map.execute(x))
+    elif args.embedding_mode == "remote":
+        stream_a = stream_a.map(lambda x: embed_map.execute(x))
+        stream_b = stream_b.map(lambda x: embed_map.execute(x))
+    else:
+        stream_a = stream_a.map(lambda x: vllm_map.execute(x))
+        stream_b = stream_b.map(lambda x: vllm_map.execute(x))
+
+    # 构建处理流水线
     (
         stream_a.connect(stream_b)
         .comap(
             SageFlowHotspotPairCoMap,
             dim=dim,
             similarity_threshold=args.similarity_threshold,
+            window_size_ms=args.window_size_ms,
         )
         .flatmap(HotspotPairListFlatten)
         .sink(HotspotCollectorSink, results_list=all_hotspots)

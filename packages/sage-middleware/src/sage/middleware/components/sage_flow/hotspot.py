@@ -43,6 +43,7 @@ class SageFlowHotspotPairCoMap(BaseCoMapFunction):
         join_method: str = "bruteforce_lazy",
         parallelism: int = 1,
         max_pairs_per_event: int = 128,
+        window_size_ms: int = 10000,  # 窗口大小（毫秒），默认 10 秒
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -51,9 +52,11 @@ class SageFlowHotspotPairCoMap(BaseCoMapFunction):
         self.join_method = join_method
         self.parallelism = parallelism
         self.max_pairs_per_event = max_pairs_per_event
+        self.window_size_ms = window_size_ms
 
         self._lock = threading.Lock()
         self._initialized = False
+        self._executed = False  # 标记 sageflow 是否已启动执行
 
         self._env = None
         self._left_source = None
@@ -86,20 +89,33 @@ class SageFlowHotspotPairCoMap(BaseCoMapFunction):
         if self._initialized:
             return
 
-        from sage_flow import SimpleStreamSource, StreamEnvironment
+        from sage_flow import StreamingSource, StreamEnvironment
 
         self._env = StreamEnvironment()
-        self._left_source = SimpleStreamSource("hotspot_left")
-        self._right_source = SimpleStreamSource("hotspot_right")
+        # 使用 StreamingSource 而非 SimpleStreamSource：
+        # - SimpleStreamSource 是批处理源，execute() 后记录被一次性消费
+        # - StreamingSource 支持动态流式输入，execute() 后可以持续 addRecord
+        self._left_source = StreamingSource("hotspot_left", capacity=10000)
+        self._right_source = StreamingSource("hotspot_right", capacity=10000)
 
-        # 配置 join 参数（以 left 为 join 驱动）
-        self._left_source.setJoinMethod(self.join_method)
-        self._left_source.setJoinSimilarityThreshold(self.similarity_threshold)
+        # join 回调：C++ 层完成相似度过滤（使用 exp(-alpha * L2_distance)）。
+        # 回调只有满足阈值的 pair 才会被调用。
+        # 我们在回调里构造热点 pair 并入队；sink 仅用于完成 pipeline 拓扑。
+        #
+        # 重要：C++ 和 Python 必须使用相同的相似度计算公式！
+        # C++ 使用 sim = exp(-alpha * L2_distance)，alpha 默认为 0.1
+        # 对于归一化向量，L2 距离范围是 [0, 2]，所以相似度范围是 [exp(-0.2), 1] ≈ [0.82, 1]
+        # 使用更大的 alpha（如 5.0）可以获得更好的区分度
 
-        # join 回调：C++ 层完成相似度过滤；这里能拿到两侧 uid/ts/vec。
-        # 我们在 join 回调里直接构造热点 pair 并入队；sink 仅用于完成 pipeline 拓扑。
+        # 与 C++ BruteForceBaseline 保持一致的相似度计算
+        similarity_alpha = 5.0  # 与 bindings.cpp 中 JoinStrategyConfig 设置的 alpha 一致
 
-        def on_join(l_uid, l_ts, _l_vec, r_uid, r_ts, _r_vec):
+        def compute_l2_similarity(vec_a: np.ndarray, vec_b: np.ndarray, alpha: float = 5.0) -> float:
+            """使用与 C++ 相同的公式计算相似度: sim = exp(-alpha * L2_distance)"""
+            l2_dist = float(np.linalg.norm(vec_a - vec_b))
+            return float(np.exp(-alpha * l2_dist))
+
+        def on_join(l_uid, l_ts, l_vec, r_uid, r_ts, r_vec):
             left_uid = int(l_uid)
             right_uid = int(r_uid)
             ts = max(int(l_ts), int(r_ts))
@@ -109,41 +125,49 @@ class SageFlowHotspotPairCoMap(BaseCoMapFunction):
             if left_rec is None or right_rec is None:
                 return None
 
-            left_vec2 = left_rec.get("_vec")
-            right_vec2 = right_rec.get("_vec")
-            if left_vec2 is None or right_vec2 is None:
-                return None
-
-            sim = float(
-                np.dot(left_vec2, right_vec2)
-                / (np.linalg.norm(left_vec2) * np.linalg.norm(right_vec2) + 1e-8)
-            )
+            # 使用与 C++ 相同的公式计算相似度
+            l_vec_np = np.asarray(l_vec, dtype=np.float32)
+            r_vec_np = np.asarray(r_vec, dtype=np.float32)
+            similarity = compute_l2_similarity(l_vec_np, r_vec_np, similarity_alpha)
 
             self._pair_queue.put(
                 {
                     "left": {k: v for k, v in left_rec.items() if k != "_vec"},
                     "right": {k: v for k, v in right_rec.items() if k != "_vec"},
-                    "similarity": sim,
+                    "similarity": similarity,  # 使用与 C++ 一致的相似度
                     "event_time_ms": ts,
                 }
             )
 
             # join 必须返回 (uid, ts, vec) 或 None。返回左向量占位即可。
-            return (left_uid, ts, left_vec2)
+            return (left_uid, ts, l_vec_np)
 
+        # 使用完整的 7 参数版本 join()，包含 window_size_ms
+        # 参数顺序：other, callback, dim, join_method, similarity_threshold, window_size_ms, parallelism
         self._pipeline = self._left_source.join(
             self._right_source,
             on_join,
-            dim=self.dim,
-            parallelism=self.parallelism,
+            self.dim,  # dim
+            self.join_method,  # join_method
+            self.similarity_threshold,  # similarity_threshold
+            self.window_size_ms,  # window_size_ms
+            self.parallelism,  # parallelism
         )
 
-        self._pipeline.writeSink("hotspot_pairs", lambda *args: None)
+        # pybind 签名：writeSink(sink_func, parallelism=1)
+        # 不能额外传入 name 字符串参数
+        self._pipeline.writeSink(lambda *args: None, parallelism=self.parallelism)
 
         self._env.addStream(self._left_source)
         self._env.addStream(self._right_source)
 
         self._initialized = True
+
+    def _ensure_executing(self) -> None:
+        """确保 sageflow 已启动执行（仅首次调用时启动）。"""
+        if not self._executed:
+            self._env.execute()
+            self._executed = True
 
     def _push_left(self, record: dict[str, Any]) -> list[dict[str, Any]]:
         emb = record.get("embedding")
@@ -158,8 +182,11 @@ class SageFlowHotspotPairCoMap(BaseCoMapFunction):
             self._init_sageflow()
             self._records_left[uid] = {**record, "id": uid, "_vec": vec}
             setattr(self, "_last_left_uid", uid)
+            print(f"[SageFlowHotspotPairCoMap] addRecord side=left uid={uid} ts_ms={now_ms}")
+            self._ensure_executing()  # 确保已启动执行
             self._left_source.addRecord(uid, now_ms, vec)
-            self._env.execute()
+            # 给 join 执行一点时间来处理
+            time.sleep(0.01)
 
         return self._drain_pairs()
 
@@ -175,8 +202,11 @@ class SageFlowHotspotPairCoMap(BaseCoMapFunction):
         with self._lock:
             self._init_sageflow()
             self._records_right[uid] = {**record, "id": uid, "_vec": vec}
+            print(f"[SageFlowHotspotPairCoMap] addRecord side=right uid={uid} ts_ms={now_ms}")
+            self._ensure_executing()  # 确保已启动执行
             self._right_source.addRecord(uid, now_ms, vec)
-            self._env.execute()
+            # 给 join 执行一点时间来处理
+            time.sleep(0.01)
 
         return self._drain_pairs()
 
@@ -189,6 +219,22 @@ class SageFlowHotspotPairCoMap(BaseCoMapFunction):
                 break
         return out
 
+    def finish_and_drain_all(self) -> list[dict[str, Any]]:
+        """结束 sageflow 流并等待所有 join 完成，收集全部剩余结果。"""
+        if not self._initialized:
+            return []
+
+        with self._lock:
+            # 标记两个流结束
+            self._left_source.finish()
+            self._right_source.finish()
+
+        # 等待 sageflow 完成
+        self._env.awaitTermination()
+
+        # 收集所有剩余结果
+        return self._drain_pairs()
+
     def map0(self, data: Any) -> Any:
         if not isinstance(data, dict):
             return None
@@ -199,3 +245,4 @@ class SageFlowHotspotPairCoMap(BaseCoMapFunction):
         if not isinstance(data, dict):
             return None
         return self._push_right(data)
+
