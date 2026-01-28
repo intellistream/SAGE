@@ -4,7 +4,7 @@ Workload 4 VDB 检索分支算子
 实现双路 4-stage VDB 检索流水线，包括：
 - VDBRetriever: VDB 检索算子
 - VDBResultFilter: 低分结果过滤
-- LocalReranker: Stage 内局部重排序（BM25）
+- LocalReranker: Stage 内局部重排序(BM25)
 - StageAggregator: Stage 结果汇聚
 """
 
@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any
 
 from sage.common.core.functions.filter_function import FilterFunction
 from sage.common.core.functions.map_function import MapFunction
+from sage.common.core.functions.flatmap_function import FlatMapFunction
 
 if TYPE_CHECKING:
     from .models import JoinedEvent, VDBRetrievalResult
@@ -31,13 +32,14 @@ except ImportError:
 
 class VDBRetriever(MapFunction):
     """
-    VDB 检索算子（通过 Service）。
+    VDB 检索算子(通过 Service)。
     
     特点:
-    - 支持两个独立的 VDB 实例（vdb1, vdb2）
+    - 支持两个独立的 VDB 实例(vdb1, vdb2)
     - 4-stage 级联检索
     - 通过 Service 调用避免序列化问题
     - 支持 top-k 可配置
+    - 返回 VDBResultsWrapper 保持结果完整性(用于后续 join)
     
     Args:
         vdb_name: VDB 实例名称 ("vdb1" | "vdb2")
@@ -62,38 +64,100 @@ class VDBRetriever(MapFunction):
         self.vdb_name = vdb_name
         self.top_k = top_k
         self.stage = stage
+        
+
     
-    def execute(self, data: JoinedEvent) -> list[VDBRetrievalResult]:
+    def execute(self, data: "JoinedEvent | GraphEnrichedEvent | Any") -> "VDBResultsWrapper":
         """
         执行 VDB 检索。
         
         Args:
-            data: JoinedEvent 包含查询和匹配的文档
+            data: JoinedEvent 或 GraphEnrichedEvent(graph 串行后)
         
         Returns:
-            VDB 检索结果列表
+            VDBResultsWrapper 包含检索结果列表
         """
+        from sage.kernel.runtime.communication.packet import StopSignal
+        from .models import VDBResultsWrapper
+        
+        self.logger.debug(f"[EXEC] Received data type: {type(data).__name__}")
+        
+        if isinstance(data, StopSignal):
+            self.logger.debug("[EXEC] Received StopSignal, passing through")
+            return data
+        
+        # 从不同数据类型提取 query
+        from .models import GraphEnrichedEvent
+        if isinstance(data, GraphEnrichedEvent):
+            query_event = data.query
+            source_event = data  # 保留完整的 GraphEnrichedEvent
+        elif isinstance(data, JoinedEvent):
+            query_event = data.query
+            source_event = None
+        else:
+            # 尝试 TaggedEvent 兼容
+            try:
+                from .tag_utils import TaggedEvent
+                if isinstance(data, TaggedEvent):
+                    # 解包 TaggedEvent，获取内部的 GraphEnrichedEvent
+                    inner_data = data.event
+                    if isinstance(inner_data, GraphEnrichedEvent):
+                        query_event = inner_data.query
+                        source_event = inner_data  # 保留 GraphEnrichedEvent
+                    elif isinstance(inner_data, JoinedEvent):
+                        query_event = inner_data.query
+                        source_event = None
+                    else:
+                        raise TypeError(f"Unexpected inner data type in TaggedEvent: {type(inner_data)}")
+                else:
+                    raise TypeError(f"Unexpected data type: {type(data)}")
+            except ImportError:
+                raise TypeError(f"Unexpected data type: {type(data)}")
+        
         start_time = time.time()
         
+        self.logger.info(
+            f"[EXEC] Processing query_id={query_event.query_id}, "
+            f"has_embedding={query_event.embedding is not None}, "
+            f"source_event={type(source_event).__name__ if source_event else 'None'}"
+        )
+        
         # 使用查询的 embedding 进行检索
-        query_embedding = data.query.embedding
+        query_embedding = query_event.embedding
         if query_embedding is None:
-            # 如果没有 embedding，返回空结果
-            return []
+            self.logger.warning(f"[EXEC] Query {query_event.query_id} has no embedding, returning empty results")
+            # 如果没有 embedding，返回空的 wrapper
+            from .models import VDBResultsWrapper
+            return VDBResultsWrapper(
+                query_id=query_event.query_id,
+                vdb_name=self.vdb_name,
+                results=[],
+                stage=self.stage,
+                source_event=source_event,
+            )
         
         # 通过 Service 调用 VDB 检索
+        self.logger.debug(f"[EXEC] Calling service.search(top_k={self.top_k})")
         try:
             results = self.call_service(
                 self.vdb_name,
                 "search",
                 query_embedding=query_embedding,
                 top_k=self.top_k,
-                filter_metadata={"category": data.query.category}
+                filter_metadata={"category": query_event.category}
             )
+            self.logger.info(f"[EXEC] Service returned {len(results)} results in {time.time()-start_time:.3f}s")
         except Exception as e:
-            # 如果 Service 调用失败，返回空结果
+            # 如果 Service 调用失败，返回空的 wrapper
+            self.logger.error(f"[EXEC] Service call failed: {e}")
             print(f"[WARNING] VDB {self.vdb_name} stage {self.stage} failed: {e}")
-            return []
+            from .models import VDBResultsWrapper
+            return VDBResultsWrapper(
+                query_id=query_event.query_id,
+                vdb_name=self.vdb_name,
+                results=[],
+                stage=self.stage,
+            )
         
         # 转换为 VDBRetrievalResult
         vdb_results = []
@@ -104,15 +168,24 @@ class VDBRetriever(MapFunction):
                 score=float(result.get("score", 0.0)),
                 source=self.vdb_name,
                 stage=self.stage,
+                query_id=query_event.query_id,  # 添加 query_id
                 metadata={
                     "retrieval_time": time.time() - start_time,
-                    "category": data.query.category,
+                    "category": query_event.category,
                     **result.get("metadata", {})
                 }
             )
             vdb_results.append(vdb_result)
         
-        return vdb_results
+        # 返回包装对象
+        from .models import VDBResultsWrapper
+        return VDBResultsWrapper(
+            query_id=query_event.query_id,
+            vdb_name=self.vdb_name,
+            results=vdb_results,
+            stage=self.stage,
+            source_event=source_event,  # 保留 GraphEnrichedEvent
+        )
 
 
 class VDBResultFilter(FilterFunction):
@@ -121,10 +194,10 @@ class VDBResultFilter(FilterFunction):
     
     特点:
     - 阈值过滤，减少下游负载 30-40%
-    - 支持自适应阈值（根据 stage）
+    - 支持自适应阈值(根据 stage)
     
     Args:
-        threshold: 过滤阈值（score < threshold 将被过滤）
+        threshold: 过滤阈值(score < threshold 将被过滤)
         adaptive: 是否根据 stage 自适应调整阈值
         **kwargs: 父类参数
     """
@@ -152,6 +225,11 @@ class VDBResultFilter(FilterFunction):
         Returns:
             True 保留，False 过滤
         """
+        from sage.kernel.runtime.communication.packet import StopSignal
+        if isinstance(result, StopSignal):
+            # FilterFunction 遇到 StopSignal 应该返回 True(让它通过)
+            return True
+        
         # 自适应阈值：后续 stage 提高阈值
         if self.adaptive:
             threshold = self.threshold + (result.stage - 1) * 0.05
@@ -167,7 +245,7 @@ class VDBResultFilter(FilterFunction):
 
 class LocalReranker(MapFunction):
     """
-    Stage 内局部重排序（BM25）。
+    Stage 内局部重排序(BM25)。
     
     特点:
     - 使用 BM25 算法进行轻量级重排序
@@ -176,8 +254,8 @@ class LocalReranker(MapFunction):
     
     Args:
         top_k: 返回 top-k 结果
-        k1: BM25 参数 k1（term saturation）
-        b: BM25 参数 b（length normalization）
+        k1: BM25 参数 k1(term saturation)
+        b: BM25 参数 b(length normalization)
         **kwargs: 父类参数
     """
     
@@ -209,7 +287,7 @@ class LocalReranker(MapFunction):
         if not results:
             return []
         
-        # 提取查询（假设所有结果来自同一查询）
+        # 提取查询(假设所有结果来自同一查询)
         # 这里简化处理，使用第一个结果的 metadata 中的 query
         # 实际应该从上游传递 query_text
         query_text = results[0].metadata.get("query_text", "")
@@ -222,7 +300,7 @@ class LocalReranker(MapFunction):
         # 计算 BM25 分数
         bm25_scores = self._compute_bm25(query_text, results)
         
-        # 组合原始分数和 BM25 分数（加权）
+        # 组合原始分数和 BM25 分数(加权)
         for idx, result in enumerate(results):
             original_score = result.score
             bm25_score = bm25_scores[idx]
@@ -301,7 +379,7 @@ class LocalReranker(MapFunction):
     
     def _tokenize(self, text: str) -> list[str]:
         """
-        简单分词（小写 + 移除标点 + 分割）。
+        简单分词(小写 + 移除标点 + 分割)。
         
         Args:
             text: 输入文本
@@ -315,7 +393,7 @@ class LocalReranker(MapFunction):
         text = re.sub(r'[^\w\s]', ' ', text)
         # 分词
         tokens = text.split()
-        # 移除停用词（简化版）
+        # 移除停用词(简化版)
         stopwords = {
             "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", 
             "of", "with", "is", "are", "was", "were", "be", "been", "being",
@@ -332,11 +410,11 @@ class StageAggregator(MapFunction):
     
     特点:
     - 合并多个 stage 的结果
-    - 去重（基于 doc_id）
+    - 去重(基于 doc_id)
     - 保留最高分
     
     Args:
-        num_stages: Stage 数量（默认 4）
+        num_stages: Stage 数量(默认 4)
         **kwargs: 父类参数
     """
     

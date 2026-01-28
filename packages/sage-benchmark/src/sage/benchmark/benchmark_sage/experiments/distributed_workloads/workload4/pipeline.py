@@ -5,10 +5,10 @@ Workload 4 Pipeline Factory
 整合所有算子，构建完整的 Workload 4 分布式数据流。
 
 Pipeline 结构:
-1. 双流源（Query + Document）
+1. 双流源(Query + Document)
 2. Embedding 预计算
 3. Semantic Join (60s 大窗口)
-4. 双路 VDB 检索（4-stage each）
+4. 双路 VDB 检索(4-stage each)
 5. 图遍历内存检索
 6. 结果汇聚
 7. DBSCAN 聚类去重
@@ -61,7 +61,9 @@ try:
     from .reranking import MultiDimensionalReranker, MMRDiversityFilter
     from .batching import CategoryBatchAggregator, GlobalBatchAggregator
     from .generation import BatchLLMGenerator, Workload4MetricsSink
-    from .union_operator import UnionCoMap
+    # 流汇聚和分流工具
+    from .aggregation import MergeVDBResultsJoin, MergeAllResultsJoin
+    from .tag_utils import TagMapper, TagFilter
     # 🔧 临时添加：单源测试用的转换器
     from .mappers import QueryToJoinedMapper
 except ImportError:
@@ -94,8 +96,11 @@ except ImportError:
     from reranking import MultiDimensionalReranker, MMRDiversityFilter
     from batching import CategoryBatchAggregator, GlobalBatchAggregator
     from generation import BatchLLMGenerator, Workload4MetricsSink
-    from union_operator import UnionCoMap
+    # 流汇聚和分流工具
+    from aggregation import MergeVDBResultsJoin, MergeAllResultsJoin
+    from tag_utils import TagMapper, TagFilter
     # 🔧 临时添加：单源测试用的转换器
+    from mappers import QueryToJoinedMapper
     from mappers import QueryToJoinedMapper
 
 
@@ -110,7 +115,7 @@ def register_embedding_service(
     """
     注册 Embedding 服务。
     
-    使用远端 Embedding API（OpenAI 兼容）。
+    使用远端 Embedding API(OpenAI 兼容)。
     """
     try:
         from .services import EmbeddingService
@@ -135,10 +140,10 @@ def register_vdb_services(
     config: Workload4Config,
 ) -> dict[str, bool]:
     """
-    注册双路 VDB 服务（vdb1 和 vdb2）。
+    注册双路 VDB 服务(vdb1 和 vdb2)。
     
-    使用真实的 FiQA 数据集（57,638 文档，1024 维）。
-    vdb1 和 vdb2 共享相同的 FAISS 索引（fiqa_faiss.index）。
+    使用真实的 FiQA 数据集(57,638 文档，1024 维)。
+    vdb1 和 vdb2 共享相同的 FAISS 索引(fiqa_faiss.index)。
     索引和文档存储在 config.vdb_index_dir。
     
     **数据源**：/home/sage/data/fiqa_faiss.index + fiqa_documents.jsonl
@@ -206,7 +211,7 @@ def register_llm_service(
     """
     注册 LLM 服务。
     
-    使用远端 LLM API（OpenAI 兼容）。
+    使用远端 LLM API(OpenAI 兼容)。
     """
     # Import Service class from module
     from .services import LLMService
@@ -288,12 +293,12 @@ class Workload4Pipeline:
         self.metrics = None
     
     def _create_environment(self, name: str):
-        """创建执行环境（本地或远程）"""
+        """创建执行环境(本地或远程)"""
         if self.config.use_remote:
             from pathlib import Path
             from sage.kernel.api.remote_environment import RemoteEnvironment
             
-            # workload4 所在目录（当前文件的父目录的父目录）
+            # workload4 所在目录(当前文件的父目录的父目录)
             workload_dir = str(Path(__file__).parent.parent)
             
             # RemoteEnvironment 参数：name, config, host, port, scheduler, extra_python_paths
@@ -312,11 +317,11 @@ class Workload4Pipeline:
         构建完整 pipeline。
         
         Pipeline 结构:
-        1. 双流源（Query + Document）
+        1. 双流源(Query + Document)
         2. Embedding 预计算
         3. Semantic Join (60s 大窗口, parallelism=16)
         4. 图遍历内存检索
-        5. 双路 VDB 检索（4-stage each）
+        5. 双路 VDB 检索(4-stage each)
         6. 汇聚所有检索结果
         7. DBSCAN 聚类去重
         8. 5维评分重排序
@@ -359,7 +364,7 @@ class Workload4Pipeline:
         print("Building Data Streams")
         print("=" * 80)
         
-        # Query 流（传入类而非实例）
+        # Query 流(传入类而非实例)
         query_stream = env.from_source(
             Workload4QuerySource,
             num_tasks=self.config.num_tasks,
@@ -370,7 +375,7 @@ class Workload4Pipeline:
         )
         print(f"✓ Created Query Stream (QPS={self.config.query_qps})")
         
-        # Document 流（传入类而非实例）
+        # Document 流(传入类而非实例)
         doc_stream = env.from_source(
             Workload4DocumentSource,
             num_docs=self.config.num_tasks * 20,  # 每个query对应20个doc
@@ -404,21 +409,29 @@ class Workload4Pipeline:
         print("=" * 80)
         
         # SemanticJoinOperator 是 BaseCoMapFunction，使用 comap 而不是 join
+        # 定义兼容 StopSignal 的 key selector
+        def joined_key_selector(x):
+            """从 JoinedEvent 提取 joined_id，兼容 StopSignal"""
+            from sage.kernel.runtime.communication.packet import StopSignal
+            if isinstance(x, StopSignal):
+                return x  # StopSignal 直接返回自身，让它继续传递
+            return hash(x.joined_id) % self.config.join_parallelism
+        
         joined_stream = query_stream.connect(doc_stream).comap(
             SemanticJoinOperator,
             window_seconds=self.config.join_window_seconds,
             threshold=self.config.join_threshold,
             max_matches=self.config.join_max_matches,
             batch_compute=True,
-        ).keyby(lambda x: hash(x.joined_id) % self.config.join_parallelism)
-        
+        )
+        # .keyby(joined_key_selector)
         print(f"✓ Added Semantic Join (window={self.config.join_window_seconds}s, "
               f"threshold={self.config.join_threshold}, "
               f"parallelism={self.config.join_parallelism})")
         
-        # === 6. 图遍历内存检索 ===
+        # === 6. 图遍历内存检索(串行第一步)===
         print("\n" + "=" * 80)
-        print("Building Graph Memory Retrieval")
+        print("Building Graph Memory Retrieval (串行第一步)")
         print("=" * 80)
         
         graph_stream = joined_stream.map(
@@ -430,71 +443,78 @@ class Workload4Pipeline:
         print(f"✓ Added Graph Memory Retrieval (max_depth={self.config.graph_max_depth}, "
               f"max_nodes={self.config.graph_max_nodes})")
         
-        # === 7. 双路 VDB 检索（4-stage each）===
+        # === 7. 双路 VDB 检索(使用 Tag+Filter 模式)===
+        # Tag+Filter 模式：每条数据都复制到两个分支
+        # graph_stream → tag("vdb1"|"vdb2") → filter(vdb1) → VDBRetriever(vdb1)
+        #                                    → filter(vdb2) → VDBRetriever(vdb2)
         print("\n" + "=" * 80)
-        print("Building VDB Retrieval Branches")
+        print("Building VDB Retrieval Branches (Tag+Filter 模式)")
         print("=" * 80)
         
-        # VDB1 分支 (4-stage cascade)
-        vdb1_stream = joined_stream
-        for stage in range(1, 5):
-            top_k = self.config.vdb1_top_k // stage  # 递减 top-k
-            filter_threshold = self.config.vdb_filter_threshold + (stage - 1) * 0.05
-            
-            vdb1_stream = vdb1_stream.map(
-                VDBRetriever,
-                vdb_name="vdb1",
-                top_k=top_k,
-                stage=stage,
-            )
-            
-            if stage < 4:  # 最后一 stage 不过滤
-                vdb1_stream = vdb1_stream.filter(
-                    VDBResultFilter,
-                    threshold=filter_threshold,
-                )
-                
-                vdb1_stream = vdb1_stream.map(
-                    LocalReranker,
-                    top_k=max(5, top_k // 2),
-                )
+        # 给每条数据打上 vdb1 和 vdb2 标签(flatmap 会复制两份)
+        tagged_stream = graph_stream.flatmap(
+            TagMapper,
+            tags=["vdb1", "vdb2"],
+        )
+        print("✓ Added TagMapper (tags=['vdb1', 'vdb2'])")
         
-        print(f"✓ Added VDB1 Branch (4-stage cascade)")
+        # VDB1 分支：过滤出 tag=vdb1 的数据
+        vdb1_filtered = tagged_stream.filter(
+            TagFilter,
+            target_tag="vdb1",
+        ).sink(
+            Workload4MetricsSink,
+            metrics_output_dir=self.config.metrics_output_dir,
+            verbose=True,
+        )
+        self.env = env 
+        return self
+        vdb1_stream = vdb1_filtered.map(
+            VDBRetriever,
+            vdb_name="vdb1",
+            top_k=self.config.vdb1_top_k,
+            stage=1,
+        )
+        print(f"✓ Added VDB1 Branch (tag=vdb1, top_k={self.config.vdb1_top_k})")
         
-        # VDB2 分支 (4-stage cascade)
-        vdb2_stream = joined_stream
-        for stage in range(1, 5):
-            top_k = self.config.vdb2_top_k // stage
-            filter_threshold = self.config.vdb_filter_threshold + (stage - 1) * 0.05
-            
-            vdb2_stream = vdb2_stream.map(
-                VDBRetriever,
-                vdb_name="vdb2",
-                top_k=top_k,
-                stage=stage,
-            )
-            
-            if stage < 4:
-                vdb2_stream = vdb2_stream.filter(
-                    VDBResultFilter,
-                    threshold=filter_threshold,
-                )
-                
-                vdb2_stream = vdb2_stream.map(
-                    LocalReranker,
-                    top_k=max(5, top_k // 2),
-                )
+        # VDB2 分支：过滤出 tag=vdb2 的数据
+        vdb2_filtered = tagged_stream.filter(
+            TagFilter,
+            target_tag="vdb2",
+        )
+        vdb2_stream = vdb2_filtered.map(
+            VDBRetriever,
+            vdb_name="vdb2",
+            top_k=self.config.vdb2_top_k,
+            stage=1,
+        )
+        print(f"✓ Added VDB2 Branch (tag=vdb2, top_k={self.config.vdb2_top_k})")
         
-        print(f"✓ Added VDB2 Branch (4-stage cascade)")
-        
-        # === 8. 汇聚所有检索结果 ===
+        # === 8. 汇聚所有检索结果(使用 keyby + join)===
+        # 现在只需要合并 VDB1 + VDB2(graph 已经在上游)
+        # 流程：VDB1 + VDB2 → Join → 合并结果
         print("\n" + "=" * 80)
-        print("Building Result Aggregation")
+        print("Building Result Aggregation (keyby + join, VDB1 + VDB2)")
         print("=" * 80)
         
-        # 使用 connect + comap 来合并所有流（UnionCoMap 在文件顶部定义）
-        all_results = vdb1_stream.connect(vdb2_stream).connect(graph_stream).comap(UnionCoMap)
-        print("✓ Added Union of all retrieval results (VDB1 + VDB2 + Graph)")
+        # 定义兼容 StopSignal 的 key selector
+        def vdb_key_selector(x):
+            """从 VDBResultsWrapper 提取 query_id，兼容 StopSignal"""
+            from sage.kernel.runtime.communication.packet import StopSignal
+            if isinstance(x, StopSignal):
+                return x  # StopSignal 直接返回自身，让它继续传递
+            return x.query_id  # VDBResultsWrapper 有 query_id 字段
+        
+        # VDB1 和 VDB2 结果合并(按 query_id)
+        # 注意：因为 graph 在上游串行，VDB 结果已经包含 graph 信息
+        vdb1_keyed = vdb1_stream.keyby(vdb_key_selector)
+        vdb2_keyed = vdb2_stream.keyby(vdb_key_selector)
+        
+        all_results = vdb1_keyed.connect(vdb2_keyed).join(
+            MergeVDBResultsJoin,
+            parallelism=self.config.join_parallelism,
+        )
+        print("✓ Added VDB1+VDB2 Join (graph 已在上游串行执行)")
         
         # === 9. DBSCAN 聚类去重 ===
         print("\n" + "=" * 80)
@@ -670,10 +690,10 @@ def create_workload4_pipeline(
     **config_overrides
 ) -> Workload4Pipeline:
     """
-    创建 Workload 4 Pipeline（便捷函数）。
+    创建 Workload 4 Pipeline(便捷函数)。
     
     Args:
-        config: Workload4Config 实例（可选）
+        config: Workload4Config 实例(可选)
         **config_overrides: 覆盖配置项
     
     Returns:
@@ -701,10 +721,10 @@ def run_workload4(
     **config_overrides
 ) -> Workload4Metrics:
     """
-    一键运行 Workload 4（便捷函数）。
+    一键运行 Workload 4(便捷函数)。
     
     Args:
-        config: Workload4Config 实例（可选）
+        config: Workload4Config 实例(可选)
         **config_overrides: 覆盖配置项
     
     Returns:

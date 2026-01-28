@@ -37,7 +37,7 @@ class BatchLLMGenerator(MapFunction):
         llm_model: 使用的模型名称
         max_tokens: 最大生成 token 数
         temperature: 生成温度
-        batch_timeout_seconds: 批量调用超时（秒）
+        batch_timeout_seconds: 批量调用超时(秒)
         max_retries: 最大重试次数
         **kwargs: 其他参数
     """
@@ -75,26 +75,44 @@ class BatchLLMGenerator(MapFunction):
         Returns:
             [(query_id, response, metrics), ...] 列表
         """
+        from sage.kernel.runtime.communication.packet import StopSignal
+        if isinstance(batch_context, StopSignal):
+            return batch_context
+        
         import requests
         
         start_time = time.time()
         results = []
         
-        # 为批次中的每个 JoinedEvent 生成回复
+        # 为批次中的每个 item 生成回复
         for item in batch_context.items:
-            query = item.query
+            # item 是 (joined_event, graph_results, reranking_results)
+            joined_event, graph_results, reranking_results = item
+            query = joined_event.query
             
-            # 构建 prompt（使用检索到的上下文）
-            context_docs = [doc.doc_text for doc in item.matched_docs[:3]]  # 取前3个文档
+            # 构建 prompt(使用检索到的上下文)
+            # 合并 graph 和 reranking 的文档
+            context_docs = []
+            
+            # 添加 graph 结果
+            for graph_result in graph_results[:2]:  # 取前2个graph结果
+                if hasattr(graph_result, 'content'):
+                    context_docs.append(graph_result.content)
+            
+            # 添加 reranking 结果
+            for rerank_result in reranking_results[:3]:  # 取前3个rerank结果
+                if hasattr(rerank_result, 'vdb_result') and hasattr(rerank_result.vdb_result, 'content'):
+                    context_docs.append(rerank_result.vdb_result.content)
+            
             context = "\n\n".join(context_docs) if context_docs else "No relevant context found."
             
             prompt = self._build_prompt(query.query_text, context)
             
-            # 调用 LLM（带重试）
+            # 调用 LLM(带重试)
             response = self._call_llm_with_retry(prompt)
             
             # 创建指标对象
-            metrics = self._create_metrics(item, start_time)
+            metrics = self._create_metrics(joined_event, start_time)
             
             # 添加结果
             results.append((query.query_id, response, metrics))
@@ -126,7 +144,7 @@ Answer:"""
     
     def _call_llm_with_retry(self, prompt: str) -> str:
         """
-        调用 LLM API（带重试机制）。
+        调用 LLM API(带重试机制)。
         
         Args:
             prompt: 输入 prompt
@@ -238,20 +256,20 @@ class Workload4MetricsSink(SinkFunction):
     收集完整的端到端指标，包括所有 stage 的时间戳和统计信息。
     
     特点:
-    - 支持长时间运行（Workload 4 延迟高）
-    - 实时写入文件（避免内存溢出）
+    - 支持长时间运行(Workload 4 延迟高)
+    - 实时写入文件(避免内存溢出)
     - 生成详细的汇总报告
     - 支持 CSV 和 JSON 输出
     
     Args:
         metrics_output_dir: 指标输出目录
         verbose: 是否打印详细信息
-        drain_timeout: Drain 总超时（秒），默认 24 小时
-        drain_quiet_period: 静默期（秒），默认 2 分钟
+        drain_timeout: Drain 总超时(秒)，默认 24 小时
+        drain_quiet_period: 静默期(秒)，默认 2 分钟
         **kwargs: 其他参数
     """
     
-    # Workload 4 特定的 drain 配置（更长的超时时间）
+    # Workload 4 特定的 drain 配置(更长的超时时间)
     drain_timeout: float = 86400  # 24 hours
     drain_quiet_period: float = 120  # 2 minutes
     
@@ -324,6 +342,11 @@ class Workload4MetricsSink(SinkFunction):
         Args:
             data: (query_id, response, metrics) 元组
         """
+        from sage.kernel.runtime.communication.packet import StopSignal
+        if isinstance(data, StopSignal):
+            # SinkFunction 遇到 StopSignal 不需要返回，直接返回 None
+            return
+        self.logger.info(f"received data : {data}")
         query_id, response, metrics = data
         
         # 添加到内存列表
@@ -502,7 +525,7 @@ class Workload4MetricsSink(SinkFunction):
         
         Args:
             data: 数据列表
-            percentile: 百分位（0-100）
+            percentile: 百分位(0-100)
         
         Returns:
             百分位值

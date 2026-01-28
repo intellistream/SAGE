@@ -72,7 +72,7 @@ class GraphMemoryService:
                 - node_id: 节点ID
                 - content: 内容文本
                 - embedding: 向量表示
-                - node_type: 节点类型（可选）
+                - node_type: 节点类型(可选)
         """
         logger.info(f"Building knowledge graph from {len(knowledge_base)} items...")
         start_time = time.time()
@@ -91,7 +91,7 @@ class GraphMemoryService:
             self.node_contents[node_id] = content
             self.node_types[node_id] = node_type
         
-        # 构建边（基于相似度）
+        # 构建边(基于相似度)
         node_ids = list(self.node_embeddings.keys())
         embeddings_matrix = np.array([self.node_embeddings[nid] for nid in node_ids])
         
@@ -149,7 +149,7 @@ class GraphMemoryService:
         query_emb = np.array(query_embedding, dtype=np.float32)
         query_emb = query_emb / (np.linalg.norm(query_emb) + 1e-8)
         
-        # 找到起始节点（与查询最相似的节点）
+        # 找到起始节点(与查询最相似的节点)
         start_nodes = self._find_top_k_similar_nodes(query_emb, k=beam_width)
         
         if not start_nodes:
@@ -197,7 +197,7 @@ class GraphMemoryService:
                 for neighbor_id, neighbor_score in top_neighbors:
                     if neighbor_id not in visited:
                         new_path = path + [neighbor_id]
-                        # 累积分数（平均）
+                        # 累积分数(平均)
                         new_cum_score = (cum_score * depth + neighbor_score) / (
                             depth + 1
                         )
@@ -213,7 +213,7 @@ class GraphMemoryService:
         找到与查询最相似的 top-k 节点。
         
         Args:
-            query_embedding: 查询向量（已归一化）
+            query_embedding: 查询向量(已归一化)
             k: 返回节点数
         
         Returns:
@@ -245,7 +245,7 @@ class GraphMemoryService:
         
         Args:
             node_id: 当前节点ID
-            query_embedding: 查询向量（已归一化）
+            query_embedding: 查询向量(已归一化)
         
         Returns:
             [(neighbor_id, score), ...]
@@ -270,7 +270,7 @@ class GraphMemoryService:
         # 余弦相似度
         scores = neighbor_embeddings @ query_embedding
         
-        # 结合边权重（可选）
+        # 结合边权重(可选)
         edge_weights = [
             self.graph[node_id][neighbor]["weight"] for neighbor in neighbors
         ]
@@ -286,7 +286,7 @@ class GraphMemoryRetriever(MapFunction):
     图遍历内存检索算子。
     
     特点:
-    - BFS 遍历（beam search）
+    - BFS 遍历(beam search)
     - 最大深度和节点数限制
     - 路径记录
     - 与查询向量的相关性排序
@@ -315,12 +315,14 @@ class GraphMemoryRetriever(MapFunction):
         self.beam_width = beam_width
         self.service_name = service_name
         
-        logger.info(
+
+        
+        self.logger.info(
             f"GraphMemoryRetriever initialized: max_depth={max_depth}, "
             f"max_nodes={max_nodes}, beam_width={beam_width}"
         )
     
-    def execute(self, data: JoinedEvent) -> list[GraphMemoryResult]:
+    def execute(self, data: JoinedEvent) -> "GraphEnrichedEvent":
         """
         执行图遍历搜索。
         
@@ -328,11 +330,28 @@ class GraphMemoryRetriever(MapFunction):
             data: Join 后的事件
         
         Returns:
-            图遍历结果列表
+            GraphEnrichedEvent 包含原始查询和 graph 结果
         """
+        from sage.kernel.runtime.communication.packet import StopSignal
+        from .models import GraphEnrichedEvent
+        
+        self.logger.debug(f"[EXEC] Received data type: {type(data).__name__}")
+        
+        # StopSignal 直接返回
+        if isinstance(data, StopSignal):
+            self.logger.debug("[EXEC] Received StopSignal, passing through")
+            return data
+        
+        self.logger.info(f"[EXEC] Processing joined_id={data.joined_id}, query_id={data.query.query_id}")
+        
         if data.query.embedding is None:
+            self.logger.warning(f"Query {data.query.query_id} has no embedding")
             logger.warning(f"Query {data.query.query_id} has no embedding")
-            return []
+            return GraphEnrichedEvent(
+                query=data.query,
+                joined_event=data,
+                graph_results=[],
+            )
         
         try:
             # 调用图内存服务
@@ -362,14 +381,22 @@ class GraphMemoryRetriever(MapFunction):
                 f"Query {data.query.query_id}: retrieved {len(results)} graph nodes"
             )
             
-            return results
+            return GraphEnrichedEvent(
+                query=data.query,
+                joined_event=data,
+                graph_results=results,
+            )
         
         except Exception as e:
             logger.error(
                 f"Graph memory retrieval failed for query {data.query.query_id}: {e}",
                 exc_info=True,
             )
-            return []
+            return GraphEnrichedEvent(
+                query=data.query,
+                joined_event=data,
+                graph_results=[],
+            )
 
 
 def build_knowledge_graph(
@@ -378,14 +405,14 @@ def build_knowledge_graph(
     similarity_threshold: float = 0.7,
 ) -> nx.DiGraph:
     """
-    从文档构建知识图（工具函数）。
+    从文档构建知识图(工具函数)。
     
     Args:
         documents: 文档列表，每个元素包含:
             - node_id: 节点ID
             - content: 内容文本
-            - embedding: 向量表示（可选，如果没有则需要外部计算）
-            - node_type: 节点类型（可选）
+            - embedding: 向量表示(可选，如果没有则需要外部计算)
+            - node_type: 节点类型(可选)
         embedding_dim: Embedding 维度
         similarity_threshold: 构图相似度阈值
     

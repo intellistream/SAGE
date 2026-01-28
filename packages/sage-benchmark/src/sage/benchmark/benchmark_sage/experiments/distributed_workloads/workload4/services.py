@@ -218,19 +218,31 @@ class GraphMemoryService(BaseService):
                         weight = np.random.uniform(0.5, 1.0)
                         self._graph.add_edge(f"node_{i}", f"node_{j}", weight=weight)
     
-    def search_bfs(
+    def search(
         self,
         query_embedding: list[float],
-        max_depth: int,
-        max_nodes: int,
+        max_depth: int | None = None,
+        max_nodes: int | None = None,
         beam_width: int = 10
-    ) -> list[tuple[str, str, int, list[str], float]]:
+    ) -> list[dict[str, any]]:
         """
-        BFS 图遍历搜索。
+        BFS 图遍历搜索（标准接口）。
+        
+        Args:
+            query_embedding: 查询向量
+            max_depth: 最大遍历深度（None 使用服务默认值）
+            max_nodes: 最大返回节点数（None 使用服务默认值）
+            beam_width: Beam search 宽度
         
         Returns:
-            [(node_id, content, depth, path, relevance_score), ...]
+            List of dict with keys: node_id, content, depth, path, relevance_score, node_type
         """
+        # 使用默认值如果未提供
+        if max_depth is None:
+            max_depth = self.max_depth
+        if max_nodes is None:
+            max_nodes = self.max_nodes
+        
         self._ensure_graph()
         
         import numpy as np
@@ -264,10 +276,17 @@ class GraphMemoryService(BaseService):
         while queue and len(results) < max_nodes:
             node_id, depth, path = queue.popleft()
             
-            # 添加到结果
+            # 添加到结果（返回字典格式）
             content = self._graph.nodes[node_id]["content"]
             score = node_scores[node_id]
-            results.append((node_id, content, depth, path, score))
+            results.append({
+                "node_id": node_id,
+                "content": content,
+                "depth": depth,
+                "path": path,
+                "relevance_score": score,
+                "node_type": "memory",  # Mock 数据都是 memory 类型
+            })
             
             # 继续遍历
             if depth < max_depth:

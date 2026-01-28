@@ -4,11 +4,11 @@ Workload 4 重排序和评分模块。
 实现 5 维评分的重排序算法和 MMR 多样性过滤。
 
 评分维度:
-1. Semantic: 语义相关性（query-doc 相似度）
-2. Freshness: 时间新鲜度（基于 timestamp）
-3. Diversity: 多样性（cluster 覆盖度）
-4. Authority: 权威性（图中心性、引用数）
-5. Coverage: 覆盖度（关键词覆盖）
+1. Semantic: 语义相关性(query-doc 相似度)
+2. Freshness: 时间新鲜度(基于 timestamp)
+3. Diversity: 多样性(cluster 覆盖度)
+4. Authority: 权威性(图中心性、引用数)
+5. Coverage: 覆盖度(关键词覆盖)
 """
 
 import time
@@ -33,11 +33,11 @@ class MultiDimensionalReranker(MapFunction):
     5 维评分重排序算子。
     
     评分维度:
-    1. Semantic: 语义相关性（query-doc 相似度）
-    2. Freshness: 时间新鲜度（基于 timestamp）
-    3. Diversity: 多样性（cluster 覆盖度）
-    4. Authority: 权威性（图中心性、引用数）
-    5. Coverage: 覆盖度（关键词覆盖）
+    1. Semantic: 语义相关性(query-doc 相似度)
+    2. Freshness: 时间新鲜度(基于 timestamp)
+    3. Diversity: 多样性(cluster 覆盖度)
+    4. Authority: 权威性(图中心性、引用数)
+    5. Coverage: 覆盖度(关键词覆盖)
     
     Args:
         score_weights: 各维度权重字典，总和应为 1.0
@@ -73,24 +73,28 @@ class MultiDimensionalReranker(MapFunction):
     
     def execute(
         self,
-        data: tuple[JoinedEvent, list[VDBRetrievalResult], list[ClusteringResult] | None]
-    ) -> list[RerankingResult]:
+        data: tuple[object, list[object], list[VDBRetrievalResult], list[ClusteringResult] | None]
+    ) -> tuple[object, list[object], list[RerankingResult]]:
         """
         计算 5 维评分并重排序。
         
         Args:
-            data: (joined_event, vdb_results, clustering_info)
+            data: (joined_event, graph_results, vdb_results, clustering_results)
         
         Returns:
-            重排序后的结果列表（包含详细评分）
+            (joined_event, graph_results, 重排序后的 RerankingResult 列表)
         """
+        from sage.kernel.runtime.communication.packet import StopSignal
+        if isinstance(data, StopSignal):
+            return data
+        
         start_time = time.perf_counter() if self.enable_profiling else 0
         
-        joined_event, vdb_results, clustering_info = data
+        joined_event, graph_results, vdb_results, clustering_info = data
         query = joined_event.query
         
         if not vdb_results:
-            return []
+            return (joined_event, graph_results, [])
         
         # 提取 query embedding
         query_embedding = np.array(query.embedding) if query.embedding else None
@@ -140,7 +144,7 @@ class MultiDimensionalReranker(MapFunction):
             elapsed = (time.perf_counter() - start_time) * 1000  # ms
             print(f"[MultiDimensionalReranker] 重排序 {len(vdb_results)} 个文档耗时: {elapsed:.2f}ms")
         
-        return reranking_results[:self.top_k]
+        return (joined_event, graph_results, reranking_results[:self.top_k])
     
     def _compute_scores(
         self,
@@ -194,12 +198,12 @@ class MultiDimensionalReranker(MapFunction):
         half_life_hours: float = 24,
     ) -> float:
         """
-        计算时间新鲜度评分（指数衰减）。
+        计算时间新鲜度评分(指数衰减)。
         
         Args:
             doc_timestamp: 文档时间戳
             current_time: 当前时间戳
-            half_life_hours: 半衰期（小时）
+            half_life_hours: 半衰期(小时)
         
         Returns:
             新鲜度评分 [0, 1]
@@ -238,7 +242,7 @@ class MultiDimensionalReranker(MapFunction):
         if doc_id in cluster_map:
             return 0.6
         else:
-            # 不在任何 cluster 中（噪音点），视为高多样性
+            # 不在任何 cluster 中(噪音点)，视为高多样性
             return 0.8
     
     def _compute_authority_score(
@@ -248,7 +252,7 @@ class MultiDimensionalReranker(MapFunction):
         """
         计算权威性评分。
         
-        基于元数据中的指标（如引用数、图中心性等）。
+        基于元数据中的指标(如引用数、图中心性等)。
         
         Args:
             metadata: 文档元数据
@@ -258,11 +262,11 @@ class MultiDimensionalReranker(MapFunction):
         """
         # 尝试从元数据中提取权威性指标
         
-        # 1. 引用数（如果有）
+        # 1. 引用数(如果有)
         citations = metadata.get("citations", 0)
         citation_score = min(1.0, citations / 100)  # 归一化：100 引用 = 1.0
         
-        # 2. 图中心性（如果有）
+        # 2. 图中心性(如果有)
         centrality = metadata.get("centrality", 0.0)
         centrality_score = min(1.0, centrality)
         
@@ -272,7 +276,7 @@ class MultiDimensionalReranker(MapFunction):
         if "authoritative" in source.lower() or "verified" in source.lower():
             source_score = 0.9
         
-        # 综合评分（加权平均）
+        # 综合评分(加权平均)
         if citations > 0 or centrality > 0:
             # 有明确的权威性指标
             authority_score = (citation_score * 0.5 + centrality_score * 0.5)
@@ -298,11 +302,11 @@ class MultiDimensionalReranker(MapFunction):
             覆盖度评分 [0, 1]
         """
         # 简单实现：基于关键词覆盖
-        # 提取查询关键词（简单分词）
+        # 提取查询关键词(简单分词)
         query_tokens = set(query_text.lower().split())
         doc_tokens = set(doc_content.lower().split())
         
-        # 去除停用词（简化版）
+        # 去除停用词(简化版)
         stopwords = {"the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for"}
         query_tokens -= stopwords
         
@@ -349,40 +353,45 @@ class MMRDiversityFilter(MapFunction):
     
     def execute(
         self,
-        data: tuple[QueryEvent, list[RerankingResult]]
-    ) -> list[RerankingResult]:
+        data: tuple[object, list[object], list[RerankingResult]]
+    ) -> tuple[object, list[object], list[RerankingResult]]:
         """
         MMR 迭代选择。
         
         Args:
-            data: (query, reranking_results)
+            data: (joined_event, graph_results, reranking_results)
         
         Returns:
-            经过多样性过滤的结果列表
+            (joined_event, graph_results, MMR 过滤后的结果列表)
         """
+        from sage.kernel.runtime.communication.packet import StopSignal
+        if isinstance(data, StopSignal):
+            return data
+        
+        joined_event, graph_results, reranking_results = data
         start_time = time.perf_counter() if self.enable_profiling else 0
         
-        query, results = data
+        if not reranking_results:
+            return (joined_event, graph_results, [])
         
-        if not results:
-            return []
-        
-        if len(results) <= self.top_k:
+        if len(reranking_results) <= self.top_k:
             # 结果数量不超过 top_k，直接返回
-            return results
+            return (joined_event, graph_results, reranking_results)
+        
+        query = joined_event.query
         
         # 提取 query embedding
         query_embedding = np.array(query.embedding) if query.embedding else None
         if query_embedding is None:
             # 没有 embedding，无法计算相似度，直接返回 top-k
-            return results[:self.top_k]
+            return (joined_event, graph_results, reranking_results[:self.top_k])
         
         # 归一化 query embedding
         query_embedding = query_embedding / (np.linalg.norm(query_embedding) + 1e-8)
         
-        # 提取文档 embeddings（从元数据中，假设已包含）
+        # 提取文档 embeddings(从元数据中，假设已包含)
         doc_embeddings = []
-        for result in results:
+        for result in reranking_results:
             # 尝试从 content 或 metadata 获取 embedding
             # 这里简化处理：假设在重排序前已经附加了 embedding
             # 实际实现中可能需要重新调用 embedding service
@@ -396,17 +405,17 @@ class MMRDiversityFilter(MapFunction):
         # MMR 迭代选择
         selected: list[RerankingResult] = []
         selected_embeddings: list[np.ndarray] = []
-        remaining_indices = list(range(len(results)))
+        remaining_indices = list(range(len(reranking_results)))
         
         while len(selected) < self.top_k and remaining_indices:
             best_idx = None
             best_mmr_score = -float('inf')
             
             for idx in remaining_indices:
-                result = results[idx]
+                result = reranking_results[idx]
                 doc_embedding = doc_embeddings[idx]
                 
-                # 计算相关性分数（使用 final_score 或 semantic score）
+                # 计算相关性分数(使用 final_score 或 semantic score)
                 relevance_score = result.score_breakdown.get("semantic", result.final_score)
                 
                 # 计算与已选择文档的最大相似度
@@ -434,7 +443,7 @@ class MMRDiversityFilter(MapFunction):
                 break
             
             # 选择最佳文档
-            selected.append(results[best_idx])
+            selected.append(reranking_results[best_idx])
             if doc_embeddings[best_idx] is not None:
                 # 归一化并添加到已选择列表
                 doc_norm = doc_embeddings[best_idx] / (
@@ -450,9 +459,9 @@ class MMRDiversityFilter(MapFunction):
         
         if self.enable_profiling:
             elapsed = (time.perf_counter() - start_time) * 1000  # ms
-            print(f"[MMRDiversityFilter] MMR 过滤 {len(results)} → {len(selected)} 耗时: {elapsed:.2f}ms")
+            print(f"[MMRDiversityFilter] MMR 过滤 {len(reranking_results)} → {len(selected)} 耗时: {elapsed:.2f}ms")
         
-        return selected
+        return (joined_event, graph_results, selected)
 
 
 def visualize_score_breakdown(
@@ -461,11 +470,11 @@ def visualize_score_breakdown(
     title: str = "5-Dimensional Score Breakdown",
 ) -> None:
     """
-    可视化 5 维评分分布（雷达图）。
+    可视化 5 维评分分布(雷达图)。
     
     Args:
         reranking_results: 重排序结果列表
-        output_path: 输出图片路径（PNG）
+        output_path: 输出图片路径(PNG)
         title: 图表标题
     """
     try:
@@ -528,11 +537,11 @@ def visualize_score_distribution(
     title: str = "Score Distribution by Dimension",
 ) -> None:
     """
-    可视化评分分布（柱状图）。
+    可视化评分分布(柱状图)。
     
     Args:
         reranking_results: 重排序结果列表
-        output_path: 输出图片路径（PNG）
+        output_path: 输出图片路径(PNG)
         title: 图表标题
     """
     try:

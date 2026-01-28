@@ -72,6 +72,7 @@ class VDBRetrievalResult:
     score: float
     source: str  # "vdb1" | "vdb2"
     stage: int   # 1-4 (哪个 stage)
+    query_id: str  # 关联的查询 ID（用于 join）
     metadata: dict[str, Any] = field(default_factory=dict)
     
     # 后续算子添加的字段
@@ -95,6 +96,34 @@ class GraphMemoryResult:
     def path_str(self) -> str:
         """返回路径字符串表示"""
         return " -> ".join(self.path)
+
+
+@dataclass
+class GraphEnrichedEvent:
+    """携带 Graph 检索结果的事件
+    
+    用于在 graph → VDB 串行流中传递原始查询 + graph 结果。
+    """
+    query: QueryEvent  # 原始查询（包含 embedding）
+    joined_event: JoinedEvent  # 原始 join 事件（可能后续需要）
+    graph_results: list[GraphMemoryResult]  # Graph 检索结果
+    
+    @property
+    def query_id(self) -> str:
+        return self.query.query_id
+
+
+@dataclass
+class VDBResultsWrapper:
+    """VDB 检索结果的包装器
+    
+    用于在流中传递一组 VDB 检索结果，同时保留 query 信息用于 join。
+    """
+    query_id: str  # 查询 ID（用于 join）
+    vdb_name: str  # "vdb1" | "vdb2"
+    results: list[VDBRetrievalResult]  # 检索结果列表
+    stage: int  # 检索阶段
+    source_event: GraphEnrichedEvent | None = None  # 保留原始 GraphEnrichedEvent
 
 
 @dataclass

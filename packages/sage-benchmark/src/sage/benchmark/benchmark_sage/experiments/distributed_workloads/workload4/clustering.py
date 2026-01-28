@@ -14,7 +14,7 @@ from collections import defaultdict
 from .models import VDBRetrievalResult, ClusteringResult, GraphMemoryResult
 
 
-# 简化的基类（避免依赖 sage.kernel）
+# 简化的基类(避免依赖 sage.kernel)
 class MapFunction:
     """简化的 MapFunction 基类"""
     def __init__(self, **kwargs):
@@ -32,13 +32,13 @@ class DBSCANClusteringOperator(MapFunction):
     - 使用 scikit-learn DBSCAN
     - 基于 embedding 余弦相似度
     - 每个 cluster 选择得分最高的代表文档
-    - 去除噪声点（cluster_id=-1）
+    - 去除噪声点(cluster_id=-1)
     
     参数:
-        eps: DBSCAN 邻域半径（对应于 1-cosine_similarity）
+        eps: DBSCAN 邻域半径(对应于 1-cosine_similarity)
         min_samples: 最小样本数
-        metric: 距离度量（默认 cosine）
-        keep_noise: 是否保留噪声点（cluster_id=-1）
+        metric: 距离度量(默认 cosine)
+        keep_noise: 是否保留噪声点(cluster_id=-1)
     """
     
     def __init__(
@@ -63,51 +63,64 @@ class DBSCANClusteringOperator(MapFunction):
     
     def execute(
         self,
-        data: tuple[str, list[VDBRetrievalResult | GraphMemoryResult]]
-    ) -> tuple[str, list[VDBRetrievalResult | GraphMemoryResult], list[ClusteringResult]]:
+        data: tuple[object, list[object], list[VDBRetrievalResult | GraphMemoryResult]]
+    ) -> tuple[object, list[object], list[VDBRetrievalResult | GraphMemoryResult], list[ClusteringResult]]:
         """
         执行聚类并去重。
         
         Args:
-            data: (joined_id, results) - 待聚类的文档列表
+            data: (joined_event, graph_results, vdb_results) - 待聚类的文档列表
         
         Returns:
-            (joined_id, 去重后的文档列表, 聚类信息)
+            (joined_event, graph_results, 去重后的VDB文档列表, 聚类信息)
         """
+        from sage.kernel.runtime.communication.packet import StopSignal
+        if isinstance(data, StopSignal):
+            return data
+        
         start_time = time.perf_counter()
         
-        joined_id, results = data
+        joined_event, graph_results, vdb_results = data
         
-        if len(results) == 0:
-            return (joined_id, [], [])
+        # 合并 graph_results 和 vdb_results 进行聚类去重
+        all_results = graph_results + vdb_results
         
-        if len(results) == 1:
+        if len(all_results) == 0:
+            return (joined_event, graph_results, [], [])
+        
+        if len(all_results) == 1:
             # 单个文档无需聚类
-            return (joined_id, results, [])
+            # VDB结果去重后返回，graph结果保持不变
+            if len(vdb_results) == 1:
+                return (joined_event, graph_results, vdb_results, [])
+            else:
+                return (joined_event, graph_results, [], [])
         
         # 提取 embeddings 和文档信息
         embeddings = []
         doc_info = []
         
-        for result in results:
-            # 获取 embedding（从 metadata 或 content embedding）
+        for result in all_results:
+            # 获取 embedding(从 metadata 或 content embedding)
             if isinstance(result, VDBRetrievalResult):
                 embedding = result.metadata.get("embedding")
                 if embedding is None:
                     # VDB 结果可能没有存储 embedding，需要重新计算或跳过
-                    # 这里简化处理：使用文档ID的哈希作为伪embedding（实际应调用embedding服务）
+                    # 这里简化处理：使用文档ID的哈希作为伪embedding(实际应调用embedding服务)
                     embedding = self._get_pseudo_embedding(result.content)
                 doc_info.append({
                     "doc_id": result.doc_id,
                     "score": result.score,
-                    "result": result
+                    "result": result,
+                    "is_graph": False
                 })
             elif isinstance(result, GraphMemoryResult):
                 embedding = self._get_pseudo_embedding(result.content)
                 doc_info.append({
                     "doc_id": result.node_id,
                     "score": result.relevance_score,
-                    "result": result
+                    "result": result,
+                    "is_graph": True
                 })
             else:
                 continue
@@ -116,7 +129,7 @@ class DBSCANClusteringOperator(MapFunction):
         
         if len(embeddings) < self.min_samples:
             # 文档太少，无需聚类
-            return (joined_id, results, [])
+            return (joined_event, graph_results, vdb_results, [])
         
         # 转换为 numpy 数组
         embeddings_array = np.array(embeddings)
@@ -154,11 +167,11 @@ class DBSCANClusteringOperator(MapFunction):
                 # 记录聚类信息
                 cluster_doc_ids = [info["doc_id"] for _, info in cluster_items]
                 
-                # 计算簇中心（centroid）
+                # 计算簇中心(centroid)
                 cluster_embeddings = embeddings_array[[idx for idx, _ in cluster_items]]
                 centroid = cluster_embeddings.mean(axis=0).tolist()
                 
-                # 计算簇内相似度矩阵（可选，用于分析）
+                # 计算簇内相似度矩阵(可选，用于分析)
                 if len(cluster_items) <= 10:  # 仅对小簇计算，避免开销过大
                     sim_matrix = cosine_similarity(cluster_embeddings).tolist()
                 else:
@@ -173,18 +186,22 @@ class DBSCANClusteringOperator(MapFunction):
                     similarity_matrix=sim_matrix
                 ))
         
+        # 分离 graph 和 vdb 结果
+        deduplicated_vdb = [r for r, info in zip(deduplicated_results, doc_info) if not info["is_graph"]]
+        deduplicated_graph = [r for r, info in zip(deduplicated_results, doc_info) if info["is_graph"]]
+        
         # 更新统计信息
         elapsed_time = time.perf_counter() - start_time
-        self._total_docs += len(results)
+        self._total_docs += len(all_results)
         self._total_clusters += len([c for c in clusters if c != -1])
-        self._total_removed += len(results) - len(deduplicated_results)
+        self._total_removed += len(all_results) - len(deduplicated_results)
         self._total_time += elapsed_time
         
-        return (joined_id, deduplicated_results, clustering_results)
+        return (joined_event, deduplicated_graph, deduplicated_vdb, clustering_results)
     
     def _get_pseudo_embedding(self, content: str, dim: int = 128) -> list[float]:
         """
-        生成伪 embedding（用于测试/演示）。
+        生成伪 embedding(用于测试/演示)。
         
         实际生产环境应调用真实的 embedding 服务。
         """
@@ -225,7 +242,7 @@ class DBSCANClusteringOperator(MapFunction):
 
 class SimilarityDeduplicator(MapFunction):
     """
-    基于相似度矩阵的去重算子（O(n²) 但 n 小）。
+    基于相似度矩阵的去重算子(O(n²) 但 n 小)。
     
     用于 DBSCAN 的补充或替代，特别适合文档数量较少的场景。
     
@@ -235,7 +252,7 @@ class SimilarityDeduplicator(MapFunction):
     3. 使用贪心算法避免重复比较
     
     参数:
-        threshold: 相似度阈值（0-1）
+        threshold: 相似度阈值(0-1)
         use_simhash: 是否使用 SimHash 粗筛优化
     """
     
@@ -267,6 +284,10 @@ class SimilarityDeduplicator(MapFunction):
         Returns:
             (joined_id, 去重后的文档列表)
         """
+        from sage.kernel.runtime.communication.packet import StopSignal
+        if isinstance(data, StopSignal):
+            return data
+        
         start_time = time.perf_counter()
         
         joined_id, results = data
@@ -312,7 +333,7 @@ class SimilarityDeduplicator(MapFunction):
             is_duplicate = False
             
             if self.use_simhash and len(kept_indices) > 10:
-                # SimHash 粗筛（简化版：仅用于大量文档）
+                # SimHash 粗筛(简化版：仅用于大量文档)
                 # 实际实现可以使用真实的 SimHash 算法
                 pass
             
@@ -350,7 +371,7 @@ class SimilarityDeduplicator(MapFunction):
         return dot_product / (norm1 * norm2)
     
     def _get_pseudo_embedding(self, content: str, dim: int = 128) -> list[float]:
-        """生成伪 embedding（与 DBSCAN 算子保持一致）"""
+        """生成伪 embedding(与 DBSCAN 算子保持一致)"""
         import hashlib
         hash_bytes = hashlib.sha256(content.encode()).digest()
         vector = []
@@ -387,14 +408,14 @@ def visualize_clusters(
     method: str = "tsne"
 ) -> None:
     """
-    可视化聚类结果（用于调试）。
+    可视化聚类结果(用于调试)。
     
     使用 t-SNE 或 PCA 降维 + matplotlib 绘图。
     
     Args:
         clustering_results: 聚类结果列表
-        output_path: 输出图片路径（如果为 None 则显示）
-        method: 降维方法（"tsne" | "pca"）
+        output_path: 输出图片路径(如果为 None 则显示)
+        method: 降维方法("tsne" | "pca")
     """
     try:
         import matplotlib.pyplot as plt
@@ -489,7 +510,7 @@ def analyze_clustering_quality(
     - 簇数量
     - 平均簇大小
     - 最大/最小簇大小
-    - 簇内平均相似度（如果有 similarity_matrix）
+    - 簇内平均相似度(如果有 similarity_matrix)
     
     Args:
         clustering_results: 聚类结果列表
@@ -513,7 +534,7 @@ def analyze_clustering_quality(
     for cluster in clustering_results:
         if cluster.similarity_matrix is not None:
             sim_matrix = np.array(cluster.similarity_matrix)
-            # 排除对角线（自相似度为1）
+            # 排除对角线(自相似度为1)
             mask = ~np.eye(sim_matrix.shape[0], dtype=bool)
             if mask.sum() > 0:
                 avg_sim = sim_matrix[mask].mean()

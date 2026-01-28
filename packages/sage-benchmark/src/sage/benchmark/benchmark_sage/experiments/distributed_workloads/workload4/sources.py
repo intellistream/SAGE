@@ -4,8 +4,8 @@ Workload 4 双流源算子
 实现双流数据源算子，生成 Query 和 Document 事件流。
 
 包含三个核心算子：
-1. Workload4QuerySource - 查询源（Query 流）
-2. Workload4DocumentSource - 文档源（Document 流）
+1. Workload4QuerySource - 查询源(Query 流)
+2. Workload4DocumentSource - 文档源(Document 流)
 3. EmbeddingPrecompute - Embedding 预计算算子
 """
 
@@ -311,17 +311,17 @@ class Workload4QuerySource(SourceFunction):
     特点:
     - 以配置的 QPS 生成查询
     - 查询类型和类别多样化
-    - 支持合成查询（基于模板）
+    - 支持合成查询(基于模板)
     - 自动轮转类型和类别以保证分布
     
     Args:
-        num_tasks: 总任务数（查询数）
-        qps: 生成速率（queries per second）
-        query_types: 查询类型列表（默认全部三种）
-        categories: 类别列表（默认全部四种）
+        num_tasks: 总任务数(查询数)
+        qps: 生成速率(queries per second)
+        query_types: 查询类型列表(默认全部三种)
+        categories: 类别列表(默认全部四种)
         query_type_distribution: 查询类型分布比例
         category_distribution: 类别分布比例
-        seed: 随机种子（用于可复现性）
+        seed: 随机种子(用于可复现性)
     """
     
     def __init__(
@@ -394,7 +394,7 @@ class Workload4QuerySource(SourceFunction):
         # 选择模板并填充
         template = self.rng.choice(QUERY_TEMPLATES[query_type][category])
         query_text = self._fill_template(template)
-        
+        self.logger.info(f"[TEMPLATE] Generated query template: {template}")
         return QueryEvent(
             query_id=query_id,
             query_text=query_text,
@@ -427,11 +427,11 @@ class Workload4QuerySource(SourceFunction):
             self.logger.info(f"[STOP] Workload4QuerySource completed - generated {self.task_count}/{self.num_tasks} queries")
             return StopSignal(f"Query source completed: {self.task_count} queries generated")
         
-        # 初始化启动时间（第一次调用时）
+        # 初始化启动时间(第一次调用时)
         if not hasattr(self, '_start_time'):
             self._start_time = time.time()
         
-        # 控制生成速率（避免过快）
+        # 控制生成速率(避免过快)
         if self.interval > 0:
             elapsed = time.time() - self._start_time
             expected_count = int(elapsed * self.qps)
@@ -464,10 +464,10 @@ class Workload4DocumentSource(SourceFunction):
     
     Args:
         num_docs: 总文档数
-        qps: 生成速率（documents per second）
-        categories: 类别列表（默认全部四种）
+        qps: 生成速率(documents per second)
+        categories: 类别列表(默认全部四种)
         category_distribution: 类别分布比例
-        knowledge_base: 外部知识库（可选）
+        knowledge_base: 外部知识库(可选)
         seed: 随机种子
     """
     
@@ -572,7 +572,7 @@ class Workload4DocumentSource(SourceFunction):
             self.logger.info(f"[STOP] Workload4DocumentSource completed - generated {self.doc_count}/{self.num_docs} documents")
             return StopSignal(f"Document source completed: {self.doc_count} documents generated")
         
-        # 初始化启动时间（第一次调用时）
+        # 初始化启动时间(第一次调用时)
         if not hasattr(self, '_start_time'):
             self._start_time = time.time()
         self.logger.info(f"Generating document {self.doc_count + 1}/{self.num_docs}")
@@ -610,8 +610,8 @@ class EmbeddingPrecompute(MapFunction):
     Args:
         embedding_base_url: Embedding 服务地址
         embedding_model: 模型名称
-        batch_size: 批量大小（用于优化）
-        timeout: 请求超时时间（秒）
+        batch_size: 批量大小(用于优化)
+        timeout: 请求超时时间(秒)
         max_retries: 最大重试次数
     """
     
@@ -631,12 +631,12 @@ class EmbeddingPrecompute(MapFunction):
         self.timeout = timeout
         self.max_retries = max_retries
         
-        # 批量缓存（当前实现为单次处理，未来可优化为真正的批量）
+        # 批量缓存(当前实现为单次处理，未来可优化为真正的批量)
         self._batch_cache: list[tuple[Any, str]] = []
     
     def _call_embedding_api(self, texts: list[str]) -> list[list[float]]:
         """
-        调用 Embedding API（OpenAI 兼容）。
+        调用 Embedding API(OpenAI 兼容)。
         
         Args:
             texts: 文本列表
@@ -687,6 +687,10 @@ class EmbeddingPrecompute(MapFunction):
         Returns:
             带有 embedding 的事件
         """
+        from sage.kernel.runtime.communication.packet import StopSignal
+        if isinstance(data, StopSignal):
+            return data
+        
         # 提取文本
         if isinstance(data, QueryEvent):
             text = data.query_text
@@ -695,7 +699,7 @@ class EmbeddingPrecompute(MapFunction):
         else:
             raise TypeError(f"Unsupported data type: {type(data)}")
         
-        # 调用 API（单个文本）
+        # 调用 API(单个文本)
         # 注意：这里可以优化为批量调用，但需要复杂的批处理逻辑
         try:
             embeddings = self._call_embedding_api([text])
@@ -712,11 +716,11 @@ class EmbeddingPrecompute(MapFunction):
         return data
 
 
-# === 批量 Embedding 优化版本（可选）===
+# === 批量 Embedding 优化版本(可选)===
 
 class BatchedEmbeddingPrecompute(MapFunction):
     """
-    批量 Embedding 预计算算子（优化版本）。
+    批量 Embedding 预计算算子(优化版本)。
     
     注意：这个版本需要配合 batch() 算子使用，或者实现内部缓冲。
     当前 SAGE 的 MapFunction 是逐个处理，真正的批量需要更复杂的状态管理。
@@ -744,7 +748,7 @@ class BatchedEmbeddingPrecompute(MapFunction):
         self._buffer: list[QueryEvent | DocumentEvent] = []
     
     def _call_embedding_api(self, texts: list[str]) -> list[list[float]]:
-        """调用 Embedding API（同上）"""
+        """调用 Embedding API(同上)"""
         import requests
         
         url = f"{self.embedding_base_url}/embeddings"
@@ -814,16 +818,19 @@ class BatchedEmbeddingPrecompute(MapFunction):
         
         当前实现：仅演示逻辑，实际使用建议用单个版本。
         """
+        from sage.kernel.runtime.communication.packet import StopSignal
+        if isinstance(data, StopSignal):
+            return data
         self._buffer.append(data)
         
         if len(self._buffer) >= self.batch_size:
             # 刷新缓冲
             processed = self._flush_buffer()
-            # 只返回当前这个（其他的会丢失，这是局限）
+            # 只返回当前这个(其他的会丢失，这是局限)
             # 实际应该用 FlatMapFunction
             return data
         else:
-            # 缓冲未满，返回当前（embedding 尚未填充）
+            # 缓冲未满，返回当前(embedding 尚未填充)
             return data
     
     def close(self) -> None:

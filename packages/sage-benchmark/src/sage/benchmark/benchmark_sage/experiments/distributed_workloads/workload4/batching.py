@@ -2,8 +2,8 @@
 Workload 4 批处理聚合模块
 
 实现双层 Batch 聚合:
-1. Category Batch: 按 category 聚合（第一层）
-2. Global Batch: 全局聚合（第二层）
+1. Category Batch: 按 category 聚合(第一层)
+2. Global Batch: 全局聚合(第二层)
 
 目的:
 - 减少同类别查询的重复计算
@@ -59,25 +59,30 @@ class CategoryBatchAggregator(MapFunction):
         self.timeout_ms = timeout_ms / 1000.0  # 转换为秒
         
         # 每个 category 的缓冲区
-        self._category_buffers: dict[str, list[JoinedEvent]] = defaultdict(list)
+        self._category_buffers: dict[str, list[tuple]] = defaultdict(list)
         
         # 每个 category 的首次接收时间
         self._category_first_arrival: dict[str, float] = {}
         
-        # 批次计数器（用于生成 batch_id）
+        # 批次计数器(用于生成 batch_id)
         self._batch_counter = 0
         
-    def execute(self, data: JoinedEvent) -> BatchContext | None:
+    def execute(self, data: tuple[object, list[object], list[object]]) -> BatchContext | None:
         """
-        处理单个 JoinedEvent，决定是否发送批次。
+        处理单个数据，决定是否发送批次。
         
         Args:
-            data: JoinedEvent (包含 query 和 matched_docs)
+            data: (joined_event, graph_results, reranking_results)
         
         Returns:
-            BatchContext 或 None（如果还未达到批次条件）
+            BatchContext 或 None(如果还未达到批次条件)
         """
-        category = data.query.category
+        from sage.kernel.runtime.communication.packet import StopSignal
+        if isinstance(data, StopSignal):
+            return data
+        
+        joined_event, graph_results, reranking_results = data
+        category = joined_event.query.category
         current_time = time.time()
         
         # 添加到对应 category 的缓冲区
@@ -133,7 +138,7 @@ class CategoryBatchAggregator(MapFunction):
     
     def flush_all(self) -> list[BatchContext]:
         """
-        强制刷新所有缓冲区（用于 pipeline 结束时）。
+        强制刷新所有缓冲区(用于 pipeline 结束时)。
         
         Returns:
             所有待发送的 BatchContext
@@ -170,7 +175,7 @@ class GlobalBatchAggregator(MapFunction):
         self.batch_size = batch_size
         self.timeout_ms = timeout_ms / 1000.0  # 转换为秒
         
-        # 全局缓冲区（存储 category batch）
+        # 全局缓冲区(存储 category batch)
         self._global_buffer: list[JoinedEvent] = []
         
         # 首次接收时间
@@ -189,6 +194,10 @@ class GlobalBatchAggregator(MapFunction):
         Returns:
             BatchContext (type="global") 或 None
         """
+        from sage.kernel.runtime.communication.packet import StopSignal
+        if isinstance(data, StopSignal):
+            return data
+        
         assert data.batch_type == "category", \
             f"Expected category batch, got {data.batch_type}"
         
@@ -224,7 +233,7 @@ class GlobalBatchAggregator(MapFunction):
         batch_id = f"global_batch_{self._batch_counter}"
         self._batch_counter += 1
         
-        # 创建全局批次（取前 batch_size 个）
+        # 创建全局批次(取前 batch_size 个)
         items_to_send = self._global_buffer[:self.batch_size]
         
         batch = BatchContext(
@@ -250,7 +259,7 @@ class GlobalBatchAggregator(MapFunction):
     
     def flush_all(self) -> list[BatchContext]:
         """
-        强制刷新全局缓冲区（用于 pipeline 结束时）。
+        强制刷新全局缓冲区(用于 pipeline 结束时)。
         
         Returns:
             所有待发送的 BatchContext
@@ -274,7 +283,7 @@ class BatchCoordinator:
     3. 提供批次统计信息
     
     约束:
-    - category_timeout < global_timeout（确保第一层能及时刷新）
+    - category_timeout < global_timeout(确保第一层能及时刷新)
     """
     
     def __init__(
@@ -385,9 +394,9 @@ def create_batch_pipeline_stage(
     
     Args:
         category_batch_size: Category batch 大小
-        category_timeout_ms: Category batch 超时（毫秒）
+        category_timeout_ms: Category batch 超时(毫秒)
         global_batch_size: Global batch 大小
-        global_timeout_ms: Global batch 超时（毫秒）
+        global_timeout_ms: Global batch 超时(毫秒)
     
     Returns:
         (category_aggregator, global_aggregator, coordinator)
