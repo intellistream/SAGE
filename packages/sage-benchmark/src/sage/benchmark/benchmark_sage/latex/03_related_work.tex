@@ -1,0 +1,84 @@
+\section{Related Work}
+\label{sec:related_work}
+
+SAGE sits at the intersection of LLM serving, retrieval systems, streaming/dataflow runtimes, stateful
+memory, and agentic tool use. We organize related work around the components that LLM applications
+increasingly combine in practice.
+
+\paragraph{LLM serving engines and system optimizations.}
+A large body of work optimizes the inference of a \emph{single} LLM backend, focusing on efficient decoding,
+batching, KV-cache management, and GPU utilization (e.g., vLLM and related systems
+\cite{vllm,orcaserving,sarathi,tensorrt_llm,fastertransformer}). Industrial serving stacks (e.g., Triton
+Inference Server \cite{triton} and similar frameworks) provide deployment primitives and model hosting, but
+typically expose limited abstractions for representing multi-stage pipelines that combine retrieval,
+refinement, and memory as first-class, co-optimized operators.
+
+\paragraph{Control planes, routing, and SLO-aware scheduling.}
+Recent systems explore request routing, scheduling, and resource management for LLM workloads, including
+policy-driven scheduling, priority handling, and tail-latency improvements under contention
+\cite{llm_scheduling_slo,token_level_scheduling,load_balanced_llm_routing}. These efforts generally target
+LLM serving queues and GPU allocation. SAGE takes a complementary approach by focusing on 
+\emph{pipeline-level} orchestration: treating retrieval, memory, refinement, and generation as co-optimized 
+dataflow stages rather than isolated services, enabling end-to-end latency reasoning across the entire 
+inference path.
+
+\paragraph{Workflow orchestration and application frameworks.}
+General-purpose orchestration systems (e.g., Airflow \cite{airflow}, Kubeflow \cite{kubeflow}, and other
+MLOps/workflow platforms) provide scheduling and reproducibility for data and ML pipelines, but their
+execution models are typically designed for coarse-grained batch jobs rather than latency-critical,
+interactive inference with token-level metrics and tightly coupled components. LLM application frameworks
+(e.g., LangChain, LlamaIndex, DSPy, Haystack \cite{langchain,llamaindex,dspy,haystack}) facilitate the construction of RAG and tool-using agents, but often delegate performance-critical concerns (tail latency, interference,
+heterogeneous placement) to external services and provide limited, enforceable structure for long-term
+system evolution. SAGE targets this gap by compiling declarative inference dataflows into distributed
+execution plans while maintaining a strict, dependency-enforced architecture.
+
+\paragraph{Retrieval, vector databases, and semantic indexing.}
+Vector search and retrieval are central to modern RAG systems. Classical libraries such as FAISS
+\cite{faiss} and a growing ecosystem of vector databases (e.g., Milvus, Weaviate, Chroma, Vespa, Pinecone
+\cite{milvus,weaviate,chroma,vespa,pinecone}) provide scalable similarity search with various index
+structures. These systems are often integrated as standalone services with limited coupling to streaming
+semantic state, session memory, or downstream refinement steps. SAGE integrates vector storage/search as first-class inference components---including SageVDB for 
+high-performance similarity search and SageFlow for streaming semantic state---focusing on end-to-end 
+pipeline control rather than isolated retrieval performance.
+
+\paragraph{Streaming/dataflow systems and incremental computation.}
+Decades of work on dataflow and stream processing (e.g., Flink, Spark Streaming, Timely Dataflow,
+Differential Dataflow \cite{flink,spark_streaming,timely,differential_dataflow}) demonstrate the benefits of
+incremental computation, windowing, and stateful operators for dynamic data. While these systems are
+powerful, they are not specialized for vector-native operators and LLM-centric semantic state maintenance.
+SAGE leverages a dataflow abstraction for inference pipelines and includes vector-native stream processing
+for incrementally materializing semantic snapshots used by downstream generation.
+
+\paragraph{Memory systems for LLM applications.}
+Many LLM applications require persistent memory beyond a single prompt window, including short-term
+conversation history, semantic memory over documents, key-value style stores, and structured/graph memory.
+Prior work explores long-term memory for language agents and retrieval-based memory augmentation
+\cite{llm_memory_survey,memgpt,graph_memory_agents}. In practice, developers often stitch together bespoke
+memory layers on top of vector stores or databases. SAGE provides structured memory backends within the
+system stack, enabling consistent session semantics and integration with pipeline operators.
+
+\paragraph{Context refinement and compression.}
+Context compression and refinement methods aim to reduce token usage while preserving answer quality, via
+selective summarization, relevance scoring, or learned pruning \cite{context_compression,selective_rag}.
+These techniques are typically treated as optional application-level steps. SAGE elevates refinement to a
+first-class operator in the inference pipeline so that compression cost and downstream latency/quality
+trade-offs can be measured and optimized.
+
+\paragraph{Agentic tool use, planning, and evaluation.}
+Agent frameworks and research on tool use and planning study how LLMs select tools, compose multi-step
+plans, and decide when to invoke external actions \cite{react,toolformer,planner_agents}. However, agent
+research is often decoupled from system-level control of execution plans, resource sharing, and SLO
+compliance. SAGE contributes a benchmark suite that evaluates agent behaviors alongside system metrics,
+supporting a unified view of algorithmic decision quality and systems performance.
+
+\paragraph{Benchmarking for LLM systems.}
+Existing benchmarks often focus on model quality, single-backend serving throughput, or isolated retrieval
+performance \cite{llm_serving_benchmarks,rag_benchmarks}. SAGE provides a benchmark suite that jointly
+measures system-level metrics (throughput, TTFT/TBT, tail latency, SLO compliance, interference) and agent
+behavior metrics (tool selection, planning, timing), reflecting the coupled nature of modern inference
+pipelines.
+
+\noindent\textbf{Summary.}
+Across these areas, SAGE differs by elevating end-to-end inference pipelines to first-class declarative dataflows,
+integrating core inference components within an enforceable five-layer architecture (L1--L5), and providing unified
+control and evaluation across both systems and agent dimensions.

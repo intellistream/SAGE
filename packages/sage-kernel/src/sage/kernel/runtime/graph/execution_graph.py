@@ -48,18 +48,29 @@ class ExecutionGraph:
 
         # 首先设置日志系统
         self._setup_logging_system()
+        self.logger.debug("[ExecutionGraph] Logging system set up")
 
         # 构建基础图结构
+        self.logger.debug("[ExecutionGraph] Building task nodes...")
         self._build_task_nodes(env)
+        
         # 构建服务节点
+        self.logger.debug("[ExecutionGraph] Building service nodes...")
         self._build_service_nodes(env)
+        
         # 提取队列描述符映射表
+        self.logger.debug("[ExecutionGraph] Extracting queue descriptor mappings...")
         self._extract_queue_descriptor_mappings()
+        
         # 生成运行时上下文（队列描述符和连接关系都在Context构造函数中处理）
+        self.logger.debug("[ExecutionGraph] Generating runtime contexts...")
         self._generate_runtime_contexts()
 
         # 停止信号相关
+        self.logger.debug("[ExecutionGraph] Calculating source dependencies...")
         self._calculate_source_dependencies()
+        
+        self.logger.debug("[ExecutionGraph] Calculating total stop signals...")
         self.total_stop_signals = self._calculate_total_stop_signals()
 
         self.logger.info(
@@ -67,6 +78,7 @@ class ExecutionGraph:
             f"{len(self.nodes)} transformation nodes, {len(self.service_nodes)} service nodes "
             f"and {len(self.edges)} edges"
         )
+        self.logger.debug("[ExecutionGraph] Initialization completed")
 
     def _calculate_total_stop_signals(self):
         """计算所有源节点的停止信号总数"""
@@ -346,17 +358,27 @@ class ExecutionGraph:
 
     def _calculate_source_dependencies(self):
         """计算每个节点的源依赖关系"""
+        self.logger.debug(f"[ExecutionGraph] Calculating source dependencies, total nodes: {len(self.nodes)}")
         self.logger.debug("Calculating source dependencies for all nodes")
 
         # 使用广度优先搜索计算每个节点依赖的源节点
         for node_name, node in self.nodes.items():
+            self.logger.debug(f"[ExecutionGraph] Processing node: {node_name}, is_spout={node.is_spout}")
+            
             if not node.is_spout:
                 # 非源节点通过BFS收集所有上游源依赖
                 visited = set()
                 queue = [node_name]
                 source_deps = set()
+                iteration_count = 0  # 防止无限循环
+                max_iterations = len(self.nodes) * 10  # 最多迭代节点数的10倍
 
                 while queue:
+                    iteration_count += 1
+                    if iteration_count > max_iterations:
+                        self.logger.error(f"[ExecutionGraph] BFS infinite loop detected for node {node_name}! Queue: {queue[:5]}...")
+                        raise RuntimeError(f"BFS infinite loop detected for node {node_name}")
+                    
                     current_name = queue.pop(0)
                     if current_name in visited:
                         continue
@@ -369,12 +391,19 @@ class ExecutionGraph:
                         node.stop_signal_num += 1
                     else:
                         # 添加所有上游节点到队列
-                        for input_channel in current_node.input_channels.values():
+                        for input_index, input_channel in current_node.input_channels.items():
+                            self.logger.debug(f"[ExecutionGraph]   Checking input_channel {input_index}, {len(input_channel)} edges")
                             for edge in input_channel:
+                                if edge.upstream_node is None:
+                                    self.logger.error(f"[ExecutionGraph] Edge {edge.name} has None upstream_node!")
+                                    continue
                                 if edge.upstream_node.name not in visited:
                                     queue.append(edge.upstream_node.name)
             else:
                 # 源节点不需要等待停止信号
                 node.stop_signal_num = 0
 
+            self.logger.debug(f"[ExecutionGraph] Node {node_name} expects {node.stop_signal_num} stop signals")
             self.logger.debug(f"Node {node_name} expects {node.stop_signal_num} stop signals")
+        
+        self.logger.debug("[ExecutionGraph] Source dependencies calculation completed")
