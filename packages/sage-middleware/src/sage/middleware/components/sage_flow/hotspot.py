@@ -89,7 +89,7 @@ class SageFlowHotspotPairCoMap(BaseCoMapFunction):
         if self._initialized:
             return
 
-        from sage_flow import StreamingSource, StreamEnvironment
+        from sage_flow import StreamEnvironment, StreamingSource
 
         self._env = StreamEnvironment()
         # 使用 StreamingSource 而非 SimpleStreamSource：
@@ -110,7 +110,9 @@ class SageFlowHotspotPairCoMap(BaseCoMapFunction):
         # 与 C++ BruteForceBaseline 保持一致的相似度计算
         similarity_alpha = 5.0  # 与 bindings.cpp 中 JoinStrategyConfig 设置的 alpha 一致
 
-        def compute_l2_similarity(vec_a: np.ndarray, vec_b: np.ndarray, alpha: float = 5.0) -> float:
+        def compute_l2_similarity(
+            vec_a: np.ndarray, vec_b: np.ndarray, alpha: float = 5.0
+        ) -> float:
             """使用与 C++ 相同的公式计算相似度: sim = exp(-alpha * L2_distance)"""
             l2_dist = float(np.linalg.norm(vec_a - vec_b))
             return float(np.exp(-alpha * l2_dist))
@@ -181,7 +183,7 @@ class SageFlowHotspotPairCoMap(BaseCoMapFunction):
         with self._lock:
             self._init_sageflow()
             self._records_left[uid] = {**record, "id": uid, "_vec": vec}
-            setattr(self, "_last_left_uid", uid)
+            self._last_left_uid = uid
             print(f"[SageFlowHotspotPairCoMap] addRecord side=left uid={uid} ts_ms={now_ms}")
             self._ensure_executing()  # 确保已启动执行
             self._left_source.addRecord(uid, now_ms, vec)
@@ -235,6 +237,11 @@ class SageFlowHotspotPairCoMap(BaseCoMapFunction):
         # 收集所有剩余结果
         return self._drain_pairs()
 
+    def close(self) -> list[dict[str, Any]]:
+        """在 stop signal 时调用，完成 sageflow 并返回所有剩余结果。"""
+        print("[SageFlowHotspotPairCoMap] close() called, finishing sageflow...")
+        return self.finish_and_drain_all()
+
     def map0(self, data: Any) -> Any:
         if not isinstance(data, dict):
             return None
@@ -245,4 +252,3 @@ class SageFlowHotspotPairCoMap(BaseCoMapFunction):
         if not isinstance(data, dict):
             return None
         return self._push_right(data)
-

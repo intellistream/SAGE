@@ -9,7 +9,7 @@ import numpy as np
 from sage.common.components.sage_embedding.factory import EmbeddingFactory
 from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.sink_function import SinkFunction
-from sage.kernel.api import LocalEnvironment
+from sage.kernel.api import LocalEnvironment, RemoteEnvironment
 from sage.middleware.components.sage_flow.hotspot import SageFlowHotspotPairCoMap
 from sage.middleware.components.sage_flow.hotspot_flatten import HotspotPairListFlatten
 from sage.middleware.components.sage_flow.vllm_embedding import VLLMEmbeddingMap
@@ -46,6 +46,8 @@ class ExplainableMockEmbeddingMap(MapFunction):
         }
 
     def _base_vec(self, seed_text: str) -> np.ndarray:
+        import numpy as np  # Import locally for remote execution compatibility
+
         seed = hash(seed_text) % (2**32)
         rng = np.random.default_rng(seed)
         v = rng.standard_normal(self.dim).astype(np.float32)
@@ -53,6 +55,8 @@ class ExplainableMockEmbeddingMap(MapFunction):
         return v
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
+        import numpy as np  # Import locally for remote execution compatibility
+
         text = str(data.get(self.text_field, ""))
         if not text:
             return {**data, "embedding": None}
@@ -112,6 +116,8 @@ class OpenAIEmbeddingMap(MapFunction):
         self.dim = int(self._embedder.get_dim())
 
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
+        import numpy as np  # Import locally for remote execution compatibility
+
         text = str(data.get(self.text_field, ""))
         if not text:
             return {**data, "embedding": None}
@@ -133,15 +139,72 @@ class OpenAIEmbeddingMap(MapFunction):
 
 
 class HotspotCollectorSink(SinkFunction):
-    """收集所有热点对结果，用于后续排序展示。"""
+    """收集所有热点对结果，用于后续排序展示。
 
-    def __init__(self, results_list: list):
+    在 Remote 模式下，结果会写入到文件系统，因为 Python list 无法跨进程共享。
+    在 Local 模式下，结果直接写入内存中的 list。
+    """
+
+    # 默认输出目录（Remote 模式使用）
+    RESULTS_OUTPUT_DIR = "/tmp/sage_hotspot_results"
+
+    def __init__(self, results_list: list, use_file_output: bool = False):
         super().__init__()
         self.results = results_list
+        self.use_file_output = use_file_output
+        self._output_file = None
+        self._instance_id = None
+
+    def _ensure_output_file(self):
+        """确保输出文件已创建（延迟初始化，避免序列化问题）"""
+        if self._output_file is not None:
+            return
+
+        import os
+        import socket
+        import time
+
+        os.makedirs(self.RESULTS_OUTPUT_DIR, exist_ok=True)
+        hostname = socket.gethostname()
+        pid = os.getpid()
+        timestamp = int(time.time())
+        self._instance_id = f"{hostname}_{pid}_{timestamp}"
+        self._output_file = f"{self.RESULTS_OUTPUT_DIR}/hotspot_{self._instance_id}.jsonl"
 
     def execute(self, data: dict[str, Any]):
         if data and "left" in data and "right" in data:
-            self.results.append(data)
+            if self.use_file_output:
+                # Remote 模式：写入文件
+                self._ensure_output_file()
+                self._write_to_file(data)
+            else:
+                # Local 模式：写入内存
+                self.results.append(data)
+
+    def _write_to_file(self, data: dict[str, Any]):
+        """将结果写入 JSONL 文件"""
+        import json
+
+        # 需要处理 numpy 类型
+        def convert_for_json(obj):
+            import numpy as np
+
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, (np.integer, np.floating)):
+                return float(obj)
+            elif isinstance(obj, dict):
+                return {k: convert_for_json(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_for_json(v) for v in obj]
+            return obj
+
+        try:
+            json_data = convert_for_json(data)
+            with open(self._output_file, "a") as f:
+                f.write(json.dumps(json_data) + "\n")
+        except Exception as e:
+            print(f"[HotspotCollectorSink] Write error: {e}")
 
 
 def main():
@@ -198,31 +261,76 @@ def main():
     )
     parser.add_argument("--top-k", type=int, default=10, help="Top-K hotspot pairs to print.")
 
+    # execution mode
+    parser.add_argument(
+        "--local",
+        action="store_true",
+        help="Use LocalEnvironment instead of RemoteEnvironment (no Ray cluster needed).",
+    )
+
     args = parser.parse_args()
 
     print("=" * 70)
     print("SAGE x SageFlow: Hotspot News Aggregation")
     print("=" * 70)
     print(f"Embedding mode: {args.embedding_mode}")
+    print(
+        f"Execution mode: {'local' if args.local else 'remote (requires JobManager + Ray cluster)'}"
+    )
 
-    env = LocalEnvironment("hotspot-detection-pipeline")
+    if args.local:
+        env = LocalEnvironment("hotspot-detection-pipeline")
+    else:
+        env = RemoteEnvironment("hotspot-detection-pipeline")
 
     docs_a = [
         {"id": "A01", "platform": "Platform-A", "title": "Nvidia's new Blackwell GPUs are here"},
         {"id": "A02", "platform": "Platform-A", "title": "Apple unveils M4 chip for next-gen Macs"},
-        {"id": "A03", "platform": "Platform-A", "title": "Lakers win NBA championship in a dramatic final"},
+        {
+            "id": "A03",
+            "platform": "Platform-A",
+            "title": "Lakers win NBA championship in a dramatic final",
+        },
         {"id": "A04", "platform": "Platform-A", "title": "Google I/O 2025 focuses on Gemini AI"},
-        {"id": "A05", "platform": "Platform-A", "title": "FIFA World Cup 2026 host cities announced"},
+        {
+            "id": "A05",
+            "platform": "Platform-A",
+            "title": "FIFA World Cup 2026 host cities announced",
+        },
         {"id": "A06", "platform": "Platform-A", "title": "Microsoft launches new Surface Pro 11"},
     ]
 
     docs_b = [
-        {"id": "B01", "platform": "Platform-B", "title": "Nvidia announces the Blackwell GPU architecture"},
-        {"id": "B02", "platform": "Platform-B", "title": "Next generation of Macs to be powered by Apple's M4"},
-        {"id": "B03", "platform": "Platform-B", "title": "Dramatic NBA finals see Lakers take the crown"},
-        {"id": "B04", "platform": "Platform-B", "title": "Gemini AI is the star of Google I/O 2025"},
-        {"id": "B05", "platform": "Platform-B", "title": "FIFA reveals host cities for World Cup 2026"},
-        {"id": "B06", "platform": "Platform-B", "title": "First look at the new Surface Pro from Microsoft"},
+        {
+            "id": "B01",
+            "platform": "Platform-B",
+            "title": "Nvidia announces the Blackwell GPU architecture",
+        },
+        {
+            "id": "B02",
+            "platform": "Platform-B",
+            "title": "Next generation of Macs to be powered by Apple's M4",
+        },
+        {
+            "id": "B03",
+            "platform": "Platform-B",
+            "title": "Dramatic NBA finals see Lakers take the crown",
+        },
+        {
+            "id": "B04",
+            "platform": "Platform-B",
+            "title": "Gemini AI is the star of Google I/O 2025",
+        },
+        {
+            "id": "B05",
+            "platform": "Platform-B",
+            "title": "FIFA reveals host cities for World Cup 2026",
+        },
+        {
+            "id": "B06",
+            "platform": "Platform-B",
+            "title": "First look at the new Surface Pro from Microsoft",
+        },
         {"id": "B07", "platform": "Platform-B", "title": "Boston Celtics trade update"},
     ]
 
@@ -263,6 +371,12 @@ def main():
 
     all_hotspots: list[dict[str, Any]] = []
 
+    # Remote 模式下使用文件输出，因为 Python list 无法跨进程共享
+    use_file_output = not args.local
+
+    # 记录运行开始时间戳，用于后续筛选结果文件
+    run_start_timestamp = int(time.time())
+
     # 创建流并直接添加所有数据
     stream_a = env.from_batch(docs_a)
     stream_b = env.from_batch(docs_b)
@@ -288,13 +402,17 @@ def main():
             window_size_ms=args.window_size_ms,
         )
         .flatmap(HotspotPairListFlatten)
-        .sink(HotspotCollectorSink, results_list=all_hotspots)
+        .sink(HotspotCollectorSink, results_list=all_hotspots, use_file_output=use_file_output)
     )
 
     print("Submitting pipeline...")
     start_time = time.time()
     env.submit(autostop=True)
     print(f"Pipeline finished in {time.time() - start_time:.2f}s")
+
+    # Remote 模式下从文件收集结果
+    if use_file_output:
+        all_hotspots = _collect_results_from_files(run_start_timestamp)
 
     print(f"\nTop-{args.top_k} hotspot pairs:")
     print("-" * 70)
@@ -310,10 +428,63 @@ def main():
         right = pair.get("right", {})
         sim = pair.get("similarity", 0.0)
 
-        print(f"#{i+1:02d} | sim={sim:.4f}")
+        print(f"#{i + 1:02d} | sim={sim:.4f}")
         print(f"  -> [{left.get('platform')}] {left.get('title')}")
         print(f"  -> [{right.get('platform')}] {right.get('title')}")
         print("-" * 70)
+
+
+def _collect_results_from_files(run_start_timestamp: int) -> list[dict[str, Any]]:
+    """
+    从文件收集 Remote 模式下的结果。
+
+    Args:
+        run_start_timestamp: 运行开始时间戳，用于筛选本次运行产生的文件
+
+    Returns:
+        收集到的所有热点对列表
+    """
+    import json
+    from pathlib import Path
+
+    results_dir = Path(HotspotCollectorSink.RESULTS_OUTPUT_DIR)
+    if not results_dir.exists():
+        print(f"[Warning] Results directory not found: {results_dir}")
+        return []
+
+    # 查找本次运行产生的结果文件
+    results_files = []
+    for f in results_dir.glob("hotspot_*.jsonl"):
+        try:
+            # 从文件名提取时间戳: hotspot_{hostname}_{pid}_{timestamp}.jsonl
+            parts = f.stem.split("_")
+            if len(parts) >= 4:
+                file_timestamp = int(parts[-1])
+                if file_timestamp >= run_start_timestamp:
+                    results_files.append(f)
+        except (ValueError, IndexError):
+            continue
+
+    if not results_files:
+        print(f"[Warning] No results files found after timestamp {run_start_timestamp}")
+        return []
+
+    print(f"[Results] Found {len(results_files)} results file(s)")
+
+    # 从所有文件聚合结果
+    all_results = []
+    for results_file in results_files:
+        try:
+            with open(results_file) as f:
+                for line in f:
+                    if line.strip():
+                        data = json.loads(line.strip())
+                        all_results.append(data)
+        except Exception as e:
+            print(f"[Warning] Error reading results file {results_file}: {e}")
+
+    print(f"[Results] Collected {len(all_results)} hotspot pairs from files")
+    return all_results
 
 
 if __name__ == "__main__":
