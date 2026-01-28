@@ -403,14 +403,25 @@ def quality(
                 console.print("[green]✅ Dev-notes 文档规范检查通过[/green]")
             else:
                 issues = result.get("issues", [])
-                console.print(f"[red]❌ 发现 {len(issues)} 个文档问题[/red]")
-                for issue in issues[:5]:  # 只显示前5个
-                    console.print(
-                        f"   • {issue.get('file', 'unknown')}: {issue.get('message', '')}"
-                    )
-                if len(issues) > 5:
-                    console.print(f"   ... 还有 {len(issues) - 5} 个问题")
-                extra_checks_passed = False
+                # 区分错误和警告
+                errors = [i for i in issues if "❌" in i.get("message", "")]
+                warnings_only = [i for i in issues if "⚠️" in i.get("message", "")]
+
+                if errors:
+                    console.print(f"[red]❌ 发现 {len(errors)} 个文档问题[/red]")
+                    for issue in errors[:5]:
+                        console.print(
+                            f"   • {issue.get('file', 'unknown')}: {issue.get('message', '')}"
+                        )
+                    if len(errors) > 5:
+                        console.print(f"   ... 还有 {len(errors) - 5} 个问题")
+                    extra_checks_passed = False
+                elif warnings_only:
+                    console.print(f"[yellow]⚠️  发现 {len(warnings_only)} 个警告[/yellow]")
+                    for issue in warnings_only[:5]:
+                        console.print(
+                            f"   • {issue.get('file', 'unknown')}: {issue.get('message', '')}"
+                        )
         except Exception as e:
             console.print(f"[yellow]⚠️  文档检查失败: {e}[/yellow]")
             if not warn_only:
