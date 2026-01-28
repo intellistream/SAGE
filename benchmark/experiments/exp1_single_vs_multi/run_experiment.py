@@ -28,8 +28,6 @@ from pathlib import Path
 # 添加项目路径
 SCRIPT_DIR = Path(__file__).resolve().parent
 EXPERIMENT_ROOT = SCRIPT_DIR.parent
-# REPO_ROOT removed
-# removed
 sys.path.insert(0, str(EXPERIMENT_ROOT))
 
 from common.models import BenchmarkConfig, BenchmarkMetrics
@@ -46,13 +44,13 @@ EXPERIMENT_CONFIGS = {
         "description": "单节点 ",
         "use_remote": True,
         "num_nodes": 1,
-        "parallelism": 4,
+        "parallelism": 1,
     },
     "multi_4_nodes": {
         "description": "多节点 (4 nodes)",
         "use_remote": True,
         "num_nodes": 4,
-        "parallelism": 16,
+        "parallelism": 4,
         "scheduler_type": "load_aware",
         "scheduler_strategy": "spread",
     },
@@ -115,12 +113,21 @@ def run_single_experiment(
 
     if pipeline_type == "rag":
         pipeline.build_rag_pipeline(name)
+    elif pipeline_type == "rag_service":
+        pipeline.build_rag_service_pipeline(name)
     elif pipeline_type == "simple_rag":
         pipeline.build_simple_rag_pipeline(name)
     elif pipeline_type == "llm":
         pipeline.build_llm_pipeline(name)
     elif pipeline_type == "compute":
         pipeline.build_compute_pipeline(name)
+    elif pipeline_type == "adaptive_rag":
+        # Adaptive-RAG: 根据 num_tasks 从 SAMPLE_QUERIES 生成 queries
+        from common.operators import SAMPLE_QUERIES
+        queries = []
+        for i in range(num_tasks):
+            queries.append(SAMPLE_QUERIES[i % len(SAMPLE_QUERIES)])
+        pipeline.build_adaptive_rag_pipeline(name, queries=queries, max_iterations=3)
     else:
         pipeline.build_mixed_pipeline(name)
 
@@ -168,7 +175,7 @@ def run_node_scaling_experiment(
             config_override = {
                 "use_remote": True,
                 "num_nodes": num_nodes,
-                "parallelism": num_nodes * 4,
+                "parallelism": num_nodes,  # 每节点 1 个并行度
                 "scheduler_type": "load_aware",
                 "scheduler_strategy": "spread",
             }
@@ -320,7 +327,7 @@ def main():
     parser.add_argument("--tasks", type=int, default=500, help="Number of tasks")
     parser.add_argument(
         "--pipeline",
-        choices=["compute", "llm", "rag", "simple_rag", "mixed"],
+        choices=["compute", "llm", "rag", "rag_service", "simple_rag", "adaptive_rag", "mixed"],
         default="compute",
         help="Pipeline type",
     )

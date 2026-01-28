@@ -18,15 +18,15 @@ about **SAGE**, a machine learning systems framework.
 - System: **SAGE**, a Python 3.10+ framework for **LLM/AI data processing pipelines** with
   **declarative dataflow**.
 - SAGE should be presented as a **full-stack system**, covering:
-  - a strict **5-layer architecture (L1–L5)** with no upward dependencies, from `sage-common` and
-    `sage-platform` up to `sage-cli` and `sage-tools`;
+  - a strict **6-layer architecture (L1–L6)** with no upward dependencies, from `sage-common` and
+    `sage-platform` up to `sage-cli`, `sage-studio`, `sage-tools`, and `sage-gateway`;
   - **declarative dataflow** for composing LLM/AI pipelines (e.g., retrieval, tools, LLM calls,
     post-processing);
-  - a **unified LLM & embedding control plane** (sageLLM) exposed via `isagellm.gateway`;
+  - a **unified LLM & embedding control plane** (sageLLM) exposed via `sage-gateway`;
   - **CPU-only and GPU deployments**, job management and node selection in `sage-kernel`, platform
     services in `sage-platform`;
-  - **benchmark suites** in `sage-benchmark` (independent repo) for agents, scheduling policies,
-    RAG, DB/time-series components, etc.
+  - **benchmark suites** in `sage-benchmark` for agents, scheduling policies, RAG, DB/time-series
+    components, etc.
 
 --- Positioning against existing systems (CRITICAL for novelty) ---
 
