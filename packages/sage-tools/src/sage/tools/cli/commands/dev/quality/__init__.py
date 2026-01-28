@@ -326,6 +326,14 @@ def _run_devnotes_check(warn_only: bool = False) -> bool:
             console.print("[red]错误: 无法找到项目根目录[/red]")
             return False
 
+        # 检查 dev-notes 目录是否存在（SAGE-Pub 独立仓库）
+        devnotes_dir = Path(root_dir) / "docs-public" / "docs_src" / "dev-notes"
+        if not devnotes_dir.exists():
+            console.print(
+                "[yellow]⚠️  dev-notes 目录不存在，跳过检查（需要 SAGE-Pub 仓库）[/yellow]"
+            )
+            return True
+
         checker = DevNotesChecker(root_dir)
         result = checker.check_all()
 

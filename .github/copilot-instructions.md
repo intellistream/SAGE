@@ -290,6 +290,76 @@ L1: sage-common                        # Foundation
 - **sage-benchmark**: https://github.com/intellistream/sage-benchmark (Evaluation framework, 独立 PyPI: isage-benchmark)
 - **sage-examples**: https://github.com/intellistream/sage-examples (Examples and applications, 原 sage-apps)
 
+### 🔌 CLI Plugin System - CRITICAL
+
+**SAGE CLI supports dynamic plugin loading to avoid circular dependencies with independent repositories.**
+
+#### Architecture
+
+```
+SAGE (sage-cli)                  Independent Package (e.g., sage-studio)
+     ↓                                        ↓
+ load_cli_plugins()                    cli.py + entry point
+     ↓                                        ↓
+     ←———— importlib.metadata discover ———————┘
+                (sage.cli.plugins)
+```
+
+#### How It Works
+
+1. **Plugin Registration** (in independent package's `pyproject.toml`):
+   ```toml
+   [project.entry-points."sage.cli.plugins"]
+   studio = "sage.studio.cli:register_studio_command"
+   ```
+
+2. **Plugin Discovery** (in SAGE CLI `main.py`):
+   ```python
+   def load_cli_plugins():
+       """Dynamically load CLI plugins via entry points."""
+       import importlib.metadata as importlib_metadata
+       for entry_point in importlib_metadata.entry_points(group="sage.cli.plugins"):
+           register_func = entry_point.load()
+           register_func(app)  # Register commands to SAGE CLI
+   ```
+
+3. **Plugin Implementation** (in independent package):
+   ```python
+   # src/package/cli.py
+   import typer
+   app = typer.Typer(help="My commands")
+
+   @app.command()
+   def start():
+       """Start service."""
+       pass
+
+   def register_my_command(sage_app: typer.Typer) -> None:
+       """Register to SAGE CLI."""
+       sage_app.add_typer(app, name="mycommand")
+   ```
+
+#### Benefits
+
+- ✅ **No circular dependencies**: SAGE doesn't directly depend on plugins
+- ✅ **Dynamic loading**: Plugins only appear when installed
+- ✅ **Extensible**: Any package can register commands via entry points
+- ✅ **Clean separation**: Independent repos maintain their own CLI code
+
+#### Example: sage-studio
+
+```bash
+# Install studio
+pip install isage-studio
+
+# Studio registers itself to sage CLI
+sage studio start      # Now available!
+sage studio status
+sage studio stop
+```
+
+**Implementation**: See `packages/sage-cli/src/sage/cli/main.py` (load_cli_plugins function)
+
 **Independent Algorithm Libraries** (L3, 从 sage-libs 拆分，独立 PyPI 包):
 
 | 内部包名 | PyPI 包名 | Import 名 | 版本格式 | 描述 | 层级 |

@@ -169,7 +169,7 @@ jobs:
             exit 0
           fi
 
-          # 计数器
+          # 计数器 - 显式初始化为 0
           passed=0
           failed=0
           skipped=0
@@ -182,30 +182,33 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
 
-          # 遍历每个 example
-          for example in $examples; do
+          # 使用 while read 而不是 for，避免空行问题
+          while IFS= read -r example; do
+            # 跳过空行
+            [ -z "$example" ] && continue
+            
             echo "📝 测试: $example"
 
             # 运行 example（测试模式）
-            if timeout 30 python "$example" > ".sage/examples-test-results/$(basename $example).log" 2>&1; then
+            if timeout 30 python "$example" > ".sage/examples-test-results/$(basename "$example").log" 2>&1; then
               echo "  ✅ PASS"
-              ((passed++))
+              passed=$((passed + 1))
             else
               exit_code=$?
               if [ $exit_code -eq 124 ]; then
                 echo "  ⏱️  TIMEOUT (30s)"
-                ((failed++))
+                failed=$((failed + 1))
               else
                 echo "  ❌ FAIL (exit code: $exit_code)"
-                ((failed++))
+                failed=$((failed + 1))
 
                 # 显示错误日志
                 echo "  错误日志:"
-                tail -n 10 ".sage/examples-test-results/$(basename $example).log" | sed 's/^/    /'
+                tail -n 10 ".sage/examples-test-results/$(basename "$example").log" | sed 's/^/    /'
               fi
             fi
             echo ""
-          done
+          done < /tmp/testable_examples.txt
 
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "测试结果汇总"
