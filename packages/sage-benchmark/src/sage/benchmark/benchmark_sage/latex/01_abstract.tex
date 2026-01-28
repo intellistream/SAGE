@@ -1,0 +1,62 @@
+\section{Introduction}
+\label{sec:introduction}
+Large language models are increasingly deployed not as standalone generators but as \emph{end-to-end inference
+pipelines}. A production request may trigger retrieval over a continuously evolving corpus, embedding and
+vector search, memory reads/writes across turns, context refinement under token budgets, and tool invocations with
+iterative planning. These stages run across heterogeneous CPU/GPU resources and auxiliary systems, and must
+satisfy strict tail-latency and service-level objectives (SLOs). In this regime, the pipeline---rather than
+any single model---becomes the true unit of production inference.
+
+Building such pipelines remains difficult for three reasons. First, the pipeline spans components with
+fundamentally different performance profiles: embedding and retrieval are batching- and bandwidth-sensitive,
+generation is token-latency-sensitive, memory and refinement introduce additional state and compute, and tool
+invocations add external variability. Second, many workloads are \emph{stateful} and increasingly
+\emph{streaming}: data sources change over time, semantic states must be incrementally materialized, and
+sessions require consistent memory semantics across turns. Third, pipeline behavior is hard to reproduce and
+debug: developers need transparent visibility into operator-level latency, queuing, scheduling, and
+interference, yet existing stacks provide only partial observability across components.
+
+\paragraph{\mingqi{Why existing systems fall short.}}
+The current ecosystem is fragmented in ways that hinder \emph{pipeline-level} optimization. \emph{Serving
+systems} optimize a single model backend (e.g., high-throughput decoding, batching, and KV-cache management),
+but typically treat retrieval, refinement, memory, and tool-use operators as external glue rather than
+first-class stages subject to co-optimization. \emph{Orchestration systems and workflow frameworks} ease
+composition and deployment, yet provide limited pipeline-aware scheduling and limited support for reasoning
+about tail latency and interference once execution spans heterogeneous stages and services. \emph{Vector
+databases and retrieval systems} offer scalable similarity search, but are often integrated as black-box
+services without unified semantics for streaming semantic state, refinement, and session memory. Finally,
+\emph{agent frameworks} improve tool use and planning, but rarely integrate agent behavior with system-level control over execution plans, resource sharing, and SLO compliance. These limitations become acute under
+\emph{mixed} workloads where LLM and embedding requests contend for shared accelerators and must be scheduled
+jointly end-to-end.
+
+We present \textbf{SAGE} (Streaming-Augmented Generative Execution), a full-stack system for building LLM inference pipelines that treats the \emph{pipeline}---rather than any single model---as the primary unit of abstraction. SAGE provides a declarative dataflow model that compiles applications into distributed execution plans over heterogeneous CPU/GPU resources, coordinating existing inference engines (e.g., vLLM) with a library of specialized inference components. By elevating retrieval, semantic state, memory, refinement, and tool use to first-class
+dataflow stages, SAGE enables end-to-end co-optimization of scheduling, placement, and resource sharing across the entire inference path, rather than optimizing each backend in isolation.
+
+SAGE is structured as a strict five-layer architecture (L1--L5) with downward-only dependencies, separating 
+foundational utilities (L1) and platform services (L2) from the streaming runtime and algorithm libraries 
+(L3), performance-critical C++ middleware operators (L4), and developer-facing CLI and tooling (L5). This discipline enables tractable pipeline composition at scale while keeping layers independently evolvable.
+The system integrates a suite of specialized components commonly required by production pipelines---including 
+high-performance vector storage and search (SageVDB), vector-native stream processing for incremental 
+semantic state (SageFlow), structured memory backends (NeuroMem), time-series operators, and context 
+refinement---all exposed through uniform dataflow operators. For LLM inference, SAGE leverages vLLM as 
+the backend engine. We defer a detailed component breakdown and interfaces to
+\S\ref{sec:system_overview} and \S\ref{sec:design_details}.
+
+% To make pipeline-level claims measurable, SAGE includes an open benchmark suite that evaluates both system
+% metrics (throughput, TTFT/TBT, tail latency, SLO compliance, and interference) and agent behaviors (tool
+% selection, planning, and timing). In our experiments on mixed LLM+embedding workloads, SAGE reduces p99
+% latency by [X]\% compared to [baseline], improves SLO satisfaction by [Y]\% under [Z] traffic, and increases tool
+% selection accuracy by [A]\% on [benchmark].
+To make pipeline-level claims measurable, SAGE includes an open benchmark suite that evaluates both system
+metrics (throughput, TTFT/TBT, tail latency, SLO compliance) and agent behaviors (tool
+selection, planning, timing). Experiments on a 16-node cluster characterize SAGE's performance envelope: the system achieves 8× throughput scaling with near-linear efficiency up to moderate concurrency, maintains 99.8\% load balance across heterogeneous workloads through adaptive scheduling, and reduces multi-tenant tail latency by 57% via simple admission control policies.
+
+\paragraph{Contributions.}
+This paper makes the following contributions.
+\begin{enumerate}
+  \item A pipeline-first, declarative dataflow approach for expressing and compiling end-to-end LLM inference
+  pipelines over heterogeneous CPU/GPU resources.
+  \item A strict five-layer architecture (L1--L5) that integrates a streaming runtime with specialized inference components---SageVDB for vector search, SageFlow for streaming semantic state, NeuroMem for structured memory, and context refinement modules---while enforcing downward-only dependencies for modular evolution.
+  \item An open benchmark suite and evaluation methodology that jointly quantifies system-level SLO behavior
+  and agent-level decision quality under mixed and interfering workloads.
+\end{enumerate}

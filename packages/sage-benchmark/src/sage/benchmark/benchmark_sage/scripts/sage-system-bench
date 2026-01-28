@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+"""
+SAGE System Benchmark CLI
+"""
+
+from sage.benchmark.benchmark_sage.scripts.sage_bench_cli import main
+
+if __name__ == "__main__":
+    main()

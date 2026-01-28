@@ -1,0 +1,106 @@
+# Workload 4 配置文件示例
+# ====================================
+# 
+# 用法:
+#   python run_workload4.py --config workload4_config_example.yaml
+
+# === 基础配置 ===
+num_tasks: 100              # 任务数量
+duration: 1200              # 运行时长（秒）= 20分钟
+use_remote: true            # 使用分布式环境
+num_nodes: 8                # 分布式节点数量
+
+# === 双流配置 ===
+query_qps: 40.0             # 查询流 QPS
+doc_qps: 25.0               # 文档流 QPS
+
+# 查询类型分布（三种类型的比例，总和=1.0）
+query_type_distribution:
+  factual: 0.40             # 事实性查询 40%
+  analytical: 0.35          # 分析性查询 35%
+  exploratory: 0.25         # 探索性查询 25%
+
+# 类别分布（四个领域的比例，总和=1.0）
+category_distribution:
+  finance: 0.30             # 金融 30%
+  healthcare: 0.25          # 医疗 25%
+  technology: 0.25          # 科技 25%
+  general: 0.20             # 通用 20%
+
+# === Semantic Join 配置 ===
+join_window_seconds: 60     # 窗口大小（秒）
+join_threshold: 0.70        # 相似度阈值
+join_parallelism: 16        # Join 并行度
+join_max_matches: 8         # 每个 query 最多匹配的 doc 数量
+
+# === VDB 检索配置 ===
+vdb1_top_k: 20              # VDB1 检索 top-k
+vdb2_top_k: 20              # VDB2 检索 top-k
+vdb_filter_threshold: 0.60  # 过滤阈值
+vdb_parallelism: 8          # VDB 并行度
+
+# === 图遍历配置 ===
+graph_max_depth: 3          # 最大遍历深度
+graph_max_nodes: 200        # 最大访问节点数
+graph_bfs_beam_width: 10    # BFS Beam 宽度
+
+# === 聚类去重配置 ===
+clustering_algorithm: "dbscan"  # 聚类算法：dbscan | hierarchical
+dbscan_eps: 0.15            # DBSCAN epsilon 参数
+dbscan_min_samples: 2       # DBSCAN 最小样本数
+dedup_similarity_threshold: 0.95  # 去重相似度阈值
+
+# === 重排序配置 ===
+rerank_top_k: 15            # 重排序后的 top-k
+
+# 5维评分权重（总和=1.0）
+rerank_score_weights:
+  semantic: 0.30            # 语义相关性 30%
+  freshness: 0.20           # 时间新鲜度 20%
+  diversity: 0.20           # 多样性 20%
+  authority: 0.15           # 权威性 15%
+  coverage: 0.15            # 覆盖度 15%
+
+mmr_lambda: 0.7             # MMR 多样性系数（0=纯多样性，1=纯相关性）
+
+# === 批处理配置 ===
+category_batch_size: 8      # Category batch 大小
+category_batch_timeout_ms: 500  # Category batch 超时（毫秒）
+global_batch_size: 12       # Global batch 大小
+global_batch_timeout_ms: 1000   # Global batch 超时（毫秒）
+
+# === LLM 配置 ===
+llm_base_url: "http://11.11.11.7:8904/v1"
+llm_model: "Qwen/Qwen2.5-3B-Instruct"
+llm_max_tokens: 120
+llm_temperature: 0.7
+
+# === Embedding 配置 ===
+embedding_base_url: "http://11.11.11.7:8090/v1"
+embedding_model: "BAAI/bge-large-en-v1.5"
+embedding_dimension: 1024
+embedding_batch_size: 32
+
+# === 调度配置 ===
+scheduler_type: "load_aware"    # 调度器类型：fifo | load_aware | priority | adaptive
+scheduler_strategy: "adaptive"  # 调度策略
+
+# === 监控配置 ===
+enable_profiling: true      # 启用性能分析
+metrics_output_dir: "/tmp/sage_metrics_workload4"  # 指标输出目录
+
+# === 高级配置 ===
+# 性能优化
+enable_numpy_optimization: true  # 启用 NumPy 向量化
+enable_caching: true             # 启用结果缓存
+cache_size: 10000
+
+# 容错配置（注意：这些参数当前可能未在 Workload4Config 中定义，仅供参考）
+# max_retries: 3
+# retry_delay_ms: 100
+# failure_tolerance: 0.05
+
+# 调试配置
+debug_mode: false           # 调试模式
+log_level: "INFO"           # 日志级别
+save_intermediate_results: false  # 保存中间结果
