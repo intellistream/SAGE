@@ -329,12 +329,15 @@ class Dispatcher:
         强制在主进程/driver context中完成Ray Actor的创建和初始化,
         避免在Ray Task执行期间懒初始化导致的死锁问题。
         """
+        self.logger.info("🔍 ENTERED _preinitialize_queue_descriptors method")
         self.logger.info("Pre-initializing all queue descriptors to avoid deadlocks...")
         import time
 
         start_time = time.time()
+        self.logger.info(f"⏰ Start time: {start_time}")
 
         initialized_qds = set()  # 使用集合记录已初始化的队列(通过id去重)
+        self.logger.info(f"📋 Total tasks to process: {len(self.tasks)}")
 
         # 遍历所有任务,初始化其上下文中的队列描述符
         for node_name, task in self.tasks.items():
@@ -369,11 +372,12 @@ class Dispatcher:
                 qd_id = id(qd)
                 if qd_id not in initialized_qds:
                     try:
+                        self.logger.info(f"⏳ Initializing {qd_name} for task {node_name}...")
                         # 访问queue_instance属性触发初始化
                         _ = qd.queue_instance
                         initialized_qds.add(qd_id)
-                        self.logger.debug(
-                            f"Initialized queue descriptor: {qd_name} for task {node_name}"
+                        self.logger.info(
+                            f"✅ Initialized queue descriptor: {qd_name} for task {node_name}"
                         )
                     except Exception as e:
                         self.logger.warning(

@@ -83,7 +83,7 @@ class ExperimentConfig:
         default_factory=lambda: ModelConfig(name="Qwen/Qwen2.5-7B-Instruct")
     )
     embedding_model: ModelConfig = field(
-        default_factory=lambda: ModelConfig(name="BAAI/bge-m3", device="cpu")
+        default_factory=lambda: ModelConfig(name="BAAI/bge-large-en-v1.5", device="cpu")
     )
     workload: WorkloadConfig = field(default_factory=WorkloadConfig)
     metrics: MetricsConfig = field(default_factory=MetricsConfig)
@@ -161,7 +161,7 @@ class ConfigLoader:
 
         emb_raw = models_raw.get("embedding", {})
         embedding_model = ModelConfig(
-            name=emb_raw.get("name", "BAAI/bge-m3"),
+            name=emb_raw.get("name", "BAAI/bge-large-en-v1.5"),
             instances=emb_raw.get("instances", 1),
             device=emb_raw.get("device", "cpu"),
         )

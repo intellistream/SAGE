@@ -646,7 +646,7 @@ class BaseTask(ABC):  # noqa: B024
         if not self.input_qd:
             return 0
         drained_packets = 0
-        timeout = 5.0
+        timeout = 18000.0  # 5 hours max, but will exit early if queue is empty (quiet_period=0.5s)
         quiet_period = 0.5
         poll_interval = 0.1
         start_time = time.time()

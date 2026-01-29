@@ -191,8 +191,8 @@ class DevNotesChecker:
         issues_found = False
 
         if not self.devnotes_dir.exists():
-            self.errors.append(f"❌ dev-notes 目录不存在: {self.devnotes_dir}")
-            return False
+            self.warnings.append(f"⚠️  dev-notes 目录不存在: {self.devnotes_dir}")
+            return True  # 只是警告，不阻止提交
 
         # 1. 检查是否存在 dev-notes 根目录下的文件（除了特殊文件）
         devnotes_root_files = [

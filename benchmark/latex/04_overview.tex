@@ -1,0 +1,76 @@
+\section{System Overview}
+\label{sec:system_overview}
+The rise of LLM applications has turned ``inference'' into a distributed systems problem. A single user
+request now routinely triggers a multi-stage pipeline: retrieval over continuously changing corpora,
+embedding and vector search, stateful session memory, context refinement under token budgets, and
+agentic tool execution---all while streaming tokens under strict tail-latency and SLO constraints. In
+today's stacks, these stages are typically stitched together as a patchwork of services and frameworks.
+The result is an execution path that is hard to optimize end-to-end, hard to reproduce, and fragile under
+mixed contention from heterogeneous CPU/GPU resources.
+
+SAGE (\textbf{S}treaming-\textbf{A}ugmented \textbf{G}enerative \textbf{E}xecution) is a full-stack inference system that makes the
+end-to-end pipeline the unit of abstraction. SAGE provides two simple, composable primitives: (i)
+pipelines as declarative dataflows, and (ii) operators with explicit resource and state semantics.
+From these inputs, SAGE compiles an execution plan that spans CPU/GPU resources, manages backpressure, and
+enforces scheduling policies under mixed workloads. This design collapses a fragmented stack into a single
+optimizable system boundary, so that placement, batching, streaming state maintenance, and SLO-aware
+execution become first-class concerns rather than application glue.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\linewidth]{Figures/Thread/arch.drawio.pdf}
+% \caption{SAGE end-to-end architecture (L1--L5).}
+% \label{fig:sage-arch}
+
+
+% \caption{SAGE is organized as a strict five-layer system (L1--L5) with downward-only dependencies. Developer tooling and CLI (L5) sit at the top, while the runtime (L3) and performance-critical C++ middleware operators (L4) are isolated below to enable reproducible evolution and cross-stage optimization.}
+
+\caption{SAGE's five-layer architecture (L1--L5) with strict downward-only dependencies. 
+Developer tooling (L5) sits at the top; the middleware layer (L4) provides performance-critical 
+operators; the core runtime (L3) handles dataflow scheduling and execution; platform services 
+(L2) and foundation utilities (L1) form the stable base. This separation enables independent 
+evolution of each layer while maintaining system-wide optimization opportunities.}
+\end{figure}
+
+\subsection{Architectural Philosophy}
+SAGE is built as a modular monolith with a strict five-layer architecture (L1--L5) and downward-only
+dependencies. This design ensures that developer tooling (L5) can evolve independently from the 
+performance-critical middleware (L4) and core runtime (L3), while platform services (L2) and foundational 
+utilities (L1) provide a stable base.
+
+\begin{itemize}
+  \item \textbf{L5 Interface}: Developer-facing CLI (\texttt{sage-cli}) and development tools 
+        (\texttt{sage-tools}) for pipeline deployment, testing, and quality assurance.
+  \item \textbf{L4 Middleware}: Performance-critical C++ operators and specialized inference components,
+        including SageVDB (vector search), SageFlow (streaming semantic state), NeuroMem (structured memory),
+        and context refinement modules.
+  \item \textbf{L3 Core}: The streaming runtime (\texttt{sage-kernel}) responsible for dataflow scheduling,
+        operator execution, and fault tolerance; plus algorithm libraries (\texttt{sage-libs}) for RAG,
+        agents, and workflow optimization.
+  \item \textbf{L2 Platform}: Shared infrastructure for storage backends, queue abstractions, and service
+        lifecycle management.
+  \item \textbf{L1 Foundation}: Core utilities, configuration management, type definitions, and unified
+        embedding interfaces.
+\end{itemize}
+
+\subsection{Pipeline-First Abstraction}
+At the heart of SAGE is the concept of the \emph{inference pipeline} as a declarative dataflow. Rather than
+writing ad-hoc glue code to connect a vector database, an LLM endpoint, and a memory store, developers define
+a graph of operators. This abstraction allows the system to reason about the entire lifecycle of a request---from retrieval and refinement to generation and tool use---enabling global optimizations such as
+resource-aware placement, batching across stages, and end-to-end SLO tracking.
+
+\begin{figure}[t]
+      \centering
+      % TODO: Replace with an actual pipeline/dataflow diagram.
+      \fbox{\parbox{0.95\linewidth}{
+            \vspace{0.35cm}
+            \centering
+            	extbf{Placeholder: Pipeline-first execution view.}\\
+            Depict a single request flowing through operators: (CLI/Tools $\rightarrow$ Middleware $\rightarrow$ Runtime/Libs $\rightarrow$ Platform $\rightarrow$ Foundation).
+            \vspace{0.35cm}
+      }}
+      \caption{Pipeline-first execution: SAGE represents an LLM application as a dataflow graph whose operators
+      have explicit state and resource semantics. The runtime can therefore optimize across stages (e.g., batching
+      retrieval and embedding while maintaining token-level streaming for generation) under end-to-end SLOs.}
+      \label{fig:sage_pipeline}
+\end{figure}

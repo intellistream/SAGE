@@ -10,9 +10,8 @@ These prompts are intended for papers that:
 - cover the **entire SAGE stack**: layered architecture, declarative dataflow, storage/DB and
   time-series components, LLM & embedding control plane, heterogeneous deployment, and benchmarking;
 - leverage SAGE as a **benchmarking and experimentation testbed**, including `benchmark_agent`,
-  `benchmark_control_plane`, `benchmark_db`, `benchmark_rag`, `benchmark_scheduler`,
-  `benchmark_refiner`, `benchmark_libamm`, `benchmark_sage` (memory benchmarks now live in the
-  Neuromem repository).
+  `benchmark_control_plane`, `benchmark_db`, `benchmark_rag`, `benchmark_memory`,
+  `benchmark_scheduler`, `benchmark_refiner`, `benchmark_libamm`, `benchmark_sage`.
 
 > Note: SAGE is **not** only an LLM inference / control-plane engine. The control plane is one
 > subsystem. SAGE also provides dataflow-oriented components such as `sage.db`, `sage.flow`,

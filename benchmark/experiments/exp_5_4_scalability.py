@@ -1,6 +1,4 @@
-from sage.benchmark.benchmark_sage.experiments.control_plane_exp import (
-    ControlPlaneExperiment,
-)
+from sage.benchmark.benchmark_sage.experiments.exp_5_2_control_plane import ControlPlaneExperiment
 
 
 class ScalabilityExperiment(ControlPlaneExperiment):

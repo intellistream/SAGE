@@ -37,9 +37,10 @@ os.environ.pop("all_proxy", None)
 os.environ.pop("ALL_PROXY", None)
 
 import numpy as np
+import openai
 from dotenv import load_dotenv
 
-from sage.common.components.sage_llm import EmbeddingClientAdapter, LLMClientAdapter
+from sage.common.components.sage_embedding import EmbeddingClientAdapter
 from sage.common.core.functions.filter_function import FilterFunction
 from sage.common.core.functions.flatmap_function import FlatMapFunction
 from sage.common.core.functions.map_function import MapFunction
@@ -126,20 +127,20 @@ HUBEI_DOCUMENTS = [
 # 全局服务（延迟初始化）- 使用 SAGE 组件
 # ============================================================
 
-_llm_client: LLMClientAdapter | None = None
+_llm_client: openai.OpenAI | None = None
 _embedding_client: EmbeddingClientAdapter | None = None
 _vector_collection: Any = None
 
 
-def get_llm_client() -> LLMClientAdapter:
-    """获取 LLM 客户端（使用 LLMClientAdapter）"""
+def get_llm_client() -> openai.OpenAI:
+    """获取 LLM 客户端（使用标准 OpenAI client）"""
     global _llm_client
     if _llm_client is None:
-        _llm_client = LLMClientAdapter(
+        _llm_client = openai.OpenAI(
             base_url=LLM_BASE_URL,
-            model_name=LLM_MODEL,
+            api_key="dummy",  # vLLM 不需要真实 API key
         )
-        print(f"✅ LLMClientAdapter 初始化完成: {LLM_BASE_URL}")
+        print(f"✅ OpenAI client 初始化完成: {LLM_BASE_URL}")
     return _llm_client
 
 
@@ -254,13 +255,13 @@ class RoutePromptFunction(MapFunction):
 
 
 # ============================================================
-# LLMGenerator: 调用 LLM 生成（使用 LLMClientAdapter）
+# LLMGenerator: 调用 LLM 生成（使用标准 OpenAI client）
 # ============================================================
 
 
 class LLMGenerator(MapFunction):
     """
-    调用 LLM 生成响应（使用 LLMClientAdapter）。
+    调用 LLM 生成响应（使用标准 OpenAI client）。
     对应旧版 OpenAIGenerator
     """
 
@@ -270,8 +271,10 @@ class LLMGenerator(MapFunction):
 
         client = get_llm_client()
         try:
-            response = client.chat(messages, temperature=0, max_tokens=100)
-            llm_output = response.content if hasattr(response, "content") else str(response)
+            response = client.chat.completions.create(
+                model=LLM_MODEL, messages=messages, temperature=0, max_tokens=100
+            )
+            llm_output = response.choices[0].message.content
         except Exception as e:
             print(f"⚠️ LLM 调用失败: {e}")
             llm_output = '{"datasource": "web_search"}'
@@ -379,13 +382,13 @@ class QAPromptor(MapFunction):
 
 
 # ============================================================
-# QAGenerator: 生成最终回答（使用 UnifiedInferenceClient）
+# QAGenerator: 生成最终回答（使用标准 OpenAI client）
 # ============================================================
 
 
 class QAGenerator(MapFunction):
     """
-    生成最终回答（使用 LLMClientAdapter）。
+    生成最终回答（使用标准 OpenAI client）。
     对应旧版 OpenAIGenerator 在 QA 阶段的使用
     """
 
@@ -396,8 +399,10 @@ class QAGenerator(MapFunction):
 
         client = get_llm_client()
         try:
-            response = client.chat(messages, temperature=0.7, max_tokens=500)
-            answer = response.content if hasattr(response, "content") else str(response)
+            response = client.chat.completions.create(
+                model=LLM_MODEL, messages=messages, temperature=0.7, max_tokens=500
+            )
+            answer = response.choices[0].message.content
         except Exception as e:
             answer = f"生成回答时出错: {e}"
 
@@ -412,7 +417,7 @@ class QAGenerator(MapFunction):
 
 class WebSearchAgent(MapFunction):
     """
-    Web 搜索代理（使用 LLMClientAdapter）。
+    Web 搜索代理（使用标准 OpenAI client）。
     对应旧版 BaseAgent
     """
 
@@ -428,12 +433,13 @@ class WebSearchAgent(MapFunction):
             # 无 API 时使用 LLM 直接回答
             client = get_llm_client()
             try:
-                response = client.chat(
-                    [{"role": "user", "content": question}],
+                response = client.chat.completions.create(
+                    model=LLM_MODEL,
+                    messages=[{"role": "user", "content": question}],
                     temperature=0.7,
                     max_tokens=500,
                 )
-                answer = response.content if hasattr(response, "content") else str(response)
+                answer = response.choices[0].message.content or "无法生成回答"
             except Exception as e:
                 answer = f"回答生成失败: {e}"
 
@@ -458,8 +464,9 @@ class WebSearchAgent(MapFunction):
                     context = "\n\n".join([r.get("snippet", "") for r in results[:3]])
                     # 用 LLM 生成回答
                     client = get_llm_client()
-                    response = client.chat(
-                        [
+                    response = client.chat.completions.create(
+                        model=LLM_MODEL,
+                        messages=[
                             {
                                 "role": "user",
                                 "content": QA_PROMPT_TEMPLATE.format(
@@ -470,7 +477,7 @@ class WebSearchAgent(MapFunction):
                         temperature=0.7,
                         max_tokens=500,
                     )
-                    return response.content if hasattr(response, "content") else str(response)
+                    return response.choices[0].message.content or "无法生成回答"
             return f"未找到关于'{question}'的搜索结果。"
         except Exception as e:
             return f"Web 搜索失败: {e}"

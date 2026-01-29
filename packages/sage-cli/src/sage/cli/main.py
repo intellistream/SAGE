@@ -237,6 +237,38 @@ except ImportError as e:
 
 
 # ============================================================================
+# Plugin System - 动态加载外部CLI插件
+# ============================================================================
+
+
+def load_cli_plugins():
+    """动态加载通过 entry points 注册的 CLI 插件。
+
+    插件通过 pyproject.toml 的 [project.entry-points."sage.cli.plugins"] 注册。
+    例如 sage-studio:
+        [project.entry-points."sage.cli.plugins"]
+        studio = "sage.studio.cli:register_studio_command"
+    """
+    try:
+        import importlib.metadata as importlib_metadata
+    except ImportError:
+        import importlib_metadata  # type: ignore
+
+    for entry_point in importlib_metadata.entry_points(group="sage.cli.plugins"):
+        try:
+            register_func = entry_point.load()
+            register_func(app)
+        except Exception:
+            # Silently skip plugins that fail to load
+            # This allows SAGE to work without optional plugins like studio
+            pass
+
+
+# Load plugins after all built-in commands are registered
+load_cli_plugins()
+
+
+# ============================================================================
 # Main Callback
 # ============================================================================
 

@@ -2,10 +2,7 @@ import asyncio
 import time
 
 from sage.benchmark.benchmark_sage.experiments.base_experiment import BaseExperiment
-from sage.benchmark.benchmark_sage.experiments.common import (
-    BenchmarkClient,
-    WorkloadGenerator,
-)
+from sage.benchmark.benchmark_sage.experiments.common import BenchmarkClient, WorkloadGenerator
 
 
 class HeterogeneityExperiment(BaseExperiment):

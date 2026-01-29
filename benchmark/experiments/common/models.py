@@ -7,7 +7,65 @@ from __future__ import annotations
 import time
 import uuid
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
+
+
+# ============================================================================
+# Query Complexity Classification (for Adaptive-RAG)
+# ============================================================================
+
+
+class QueryComplexityLevel(Enum):
+    """查询复杂度级别"""
+    ZERO = "zero"      # 简单问题，无需检索
+    SINGLE = "single"  # 中等问题，单次检索
+    MULTI = "multi"    # 复杂问题，多步推理
+
+
+@dataclass
+class ClassificationResult:
+    """分类结果"""
+    complexity: QueryComplexityLevel
+    confidence: float = 1.0
+    reasoning: str = ""
+
+
+@dataclass
+class AdaptiveRAGQueryData:
+    """Adaptive-RAG 查询数据"""
+    query: str
+    classification: ClassificationResult | None = None
+    metadata: dict = field(default_factory=dict)
+
+
+@dataclass
+class AdaptiveRAGResultData:
+    """Adaptive-RAG 结果数据"""
+    query: str
+    answer: str
+    strategy_used: str
+    complexity: str
+    retrieval_steps: int = 0
+    processing_time_ms: float = 0.0
+
+
+@dataclass
+class IterativeState:
+    """迭代检索的中间状态 - 在流中传递"""
+    original_query: str                          # 原始问题
+    current_query: str                           # 当前检索 query
+    accumulated_docs: list[dict] = field(default_factory=list)
+    reasoning_chain: list[str] = field(default_factory=list)
+    iteration: int = 0
+    is_complete: bool = False
+    start_time: float = 0.0
+    classification: ClassificationResult | None = None
+
+
+# ============================================================================
+# Task State (for general benchmarks)
+# ============================================================================
 
 
 @dataclass
@@ -84,15 +142,23 @@ class BenchmarkConfig:
     scheduler_strategy: str = "spread"
 
     use_remote: bool = True
-    head_node: str = "sage-node-15"
+    head_node: str = "sage-node-1"
     worker_nodes: list[str] = field(default_factory=list)
 
-    llm_base_url: str = "http://11.11.11.7:8903/v1"
-    llm_model: str = "Qwen/Qwen2.5-7B-Instruct"
+    llm_base_url: str = "http://11.11.11.7:8904/v1"
+    llm_model: str = "Qwen/Qwen2.5-3B-Instruct"
     max_tokens: int = 256
 
     embedding_base_url: str = "http://11.11.11.7:8090/v1"
-    embedding_model: str = "BAAI/bge-m3"
+    embedding_model: str = "BAAI/bge-large-en-v1.5"
+
+    # Retriever 配置
+    retriever_type: str = "simple"  # "simple" (内置) 或 "wiki18_faiss" (Wiki18)
+    retriever_top_k: int = 10
+    # Wiki18 FAISS 专用配置
+    wiki18_index_path: str | None = None  # 如: "/home/cyb/wiki18_maxp.index"
+    wiki18_documents_path: str | None = None  # 如: "/home/cyb/wiki18_fulldoc.jsonl"
+    wiki18_mapping_path: str | None = None  # 如: "/home/cyb/wiki18_maxp_maxp_mapping.json"
 
     pipeline_stages: int = 3
     enable_rag: bool = True

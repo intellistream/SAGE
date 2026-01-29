@@ -40,31 +40,31 @@ from common.visualization import (
     save_detailed_results,
 )
 
-# 负载级别配置
+# 负载级别配置（论文级别规模）
 LOAD_LEVELS = {
     "low": {
         "description": "低负载 (4 并行)",
         "parallelism": 4,
         "num_nodes": 2,
-        "num_tasks": 100,
+        "num_tasks": 500,
     },
     "medium": {
         "description": "中负载 (16 并行)",
         "parallelism": 16,
         "num_nodes": 4,
-        "num_tasks": 200,
+        "num_tasks": 1000,
     },
     "high": {
         "description": "高负载 (64 并行)",
         "parallelism": 64,
         "num_nodes": 8,
-        "num_tasks": 500,
+        "num_tasks": 2500,
     },
     "extreme": {
         "description": "极高负载 (128 并行)",
         "parallelism": 128,
         "num_nodes": 16,
-        "num_tasks": 1000,
+        "num_tasks": 5000,
     },
 }
 
@@ -96,19 +96,23 @@ def run_single_experiment(
     print(f"Config: {config_dict}")
     print(f"{'=' * 70}")
 
+    # 过滤掉描述性字段，只保留 BenchmarkConfig 接受的参数
+    filtered_config = {
+        k: v
+        for k, v in config_dict.items()
+        if k not in ["use_remote", "description"]
+    }
+    
     config = BenchmarkConfig(
         experiment_name=name,
         use_remote=config_dict.get("use_remote", True),
-        **{k: v for k, v in config_dict.items() if k != "use_remote"},
+        **filtered_config,
     )
 
     pipeline = SchedulingBenchmarkPipeline(config)
     pipeline.build_compute_pipeline(name)
 
-    if config.use_remote:
-        metrics = pipeline.run_with_warmup()
-    else:
-        metrics = pipeline.run()
+    metrics = pipeline.run()
 
     save_detailed_results(metrics, output_dir, name)
     metrics.print_summary()
@@ -341,6 +345,13 @@ def main():
     parser.add_argument("--schedulers", nargs="+", help="Schedulers to test")
     parser.add_argument("--load-levels", nargs="+", help="Load levels to test")
     parser.add_argument("--depths", nargs="+", help="Pipeline depths to test")
+    parser.add_argument(
+        "--load-level",
+        type=str,
+        default="medium",
+        choices=["low", "medium", "high", "extreme"],
+        help="Load level for scheduler/depth experiments (default: medium)",
+    )
     parser.add_argument("--output", type=str, help="Output directory")
 
     args = parser.parse_args()
@@ -348,6 +359,7 @@ def main():
     if args.schedulers:
         run_scheduler_comparison_experiment(
             schedulers=args.schedulers,
+            load_level=args.load_level,
             output_dir=args.output,
         )
     elif args.load_levels:
@@ -358,6 +370,7 @@ def main():
     elif args.depths:
         run_pipeline_depth_experiment(
             depths=args.depths,
+            load_level=args.load_level,
             output_dir=args.output,
         )
     else:

@@ -564,3 +564,58 @@ class CustomLogger:
     def is_global_console_debug_enabled(cls) -> bool:
         """检查全局console debug是否启用"""
         return cls._global_console_debug_enabled
+    
+    def __getstate__(self):
+        """
+        序列化时排除不可 pickle 的对象。
+        
+        主要排除:
+        - logger: Python logging.Logger 包含 RLock
+        - output_configs 中的 handler: StreamHandler/FileHandler 包含 RLock
+        """
+        state = self.__dict__.copy()
+        state['logger'] = None  # 排除 logger（包含 RLock）
+        
+        # 清空 output_configs 中的 handler（也包含 RLock）
+        if 'output_configs' in state and state['output_configs']:
+            cleaned_configs = []
+            for config in state['output_configs']:
+                cleaned_config = config.copy()
+                cleaned_config['handler'] = None  # 排除 handler
+                cleaned_configs.append(cleaned_config)
+            state['output_configs'] = cleaned_configs
+        
+        return state
+    
+    def __setstate__(self, state):
+        """
+        反序列化时恢复状态，并重新创建 logger 和 handlers。
+        """
+        self.__dict__.update(state)
+        
+        # 重新创建 logger
+        if self.name:
+            import logging
+            self.logger = logging.getLogger(self.name)
+            
+            # 清除可能已存在的 handlers
+            for handler in self.logger.handlers[:]:
+                self.logger.removeHandler(handler)
+            
+            # 重新创建handlers（基于 output_configs）
+            if hasattr(self, 'output_configs') and self.output_configs:
+                from .custom_formatter import CustomFormatter
+                formatter = CustomFormatter()
+                
+                for config in self.output_configs:
+                    handler = self._create_handler(config, formatter)
+                    if handler:
+                        handler.setLevel(config['level'])
+                        self.logger.addHandler(handler)
+                        config['handler'] = handler
+                
+                # 设置 logger 的最低级别
+                min_level = min(cfg['level'] for cfg in self.output_configs)
+                self.logger.setLevel(min_level)
+        else:
+            self.logger = None

@@ -7,15 +7,6 @@
 		{
 			"name": "SAGE-Pub",
 			"path": "../SAGE-Pub"
-		},
-		{
-			"path": "../sage-team-info"
-		},
-		{
-			"path": "../sageData"
-		},
-		{
-			"path": "../sage-pypi-publisher"
 		}
 	],
 	"settings": {

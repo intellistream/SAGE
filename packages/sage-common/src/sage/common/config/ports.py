@@ -85,9 +85,11 @@ class SagePorts:
     LLM_WSL_FALLBACK: ClassVar[int] = 8901  # Fallback for WSL2 (same as BENCHMARK_LLM)
 
     # =========================================================================
-    # sage-studio (Frontend only, Backend merged into Gateway)
+    # sage-studio (Frontend + Backend Architecture)
     # =========================================================================
-    STUDIO_BACKEND: ClassVar[int] = 8889  # Deprecated: now same as GATEWAY_DEFAULT
+    STUDIO_BACKEND: ClassVar[int] = (
+        8080  # Studio FastAPI backend (auth, flows, operators, pipeline builder)
+    )
     STUDIO_FRONTEND: ClassVar[int] = 5173  # Studio frontend (Vite dev server)
 
     # =========================================================================
