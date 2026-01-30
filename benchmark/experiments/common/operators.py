@@ -493,7 +493,7 @@ class MetricsSink(SinkFunction):
         try:
             elapsed = time.time() - self._start_time
             avg_latency = sum(self.latencies) / len(self.latencies) if self.latencies else 0
-            
+
             # 计算每个算子的吞吐量
             operator_throughput = {}
             for stage_key, stats in self.operator_stats.items():
@@ -506,7 +506,7 @@ class MetricsSink(SinkFunction):
                         "throughput_tasks_per_sec": count / total_time_sec,
                         "avg_latency_ms": total_time_sec * 1000 / count,
                     }
-            
+
             summary = {
                 "type": "summary",
                 "total_tasks": self.count,
@@ -554,14 +554,19 @@ class MetricsSink(SinkFunction):
         # 更新节点统计
         if state.node_id:
             self.node_stats[state.node_id] = self.node_stats.get(state.node_id, 0) + 1
-        
+
         # 更新算子级别统计
         if hasattr(state, "stage_timings"):
             # DEBUG: 打印 stage_timings
             if self.count <= 3:  # 只打印前3个任务
                 import sys
-                print(f"[DEBUG] Task {self.count} stage_timings: {state.stage_timings}", file=sys.stderr, flush=True)
-            
+
+                print(
+                    f"[DEBUG] Task {self.count} stage_timings: {state.stage_timings}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+
             for stage_key, timing in state.stage_timings.items():
                 if "duration" in timing:
                     if stage_key not in self.operator_stats:
@@ -573,7 +578,12 @@ class MetricsSink(SinkFunction):
         # 写入文件 (Remote 模式可用)
         if self.count <= 3:  # DEBUG
             import sys
-            print(f"[DEBUG execute] About to write task {self.count}, has stage_timings: {hasattr(state, 'stage_timings')}, value: {getattr(state, 'stage_timings', 'NO ATTR')}", file=sys.stderr, flush=True)
+
+            print(
+                f"[DEBUG execute] About to write task {self.count}, has stage_timings: {hasattr(state, 'stage_timings')}, value: {getattr(state, 'stage_timings', 'NO ATTR')}",
+                file=sys.stderr,
+                flush=True,
+            )
         self._write_task_to_file(state)
 
         # 记录到共享收集器 (仅 Local 模式有效)
@@ -718,121 +728,114 @@ def rerank_with_service(
 class LocalCPUReranker:
     """
     本地CPU Reranker加载器（单例模式）。
-    
+
     使用较小的reranker模型（BAAI/bge-reranker-base）进行本地CPU推理，
     避免网络依赖，适合纯CPU环境。
-    
+
     模型特点：
     - 参数量：~279M（比v2-m3的568M小一半）
     - 磁盘占用：~1.1GB
     - CPU推理延迟：约300-600ms/query (20 docs, 8核CPU)
     """
-    
+
     _instance = None
     _model = None
     _tokenizer = None
-    
+
     def __new__(cls, model_name: str = CPU_RERANKER_MODEL, cache_dir: str = CPU_RERANKER_CACHE_DIR):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-    
-    def __init__(self, model_name: str = CPU_RERANKER_MODEL, cache_dir: str = CPU_RERANKER_CACHE_DIR):
+
+    def __init__(
+        self, model_name: str = CPU_RERANKER_MODEL, cache_dir: str = CPU_RERANKER_CACHE_DIR
+    ):
         if self._model is None:
             self._load_model(model_name, cache_dir)
-    
+
     def _load_model(self, model_name: str, cache_dir: str):
         """加载reranker模型到CPU"""
         import os
+
         os.makedirs(cache_dir, exist_ok=True)
-        
+
         try:
-            from transformers import AutoModelForSequenceClassification, AutoTokenizer
             import torch
-            
+            from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
             print(f"[LocalCPUReranker] Loading model: {model_name} to {cache_dir}")
-            print(f"[LocalCPUReranker] This may take a few minutes for first-time download...")
-            
+            print("[LocalCPUReranker] This may take a few minutes for first-time download...")
+
             # 加载tokenizer和模型到CPU
             # 使用 local_files_only=True 避免网络请求（模型已下载）
             self._tokenizer = AutoTokenizer.from_pretrained(
-                model_name, 
+                model_name,
                 cache_dir=cache_dir,
                 trust_remote_code=True,
-                local_files_only=True  # 只使用本地文件，不尝试在线更新
+                local_files_only=True,  # 只使用本地文件，不尝试在线更新
             )
             self._model = AutoModelForSequenceClassification.from_pretrained(
                 model_name,
                 cache_dir=cache_dir,
                 trust_remote_code=True,
                 torch_dtype=torch.float32,  # CPU使用float32
-                local_files_only=True  # 只使用本地文件
+                local_files_only=True,  # 只使用本地文件
             )
             self._model.eval()  # 设置为评估模式
-            
-            print(f"[LocalCPUReranker] Model loaded successfully on CPU")
-            print(f"[LocalCPUReranker] Model size: ~1.1GB, Parameters: ~279M")
-            
+
+            print("[LocalCPUReranker] Model loaded successfully on CPU")
+            print("[LocalCPUReranker] Model size: ~1.1GB, Parameters: ~279M")
+
         except Exception as e:
             print(f"[LocalCPUReranker] Failed to load model: {e}")
             raise
-    
-    def rerank(
-        self, 
-        query: str, 
-        documents: list[str], 
-        top_k: int | None = None
-    ) -> list[dict]:
+
+    def rerank(self, query: str, documents: list[str], top_k: int | None = None) -> list[dict]:
         """
         使用本地CPU模型进行重排序。
-        
+
         Args:
             query: 查询文本
             documents: 文档列表
             top_k: 返回Top-K结果（None = 返回全部）
-        
+
         Returns:
             重排序后的结果: [{"index": int, "relevance_score": float}, ...]
         """
         if self._model is None or self._tokenizer is None:
             print("[LocalCPUReranker] Model not loaded")
             return []
-        
+
         try:
             import torch
-            
+
             # 构造query-document pairs
             pairs = [[query, doc] for doc in documents]
-            
+
             # Tokenize
             with torch.no_grad():
                 inputs = self._tokenizer(
-                    pairs,
-                    padding=True,
-                    truncation=True,
-                    max_length=512,
-                    return_tensors="pt"
+                    pairs, padding=True, truncation=True, max_length=512, return_tensors="pt"
                 )
-                
+
                 # 模型推理
                 outputs = self._model(**inputs)
                 scores = outputs.logits.squeeze(-1).cpu().numpy()
-            
+
             # 构造结果
             results = [
-                {"index": i, "relevance_score": float(score)}
-                for i, score in enumerate(scores)
+                {"index": i, "relevance_score": float(score)} for i, score in enumerate(scores)
             ]
-            
+
             # 按分数排序
             results.sort(key=lambda x: x["relevance_score"], reverse=True)
-            
+
             # 返回Top-K
             if top_k is not None:
                 results = results[:top_k]
-            
+
             return results
-            
+
         except Exception as e:
             print(f"[LocalCPUReranker] Rerank error: {e}")
             return []
@@ -939,7 +942,7 @@ class FiQATaskSource(SourceFunction):
                 f"sending StopSignal (downstream will drain with quiet_period=60s)"
             )
             return StopSignal("All tasks generated")
-        
+
         self._load_queries()
         assert self._queries is not None
 
@@ -947,7 +950,7 @@ class FiQATaskSource(SourceFunction):
         query_idx = self.current_index % len(self._queries)
         query_data = self._queries[query_idx]
         task_id = f"fiqa_{self.current_index + 1:05d}"
-        
+
         # 记录任务生成
         gen_time = time.time()
         self.logger.info(
@@ -956,13 +959,13 @@ class FiQATaskSource(SourceFunction):
             f"query_id={query_data['id']}, query_idx={query_idx}, "
             f"query='{query_data['text'][:80]}...', gen_time={gen_time:.3f}"
         )
-        
+
         self.current_index += 1
-        
+
         # 可选延迟，用于控制任务发送速率
         if self.delay > 0:
             time.sleep(self.delay)
-        
+
         state = TaskState(
             task_id=task_id,
             query=query_data["text"],
@@ -1049,12 +1052,14 @@ class FiQAFAISSRetriever(MapFunction):
                     if line.strip():
                         self._documents.append(json.loads(line))
 
-            print(f"[FiQARetriever] Loaded {self._faiss_index.ntotal} vectors, {len(self._documents)} docs")
+            print(
+                f"[FiQARetriever] Loaded {self._faiss_index.ntotal} vectors, {len(self._documents)} docs"
+            )
             self._initialized = True
             return
 
         # 构建新索引
-        print(f"[FiQARetriever] Building new FAISS index...")
+        print("[FiQARetriever] Building new FAISS index...")
         corpus = FiQADataLoader.load_corpus(self.data_dir)
         self._documents = corpus
 
@@ -1116,12 +1121,14 @@ class FiQAFAISSRetriever(MapFunction):
         for score, idx in zip(scores[0], indices[0]):
             if idx >= 0 and idx < len(self._documents):
                 doc = self._documents[idx]
-                results.append({
-                    "id": doc.get("id", str(idx)),
-                    "title": doc.get("title", ""),
-                    "content": doc.get("text", ""),
-                    "score": float(score),
-                })
+                results.append(
+                    {
+                        "id": doc.get("id", str(idx)),
+                        "title": doc.get("title", ""),
+                        "content": doc.get("text", ""),
+                        "score": float(score),
+                    }
+                )
 
         return results
 
@@ -1135,7 +1142,7 @@ class FiQAFAISSRetriever(MapFunction):
         state.stage = self.stage
         state.operator_name = f"FiQARetriever_{self.stage}"
         state.mark_started()
-        
+
         # 记录开始时间
         start_time = time.time()
         self.logger.info(
@@ -1169,16 +1176,20 @@ class FiQAFAISSRetriever(MapFunction):
             state.success = True
 
             # 打印检索结果
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print(f"[Retriever] Task: {state.task_id} | Query: {state.query[:50]}...")
-            self.logger.info(f"[Retriever] Retrieved {len(state.retrieved_docs)} docs in {retrieval_time*1000:.1f}ms")
+            self.logger.info(
+                f"[Retriever] Retrieved {len(state.retrieved_docs)} docs in {retrieval_time * 1000:.1f}ms"
+            )
             self.logger.info(f"docs are {state.retrieved_docs}")
-            print(f"[Retriever] Retrieved {len(state.retrieved_docs)} docs in {retrieval_time*1000:.1f}ms")
+            print(
+                f"[Retriever] Retrieved {len(state.retrieved_docs)} docs in {retrieval_time * 1000:.1f}ms"
+            )
             for i, doc in enumerate(state.retrieved_docs[:3]):
-                score = doc.get('score', 0)
-                text = doc.get('content', doc.get('text', ''))[:100]
-                print(f"  [{i+1}] (score={score:.3f}) {text}...")
-            print(f"{'='*60}\n")
+                score = doc.get("score", 0)
+                text = doc.get("content", doc.get("text", ""))[:100]
+                print(f"  [{i + 1}] (score={score:.3f}) {text}...")
+            print(f"{'=' * 60}\n")
 
             # 保存检索结果到文件
             self._save_retrieval_result(state, retrieval_time)
@@ -1188,10 +1199,11 @@ class FiQAFAISSRetriever(MapFunction):
             state.error = str(e)
             state.retrieved_docs = []
             import traceback
+
             traceback.print_exc()
 
         state.mark_completed()
-        
+
         # 记录结束时间
         end_time = time.time()
         duration_ms = (end_time - start_time) * 1000
@@ -1204,7 +1216,7 @@ class FiQAFAISSRetriever(MapFunction):
             self.logger.error(
                 f"[FiQARetriever] ERROR - task_id={state.task_id}, error={state.error}"
             )
-        
+
         return state
 
     def _save_retrieval_result(self, state: TaskState, retrieval_time: float) -> None:
@@ -1435,7 +1447,7 @@ class SimpleReranker(MapFunction):
                         reranked.append(doc)
                 return reranked
             else:
-                print(f"[SimpleReranker] Reranker service failed, using embedding fallback")
+                print("[SimpleReranker] Reranker service failed, using embedding fallback")
 
         # 方式2: Fallback - 使用 embedding 相似度
         # 获取 query embedding
@@ -1484,7 +1496,7 @@ class SimpleReranker(MapFunction):
         state.stage = self.stage
         state.operator_name = f"SimpleReranker_{self.stage}"
         state.mark_started()
-        
+
         # 记录开始时间
         start_time = time.time()
         input_docs_count = len(state.retrieved_docs)
@@ -1506,7 +1518,7 @@ class SimpleReranker(MapFunction):
             state.error = str(e)
 
         state.mark_completed()
-        
+
         # 记录结束时间
         end_time = time.time()
         duration_ms = (end_time - start_time) * 1000
@@ -1519,7 +1531,7 @@ class SimpleReranker(MapFunction):
             self.logger.error(
                 f"[SimpleReranker] ERROR - task_id={state.task_id}, error={state.error}"
             )
-        
+
         return state
 
 
@@ -1551,7 +1563,7 @@ class SimplePromptor(MapFunction):
         state.stage = self.stage
         state.operator_name = f"SimplePromptor_{self.stage}"
         state.mark_started()
-        
+
         # 记录开始时间
         start_time = time.time()
         input_docs_count = len(state.retrieved_docs)
@@ -1577,10 +1589,11 @@ class SimplePromptor(MapFunction):
                 context_parts.append(doc_text)
                 total_length += len(doc_text)
 
-            state.context = "Odpowiedz po polsku MAKSYMALNIE 20 słowami. Jedno zdanie. Bez list i bez nowych linii. Jeśli przekroczysz 20 słów, zwróć dokładnie: ERR.\n\n" + "\n\n".join(context_parts)
-            self.logger.info(
-                f"Promptor context is {state.context[:200]}..."
+            state.context = (
+                "Odpowiedz po polsku MAKSYMALNIE 20 słowami. Jedno zdanie. Bez list i bez nowych linii. Jeśli przekroczysz 20 słów, zwróć dokładnie: ERR.\n\n"
+                + "\n\n".join(context_parts)
             )
+            self.logger.info(f"Promptor context is {state.context[:200]}...")
             state.metadata["context_length"] = len(state.context)
             state.success = True
         except Exception as e:
@@ -1589,7 +1602,7 @@ class SimplePromptor(MapFunction):
             state.context = ""
 
         state.mark_completed()
-        
+
         # 记录结束时间
         end_time = time.time()
         duration_ms = (end_time - start_time) * 1000
@@ -1602,7 +1615,7 @@ class SimplePromptor(MapFunction):
             self.logger.error(
                 f"[SimplePromptor] ERROR - task_id={state.task_id}, error={state.error}"
             )
-        
+
         return state
 
 
@@ -1639,6 +1652,7 @@ class DelaySimulator(MapFunction):
 
         # 随机延迟时间
         import random
+
         delay_ms = random.randint(self.min_delay_ms, self.max_delay_ms)
         delay_seconds = delay_ms / 1000.0
 
@@ -1655,7 +1669,7 @@ class DelaySimulator(MapFunction):
             pass  # 空循环
 
         state.mark_completed()
-        
+
         # 记录结束时间
         end_time = time.time()
         actual_duration_ms = (end_time - start_time) * 1000
@@ -1664,7 +1678,7 @@ class DelaySimulator(MapFunction):
             f"target_delay={delay_ms}ms, actual_delay={actual_duration_ms:.2f}ms, "
             f"end_time={end_time:.3f}"
         )
-        
+
         return state
 
 
@@ -1677,41 +1691,41 @@ class CPUIntensiveReranker(MapFunction):
        - 最准确的语义重排序
        - 专门训练的排序模型
        - 包含网络I/O + 模型推理
-    
+
     2. use_local_cpu_reranker=True: 使用本地CPU reranker模型（BAAI/bge-reranker-base）
        - 本地CPU推理，无网络依赖
        - 小模型（279M参数，1.1GB）
        - 延迟约300-600ms（20 docs，8核CPU）
        - 模型缓存在/home/sage/data/models
-    
+
     3. use_real_embedding=True: 调用embedding服务获取向量
        - 真实语义向量
        - CPU密集的余弦相似度计算
        - 包含网络I/O + CPU计算
-    
+
     4. use_real_embedding=False: 确定性伪随机向量（默认）
        - 纯CPU计算，无网络依赖
        - 确定性（同一文档生成相同向量）
        - 适合纯CPU性能测试
-    
+
     **工作模式**：
     1. **真实重排序**（有上游文档时）
        - 接收上游检索的文档（state.retrieved_docs）
        - 使用上述三种方式之一进行重排序
        - 更新文档列表
-    
+
     2. **候选预筛选**（无上游文档时）
        - 生成大量候选向量
        - 执行CPU密集的筛选计算
        - 筛选Top-K候选
-    
+
     **CPU计算量**（embedding/伪随机模式）：
     - 向量归一化: O(num_candidates × vector_dim)
     - 相似度计算: O(num_candidates × vector_dim)
     - 排序: O(num_candidates × log(num_candidates))
     - 总计: ~1M FLOPs per task (500 docs × 1024 dim)
     """
-    
+
     # 类级别的单例实例（所有CPUIntensiveReranker实例共享）
     _shared_cpu_reranker: LocalCPUReranker | None = None
     _reranker_lock = None  # 用于线程安全的锁
@@ -1719,8 +1733,8 @@ class CPUIntensiveReranker(MapFunction):
     def __init__(
         self,
         num_candidates: int = 500,  # 候选文档数量
-        vector_dim: int = 1024,     # 向量维度
-        top_k: int = 5,             # 返回Top-K
+        vector_dim: int = 1024,  # 向量维度
+        top_k: int = 5,  # 返回Top-K
         stage: int = 2,
         use_reranker_service: bool = False,  # 是否使用真实reranker服务（优先级最高）
         use_local_cpu_reranker: bool = False,  # 是否使用本地CPU reranker（优先级第二）
@@ -1748,11 +1762,11 @@ class CPUIntensiveReranker(MapFunction):
         self.embedding_base_url = embedding_base_url
         self.embedding_model = embedding_model
         self._hostname = socket.gethostname()
-        
+
         # 如果启用本地CPU reranker，通过类方法获取共享实例
         if self.use_local_cpu_reranker:
             self._ensure_cpu_reranker_loaded()
-    
+
     @classmethod
     def _ensure_cpu_reranker_loaded(cls):
         """确保CPU reranker已加载（线程安全的单例）"""
@@ -1760,16 +1774,16 @@ class CPUIntensiveReranker(MapFunction):
             # 延迟导入threading避免不必要的依赖
             if cls._reranker_lock is None:
                 import threading
+
                 cls._reranker_lock = threading.Lock()
-            
+
             with cls._reranker_lock:
                 # 双重检查锁定模式
                 if cls._shared_cpu_reranker is None:
                     cls._shared_cpu_reranker = LocalCPUReranker(
-                        model_name=CPU_RERANKER_MODEL,
-                        cache_dir=CPU_RERANKER_CACHE_DIR
+                        model_name=CPU_RERANKER_MODEL, cache_dir=CPU_RERANKER_CACHE_DIR
                     )
-    
+
     @classmethod
     def get_cpu_reranker(cls) -> LocalCPUReranker | None:
         """获取共享的CPU reranker实例"""
@@ -1782,14 +1796,15 @@ class CPUIntensiveReranker(MapFunction):
     def _get_deterministic_vector(self, text: str, seed: int | None = None):
         """
         生成确定性伪随机向量（用于纯CPU测试）。
-        
+
         基于文本内容的hash生成seed，确保同一文本总是生成相同向量。
         这不是真实的语义向量，但能保证确定性和纯CPU计算。
-        
+
         Returns:
             numpy.ndarray: 归一化后的向量
         """
         import numpy as np
+
         if seed is None:
             seed = hash(text[:100]) % 2**32
         np.random.seed(seed)
@@ -1800,7 +1815,7 @@ class CPUIntensiveReranker(MapFunction):
     def execute(self, data: TaskState) -> TaskState:
         """执行CPU密集型重排序"""
         import numpy as np
-        
+
         if not isinstance(data, TaskState):
             return data
 
@@ -1811,11 +1826,11 @@ class CPUIntensiveReranker(MapFunction):
         state.mark_started()
 
         start_time = time.time()
-        
+
         # 获取已检索的文档（如果有）
-        input_docs = getattr(state, 'retrieved_docs', [])
+        input_docs = getattr(state, "retrieved_docs", [])
         num_docs = len(input_docs)
-        
+
         self.logger.info(
             f"[CPUIntensiveReranker] START - task_id={state.task_id}, "
             f"input_docs={num_docs}, candidates={self.num_candidates}, dim={self.vector_dim}, "
@@ -1825,7 +1840,10 @@ class CPUIntensiveReranker(MapFunction):
         try:
             # 优先使用真实 reranker 服务（如果启用且有上游文档）
             if self.use_reranker_service and input_docs:
-                doc_texts = [doc.get('content', doc.get('text', ''))[:512] for doc in input_docs[:self.num_candidates]]
+                doc_texts = [
+                    doc.get("content", doc.get("text", ""))[:512]
+                    for doc in input_docs[: self.num_candidates]
+                ]
                 rerank_results = rerank_with_service(
                     query=state.query,
                     documents=doc_texts,
@@ -1841,15 +1859,15 @@ class CPUIntensiveReranker(MapFunction):
                         idx = result["index"]
                         if 0 <= idx < len(input_docs):
                             doc = input_docs[idx].copy()
-                            doc['rerank_score'] = result['relevance_score']
+                            doc["rerank_score"] = result["relevance_score"]
                             reranked_docs.append(doc)
-                    
+
                     state.retrieved_docs = reranked_docs
                     state.metadata[f"reranked_docs_{self.stage}"] = len(reranked_docs)
                     state.metadata[f"num_candidates_{self.stage}"] = len(doc_texts)
-                    state.metadata[f"use_reranker_service"] = True
+                    state.metadata["use_reranker_service"] = True
                     state.success = True
-                    
+
                     state.mark_completed()
                     end_time = time.time()
                     duration_ms = (end_time - start_time) * 1000
@@ -1860,11 +1878,16 @@ class CPUIntensiveReranker(MapFunction):
                     )
                     return state
                 else:
-                    self.logger.warning(f"[CPUIntensiveReranker] Reranker service failed, fallback to next method")
-            
+                    self.logger.warning(
+                        "[CPUIntensiveReranker] Reranker service failed, fallback to next method"
+                    )
+
             # 次优：使用本地CPU reranker模型（如果启用且有上游文档）
             if self.use_local_cpu_reranker and input_docs:
-                doc_texts = [doc.get('content', doc.get('text', ''))[:512] for doc in input_docs[:self.num_candidates]]
+                doc_texts = [
+                    doc.get("content", doc.get("text", ""))[:512]
+                    for doc in input_docs[: self.num_candidates]
+                ]
                 local_reranker = self.get_cpu_reranker()
                 if local_reranker is not None:
                     rerank_results = local_reranker.rerank(
@@ -1882,15 +1905,15 @@ class CPUIntensiveReranker(MapFunction):
                         idx = result["index"]
                         if 0 <= idx < len(input_docs):
                             doc = input_docs[idx].copy()
-                            doc['rerank_score'] = result['relevance_score']
+                            doc["rerank_score"] = result["relevance_score"]
                             reranked_docs.append(doc)
-                    
+
                     state.retrieved_docs = reranked_docs
                     state.metadata[f"reranked_docs_{self.stage}"] = len(reranked_docs)
                     state.metadata[f"num_candidates_{self.stage}"] = len(doc_texts)
-                    state.metadata[f"use_local_cpu_reranker"] = True
+                    state.metadata["use_local_cpu_reranker"] = True
                     state.success = True
-                    
+
                     state.mark_completed()
                     end_time = time.time()
                     duration_ms = (end_time - start_time) * 1000
@@ -1901,7 +1924,9 @@ class CPUIntensiveReranker(MapFunction):
                     )
                     return state
                 else:
-                    self.logger.warning(f"[CPUIntensiveReranker] Local CPU reranker failed, fallback to embedding/pseudo-random")
+                    self.logger.warning(
+                        "[CPUIntensiveReranker] Local CPU reranker failed, fallback to embedding/pseudo-random"
+                    )
 
             # Fallback: 使用 embedding 或伪随机向量
             # 1. 生成查询向量
@@ -1913,8 +1938,12 @@ class CPUIntensiveReranker(MapFunction):
                     query_vec = query_vec / (np.linalg.norm(query_vec) + 1e-8)
                 else:
                     # Fallback to deterministic vector
-                    self.logger.warning(f"[CPUIntensiveReranker] Failed to get real embedding, using deterministic")
-                    query_vec = self._get_deterministic_vector(state.query, hash(state.query) % 2**32)
+                    self.logger.warning(
+                        "[CPUIntensiveReranker] Failed to get real embedding, using deterministic"
+                    )
+                    query_vec = self._get_deterministic_vector(
+                        state.query, hash(state.query) % 2**32
+                    )
             else:
                 # 使用确定性伪随机向量（纯CPU，无网络）
                 query_vec = self._get_deterministic_vector(state.query, hash(state.query) % 2**32)
@@ -1924,9 +1953,12 @@ class CPUIntensiveReranker(MapFunction):
                 # 为已检索的文档生成向量
                 if self.use_real_embedding:
                     # 获取真实embedding
-                    doc_texts = [doc.get('content', doc.get('text', ''))[:512] for doc in input_docs[:self.num_candidates]]
+                    doc_texts = [
+                        doc.get("content", doc.get("text", ""))[:512]
+                        for doc in input_docs[: self.num_candidates]
+                    ]
                     doc_embeddings = self._get_real_embeddings(doc_texts)
-                    
+
                     if doc_embeddings:
                         candidate_vecs = []
                         for emb in doc_embeddings:
@@ -1936,27 +1968,31 @@ class CPUIntensiveReranker(MapFunction):
                         candidate_vecs = np.array(candidate_vecs)
                     else:
                         # Fallback to deterministic vectors
-                        self.logger.warning(f"[CPUIntensiveReranker] Failed to get doc embeddings, using deterministic")
+                        self.logger.warning(
+                            "[CPUIntensiveReranker] Failed to get doc embeddings, using deterministic"
+                        )
                         candidate_vecs = []
-                        for doc in input_docs[:self.num_candidates]:
-                            doc_content = doc.get('content', doc.get('text', ''))
+                        for doc in input_docs[: self.num_candidates]:
+                            doc_content = doc.get("content", doc.get("text", ""))
                             vec = self._get_deterministic_vector(doc_content)
                             candidate_vecs.append(vec)
                         candidate_vecs = np.array(candidate_vecs)
                 else:
                     # 使用确定性伪随机向量
                     candidate_vecs = []
-                    for doc in input_docs[:self.num_candidates]:
-                        doc_content = doc.get('content', doc.get('text', ''))
+                    for doc in input_docs[: self.num_candidates]:
+                        doc_content = doc.get("content", doc.get("text", ""))
                         vec = self._get_deterministic_vector(doc_content)
                         candidate_vecs.append(vec)
                     candidate_vecs = np.array(candidate_vecs)
-                
+
                 num_candidates = len(candidate_vecs)
             else:
                 # 如果没有文档（例如作为第一个stage），生成随机候选向量
                 # 这模拟了对大量候选的预筛选（CPU密集操作）
-                candidate_vecs = np.random.randn(self.num_candidates, self.vector_dim).astype(np.float32)
+                candidate_vecs = np.random.randn(self.num_candidates, self.vector_dim).astype(
+                    np.float32
+                )
                 # 归一化（CPU密集操作）
                 norms = np.linalg.norm(candidate_vecs, axis=1, keepdims=True)
                 candidate_vecs = candidate_vecs / (norms + 1e-8)
@@ -1977,7 +2013,7 @@ class CPUIntensiveReranker(MapFunction):
                 for idx, score in zip(top_indices, top_scores):
                     if idx < len(input_docs):
                         doc = input_docs[idx].copy()
-                        doc['rerank_score'] = float(score)
+                        doc["rerank_score"] = float(score)
                         reranked_docs.append(doc)
                 # 更新 state 的文档列表
                 state.retrieved_docs = reranked_docs
@@ -1995,8 +2031,10 @@ class CPUIntensiveReranker(MapFunction):
 
             state.metadata[f"reranked_docs_{self.stage}"] = len(reranked_docs)
             state.metadata[f"num_candidates_{self.stage}"] = num_candidates
-            state.metadata[f"cpu_intensive_ops"] = num_candidates * self.vector_dim * 2  # 归一化 + 相似度
-            state.metadata[f"use_real_embedding"] = self.use_real_embedding
+            state.metadata["cpu_intensive_ops"] = (
+                num_candidates * self.vector_dim * 2
+            )  # 归一化 + 相似度
+            state.metadata["use_real_embedding"] = self.use_real_embedding
             state.success = True
 
         except Exception as e:
@@ -2027,8 +2065,8 @@ class SimpleGenerator(MapFunction):
 
     # 默认 LLM 端点配置: (base_url, weight)
     DEFAULT_LLM_ENDPOINTS = [
-        (f"http://{LLM_HOST}:8904/v1", 0.2),   # 原端点，权重 0.3
-        ("http://11.11.11.31:8906/v1", 0.8),   # 新端点，权重 0.7
+        (f"http://{LLM_HOST}:8904/v1", 0.2),  # 原端点，权重 0.3
+        ("http://11.11.11.31:8906/v1", 0.8),  # 新端点，权重 0.7
     ]
 
     def __init__(
@@ -2055,8 +2093,8 @@ class SimpleGenerator(MapFunction):
         self._endpoint_stats: dict[str, int] = {}  # 统计每个端点的调用次数
 
         # 打印多端点配置（仅在初始化时打印一次）
-        if not hasattr(SimpleGenerator, '_endpoints_logged'):
-            print(f"[SimpleGenerator] Multi-endpoint load balancing enabled:")
+        if not hasattr(SimpleGenerator, "_endpoints_logged"):
+            print("[SimpleGenerator] Multi-endpoint load balancing enabled:")
             for ep, weight in self.llm_endpoints:
                 print(f"  - {ep} (weight: {weight})")
             SimpleGenerator._endpoints_logged = True
@@ -2113,7 +2151,10 @@ class SimpleGenerator(MapFunction):
 
             return result["choices"][0]["message"]["content"], selected_endpoint
         except Exception as e:
-            return f"[Generation Error] {str(e)}", selected_endpoint if 'selected_endpoint' in locals() else "unknown"
+            return (
+                f"[Generation Error] {str(e)}",
+                selected_endpoint if "selected_endpoint" in locals() else "unknown",
+            )
 
     def _save_response_to_file(self, state: TaskState, gen_time: float) -> None:
         """保存 LLM 回复到指定文件"""
@@ -2152,7 +2193,7 @@ class SimpleGenerator(MapFunction):
         state.stage = self.stage
         state.operator_name = f"SimpleGenerator_{self.stage}"
         state.mark_started()
-        
+
         # 记录开始时间
         start_time = time.time()
         context_length = len(state.context) if state.context else 0
@@ -2186,7 +2227,7 @@ class SimpleGenerator(MapFunction):
             state.response = f"[Error] {str(e)}"
 
         state.mark_completed()
-        
+
         # 记录结束时间
         end_time = time.time()
         duration_ms = (end_time - start_time) * 1000
@@ -2200,7 +2241,7 @@ class SimpleGenerator(MapFunction):
             self.logger.error(
                 f"[SimpleGenerator] ERROR - task_id={state.task_id}, error={state.error}"
             )
-        
+
         return state
 
 
@@ -2244,7 +2285,10 @@ class AdaptiveRAGQuerySource(SourceFunction):
         if self.delay > 0:
             time.sleep(self.delay)
         import sys
-        print(f"[Source] [{self.counter}/{len(self.queries)}]: {query}", file=sys.stderr, flush=True)
+
+        print(
+            f"[Source] [{self.counter}/{len(self.queries)}]: {query}", file=sys.stderr, flush=True
+        )
         return AdaptiveRAGQueryData(query=query, metadata={"index": self.counter - 1})
 
 
@@ -2265,25 +2309,51 @@ class QueryClassifier(MapFunction):
 
     # MULTI: 多跳推理、比较分析、因果关系
     MULTI_KEYWORDS = [
-        "compare", "contrast", "analyze", "relationship", "between",
-        "pros and cons", "advantages and disadvantages", "impact", "effects",
-        "differences", "similarities", "how does .* affect", "why does",
-        "what factors", "explain the relationship", "connection between",
+        "compare",
+        "contrast",
+        "analyze",
+        "relationship",
+        "between",
+        "pros and cons",
+        "advantages and disadvantages",
+        "impact",
+        "effects",
+        "differences",
+        "similarities",
+        "how does .* affect",
+        "why does",
+        "what factors",
+        "explain the relationship",
+        "connection between",
     ]
 
     # SINGLE: 需要检索但单步可完成
     SINGLE_KEYWORDS = [
-        "what is", "who is", "when was", "where is", "how to",
-        "define", "describe", "explain", "how does .* work",
-        "what are the", "list the", "name the",
+        "what is",
+        "who is",
+        "when was",
+        "where is",
+        "how to",
+        "define",
+        "describe",
+        "explain",
+        "how does .* work",
+        "what are the",
+        "list the",
+        "name the",
     ]
 
     # ZERO: 常识性问题，LLM 可直接回答
     ZERO_INDICATORS = [
         # 短查询 (≤3 words)
         # 常见知识问题
-        "capital of", "meaning of", "synonym", "antonym",
-        "what year", "how many", "true or false",
+        "capital of",
+        "meaning of",
+        "synonym",
+        "antonym",
+        "what year",
+        "how many",
+        "true or false",
     ]
 
     def __init__(
@@ -2291,7 +2361,7 @@ class QueryClassifier(MapFunction):
         classifier_type: str = "rule",
         llm_base_url: str = "http://11.11.11.7:8903/v1",
         llm_model: str = "Qwen/Qwen2.5-7B-Instruct",
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.classifier_type = classifier_type
@@ -2300,6 +2370,7 @@ class QueryClassifier(MapFunction):
 
     def _classify_by_rule(self, query: str) -> ClassificationResult:
         import re
+
         query_lower = query.lower()
         word_count = len(query.split())
 
@@ -2308,7 +2379,7 @@ class QueryClassifier(MapFunction):
             return ClassificationResult(
                 complexity=QueryComplexityLevel.ZERO,
                 confidence=0.8,
-                reasoning=f"Very short query ({word_count} words)"
+                reasoning=f"Very short query ({word_count} words)",
             )
 
         for indicator in self.ZERO_INDICATORS:
@@ -2316,7 +2387,7 @@ class QueryClassifier(MapFunction):
                 return ClassificationResult(
                     complexity=QueryComplexityLevel.ZERO,
                     confidence=0.7,
-                    reasoning=f"ZERO indicator: '{indicator}'"
+                    reasoning=f"ZERO indicator: '{indicator}'",
                 )
 
         # 2. 检查 MULTI 关键词 (优先级高于 SINGLE)
@@ -2325,7 +2396,7 @@ class QueryClassifier(MapFunction):
                 return ClassificationResult(
                     complexity=QueryComplexityLevel.MULTI,
                     confidence=0.8,
-                    reasoning=f"MULTI keyword: '{keyword}'"
+                    reasoning=f"MULTI keyword: '{keyword}'",
                 )
 
         # 3. 检查 SINGLE 关键词
@@ -2334,7 +2405,7 @@ class QueryClassifier(MapFunction):
                 return ClassificationResult(
                     complexity=QueryComplexityLevel.SINGLE,
                     confidence=0.8,
-                    reasoning=f"SINGLE keyword: '{keyword}'"
+                    reasoning=f"SINGLE keyword: '{keyword}'",
                 )
 
         # 4. 基于长度的默认分类
@@ -2342,19 +2413,19 @@ class QueryClassifier(MapFunction):
             return ClassificationResult(
                 complexity=QueryComplexityLevel.ZERO,
                 confidence=0.5,
-                reasoning=f"Short query without special keywords ({word_count} words)"
+                reasoning=f"Short query without special keywords ({word_count} words)",
             )
         elif word_count <= 20:
             return ClassificationResult(
                 complexity=QueryComplexityLevel.SINGLE,
                 confidence=0.5,
-                reasoning=f"Medium query ({word_count} words)"
+                reasoning=f"Medium query ({word_count} words)",
             )
         else:
             return ClassificationResult(
                 complexity=QueryComplexityLevel.MULTI,
                 confidence=0.5,
-                reasoning=f"Long query ({word_count} words)"
+                reasoning=f"Long query ({word_count} words)",
             )
 
     def _classify_by_llm(self, query: str) -> ClassificationResult:
@@ -2391,19 +2462,19 @@ Format: [LETTER]: [reason]'''
                     return ClassificationResult(
                         complexity=QueryComplexityLevel.ZERO,
                         confidence=0.9,
-                        reasoning=f"LLM: {content}"
+                        reasoning=f"LLM: {content}",
                     )
                 elif content.startswith("B"):
                     return ClassificationResult(
                         complexity=QueryComplexityLevel.SINGLE,
                         confidence=0.9,
-                        reasoning=f"LLM: {content}"
+                        reasoning=f"LLM: {content}",
                     )
                 elif content.startswith("C"):
                     return ClassificationResult(
                         complexity=QueryComplexityLevel.MULTI,
                         confidence=0.9,
-                        reasoning=f"LLM: {content}"
+                        reasoning=f"LLM: {content}",
                     )
         except Exception as e:
             print(f"[Classifier] LLM error: {e}, falling back to rule-based")
@@ -2423,12 +2494,18 @@ Format: [LETTER]: [reason]'''
 
         data.classification = classification
         import sys
-        print(f"[Classify] {data.query[:50]}... -> {classification.complexity.name} ({classification.reasoning})", file=sys.stderr, flush=True)
+
+        print(
+            f"[Classify] {data.query[:50]}... -> {classification.complexity.name} ({classification.reasoning})",
+            file=sys.stderr,
+            flush=True,
+        )
         return data
 
 
 class ZeroComplexityFilter(FilterFunction):
     """过滤: 只保留 ZERO 复杂度的查询"""
+
     def execute(self, data: AdaptiveRAGQueryData) -> bool:
         if not isinstance(data, AdaptiveRAGQueryData) or data.classification is None:
             return False
@@ -2440,6 +2517,7 @@ class ZeroComplexityFilter(FilterFunction):
 
 class SingleComplexityFilter(FilterFunction):
     """过滤: 只保留 SINGLE 复杂度的查询"""
+
     def execute(self, data: AdaptiveRAGQueryData) -> bool:
         if not isinstance(data, AdaptiveRAGQueryData) or data.classification is None:
             return False
@@ -2451,6 +2529,7 @@ class SingleComplexityFilter(FilterFunction):
 
 class MultiComplexityFilter(FilterFunction):
     """过滤: 只保留 MULTI 复杂度的查询"""
+
     def execute(self, data: AdaptiveRAGQueryData) -> bool:
         if not isinstance(data, AdaptiveRAGQueryData) or data.classification is None:
             return False
@@ -2463,7 +2542,13 @@ class MultiComplexityFilter(FilterFunction):
 class NoRetrievalStrategy(MapFunction):
     """策略 A: 无检索 - 直接 LLM 生成"""
 
-    def __init__(self, llm_base_url: str = "http://11.11.11.7:8903/v1", llm_model: str = "Qwen/Qwen2.5-7B-Instruct", max_tokens: int = 512, **kwargs):
+    def __init__(
+        self,
+        llm_base_url: str = "http://11.11.11.7:8903/v1",
+        llm_model: str = "Qwen/Qwen2.5-7B-Instruct",
+        max_tokens: int = 512,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.llm_base_url = llm_base_url
         self.llm_model = llm_model
@@ -2471,8 +2556,18 @@ class NoRetrievalStrategy(MapFunction):
 
     def _generate(self, query: str) -> str:
         import requests
+
         try:
-            response = requests.post(f"{self.llm_base_url}/chat/completions", json={"model": self.llm_model, "messages": [{"role": "user", "content": query}], "max_tokens": self.max_tokens, "temperature": 0.7}, timeout=60)
+            response = requests.post(
+                f"{self.llm_base_url}/chat/completions",
+                json={
+                    "model": self.llm_model,
+                    "messages": [{"role": "user", "content": query}],
+                    "max_tokens": self.max_tokens,
+                    "temperature": 0.7,
+                },
+                timeout=60,
+            )
             response.raise_for_status()
             return response.json()["choices"][0]["message"]["content"]
         except Exception as e:
@@ -2482,7 +2577,14 @@ class NoRetrievalStrategy(MapFunction):
         start_time = time.time()
         print(f"  🔵 NoRetrieval: {data.query[:50]}...")
         answer = self._generate(data.query)
-        return AdaptiveRAGResultData(query=data.query, answer=answer, strategy_used="no_retrieval", complexity="ZERO", retrieval_steps=0, processing_time_ms=(time.time() - start_time) * 1000)
+        return AdaptiveRAGResultData(
+            query=data.query,
+            answer=answer,
+            strategy_used="no_retrieval",
+            complexity="ZERO",
+            retrieval_steps=0,
+            processing_time_ms=(time.time() - start_time) * 1000,
+        )
 
 
 class SingleRetrievalStrategy(MapFunction):
@@ -2492,7 +2594,14 @@ class SingleRetrievalStrategy(MapFunction):
     使用 self.call_service("llm") 进行生成。
     """
 
-    def __init__(self, llm_base_url: str = "http://11.11.11.7:8903/v1", llm_model: str = "Qwen/Qwen2.5-7B-Instruct", max_tokens: int = 512, top_k: int = 3, **kwargs):
+    def __init__(
+        self,
+        llm_base_url: str = "http://11.11.11.7:8903/v1",
+        llm_model: str = "Qwen/Qwen2.5-7B-Instruct",
+        max_tokens: int = 512,
+        top_k: int = 3,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.llm_base_url = llm_base_url
         self.llm_model = llm_model
@@ -2503,11 +2612,12 @@ class SingleRetrievalStrategy(MapFunction):
     def _retrieve_via_service(self, query: str) -> list[dict]:
         """使用服务进行向量检索"""
         import numpy as np
+
         try:
             # RPC: call_service(name, *args, **kwargs) calls service.process(*args, **kwargs)
             query_embeddings = self.call_service("embedding", texts=[query])
             if not query_embeddings:
-                print(f"    ⚠️ Failed to get query embedding")
+                print("    ⚠️ Failed to get query embedding")
                 return []
 
             query_vec = np.array(query_embeddings[0], dtype=np.float32)
@@ -2518,16 +2628,19 @@ class SingleRetrievalStrategy(MapFunction):
             # Convert to document format
             docs = []
             for score, metadata in results:
-                docs.append({
-                    "id": metadata.get("id", ""),
-                    "content": metadata.get("content", metadata.get("text", "")),
-                    "score": float(score),
-                })
+                docs.append(
+                    {
+                        "id": metadata.get("id", ""),
+                        "content": metadata.get("content", metadata.get("text", "")),
+                        "score": float(score),
+                    }
+                )
             return docs
 
         except Exception as e:
             print(f"    ⚠️ Service retrieval error: {e}")
             import traceback
+
             traceback.print_exc()
             return []
 
@@ -2540,12 +2653,30 @@ class SingleRetrievalStrategy(MapFunction):
             ]
             # RPC: call llm.process(messages, max_tokens, temperature)
             # timeout=120 to avoid service call timeout for LLM inference
-            return self.call_service("llm", messages=messages, max_tokens=self.max_tokens, temperature=0.7, timeout=120)
-        except Exception as e:
+            return self.call_service(
+                "llm", messages=messages, max_tokens=self.max_tokens, temperature=0.7, timeout=120
+            )
+        except Exception:
             # Fallback to direct request
             import requests
+
             try:
-                response = requests.post(f"{self.llm_base_url}/chat/completions", json={"model": self.llm_model, "messages": [{"role": "system", "content": "Answer based on the provided context."}, {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"}], "max_tokens": self.max_tokens, "temperature": 0.7}, timeout=60)
+                response = requests.post(
+                    f"{self.llm_base_url}/chat/completions",
+                    json={
+                        "model": self.llm_model,
+                        "messages": [
+                            {"role": "system", "content": "Answer based on the provided context."},
+                            {
+                                "role": "user",
+                                "content": f"Context:\n{context}\n\nQuestion: {query}",
+                            },
+                        ],
+                        "max_tokens": self.max_tokens,
+                        "temperature": 0.7,
+                    },
+                    timeout=60,
+                )
                 response.raise_for_status()
                 return response.json()["choices"][0]["message"]["content"]
             except Exception as e2:
@@ -2555,16 +2686,36 @@ class SingleRetrievalStrategy(MapFunction):
         start_time = time.time()
         print(f"  🟡 SingleRetrieval[{self._hostname}]: {data.query[:50]}...")
         docs = self._retrieve_via_service(data.query)
-        context = "\n".join([f"[Doc {i+1}]: {d['content']}" for i, d in enumerate(docs)]) or "No relevant documents found."
+        context = (
+            "\n".join([f"[Doc {i + 1}]: {d['content']}" for i, d in enumerate(docs)])
+            or "No relevant documents found."
+        )
         answer = self._generate_via_service(data.query, context)
-        return AdaptiveRAGResultData(query=data.query, answer=answer, strategy_used="single_retrieval", complexity="SINGLE", retrieval_steps=len(docs), processing_time_ms=(time.time() - start_time) * 1000)
+        return AdaptiveRAGResultData(
+            query=data.query,
+            answer=answer,
+            strategy_used="single_retrieval",
+            complexity="SINGLE",
+            retrieval_steps=len(docs),
+            processing_time_ms=(time.time() - start_time) * 1000,
+        )
 
 
 class IterativeRetrievalInit(MapFunction):
     """策略 C: 迭代检索初始化"""
+
     def execute(self, data: AdaptiveRAGQueryData) -> IterativeState:
         print(f"  🔴 IterativeRetrieval Init: {data.query[:50]}...")
-        return IterativeState(original_query=data.query, current_query=data.query, accumulated_docs=[], reasoning_chain=[], iteration=0, is_complete=False, start_time=time.time(), classification=data.classification)
+        return IterativeState(
+            original_query=data.query,
+            current_query=data.query,
+            accumulated_docs=[],
+            reasoning_chain=[],
+            iteration=0,
+            is_complete=False,
+            start_time=time.time(),
+            classification=data.classification,
+        )
 
 
 class IterativeRetriever(MapFunction):
@@ -2581,11 +2732,12 @@ class IterativeRetriever(MapFunction):
     def _retrieve_via_service(self, query: str) -> list[dict]:
         """使用服务进行向量检索"""
         import numpy as np
+
         try:
             # RPC: call embedding.process(texts=[query])
             query_embeddings = self.call_service("embedding", texts=[query])
             if not query_embeddings:
-                print(f"      ⚠️ Failed to get query embedding")
+                print("      ⚠️ Failed to get query embedding")
                 return []
 
             query_vec = np.array(query_embeddings[0], dtype=np.float32)
@@ -2596,16 +2748,19 @@ class IterativeRetriever(MapFunction):
             # Convert to document format
             docs = []
             for score, metadata in results:
-                docs.append({
-                    "id": metadata.get("id", ""),
-                    "content": metadata.get("content", metadata.get("text", "")),
-                    "score": float(score),
-                })
+                docs.append(
+                    {
+                        "id": metadata.get("id", ""),
+                        "content": metadata.get("content", metadata.get("text", "")),
+                        "score": float(score),
+                    }
+                )
             return docs
 
         except Exception as e:
             print(f"      ⚠️ Service retrieval error: {e}")
             import traceback
+
             traceback.print_exc()
             return []
 
@@ -2615,7 +2770,9 @@ class IterativeRetriever(MapFunction):
 
         new_docs = self._retrieve_via_service(state.current_query)
         state.accumulated_docs.extend(new_docs)
-        state.reasoning_chain.append(f"[Retrieve] Query: '{state.current_query[:30]}' -> {len(new_docs)} docs")
+        state.reasoning_chain.append(
+            f"[Retrieve] Query: '{state.current_query[:30]}' -> {len(new_docs)} docs"
+        )
         print(f"    📚 Retrieve[{self._hostname}][{state.iteration}]: {len(new_docs)} docs")
         return state
 
@@ -2623,7 +2780,14 @@ class IterativeRetriever(MapFunction):
 class IterativeReasoner(MapFunction):
     """迭代推理算子（服务化 LLM 版本）"""
 
-    def __init__(self, llm_base_url: str = "http://11.11.11.7:8903/v1", llm_model: str = "Qwen/Qwen2.5-7B-Instruct", max_iterations: int = 3, min_docs: int = 5, **kwargs):
+    def __init__(
+        self,
+        llm_base_url: str = "http://11.11.11.7:8903/v1",
+        llm_model: str = "Qwen/Qwen2.5-7B-Instruct",
+        max_iterations: int = 3,
+        min_docs: int = 5,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.llm_base_url = llm_base_url
         self.llm_model = llm_model
@@ -2636,12 +2800,24 @@ class IterativeReasoner(MapFunction):
         try:
             # RPC: call llm.process(messages, max_tokens, temperature)
             # timeout=120 to avoid service call timeout for LLM inference
-            return self.call_service("llm", messages=messages, max_tokens=256, temperature=0.7, timeout=120)
+            return self.call_service(
+                "llm", messages=messages, max_tokens=256, temperature=0.7, timeout=120
+            )
         except Exception:
             # Fallback to direct request
             import requests
+
             try:
-                response = requests.post(f"{self.llm_base_url}/chat/completions", json={"model": self.llm_model, "messages": messages, "max_tokens": 256, "temperature": 0.7}, timeout=60)
+                response = requests.post(
+                    f"{self.llm_base_url}/chat/completions",
+                    json={
+                        "model": self.llm_model,
+                        "messages": messages,
+                        "max_tokens": 256,
+                        "temperature": 0.7,
+                    },
+                    timeout=60,
+                )
                 response.raise_for_status()
                 return response.json()["choices"][0]["message"]["content"]
             except Exception as e:
@@ -2657,7 +2833,16 @@ class IterativeReasoner(MapFunction):
             print(f"    🧠 Reason[{self._hostname}][{state.iteration}]: COMPLETE")
             return state
         context_so_far = "\n".join([f"- {d['content']}" for d in state.accumulated_docs[-3:]])
-        messages = [{"role": "system", "content": "Generate a follow-up search query. Reply with ONLY the query."}, {"role": "user", "content": f"Original: {state.original_query}\n\nContext:\n{context_so_far}\n\nFollow-up query:"}]
+        messages = [
+            {
+                "role": "system",
+                "content": "Generate a follow-up search query. Reply with ONLY the query.",
+            },
+            {
+                "role": "user",
+                "content": f"Original: {state.original_query}\n\nContext:\n{context_so_far}\n\nFollow-up query:",
+            },
+        ]
         new_query = self._llm_call_via_service(messages).strip()
         state.current_query = new_query
         state.reasoning_chain.append(f"[Reason] Next query = '{new_query[:40]}'")
@@ -2668,7 +2853,12 @@ class IterativeReasoner(MapFunction):
 class FinalSynthesizer(MapFunction):
     """综合生成算子（服务化 LLM 版本）"""
 
-    def __init__(self, llm_base_url: str = "http://11.11.11.7:8903/v1", llm_model: str = "Qwen/Qwen2.5-7B-Instruct", **kwargs):
+    def __init__(
+        self,
+        llm_base_url: str = "http://11.11.11.7:8903/v1",
+        llm_model: str = "Qwen/Qwen2.5-7B-Instruct",
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.llm_base_url = llm_base_url
         self.llm_model = llm_model
@@ -2679,24 +2869,51 @@ class FinalSynthesizer(MapFunction):
         try:
             # RPC: call llm.process(messages, max_tokens, temperature)
             # timeout=120 to avoid service call timeout for LLM inference
-            return self.call_service("llm", messages=messages, max_tokens=512, temperature=0.7, timeout=120)
+            return self.call_service(
+                "llm", messages=messages, max_tokens=512, temperature=0.7, timeout=120
+            )
         except Exception:
             # Fallback to direct request
             import requests
+
             try:
-                response = requests.post(f"{self.llm_base_url}/chat/completions", json={"model": self.llm_model, "messages": messages, "max_tokens": 512, "temperature": 0.7}, timeout=60)
+                response = requests.post(
+                    f"{self.llm_base_url}/chat/completions",
+                    json={
+                        "model": self.llm_model,
+                        "messages": messages,
+                        "max_tokens": 512,
+                        "temperature": 0.7,
+                    },
+                    timeout=60,
+                )
                 response.raise_for_status()
                 return response.json()["choices"][0]["message"]["content"]
             except Exception as e:
                 return f"[LLM Error] {str(e)}"
 
     def execute(self, state: IterativeState) -> AdaptiveRAGResultData:
-        context = "\n".join([f"[Doc {i+1}]: {d['content']}" for i, d in enumerate(state.accumulated_docs)])
+        context = "\n".join(
+            [f"[Doc {i + 1}]: {d['content']}" for i, d in enumerate(state.accumulated_docs)]
+        )
         chain_text = "\n".join(state.reasoning_chain)
-        messages = [{"role": "system", "content": "Synthesize all information to answer comprehensively."}, {"role": "user", "content": f"Question: {state.original_query}\n\nReasoning:\n{chain_text}\n\nContext:\n{context}\n\nAnswer:"}]
+        messages = [
+            {"role": "system", "content": "Synthesize all information to answer comprehensively."},
+            {
+                "role": "user",
+                "content": f"Question: {state.original_query}\n\nReasoning:\n{chain_text}\n\nContext:\n{context}\n\nAnswer:",
+            },
+        ]
         answer = self._llm_call_via_service(messages)
         print(f"    ✨ Synthesize[{self._hostname}]: Generated answer ({len(answer)} chars)")
-        return AdaptiveRAGResultData(query=state.original_query, answer=answer, strategy_used="iterative_retrieval", complexity="MULTI", retrieval_steps=state.iteration, processing_time_ms=(time.time() - state.start_time) * 1000)
+        return AdaptiveRAGResultData(
+            query=state.original_query,
+            answer=answer,
+            strategy_used="iterative_retrieval",
+            complexity="MULTI",
+            retrieval_steps=state.iteration,
+            processing_time_ms=(time.time() - state.start_time) * 1000,
+        )
 
 
 class AdaptiveRAGResultSink(SinkFunction):
@@ -2723,6 +2940,7 @@ class AdaptiveRAGResultSink(SinkFunction):
 
     def _write_to_file(self, data: AdaptiveRAGResultData) -> None:
         import json
+
         try:
             # 写入 MetricsSink 兼容格式（包含 type, success, total_latency_ms 等字段）
             record = {
@@ -2743,6 +2961,7 @@ class AdaptiveRAGResultSink(SinkFunction):
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
         except Exception as e:
             import sys
+
             print(f"[ResultSink] Write error: {e}", file=sys.stderr, flush=True)
 
     def execute(self, data: AdaptiveRAGResultData):
@@ -2750,7 +2969,12 @@ class AdaptiveRAGResultSink(SinkFunction):
         AdaptiveRAGResultSink._all_results.append(data)
         self._write_to_file(data)
         import sys
-        print(f"\n  [{self.branch_name}] Result #{self.count}: {data.query[:40]}... -> {data.strategy_used}", file=sys.stderr, flush=True)
+
+        print(
+            f"\n  [{self.branch_name}] Result #{self.count}: {data.query[:40]}... -> {data.strategy_used}",
+            file=sys.stderr,
+            flush=True,
+        )
         return data
 
     @classmethod
@@ -2845,6 +3069,7 @@ class ServiceRetriever(MapFunction):
                 raise ValueError("Failed to get query embedding")
 
             import numpy as np
+
             query_vec = np.array(query_embeddings[0], dtype=np.float32)
 
             # Search vector_db
@@ -2853,12 +3078,14 @@ class ServiceRetriever(MapFunction):
             # Convert results to document format
             state.retrieved_docs = []
             for score, metadata in results:
-                state.retrieved_docs.append({
-                    "id": metadata.get("id", ""),
-                    "title": metadata.get("title", ""),
-                    "content": metadata.get("content", metadata.get("text", "")),
-                    "score": float(score),
-                })
+                state.retrieved_docs.append(
+                    {
+                        "id": metadata.get("id", ""),
+                        "title": metadata.get("title", ""),
+                        "content": metadata.get("content", metadata.get("text", "")),
+                        "score": float(score),
+                    }
+                )
 
             retrieval_time = time.time() - retrieval_start
             state.metadata["retrieval_time_ms"] = retrieval_time * 1000
@@ -2866,14 +3093,16 @@ class ServiceRetriever(MapFunction):
             state.success = True
 
             # 打印检索结果
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print(f"[Retriever] Task: {state.task_id} | Query: {state.query[:50]}...")
-            print(f"[Retriever] Retrieved {len(state.retrieved_docs)} docs in {retrieval_time*1000:.1f}ms")
+            print(
+                f"[Retriever] Retrieved {len(state.retrieved_docs)} docs in {retrieval_time * 1000:.1f}ms"
+            )
             for i, doc in enumerate(state.retrieved_docs[:3]):
-                score = doc.get('score', 0)
-                text = doc.get('content', doc.get('text', ''))[:100]
-                print(f"  [{i+1}] (score={score:.3f}) {text}...")
-            print(f"{'='*60}\n")
+                score = doc.get("score", 0)
+                text = doc.get("content", doc.get("text", ""))[:100]
+                print(f"  [{i + 1}] (score={score:.3f}) {text}...")
+            print(f"{'=' * 60}\n")
 
             # 保存检索结果到文件
             self._save_retrieval_result(state, retrieval_time)
@@ -2883,6 +3112,7 @@ class ServiceRetriever(MapFunction):
             state.error = str(e)
             state.retrieved_docs = []
             import traceback
+
             traceback.print_exc()
 
         state.mark_completed()
@@ -2934,26 +3164,24 @@ class ServiceReranker(MapFunction):
             query_embeddings = embedding_service.embed([state.query])
             if not query_embeddings:
                 # Fallback: keep original order
-                state.retrieved_docs = state.retrieved_docs[:self.top_k]
+                state.retrieved_docs = state.retrieved_docs[: self.top_k]
                 state.success = True
                 state.mark_completed()
                 return state
 
             # Get document embeddings
-            doc_texts = [
-                doc.get("content", "")[:500]
-                for doc in state.retrieved_docs
-            ]
+            doc_texts = [doc.get("content", "")[:500] for doc in state.retrieved_docs]
             doc_embeddings = embedding_service.embed(doc_texts)
 
             if not doc_embeddings:
-                state.retrieved_docs = state.retrieved_docs[:self.top_k]
+                state.retrieved_docs = state.retrieved_docs[: self.top_k]
                 state.success = True
                 state.mark_completed()
                 return state
 
             # Compute cosine similarity and rerank
             import math
+
             query_vec = query_embeddings[0]
 
             reranked = []
@@ -2966,7 +3194,7 @@ class ServiceReranker(MapFunction):
                 reranked.append({**doc, "rerank_score": score})
 
             reranked.sort(key=lambda x: x.get("rerank_score", 0), reverse=True)
-            state.retrieved_docs = reranked[:self.top_k]
+            state.retrieved_docs = reranked[: self.top_k]
 
             rerank_time = time.time() - rerank_start
             state.metadata["rerank_time_ms"] = rerank_time * 1000
@@ -3089,20 +3317,22 @@ class ServiceGenerator(MapFunction):
             ]
 
             # Generate response via RPC (timeout=120 for LLM inference)
-            state.response = self.call_service("llm", messages=messages, max_tokens=512, temperature=0.7, timeout=120)
+            state.response = self.call_service(
+                "llm", messages=messages, max_tokens=512, temperature=0.7, timeout=120
+            )
 
             gen_time = time.time() - gen_start
             state.metadata["generation_time_ms"] = gen_time * 1000
             state.success = True
 
             # 打印生成结果
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print(f"[Generator] Task: {state.task_id}")
             print(f"[Generator] Query: {state.query[:80]}...")
             print(f"[Generator] Context length: {len(state.context)} chars")
-            print(f"[Generator] Response ({gen_time*1000:.1f}ms):")
+            print(f"[Generator] Response ({gen_time * 1000:.1f}ms):")
             print(f"  {state.response[:300]}...")
-            print(f"{'='*60}\n")
+            print(f"{'=' * 60}\n")
 
             # 保存生成结果到文件（始终保存）
             self._save_generation_result(state, gen_time)

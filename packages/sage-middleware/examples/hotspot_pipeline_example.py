@@ -210,19 +210,51 @@ def main():
     docs_a = [
         {"id": "A01", "platform": "Platform-A", "title": "Nvidia's new Blackwell GPUs are here"},
         {"id": "A02", "platform": "Platform-A", "title": "Apple unveils M4 chip for next-gen Macs"},
-        {"id": "A03", "platform": "Platform-A", "title": "Lakers win NBA championship in a dramatic final"},
+        {
+            "id": "A03",
+            "platform": "Platform-A",
+            "title": "Lakers win NBA championship in a dramatic final",
+        },
         {"id": "A04", "platform": "Platform-A", "title": "Google I/O 2025 focuses on Gemini AI"},
-        {"id": "A05", "platform": "Platform-A", "title": "FIFA World Cup 2026 host cities announced"},
+        {
+            "id": "A05",
+            "platform": "Platform-A",
+            "title": "FIFA World Cup 2026 host cities announced",
+        },
         {"id": "A06", "platform": "Platform-A", "title": "Microsoft launches new Surface Pro 11"},
     ]
 
     docs_b = [
-        {"id": "B01", "platform": "Platform-B", "title": "Nvidia announces the Blackwell GPU architecture"},
-        {"id": "B02", "platform": "Platform-B", "title": "Next generation of Macs to be powered by Apple's M4"},
-        {"id": "B03", "platform": "Platform-B", "title": "Dramatic NBA finals see Lakers take the crown"},
-        {"id": "B04", "platform": "Platform-B", "title": "Gemini AI is the star of Google I/O 2025"},
-        {"id": "B05", "platform": "Platform-B", "title": "FIFA reveals host cities for World Cup 2026"},
-        {"id": "B06", "platform": "Platform-B", "title": "First look at the new Surface Pro from Microsoft"},
+        {
+            "id": "B01",
+            "platform": "Platform-B",
+            "title": "Nvidia announces the Blackwell GPU architecture",
+        },
+        {
+            "id": "B02",
+            "platform": "Platform-B",
+            "title": "Next generation of Macs to be powered by Apple's M4",
+        },
+        {
+            "id": "B03",
+            "platform": "Platform-B",
+            "title": "Dramatic NBA finals see Lakers take the crown",
+        },
+        {
+            "id": "B04",
+            "platform": "Platform-B",
+            "title": "Gemini AI is the star of Google I/O 2025",
+        },
+        {
+            "id": "B05",
+            "platform": "Platform-B",
+            "title": "FIFA reveals host cities for World Cup 2026",
+        },
+        {
+            "id": "B06",
+            "platform": "Platform-B",
+            "title": "First look at the new Surface Pro from Microsoft",
+        },
         {"id": "B07", "platform": "Platform-B", "title": "Boston Celtics trade update"},
     ]
 
@@ -310,7 +342,7 @@ def main():
         right = pair.get("right", {})
         sim = pair.get("similarity", 0.0)
 
-        print(f"#{i+1:02d} | sim={sim:.4f}")
+        print(f"#{i + 1:02d} | sim={sim:.4f}")
         print(f"  -> [{left.get('platform')}] {left.get('title')}")
         print(f"  -> [{right.get('platform')}] {right.get('title')}")
         print("-" * 70)

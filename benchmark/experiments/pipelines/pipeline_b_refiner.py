@@ -37,6 +37,7 @@ from sage.kernel.api.local_environment import LocalEnvironment
 @dataclass
 class RefinerConfig:
     """Refiner Pipeline 配置"""
+
     # 配置文件路径
     config_path: str = ""
 
@@ -153,19 +154,17 @@ def register_vector_db_service(
 
                 print(f"[VectorDB] Loading documents from {self.documents_path}")
                 self._documents = []
-                with open(self.documents_path, "r", encoding="utf-8") as f:
+                with open(self.documents_path, encoding="utf-8") as f:
                     for line in f:
                         self._documents.append(json.loads(line.strip()))
                 print(f"[VectorDB] Loaded {len(self._documents)} documents")
 
                 if self.mapping_path and os.path.exists(self.mapping_path):
-                    with open(self.mapping_path, "r", encoding="utf-8") as f:
+                    with open(self.mapping_path, encoding="utf-8") as f:
                         self._mapping = json.load(f)
                     print(f"[VectorDB] Loaded mapping with {len(self._mapping)} entries")
 
-            def search(
-                self, query_vector: np.ndarray, top_k: int = 100
-            ) -> list[dict[str, Any]]:
+            def search(self, query_vector: np.ndarray, top_k: int = 100) -> list[dict[str, Any]]:
                 """搜索最近邻"""
                 self._ensure_initialized()
 
@@ -442,8 +441,7 @@ class RefinerOperator(MapFunction):
 
         # 提取文本
         texts = [
-            doc.get("text", doc.get("content", doc.get("passage", "")))
-            for doc in retrieval_results
+            doc.get("text", doc.get("content", doc.get("passage", ""))) for doc in retrieval_results
         ]
 
         # 压缩
@@ -527,9 +525,7 @@ class EvaluatorOperator(MapFunction):
             precision = len(common) / len(gen_tokens) if gen_tokens else 0
             recall = len(common) / len(gt_tokens) if gt_tokens else 0
             data["f1_score"] = (
-                2 * precision * recall / (precision + recall)
-                if (precision + recall) > 0
-                else 0
+                2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
             )
 
         print(f"[Evaluator] F1 Score: {data['f1_score']:.4f}")
@@ -558,12 +554,14 @@ class ResultSinkOperator(SinkFunction):
         self.results.append(result)
 
         if self.verbose:
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print(f"Query: {result['query']}")
-            answer = result.get('generated_answer', '')
+            answer = result.get("generated_answer", "")
             print(f"Answer: {answer[:200] if answer else 'N/A'}...")
-            print(f"F1: {result['f1_score']:.4f}, Compression: {result.get('compression_rate', 0):.2%}")
-            print(f"{'='*60}\n")
+            print(
+                f"F1: {result['f1_score']:.4f}, Compression: {result.get('compression_rate', 0):.2%}"
+            )
+            print(f"{'=' * 60}\n")
 
         if self.output_path:
             import json
@@ -622,7 +620,9 @@ def pipeline_run(config: dict) -> None:
         env,
         index_path=os.path.expandvars(faiss_cfg.get("index_path", "")),
         documents_path=os.path.expandvars(faiss_cfg.get("documents_path", "")),
-        mapping_path=os.path.expandvars(faiss_cfg.get("mapping_path", "")) if faiss_cfg.get("mapping_path") else None,
+        mapping_path=os.path.expandvars(faiss_cfg.get("mapping_path", ""))
+        if faiss_cfg.get("mapping_path")
+        else None,
         dimension=retriever_cfg.get("dimension", 1024),
     )
 
@@ -630,7 +630,9 @@ def pipeline_run(config: dict) -> None:
     refiner_cfg = config.get("llmlingua2", {})
     register_refiner_service(
         env,
-        model_name=refiner_cfg.get("model_name", "microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank"),
+        model_name=refiner_cfg.get(
+            "model_name", "microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank"
+        ),
         device=refiner_cfg.get("device", "cuda:0"),
         rate=refiner_cfg.get("rate", 0.5),
     )
@@ -709,7 +711,7 @@ class RefinerPipeline:
         self.env: Optional[LocalEnvironment] = None
 
     @classmethod
-    def from_config(cls, config_path: str) -> "RefinerPipeline":
+    def from_config(cls, config_path: str) -> RefinerPipeline:
         """从配置文件创建 Pipeline
 
         Args:

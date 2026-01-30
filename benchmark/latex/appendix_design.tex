@@ -46,21 +46,21 @@ Each \texttt{TaskNode} executes a continuous lightweight worker loop that handle
 \WHILE{Running}
     \STATE \COMMENT{Blocking dequeue implements backpressure}
     \STATE $Item \leftarrow Q_{in}.\text{dequeue\_blocking}()$
-    
+
     \IF{$Item$ is ControlSignal(Checkpoint)}
         \STATE \textbf{trigger\_checkpoint()}
         \STATE \textbf{continue}
     \ENDIF
-    
+
     \STATE $Results \leftarrow Op.\text{process}(Item)$
-    
+
     \FOR{$Res$ in $Results$}
         \STATE $Packet \leftarrow \text{Wrap}(Res)$
         \STATE $Meta \leftarrow \text{GetRoutingMetadata}(Packet)$
         \STATE \COMMENT{Route based on policy (Broadcast, Round-Robin, Hash)}
         \STATE $Router.\text{route}(Packet, Meta)$
     \ENDFOR
-    
+
     \STATE \textbf{update\_metrics()}
 \ENDWHILE
 \end{algorithmic}

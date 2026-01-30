@@ -28,32 +28,31 @@ if TYPE_CHECKING:
 try:
     from .models import BenchmarkConfig, BenchmarkMetrics
     from .operators import (
+        FIQA_DATA_DIR,
+        FIQA_INDEX_DIR,
+        SAMPLE_KNOWLEDGE_BASE,
         ComputeOperator,
         CPUIntensiveReranker,
+        FiQADataLoader,
+        FiQAFAISSRetriever,
+        FiQATaskSource,
         LLMOperator,
         MetricsSink,
         TaskSource,
-        SAMPLE_KNOWLEDGE_BASE,
-        FiQADataLoader,
-        FiQATaskSource,
-        FiQAFAISSRetriever,
-        FIQA_DATA_DIR,
-        FIQA_INDEX_DIR,
     )
 except ImportError:
     from models import BenchmarkConfig, BenchmarkMetrics
     from operators import (
+        FIQA_DATA_DIR,
+        FIQA_INDEX_DIR,
+        SAMPLE_KNOWLEDGE_BASE,
         ComputeOperator,
         CPUIntensiveReranker,
+        FiQADataLoader,
+        FiQATaskSource,
         LLMOperator,
         MetricsSink,
         TaskSource,
-        SAMPLE_KNOWLEDGE_BASE,
-        FiQADataLoader,
-        FiQATaskSource,
-        FiQAFAISSRetriever,
-        FIQA_DATA_DIR,
-        FIQA_INDEX_DIR,
     )
 
 
@@ -82,6 +81,7 @@ def register_embedding_service(
         True if registered successfully
     """
     try:
+
         class EmbeddingService(BaseService):
             """Remote embedding service wrapper (lazy init to avoid SSLContext serialization)"""
 
@@ -95,6 +95,7 @@ def register_embedding_service(
                 """Lazy create httpx client (avoids SSLContext pickle issues)"""
                 if self._client is None:
                     import httpx
+
                     self._client = httpx.Client(timeout=60.0)
                 return self._client
 
@@ -183,6 +184,7 @@ def register_vector_db_service(
                 """Get embeddings from remote service"""
                 try:
                     import httpx
+
                     with httpx.Client(timeout=60.0) as client:
                         response = client.post(
                             f"{self._embedding_url.rstrip('/')}/embeddings",
@@ -201,6 +203,7 @@ def register_vector_db_service(
                     return
 
                 import numpy as np
+
                 from sage.middleware.components.sage_db.python.micro_service.sage_db_service import (
                     SageDBService,
                 )
@@ -221,10 +224,7 @@ def register_vector_db_service(
                 self._db = SageDBService(dimension=dim, index_type="AUTO")
 
                 # Get embeddings for all documents
-                texts = [
-                    item.get("content", item.get("text", ""))
-                    for item in self._initial_data
-                ]
+                texts = [item.get("content", item.get("text", "")) for item in self._initial_data]
                 embeddings = self._get_embeddings(texts)
 
                 if embeddings is not None:
@@ -289,8 +289,10 @@ def register_vector_db_service(
     except Exception as e:
         print(f"[Pipeline] Failed to register vector_db: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def register_llm_service(
     env: LocalEnvironment | RemoteEnvironment,
@@ -314,7 +316,6 @@ def register_llm_service(
         True if registered successfully
     """
     try:
-        import httpx
 
         class LLMService(BaseService):
             """Remote LLM service wrapper"""
@@ -330,6 +331,7 @@ def register_llm_service(
                 """Lazy create httpx client (avoids SSLContext pickle issues)"""
                 if self._client is None:
                     import httpx
+
                     self._client = httpx.Client(timeout=120.0)
                 return self._client
 
@@ -372,7 +374,9 @@ def register_llm_service(
 
         # Register service class with kwargs (NOT a lambda)
         # ServiceFactory will instantiate the class with context injection
-        env.register_service("llm", LLMService, base_url=base_url, model=model, max_tokens=max_tokens)
+        env.register_service(
+            "llm", LLMService, base_url=base_url, model=model, max_tokens=max_tokens
+        )
         print(f"[Pipeline] Registered llm service: {model} @ {base_url}")
         return True
 
@@ -475,6 +479,7 @@ def register_fiqa_vdb_service(
                 # Build new index (inline corpus loading to avoid common module dependency)
                 print("[FiQAVDB] Building new FAISS index...")
                 import pandas as pd
+
                 corpus_path = Path(self._data_dir) / "corpus" / "test-00000-of-00001.parquet"
                 if not corpus_path.exists():
                     raise FileNotFoundError(f"FiQA corpus not found: {corpus_path}")
@@ -537,12 +542,14 @@ def register_fiqa_vdb_service(
                 for score, idx in zip(scores[0], indices[0]):
                     if 0 <= idx < len(self._documents):
                         doc = self._documents[idx]
-                        results.append({
-                            "id": doc.get("id", str(idx)),
-                            "title": doc.get("title", ""),
-                            "content": doc.get("text", ""),
-                            "score": float(score),
-                        })
+                        results.append(
+                            {
+                                "id": doc.get("id", str(idx)),
+                                "title": doc.get("title", ""),
+                                "content": doc.get("text", ""),
+                                "score": float(score),
+                            }
+                        )
                 return results
 
             def process(self, query: str, top_k: int = 5) -> list[dict]:
@@ -565,6 +572,7 @@ def register_fiqa_vdb_service(
     except Exception as e:
         print(f"[Pipeline] Failed to register fiqa_vdb service: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -647,6 +655,7 @@ class SchedulingBenchmarkPipeline:
         # Priority 2: Read from cluster.yaml
         try:
             from pathlib import Path
+
             import yaml
 
             # Find cluster.yaml relative to repo root
@@ -708,7 +717,7 @@ class SchedulingBenchmarkPipeline:
 
             # Get the experiments directory path for Ray runtime_env
             experiments_dir = Path(__file__).resolve().parent.parent
-            
+
             # Get sage-benchmark/src for proper module resolution
             # Path: common/pipeline.py -> experiments -> benchmark_sage -> benchmark -> sage -> src
             # This ensures workers can import sage.benchmark.benchmark_sage.experiments.common.operators
@@ -726,9 +735,7 @@ class SchedulingBenchmarkPipeline:
             # Create config with runtime_env for Ray to find our modules
             config = {
                 "runtime_env": {
-                    "env_vars": {
-                        "PYTHONPATH": pythonpath_value
-                    },
+                    "env_vars": {"PYTHONPATH": pythonpath_value},
                     "working_dir": str(experiments_dir),
                 }
             }
@@ -762,7 +769,7 @@ class SchedulingBenchmarkPipeline:
             wiki18_mapping_path="/path/to/wiki18_maxp_mapping.json"
         """
         retriever_type = getattr(self.config, "retriever_type", "simple")
-        
+
         base_config = {
             "type": retriever_type,
             "dimension": 1024,
@@ -773,7 +780,7 @@ class SchedulingBenchmarkPipeline:
                 "gpu_device": 0,
             },
         }
-        
+
         if retriever_type == "wiki18_faiss":
             # Wiki18 FAISS 配置
             base_config["faiss"] = {
@@ -787,7 +794,7 @@ class SchedulingBenchmarkPipeline:
                 "collection_name": "benchmark_knowledge",
                 "persist_directory": None,
             }
-        
+
         return base_config
 
     def _get_reranker_config(self) -> dict[str, Any]:
@@ -972,7 +979,6 @@ class SchedulingBenchmarkPipeline:
             FiQATaskSource,
             SimpleGenerator,
             SimplePromptor,
-            SimpleReranker,
         )
 
         env = self._create_environment(name)
@@ -1022,7 +1028,7 @@ class SchedulingBenchmarkPipeline:
                 num_tasks=self.config.num_tasks,
                 task_complexity=self.config.task_complexity,
             )
-            .map( # 占位符，memroy ，平均160ms 
+            .map(  # 占位符，memroy ，平均160ms
                 DelaySimulator,
                 parallelism=self.config.parallelism,
                 min_delay_ms=130,
@@ -1041,9 +1047,9 @@ class SchedulingBenchmarkPipeline:
             .map(
                 CPUIntensiveReranker,
                 parallelism=self.config.parallelism,
-                num_candidates=20,  
-                vector_dim=1024,     
-                top_k=2,            
+                num_candidates=20,
+                vector_dim=1024,
+                top_k=2,
                 stage=3,
                 use_reranker_service=True,  # 启用真实 reranker 模型
                 # use_local_cpu_reranker=True,  # 在本地 CPU 上运行 reranker
@@ -1529,7 +1535,6 @@ class SchedulingBenchmarkPipeline:
         Each query is routed to the appropriate strategy based on complexity.
         """
         from .operators import (
-            AdaptiveRAGQuerySource,
             AdaptiveRAGResultSink,
             FinalSynthesizer,
             IterativeReasoner,
@@ -1564,21 +1569,20 @@ class SchedulingBenchmarkPipeline:
         print()
 
         # Source -> Classifier (use LLM for classification)
-        classified_stream = (
-            env.from_source(FiQATaskSource,num_tasks=self.config.num_tasks,)
-            .map(
-                QueryClassifier,
-                parallelism=self.config.parallelism,
-                classifier_type="llm",
-                llm_base_url=self.config.llm_base_url,
-                llm_model=self.config.llm_model,
-            )
+        classified_stream = env.from_source(
+            FiQATaskSource,
+            num_tasks=self.config.num_tasks,
+        ).map(
+            QueryClassifier,
+            parallelism=self.config.parallelism,
+            classifier_type="llm",
+            llm_base_url=self.config.llm_base_url,
+            llm_model=self.config.llm_model,
         )
 
         # Branch A: ZERO complexity - direct generation
         (
-            classified_stream
-            .filter(ZeroComplexityFilter)
+            classified_stream.filter(ZeroComplexityFilter)
             .map(
                 NoRetrievalStrategy,
                 parallelism=self.config.parallelism,
@@ -1590,8 +1594,7 @@ class SchedulingBenchmarkPipeline:
 
         # Branch B: SINGLE complexity - single retrieval
         (
-            classified_stream
-            .filter(SingleComplexityFilter)
+            classified_stream.filter(SingleComplexityFilter)
             .map(
                 SingleRetrievalStrategy,
                 parallelism=self.config.parallelism,
@@ -1602,36 +1605,30 @@ class SchedulingBenchmarkPipeline:
         )
 
         # Branch C: MULTI complexity - iterative retrieval (loop unrolling)
-        multi_stream = (
-            classified_stream
-            .filter(MultiComplexityFilter)
-            .map(IterativeRetrievalInit, parallelism=self.config.parallelism)
+        multi_stream = classified_stream.filter(MultiComplexityFilter).map(
+            IterativeRetrievalInit, parallelism=self.config.parallelism
         )
 
         # Unroll the loop: [Retrieve -> Reason] x max_iterations
         for _ in range(max_iterations):
-            multi_stream = (
-                multi_stream
-                .map(IterativeRetriever, parallelism=self.config.parallelism, top_k=3)
-                .map(
-                    IterativeReasoner,
-                    parallelism=self.config.parallelism,
-                    llm_base_url=self.config.llm_base_url,
-                    llm_model=self.config.llm_model,
-                    max_iterations=max_iterations,
-                )
+            multi_stream = multi_stream.map(
+                IterativeRetriever, parallelism=self.config.parallelism, top_k=3
+            ).map(
+                IterativeReasoner,
+                parallelism=self.config.parallelism,
+                llm_base_url=self.config.llm_base_url,
+                llm_model=self.config.llm_model,
+                max_iterations=max_iterations,
             )
 
         # Final synthesis
         (
-            multi_stream
-            .map(
+            multi_stream.map(
                 FinalSynthesizer,
                 parallelism=self.config.parallelism,
                 llm_base_url=self.config.llm_base_url,
                 llm_model=self.config.llm_model,
-            )
-            .sink(AdaptiveRAGResultSink, branch_name="MULTI", parallelism=1)
+            ).sink(AdaptiveRAGResultSink, branch_name="MULTI", parallelism=1)
         )
 
         return self

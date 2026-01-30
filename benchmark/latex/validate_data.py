@@ -9,7 +9,6 @@ Run from repository root:
     python packages/sage-benchmark/src/sage/benchmark/benchmark_sage/latex/validate_data.py
 """
 
-import json
 from pathlib import Path
 
 # Paths
@@ -23,30 +22,45 @@ PAPER_DATA = {
     "concurrency_scaling": {
         "description": "Table 1: Concurrency scaling (5000 RAG tasks)",
         "data": {
-            1:  {"throughput": 2.01, "avg_lat_ms": 1241, "p99_lat_ms": 2397, "corrected": False},
-            2:  {"throughput": 3.93, "avg_lat_ms": 552,  "p99_lat_ms": 1077, "corrected": False},
-            4:  {"throughput": 7.27, "avg_lat_ms": 234,  "p99_lat_ms": 458,  "corrected": False},
-            8:  {"throughput": 13.30, "avg_lat_ms": 600, "p99_lat_ms": 1200, "corrected": True,
-                 "correction_note": "Original: avg=109099ms, p99=210655ms. Interpolated."},
+            1: {"throughput": 2.01, "avg_lat_ms": 1241, "p99_lat_ms": 2397, "corrected": False},
+            2: {"throughput": 3.93, "avg_lat_ms": 552, "p99_lat_ms": 1077, "corrected": False},
+            4: {"throughput": 7.27, "avg_lat_ms": 234, "p99_lat_ms": 458, "corrected": False},
+            8: {
+                "throughput": 13.30,
+                "avg_lat_ms": 600,
+                "p99_lat_ms": 1200,
+                "corrected": True,
+                "correction_note": "Original: avg=109099ms, p99=210655ms. Interpolated.",
+            },
             16: {"throughput": 16.61, "avg_lat_ms": 5219, "p99_lat_ms": 13268, "corrected": False},
-        }
+        },
     },
     "scheduler_comparison": {
         "description": "Table 2: Scheduler comparison (5000 tasks, 16 nodes, parallelism 32)",
         "data": {
-            "FIFO":      {"throughput": 9.45, "avg_lat_ms": 2563, "p99_lat_ms": 6944, "balance": 47.0},
-            "LoadAware": {"throughput": 9.38, "avg_lat_ms": 2541, "p99_lat_ms": 7024, "balance": 99.8},
-            "Priority":  {"throughput": 12.73, "avg_lat_ms": 4384, "p99_lat_ms": 31147, "balance": 100.0},
+            "FIFO": {"throughput": 9.45, "avg_lat_ms": 2563, "p99_lat_ms": 6944, "balance": 47.0},
+            "LoadAware": {
+                "throughput": 9.38,
+                "avg_lat_ms": 2541,
+                "p99_lat_ms": 7024,
+                "balance": 99.8,
+            },
+            "Priority": {
+                "throughput": 12.73,
+                "avg_lat_ms": 4384,
+                "p99_lat_ms": 31147,
+                "balance": 100.0,
+            },
         },
-        "note": "Data from PROMPT, not directly from exp2 (which had different config)"
+        "note": "Data from PROMPT, not directly from exp2 (which had different config)",
     },
     "task_complexity": {
         "description": "Table 3: Task complexity impact (5000 tasks, 8 nodes)",
         "data": {
-            "Light":  {"throughput": 9.54, "avg_lat_ms": 2085, "p99_lat_ms": 5748, "balance": 99.8},
+            "Light": {"throughput": 9.54, "avg_lat_ms": 2085, "p99_lat_ms": 5748, "balance": 99.8},
             "Medium": {"throughput": 9.02, "avg_lat_ms": 2656, "p99_lat_ms": 7057, "balance": 99.8},
-            "Heavy":  {"throughput": 9.58, "avg_lat_ms": 4613, "p99_lat_ms": 11038, "balance": 99.8},
-        }
+            "Heavy": {"throughput": 9.58, "avg_lat_ms": 4613, "p99_lat_ms": 11038, "balance": 99.8},
+        },
     },
     "job_scaling": {
         "description": "Table 4: Job scaling (concurrent pipelines)",
@@ -54,9 +68,9 @@ PAPER_DATA = {
             1: {"total_tput": 12.74, "per_job_tput": 12.74, "p99_lat_s": 35.0, "corrected": True},
             2: {"total_tput": 49.39, "per_job_tput": 24.70, "p99_lat_s": 25.0, "corrected": True},
             4: {"total_tput": 48.65, "per_job_tput": 12.16, "p99_lat_s": 30.0, "corrected": True},
-            8: {"total_tput": 39.15, "per_job_tput": 4.89,  "p99_lat_s": 50.8, "corrected": False},
+            8: {"total_tput": 39.15, "per_job_tput": 4.89, "p99_lat_s": 50.8, "corrected": False},
         },
-        "correction_note": "P99 values scaled from original 156-219s range to 25-50s"
+        "correction_note": "P99 values scaled from original 156-219s range to 25-50s",
     },
     "staggered_admission": {
         "description": "Table 5: Staggered admission (4 jobs)",
@@ -65,7 +79,7 @@ PAPER_DATA = {
             "1s": {"throughput": 44.27, "p99_lat_s": 73.6},
             "2s": {"throughput": 39.17, "p99_lat_s": 60.0},
             "5s": {"throughput": 30.65, "p99_lat_s": 33.1},
-        }
+        },
     },
 }
 
@@ -93,7 +107,9 @@ def load_experimental_results():
             results["complexity"][level.capitalize()] = parse_summary(content)
 
     # Staggered admission
-    stagger_file = RESULTS_DIR / "exp5_isolation" / "staggered_comparison" / "staggered_comparison_report.txt"
+    stagger_file = (
+        RESULTS_DIR / "exp5_isolation" / "staggered_comparison" / "staggered_comparison_report.txt"
+    )
     if stagger_file.exists():
         results["staggered"] = parse_staggered_report(stagger_file.read_text())
 
@@ -150,8 +166,10 @@ def validate_data():
             tput_match = abs(paper_val["throughput"] - exp_val.get("throughput", 0)) < 0.1
             status = "OK" if tput_match else "MISMATCH"
             corrected_note = " [CORRECTED]" if paper_val.get("corrected") else ""
-            print(f"  Concurrency {c}: Paper={paper_val['throughput']:.2f}/s, "
-                  f"Exp={exp_val.get('throughput', 'N/A'):.2f}/s - {status}{corrected_note}")
+            print(
+                f"  Concurrency {c}: Paper={paper_val['throughput']:.2f}/s, "
+                f"Exp={exp_val.get('throughput', 'N/A'):.2f}/s - {status}{corrected_note}"
+            )
             if paper_val.get("correction_note"):
                 print(f"    -> {paper_val['correction_note']}")
         else:
@@ -166,8 +184,10 @@ def validate_data():
             tput_match = abs(paper_val["throughput"] - exp_val.get("throughput", 0)) < 0.1
             lat_match = abs(paper_val["avg_lat_ms"] - exp_val.get("avg_lat_ms", 0)) < 10
             status = "OK" if (tput_match and lat_match) else "MISMATCH"
-            print(f"  {level}: Paper={paper_val['throughput']:.2f}/s, {paper_val['avg_lat_ms']}ms | "
-                  f"Exp={exp_val.get('throughput', 0):.2f}/s, {exp_val.get('avg_lat_ms', 0):.0f}ms - {status}")
+            print(
+                f"  {level}: Paper={paper_val['throughput']:.2f}/s, {paper_val['avg_lat_ms']}ms | "
+                f"Exp={exp_val.get('throughput', 0):.2f}/s, {exp_val.get('avg_lat_ms', 0):.0f}ms - {status}"
+            )
         else:
             print(f"  {level}: No experimental data found")
 
@@ -182,8 +202,10 @@ def validate_data():
             tput_match = abs(paper_val["throughput"] - exp_val.get("throughput", 0)) < 0.5
             lat_match = abs(paper_val["p99_lat_s"] - exp_val.get("p99_lat_s", 0)) < 1
             status = "OK" if (tput_match and lat_match) else "MISMATCH"
-            print(f"  Delay {delay}: Paper={paper_val['throughput']:.1f}/s, {paper_val['p99_lat_s']:.1f}s | "
-                  f"Exp={exp_val.get('throughput', 0):.1f}/s, {exp_val.get('p99_lat_s', 0):.1f}s - {status}")
+            print(
+                f"  Delay {delay}: Paper={paper_val['throughput']:.1f}/s, {paper_val['p99_lat_s']:.1f}s | "
+                f"Exp={exp_val.get('throughput', 0):.1f}/s, {exp_val.get('p99_lat_s', 0):.1f}s - {status}"
+            )
         else:
             print(f"  Delay {delay}: No experimental data found (key: {delay_key})")
 

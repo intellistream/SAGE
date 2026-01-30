@@ -78,7 +78,7 @@ class BaseRouter(ABC):  # noqa: B024
                 try:
                     # 通过连接的队列描述符获取队列并发送停止信号
                     queue = connection.queue_descriptor.get_queue()
-                    queue.put(stop_signal,block=True)  # 阻塞发送，30秒超时
+                    queue.put(stop_signal, block=True)  # 阻塞发送，30秒超时
                     self.logger.debug(f"Sent stop signal to {connection.target_name}")
                 except Exception as e:
                     self.logger.error(

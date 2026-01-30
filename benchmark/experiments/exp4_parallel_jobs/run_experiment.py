@@ -28,7 +28,6 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 # 添加项目路径
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -41,7 +40,6 @@ from common.models import BenchmarkConfig, BenchmarkMetrics
 from common.pipeline import SchedulingBenchmarkPipeline
 from common.visualization import (
     generate_comparison_report,
-    plot_results,
     save_detailed_results,
 )
 
@@ -124,6 +122,7 @@ def run_single_pipeline(
         elif pipeline_type == "adaptive_rag":
             # Adaptive-RAG: 根据 num_tasks 生成 queries
             from common.operators import SAMPLE_QUERIES
+
             num_tasks = config_dict.get("num_tasks", 100)
             queries = [SAMPLE_QUERIES[i % len(SAMPLE_QUERIES)] for i in range(num_tasks)]
             pipeline.build_adaptive_rag_pipeline(name, queries=queries, max_iterations=3)
@@ -186,7 +185,9 @@ def run_parallel_jobs_experiment(
         pipelines_str = "_".join(pipeline_types)
         delay_str = f"delay{int(start_delay * 1000)}ms" if start_delay > 0 else "concurrent"
         output_dir = str(
-            SCRIPT_DIR / "results" / f"parallel_{len(pipeline_types)}jobs_{pipelines_str}_{delay_str}_{timestamp}"
+            SCRIPT_DIR
+            / "results"
+            / f"parallel_{len(pipeline_types)}jobs_{pipelines_str}_{delay_str}_{timestamp}"
         )
 
     os.makedirs(output_dir, exist_ok=True)
@@ -203,7 +204,7 @@ def run_parallel_jobs_experiment(
         )
 
     print(f"\n{'=' * 70}")
-    print(f"Running Parallel Jobs Experiment")
+    print("Running Parallel Jobs Experiment")
     print(f"{'=' * 70}")
     print(f"Pipelines: {pipeline_types}")
     print(f"Start delay: {start_delay}s")
@@ -234,9 +235,7 @@ def run_parallel_jobs_experiment(
 
     for job_id, pipeline_type, config, out_dir, delay in job_configs:
         thread = threading.Thread(
-            target=lambda j, pt, cfg, od, d: results.append(
-                run_single_pipeline(j, pt, cfg, od, d)
-            ),
+            target=lambda j, pt, cfg, od, d: results.append(run_single_pipeline(j, pt, cfg, od, d)),
             args=(job_id, pipeline_type, config, out_dir, delay),
         )
         threads.append(thread)
@@ -257,7 +256,9 @@ def run_parallel_jobs_experiment(
     print_parallel_results_summary(results, total_duration)
 
     # 如果有成功的作业，生成对比报告
-    successful_results = [(f"job{r.job_id}_{r.pipeline_type}", r.metrics) for r in results if r.success]
+    successful_results = [
+        (f"job{r.job_id}_{r.pipeline_type}", r.metrics) for r in results if r.success
+    ]
     if successful_results:
         generate_comparison_report(successful_results, output_dir, "parallel_jobs_comparison")
 
@@ -363,7 +364,9 @@ def print_parallel_results_summary(results: list[ParallelJobResult], total_durat
     print(f"Failed: {sum(1 for r in results if not r.success)}")
     print()
 
-    print(f"{'Job ID':>6} {'Pipeline':>10} {'Status':>10} {'Duration':>10} {'Throughput':>12} {'P99 Lat':>10}")
+    print(
+        f"{'Job ID':>6} {'Pipeline':>10} {'Status':>10} {'Duration':>10} {'Throughput':>12} {'P99 Lat':>10}"
+    )
     print("-" * 70)
 
     for result in results:
@@ -447,7 +450,9 @@ def generate_staggered_comparison_report(
         f.write("=" * 80 + "\n\n")
 
         # 按延迟统计平均性能
-        f.write(f"{'Start Delay':>15} {'Avg Throughput':>15} {'Avg P99 Lat':>15} {'Success Rate':>15}\n")
+        f.write(
+            f"{'Start Delay':>15} {'Avg Throughput':>15} {'Avg P99 Lat':>15} {'Success Rate':>15}\n"
+        )
         f.write("-" * 80 + "\n")
 
         for delay_key, results in sorted(all_results.items()):
@@ -457,7 +462,9 @@ def generate_staggered_comparison_report(
                 avg_p99 = sum(r.metrics.p99_latency_ms for r in successful) / len(successful)
                 success_rate = len(successful) / len(results)
 
-                f.write(f"{delay_key:>15} {avg_throughput:>13.2f}/s {avg_p99:>13.1f}ms {success_rate:>14.1%}\n")
+                f.write(
+                    f"{delay_key:>15} {avg_throughput:>13.2f}/s {avg_p99:>13.1f}ms {success_rate:>14.1%}\n"
+                )
 
     print(f"Staggered comparison report saved to: {report_file}")
 

@@ -7,15 +7,15 @@ Workload 4 - Utility Mappers
 from sage.common.core.functions import MapFunction
 
 try:
-    from .models import QueryEvent, JoinedEvent
+    from .models import JoinedEvent, QueryEvent
 except ImportError:
-    from models import QueryEvent, JoinedEvent
+    from models import JoinedEvent, QueryEvent
 
 
 class QueryToJoinedMapper(MapFunction):
     """
     将 QueryEvent 转换为 JoinedEvent（单源测试用）
-    
+
     这个 Mapper 类直接继承自 MapFunction，避免 lambda 序列化问题。
     只捕获简单的 int 参数，不引用外部 self 对象。
     """
@@ -31,10 +31,10 @@ class QueryToJoinedMapper(MapFunction):
     def execute(self, query: QueryEvent) -> JoinedEvent:
         """
         将 QueryEvent 转换为 JoinedEvent
-        
+
         Args:
             query: 查询事件
-            
+
         Returns:
             包含 query 信息的 JoinedEvent（document 字段使用占位符）
         """

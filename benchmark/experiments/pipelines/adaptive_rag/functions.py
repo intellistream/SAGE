@@ -26,8 +26,6 @@ try:
     )
 except ImportError:
     from classifier import (
-        ClassificationResult,
-        QueryComplexityClassifier,
         QueryComplexityLevel,
         create_classifier,
     )
@@ -148,7 +146,7 @@ Answer:"""
             answer=answer.strip(),
             strategy=self.strategy_name,
             retrieved_docs=[],
-            reasoning_chain=[f"Direct LLM response for simple query"],
+            reasoning_chain=["Direct LLM response for simple query"],
             metadata={"prompt": prompt},
         )
 
@@ -208,7 +206,9 @@ Answer based on the context above:"""
             self.logger.warning(f"Retrieval failed: {e}")
 
         # 构建上下文
-        context = "\n\n".join([f"[Doc {i+1}]: {d['content']}" for i, d in enumerate(retrieved_docs)])
+        context = "\n\n".join(
+            [f"[Doc {i + 1}]: {d['content']}" for i, d in enumerate(retrieved_docs)]
+        )
         if not context:
             context = "No relevant documents found."
 
@@ -319,7 +319,7 @@ Final Answer:"""
                 all_docs.extend(step_docs)
             except Exception as e:
                 step_docs = []
-                self.logger.warning(f"Retrieval failed for sub-question {i+1}: {e}")
+                self.logger.warning(f"Retrieval failed for sub-question {i + 1}: {e}")
 
             # 构建上下文
             new_context = "\n".join([f"- {d['content'][:500]}" for d in step_docs])
@@ -336,11 +336,13 @@ Final Answer:"""
 
             try:
                 step_reasoning = llm.chat(cot_prompt)
-                step_reasoning = step_reasoning if isinstance(step_reasoning, str) else step_reasoning.content
-                reasoning_chain.append(f"Step {i+1} ({sub_q}): {step_reasoning.strip()}")
-                previous_reasoning += f"\n\nStep {i+1}: {step_reasoning.strip()}"
+                step_reasoning = (
+                    step_reasoning if isinstance(step_reasoning, str) else step_reasoning.content
+                )
+                reasoning_chain.append(f"Step {i + 1} ({sub_q}): {step_reasoning.strip()}")
+                previous_reasoning += f"\n\nStep {i + 1}: {step_reasoning.strip()}"
             except Exception as e:
-                reasoning_chain.append(f"Step {i+1} error: {e}")
+                reasoning_chain.append(f"Step {i + 1} error: {e}")
 
         # Step 3: 生成最终答案
         final_prompt = self.FINAL_PROMPT.format(

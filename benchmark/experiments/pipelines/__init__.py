@@ -30,7 +30,35 @@ SAGE 算子类型:
 - HeadNodeScheduler 限制 Source/Sink 在 head 节点
 """
 
-from .scheduler import HeadNodeScheduler
+# Adaptive-RAG Pipeline
+from .adaptive_rag import (
+    # Core
+    AdaptiveRAGPipeline,
+    AdaptiveRouterFunction,
+    AdaptiveRouterMapFunction,
+    ClassifierMapFunction,
+    ComplexityFilterFunction,
+    IterativeRetrievalStrategy,
+    IterativeRetrieverFunction,
+    MultiComplexityFilter,
+    # Strategy Functions
+    NoRetrievalFunction,
+    NoRetrievalStrategy,
+    QueryComplexityClassifier,
+    QueryComplexityLevel,
+    # SAGE Dataflow Components - Router Mode
+    QueryData,
+    QuerySource,
+    ResultData,
+    ResultSink,
+    SingleComplexityFilter,
+    SingleRetrievalStrategy,
+    SingleRetrieverFunction,
+    # SAGE Dataflow Components - Multi-Branch Mode
+    ZeroComplexityFilter,
+    build_adaptive_rag_pipeline,
+    build_branching_adaptive_rag_pipeline,
+)
 from .pipeline_a_rag import RAGPipeline
 from .pipeline_b_refiner import RefinerPipeline
 from .pipeline_c_vector_join import VectorJoinPipeline
@@ -40,63 +68,34 @@ from .pipeline_e_scheduling import SchedulingPipeline
 # Pipeline F: Operators Demo
 from .pipeline_f_operators_demo import (
     OPERATOR_SUMMARY,
-    # SourceFunction 示例
-    UserEventSourceFunction,
-    # BatchFunction 示例
-    OrderBatchFunction,
+    CollectorSinkFunction,
+    CompositeKeyByFunction,
     # MapFunction 示例
     EnrichUserEventMapFunction,
+    # BaseCoMapFunction 示例
+    EventOrderCoMapFunction,
+    HighValueOrderFilterFunction,
+    # BatchFunction 示例
+    OrderBatchFunction,
+    # SinkFunction 示例
+    PrintSinkFunction,
     # FilterFunction 示例
     PurchaseEventFilterFunction,
-    HighValueOrderFilterFunction,
     # FlatMapFunction 示例
     SplitEventDataFlatMapFunction,
     TokenizeFlatMapFunction,
+    # SourceFunction 示例
+    UserEventSourceFunction,
     # KeyByFunction 示例
     UserIdKeyByFunction,
-    CompositeKeyByFunction,
     # BaseJoinFunction 示例
     UserOrderJoinFunction,
-    # BaseCoMapFunction 示例
-    EventOrderCoMapFunction,
-    # SinkFunction 示例
-    PrintSinkFunction,
-    CollectorSinkFunction,
     # Demo functions
     demo_basic_pipeline,
     demo_flatmap_pipeline,
     demo_keyby_pipeline,
 )
-
-# Adaptive-RAG Pipeline
-from .adaptive_rag import (
-    # Core
-    AdaptiveRAGPipeline,
-    QueryComplexityClassifier,
-    QueryComplexityLevel,
-    # Strategy Functions
-    NoRetrievalFunction,
-    SingleRetrieverFunction,
-    IterativeRetrieverFunction,
-    AdaptiveRouterFunction,
-    # SAGE Dataflow Components - Router Mode
-    QueryData,
-    ResultData,
-    QuerySource,
-    ClassifierMapFunction,
-    AdaptiveRouterMapFunction,
-    ComplexityFilterFunction,
-    ResultSink,
-    build_adaptive_rag_pipeline,
-    # SAGE Dataflow Components - Multi-Branch Mode
-    ZeroComplexityFilter,
-    SingleComplexityFilter,
-    MultiComplexityFilter,
-    NoRetrievalStrategy,
-    SingleRetrievalStrategy,
-    IterativeRetrievalStrategy,
-    build_branching_adaptive_rag_pipeline,
-)
+from .scheduler import HeadNodeScheduler
 
 __all__ = [
     "HeadNodeScheduler",

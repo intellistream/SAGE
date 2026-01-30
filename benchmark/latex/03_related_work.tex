@@ -17,9 +17,9 @@ refinement, and memory as first-class, co-optimized operators.
 Recent systems explore request routing, scheduling, and resource management for LLM workloads, including
 policy-driven scheduling, priority handling, and tail-latency improvements under contention
 \cite{llm_scheduling_slo,token_level_scheduling,load_balanced_llm_routing}. These efforts generally target
-LLM serving queues and GPU allocation. SAGE takes a complementary approach by focusing on 
-\emph{pipeline-level} orchestration: treating retrieval, memory, refinement, and generation as co-optimized 
-dataflow stages rather than isolated services, enabling end-to-end latency reasoning across the entire 
+LLM serving queues and GPU allocation. SAGE takes a complementary approach by focusing on
+\emph{pipeline-level} orchestration: treating retrieval, memory, refinement, and generation as co-optimized
+dataflow stages rather than isolated services, enabling end-to-end latency reasoning across the entire
 inference path.
 
 \paragraph{Workflow orchestration and application frameworks.}
@@ -37,8 +37,8 @@ Vector search and retrieval are central to modern RAG systems. Classical librari
 \cite{faiss} and a growing ecosystem of vector databases (e.g., Milvus, Weaviate, Chroma, Vespa, Pinecone
 \cite{milvus,weaviate,chroma,vespa,pinecone}) provide scalable similarity search with various index
 structures. These systems are often integrated as standalone services with limited coupling to streaming
-semantic state, session memory, or downstream refinement steps. SAGE integrates vector storage/search as first-class inference components---including SageVDB for 
-high-performance similarity search and SageFlow for streaming semantic state---focusing on end-to-end 
+semantic state, session memory, or downstream refinement steps. SAGE integrates vector storage/search as first-class inference components---including SageVDB for
+high-performance similarity search and SageFlow for streaming semantic state---focusing on end-to-end
 pipeline control rather than isolated retrieval performance.
 
 \paragraph{Streaming/dataflow systems and incremental computation.}

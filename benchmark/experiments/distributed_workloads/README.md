@@ -11,12 +11,12 @@
 
 ## 📦 工作负载概览
 
-| Workload | CPU占用 | QPS | 主要特性 | 关键算子 |
-|----------|---------|-----|---------|---------|
-| Workload 1 | 30-50% | 20 | 基准RAG Pipeline | EmbeddingMap, VDBRetrieve |
-| Workload 2 | 50-70% | 30 | 多阶段RAG + 三路Join | SessionContext, 3-way Join, RerankMap |
-| Workload 3 | 70-85% | 25+15 | **双流Semantic Join** + 双VDB | **Connect+Join(30s)**, Deduplication |
-| Workload 4 | 85-95% | 40+25 | 极致复杂度 + 双层Batch | **Connect+Join(60s)**, DBSCAN, 5维评分 |
+| Workload   | CPU占用 | QPS   | 主要特性                      | 关键算子                               |
+| ---------- | ------- | ----- | ----------------------------- | -------------------------------------- |
+| Workload 1 | 30-50%  | 20    | 基准RAG Pipeline              | EmbeddingMap, VDBRetrieve              |
+| Workload 2 | 50-70%  | 30    | 多阶段RAG + 三路Join          | SessionContext, 3-way Join, RerankMap  |
+| Workload 3 | 70-85%  | 25+15 | **双流Semantic Join** + 双VDB | **Connect+Join(30s)**, Deduplication   |
+| Workload 4 | 85-95%  | 40+25 | 极致复杂度 + 双层Batch        | **Connect+Join(60s)**, DBSCAN, 5维评分 |
 
 **🔥 NEW**: Workload 3/4现使用SAGE标准双流Join模式（`keyby().connect().join()`）
 
@@ -90,14 +90,14 @@ config.scheduler_type = "load_aware"
 
 ### 关键配置项
 
-| 配置项 | 说明 | Workload 1 | Workload 3 | Workload 4 |
-|--------|------|-----------|-----------|-----------|
-| `query_qps` | 查询QPS | 20 | 25 | 40 |
-| `doc_qps` | 文档QPS（双流） | - | 15 | 25 |
-| `join_window` | Join窗口（秒） | - | 30.0 | 60.0 |
-| `keyby_parallelism` | KeyBy并行度 | 8 | 8 | 16 |
-| `vdb_top_k` | VDB检索Top-K | 15 | 20 | 25 |
-| `batch_size` | 批量大小 | 8 | 8 | 12 |
+| 配置项              | 说明            | Workload 1 | Workload 3 | Workload 4 |
+| ------------------- | --------------- | ---------- | ---------- | ---------- |
+| `query_qps`         | 查询QPS         | 20         | 25         | 40         |
+| `doc_qps`           | 文档QPS（双流） | -          | 15         | 25         |
+| `join_window`       | Join窗口（秒）  | -          | 30.0       | 60.0       |
+| `keyby_parallelism` | KeyBy并行度     | 8          | 8          | 16         |
+| `vdb_top_k`         | VDB检索Top-K    | 15         | 20         | 25         |
+| `batch_size`        | 批量大小        | 8          | 8          | 12         |
 
 ## 📊 算子说明
 
@@ -124,7 +124,7 @@ config.scheduler_type = "load_aware"
 ### Workload 1: 基准RAG Pipeline
 
 ```
-QuerySource → EmbeddingMap → KeyBy → VDBRetrieve 
+QuerySource → EmbeddingMap → KeyBy → VDBRetrieve
     → FilterTopK → Batch → MetricsSink
 ```
 
@@ -170,7 +170,8 @@ DocSource ──────┘        → GraphMemoryRetrieve
                          → GlobalBatch → MetricsSink
 ```
 
-**特点**: 
+**特点**:
+
 - 60s大窗口Join（1500 docs）
 - DBSCAN聚类去重
 - 双层Batch聚合
@@ -182,20 +183,20 @@ DocSource ──────┘        → GraphMemoryRetrieve
 
 ### CPU利用率
 
-| Workload | 预期CPU | 主要瓶颈 |
-|----------|---------|---------|
-| Workload 1 | 30-50% | VDB检索 |
-| Workload 2 | 50-70% | 三路Join + Rerank |
-| Workload 3 | 70-85% | Semantic Join(11.5M ops/s) + 去重 |
-| Workload 4 | 85-95% | Semantic Join(61.4M ops/s) + DBSCAN |
+| Workload   | 预期CPU | 主要瓶颈                            |
+| ---------- | ------- | ----------------------------------- |
+| Workload 1 | 30-50%  | VDB检索                             |
+| Workload 2 | 50-70%  | 三路Join + Rerank                   |
+| Workload 3 | 70-85%  | Semantic Join(11.5M ops/s) + 去重   |
+| Workload 4 | 85-95%  | Semantic Join(61.4M ops/s) + DBSCAN |
 
 ### 延迟预期
 
-| Workload | P50 | P95 | P99 |
-|----------|-----|-----|-----|
-| Workload 1 | 200ms | 400ms | 600ms |
-| Workload 2 | 500ms | 1000ms | 1500ms |
-| Workload 3 | 800ms | 1500ms | 2000ms |
+| Workload   | P50    | P95    | P99    |
+| ---------- | ------ | ------ | ------ |
+| Workload 1 | 200ms  | 400ms  | 600ms  |
+| Workload 2 | 500ms  | 1000ms | 1500ms |
+| Workload 3 | 800ms  | 1500ms | 2000ms |
 | Workload 4 | 1200ms | 2000ms | 3000ms |
 
 ## 🔍 指标收集
@@ -207,6 +208,7 @@ DocSource ──────┘        → GraphMemoryRetrieve
 ```
 
 CSV格式：
+
 ```csv
 task_id,query,total_latency,stage_1_latency,stage_2_latency,
 stage_3_latency,stage_4_latency,num_retrieved,num_matched,
@@ -223,7 +225,7 @@ class MyCustomOperator(MapFunction):
     def __init__(self, stage: int = 1, **kwargs):
         super().__init__(**kwargs)
         self.stage_num = stage
-    
+
     def execute(self, data):
         # 你的处理逻辑
         data.stage = self.stage_num
@@ -236,13 +238,13 @@ class MyCustomOperator(MapFunction):
 # 在 workload_pipelines.py 中添加
 def build_workload_5(self) -> WorkloadPipelineFactory:
     env = self._create_environment("workload_5")
-    
+
     (
         env.from_source(WorkloadQuerySource, ...)
         .map(MyCustomOperator, ...)
         .sink(WorkloadMetricsSink, ...)
     )
-    
+
     return self
 ```
 
@@ -255,10 +257,10 @@ def build_workload_5(self) -> WorkloadPipelineFactory:
 ## ⚠️ 注意事项
 
 1. **Semantic Join优化**: Workload 3/4的关键瓶颈，需使用NumPy向量化计算
-2. **Embedding批量**: 建议batch_size=32-128减少网络往返
-3. **内存管理**: 60s Join窗口可能占用1.5MB per window
-4. **GPU资源**: LLM推理和Rerank可能竞争GPU，建议使用小模型
-5. **硬件要求**: 
+1. **Embedding批量**: 建议batch_size=32-128减少网络往返
+1. **内存管理**: 60s Join窗口可能占用1.5MB per window
+1. **GPU资源**: LLM推理和Rerank可能竞争GPU，建议使用小模型
+1. **硬件要求**:
    - 最低: 8节点 × 8核 = 64核
    - 推荐: 16节点 × 8核 = 128核（Workload 4）
 

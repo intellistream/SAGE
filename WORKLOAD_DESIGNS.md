@@ -1,22 +1,26 @@
 # SAGE Distributed CPU-Intensive Workload Designs
 
 ## 设计目标
+
 设计4个**分布式CPU密集型**工作负载，充分利用SAGE的分布式调度能力和丰富的算子生态，通过增加检索、重排序、Join、Batch等计算密集型操作来测试SAGE系统的**分布式调度**和**跨节点资源管理**能力，避免过分依赖大模型推理性能。
 
 ## 核心设计原则
-1. **分布式优先**: 利用SAGE的Join、KeyBy、Batch、CoMap等分布式算子
-2. **CPU密集型**: 增加检索、重排序、聚合等CPU操作的数量和复杂度
-3. **减少LLM依赖**: 使用小模型（如Qwen2.5-0.5B）或限制生成长度（max_tokens=50-100）
-4. **多阶段处理**: 通过多个Map、Filter、Join步骤增加pipeline复杂度
-5. **并行性**: 利用KeyBy分区、多路Join、Batch聚合等实现跨节点并行
-6. **向量操作**: 利用embedding和相似度计算增加计算负载
 
----
+1. **分布式优先**: 利用SAGE的Join、KeyBy、Batch、CoMap等分布式算子
+1. **CPU密集型**: 增加检索、重排序、聚合等CPU操作的数量和复杂度
+1. **减少LLM依赖**: 使用小模型（如Qwen2.5-0.5B）或限制生成长度（max_tokens=50-100）
+1. **多阶段处理**: 通过多个Map、Filter、Join步骤增加pipeline复杂度
+1. **并行性**: 利用KeyBy分区、多路Join、Batch聚合等实现跨节点并行
+1. **向量操作**: 利用embedding和相似度计算增加计算负载
+
+______________________________________________________________________
 
 ## Workload 1: Distributed Basic RAG Pipeline
+
 **分布式检索-生成流水线（基准测试）**
 
 ### 架构（SAGE算子）
+
 ```
 QuerySource (SourceFunction)
     ↓
@@ -36,6 +40,7 @@ MetricsSink (SinkFunction)
 ```
 
 ### SAGE算子配置
+
 ```python
 # QuerySource (SourceFunction): 查询生成源
 - 输入: 200个预定义查询问题
@@ -96,23 +101,27 @@ MetricsSink (SinkFunction)
 ```
 
 ### 分布式特征
+
 - ✅ **KeyBy分区**: 按查询类型分配到不同节点，负载均衡
 - ✅ **并行处理**: Embedding、VDB检索、LLM生成都在多节点并行
 - ✅ **批量聚合**: BatchFunction减少LLM调用次数，提高吞吐量
 - ✅ **过滤优化**: FilterFunction减少下游数据量
 
 ### CPU密集型特征
+
 - Embedding计算（1024维向量 × 200 queries）
 - HNSW图遍历和距离计算（15个候选 × 200 queries）
 - 批量聚合的状态维护和字符串拼接
 - 使用小模型快速生成，减少GPU瓶颈
 
----
+______________________________________________________________________
 
 ## Workload 2: Distributed Multi-Stage RAG with Parallel Reranking
+
 **分布式多阶段检索-并行重排序-生成流水线**
 
 ### 架构（SAGE算子）
+
 ```
 QuerySource (SourceFunction)
     ↓
@@ -142,6 +151,7 @@ VDBRetrieve1     VDBRetrieve2     VDBRetrieve3  ← 三路并行检索（SAGE自
 ```
 
 ### SAGE算子配置
+
 ```python
 # QuerySource (SourceFunction): 会话式查询源
 - 输入: 300个multi-turn对话查询
@@ -168,7 +178,7 @@ VDBRetrieve1     VDBRetrieve2     VDBRetrieve3  ← 三路并行检索（SAGE自
   2. 提取相关实体和关键词（CPU密集）
   3. 计算记忆的相关性分数
 - Top-K: 8 relevant memory items
-- CPU密集点: 
+- CPU密集点:
   - 关键词提取（TF-IDF计算）
   - 实体识别（NER模型）
   - 上下文拼接和格式化
@@ -255,6 +265,7 @@ VDBRetrieve1     VDBRetrieve2     VDBRetrieve3  ← 三路并行检索（SAGE自
 ```
 
 ### 分布式特征
+
 - ✅ **三路并行检索**: SAGE自动复制数据到3个VDB检索算子，并行执行
 - ✅ **KeyBy + Join**: 按task_id重分区后三路Join汇聚结果
 - ✅ **Join Window**: 2s窗口等待三路结果到达，容忍网络抖动
@@ -262,6 +273,7 @@ VDBRetrieve1     VDBRetrieve2     VDBRetrieve3  ← 三路并行检索（SAGE自
 - ✅ **批量处理**: BatchFunction减少LLM调用次数
 
 ### CPU密集型特征
+
 - **双重检索**: Session Context + Memory检索（KV + VDB hybrid）
 - **上下文增强**: Embedding加权平均、关键短语提取（NLP操作）
 - **三路并行VDB**: 30个候选（10×3）的检索和合并
@@ -269,12 +281,14 @@ VDBRetrieve1     VDBRetrieve2     VDBRetrieve3  ← 三路并行检索（SAGE自
 - **混合重排序**: 25个候选的4维度评分（BM25 + Semantic + Diversity + Recency）
 - **TF-IDF计算**: 词频统计和IDF查表
 
----
+______________________________________________________________________
 
 ## Workload 3: Distributed Dual-Source Semantic Join + Multi-Stage RAG
+
 **双流语义Join + 分布式多阶段检索-生成**
 
 ### 架构（SAGE算子）
+
 ```
 QuerySource (Source1) ─────────┐
                                ├─→ SemanticJoin (WindowedEventJoin)
@@ -305,6 +319,7 @@ DocUpdateSource (Source2) ─────┘        ↓
 ```
 
 ### SAGE算子配置
+
 ```python
 # QuerySource (Source1): 用户查询流
 - 频率: 25 QPS
@@ -455,6 +470,7 @@ DocUpdateSource (Source2) ─────┘        ↓
 ```
 
 ### 分布式特征
+
 - ✅ **双流Join**: 25 QPS + 15 QPS双流语义Join，30s窗口
 - ✅ **多次KeyBy**: 3次数据重分区（joined_id, joined_id, joined_id）
 - ✅ **双路并行VDB**: SAGE自动复制到两个检索路径
@@ -463,6 +479,7 @@ DocUpdateSource (Source2) ─────┘        ↓
 - ✅ **负载均衡**: KeyBy实现动态负载分配
 
 ### CPU密集型特征（极高）
+
 - **Semantic Join**: 11.5M向量ops/s（25 queries × 450 docs × 1024 dim）
 - **双重检索**: Memory + 双VDB（40个候选）
 - **三阶段Rerank**: Simple1 + Simple2 + Final Rerank
@@ -473,12 +490,14 @@ DocUpdateSource (Source2) ─────┘        ↓
 
 ### 预期CPU占用: 70-85%
 
----
+______________________________________________________________________
 
 ## Workload 4: Distributed Dual-Source Join + Dual-VDB + Multi-Stage Aggregation
+
 **双流Join + 双VDB检索 + 三阶段重排序 + 分布式聚合（极致复杂度）**
 
 ### 架构（SAGE算子）
+
 ```
 QuerySource (Source1) ─────────┐
                                ├─→ SemanticJoin (WindowedEventJoin, 60s window)
@@ -523,6 +542,7 @@ DocUpdateSource (Source2) ─────┘        ↓
 ```
 
 ### SAGE算子配置
+
 ```python
 # QuerySource (Source1): 高频查询流
 - 频率: 40 QPS (更高负载)
@@ -621,7 +641,7 @@ DocUpdateSource (Source2) ─────┘        ↓
 
 # CategoryFilter (FilterFunction): 类别过滤
 - 作用: 基于domain和category过滤不相关结果
-- CPU密集: 
+- CPU密集:
   - 计算query domain与doc category的匹配度
   - Multi-label classification score
   - 过滤掉~30%不相关文档
@@ -781,6 +801,7 @@ DocUpdateSource (Source2) ─────┘        ↓
 ```
 
 ### 分布式特征（极致）
+
 - ✅ **高负载双流Join**: 40 QPS + 25 QPS，60s窗口（1500 docs in window）
 - ✅ **4次KeyBy**: 多次数据重分区（joined_id×2, category, global）
 - ✅ **双路4-stage VDB分支**: 检索 → 过滤 → 重排序 → 汇聚
@@ -791,28 +812,32 @@ DocUpdateSource (Source2) ─────┘        ↓
 - ✅ **跨节点协调**: 多次shuffle和join操作
 
 ### CPU密集型特征（极致）
+
 1. **Semantic Join**: **61.4M ops/s**（40 queries × 1500 docs × 1024 dim）
    - 这是整个pipeline的最大瓶颈
-2. **Graph Memory Traversal**: BFS遍历（100-200节点/query）+ VDB检索
-3. **4路Embedding融合**: Query + 8 Docs + 12 Memory + Domain
-4. **双路VDB**: 50个候选（25×2）的HNSW/IVF遍历
-5. **智能去重**: O(n²)相似度矩阵（25×25=625次） + DBSCAN聚类
-6. **5维度评分**: 20候选 × 5维度 = 100次评分
-7. **MMR多样性**: Maximal Marginal Relevance算法
-8. **双层聚合**: Category聚合 + Global批处理
-9. **Query Expansion**: NER + TF-IDF + 实体链接
-10. **三次重排序**: SimpleRerank1 + SimpleRerank2 + FinalRerank
+1. **Graph Memory Traversal**: BFS遍历（100-200节点/query）+ VDB检索
+1. **4路Embedding融合**: Query + 8 Docs + 12 Memory + Domain
+1. **双路VDB**: 50个候选（25×2）的HNSW/IVF遍历
+1. **智能去重**: O(n²)相似度矩阵（25×25=625次） + DBSCAN聚类
+1. **5维度评分**: 20候选 × 5维度 = 100次评分
+1. **MMR多样性**: Maximal Marginal Relevance算法
+1. **双层聚合**: Category聚合 + Global批处理
+1. **Query Expansion**: NER + TF-IDF + 实体链接
+1. **三次重排序**: SimpleRerank1 + SimpleRerank2 + FinalRerank
 
 ### 预期性能特征
+
 **CPU Utilization**: **85-95%**（极高，接近满负载）
 
 **关键瓶颈**:
+
 1. **Semantic Join**: 61.4M ops/s（最大瓶颈）
-2. **DeduplicationMap**: O(n²)相似度矩阵 + 聚类
-3. **FinalRerankMap**: 100次多维度评分
-4. **Graph Memory**: BFS遍历 + 路径计算
+1. **DeduplicationMap**: O(n²)相似度矩阵 + 聚类
+1. **FinalRerankMap**: 100次多维度评分
+1. **Graph Memory**: BFS遍历 + 路径计算
 
 **调度挑战**:
+
 - 协调双流速率匹配（40 vs 25 QPS）
 - 60s窗口的内存管理（~1500 docs × 1KB = 1.5MB per window）
 - 4次KeyBy的shuffle优化（减少跨节点传输）
@@ -820,21 +845,23 @@ DocUpdateSource (Source2) ─────┘        ↓
 - 双层Batch的超时协调
 
 **分布式优势**:
+
 - 16个并行分区充分利用8节点集群
 - KeyBy(category)实现按领域的局部性优化
 - 双路VDB并行减少延迟（15→8的并行加速）
 - 分布式去重避免单点瓶颈
 
 ### 极致复杂度来源
-1. **更大Join窗口**: 60s vs 30s（双倍状态）
-2. **更高QPS**: 40+25 vs 25+15（1.5倍负载）
-3. **图遍历**: BFS + 路径权重计算
-4. **智能去重**: SimHash + 相似度矩阵 + DBSCAN
-5. **5维度评分**: 比3维度多67%计算
-6. **双层聚合**: Category + Global批处理
-7. **Query Expansion**: 3个变体的并行检索和融合
 
----
+1. **更大Join窗口**: 60s vs 30s（双倍状态）
+1. **更高QPS**: 40+25 vs 25+15（1.5倍负载）
+1. **图遍历**: BFS + 路径权重计算
+1. **智能去重**: SimHash + 相似度矩阵 + DBSCAN
+1. **5维度评分**: 比3维度多67%计算
+1. **双层聚合**: Category + Global批处理
+1. **Query Expansion**: 3个变体的并行检索和融合
+
+______________________________________________________________________
 
 ## 实现建议
 
@@ -861,7 +888,7 @@ from sage.common.core.functions.join_function import BaseJoinFunction
 class ResultJoin(BaseJoinFunction):
     def __init__(self, window_size=2.0, **kwargs):
         super().__init__(window_size=window_size, **kwargs)
-        
+
     def join_logic(self, left_data, right_data):
         """自定义join逻辑"""
         # 合并两路VDB检索结果
@@ -889,18 +916,18 @@ class QueryBatcher(BatchFunction):
         self.batch_size = batch_size
         self.timeout_ms = timeout_ms
         self.buffer = []
-        
+
     def execute(self, data):
         """批量聚合逻辑"""
         self.buffer.append(data)
-        
+
         if len(self.buffer) >= self.batch_size:
             batch = self.buffer[:self.batch_size]
             self.buffer = self.buffer[self.batch_size:]
             return self._create_batch(batch)
-        
+
         return None  # 等待更多数据
-    
+
     def _create_batch(self, items):
         return {
             "batch_id": f"batch_{time.time()}",
@@ -920,7 +947,7 @@ class QualityFilter(FilterFunction):
     def __init__(self, min_score=0.6, **kwargs):
         super().__init__(**kwargs)
         self.min_score = min_score
-        
+
     def filter_logic(self, data):
         """过滤低质量结果"""
         return data.get("score", 0.0) >= self.min_score
@@ -946,19 +973,19 @@ class BatchLLMGenerator(MapFunction):
     def __init__(self, batch_size=8, **kwargs):
         super().__init__(**kwargs)
         self.batch_size = batch_size
-        
+
     def execute(self, batch_data):
         """批量调用LLM"""
         queries = [item["query"] for item in batch_data["items"]]
         contexts = [item["context"] for item in batch_data["items"]]
-        
+
         # 批量推理（一次GPU调用处理多个查询）
         responses = self.llm_client.batch_generate(
             queries=queries,
             contexts=contexts,
             max_tokens=80,
         )
-        
+
         return [
             {"task_id": item["task_id"], "response": resp}
             for item, resp in zip(batch_data["items"], responses)
@@ -969,18 +996,18 @@ class CachedLLMGenerator(MapFunction):
     def __init__(self, cache_size=1000, **kwargs):
         super().__init__(**kwargs)
         self.cache = {}  # query_hash -> response
-        
+
     def execute(self, data):
         query_hash = hashlib.md5(data["query"].encode()).hexdigest()
-        
+
         # 缓存命中
         if query_hash in self.cache:
             return self.cache[query_hash]
-        
+
         # 缓存未命中，调用LLM
         response = self.llm_client.generate(data["query"])
         self.cache[query_hash] = response
-        
+
         return response
 ```
 
@@ -992,11 +1019,11 @@ class EmbeddingComputeOperator(MapFunction):
     def __init__(self, model_name="BAAI/bge-large-en-v1.5", **kwargs):
         super().__init__(**kwargs)
         self.model = SentenceTransformer(model_name)
-        
+
     def execute(self, data):
         # CPU密集: Transformer forward pass
         embedding = self.model.encode(data["query"])  # 1024-dim
-        
+
         # 额外CPU操作: 计算与候选的详细相似度
         candidates = data.get("candidates", [])
         scores = []
@@ -1004,13 +1031,13 @@ class EmbeddingComputeOperator(MapFunction):
             # CPU密集: 1024维向量点积和归一化
             score = self._cosine_similarity(embedding, cand["embedding"])
             scores.append(score)
-        
+
         return {
             "task_id": data["task_id"],
             "query_embedding": embedding,
             "candidate_scores": scores,
         }
-    
+
     def _cosine_similarity(self, a, b):
         """CPU密集: 余弦相似度计算"""
         import numpy as np
@@ -1024,46 +1051,46 @@ class BM25Reranker(MapFunction):
         self.b = b
         self.avg_doc_len = 100  # 平均文档长度
         self.idf_cache = {}  # IDF查找表
-        
+
     def execute(self, data):
         query = data["query"]
         candidates = data["candidates"]
-        
+
         # CPU密集: 词频统计
         query_terms = self._tokenize(query)
-        
+
         scores = []
         for doc in candidates:
             doc_terms = self._tokenize(doc["content"])
             doc_len = len(doc_terms)
-            
+
             # CPU密集: BM25计算
             score = 0.0
             for term in query_terms:
                 tf = doc_terms.count(term)
                 idf = self._get_idf(term)
-                
+
                 # BM25公式
                 numerator = tf * (self.k1 + 1)
                 denominator = tf + self.k1 * (
                     1 - self.b + self.b * (doc_len / self.avg_doc_len)
                 )
                 score += idf * (numerator / denominator)
-            
+
             scores.append((doc, score))
-        
+
         # 排序（CPU密集）
         scores.sort(key=lambda x: x[1], reverse=True)
-        
+
         return {
             "task_id": data["task_id"],
             "reranked": [doc for doc, _ in scores[:10]],
         }
-    
+
     def _tokenize(self, text):
         """分词（CPU密集）"""
         return text.lower().split()
-    
+
     def _get_idf(self, term):
         """IDF查表"""
         return self.idf_cache.get(term, 1.0)
@@ -1073,13 +1100,13 @@ class DeduplicationOperator(MapFunction):
     def __init__(self, similarity_threshold=0.95, **kwargs):
         super().__init__(**kwargs)
         self.threshold = similarity_threshold
-        
+
     def execute(self, data):
         candidates = data["candidates"]
-        
+
         # CPU密集: SimHash计算（快速粗筛）
         hashes = [self._simhash(doc["content"]) for doc in candidates]
-        
+
         # CPU密集: 相似度矩阵（O(n²)）
         n = len(candidates)
         similarity_matrix = np.zeros((n, n))
@@ -1091,7 +1118,7 @@ class DeduplicationOperator(MapFunction):
                 )
                 similarity_matrix[i][j] = sim
                 similarity_matrix[j][i] = sim
-        
+
         # CPU密集: DBSCAN聚类去重
         from sklearn.cluster import DBSCAN
         clustering = DBSCAN(
@@ -1100,7 +1127,7 @@ class DeduplicationOperator(MapFunction):
             metric="precomputed"
         )
         labels = clustering.fit_predict(1 - similarity_matrix)
-        
+
         # 每个簇选择最高分文档
         unique_docs = []
         for label in set(labels):
@@ -1109,7 +1136,7 @@ class DeduplicationOperator(MapFunction):
             ]
             best_doc = max(cluster_docs, key=lambda x: x.get("score", 0))
             unique_docs.append(best_doc)
-        
+
         return {
             "task_id": data["task_id"],
             "unique_docs": unique_docs,
@@ -1119,7 +1146,7 @@ class DeduplicationOperator(MapFunction):
                 "clusters": len(set(labels)),
             }
         }
-    
+
     def _simhash(self, text):
         """SimHash计算（CPU密集）"""
         import hashlib
@@ -1281,17 +1308,17 @@ TEST_SCENARIOS = {
 def run_test_scenario(scenario_name):
     scenario = TEST_SCENARIOS[scenario_name]
     workload_config = WORKLOAD_CONFIGS[scenario["workload"]]
-    
+
     # 构建pipeline
     pipeline = build_pipeline(workload_config)
-    
+
     # 运行测试
     metrics = pipeline.run(duration=scenario["duration"])
-    
+
     # 验证指标
     assert metrics["cpu_utilization"] in parse_range(scenario["expected_cpu"])
     assert metrics["throughput"] in parse_range(scenario["expected_throughput"])
-    
+
     return metrics
 ```
 
@@ -1308,129 +1335,148 @@ def run_test_scenario(scenario_name):
 - [ ] **内存管理**: Join/Batch窗口的状态管理，避免OOM
 - [ ] **Shuffle优化**: 减少KeyBy次数，合并重分区操作
 
----
+______________________________________________________________________
 
 ## 预期性能特征总结
 
 ### CPU Utilization对比
-| Workload | CPU占用 | 主要瓶颈 | 关键算子 |
-|----------|---------|---------|---------|
-| Workload 1 | 30-50% | VDB检索 | EmbeddingMap, VDBRetrieve |
-| Workload 2 | 50-70% | 三路Join + Rerank | SemanticJoin(3-way), RerankMap |
-| Workload 3 | 70-85% | Semantic Join + 去重 | SemanticJoin(11.5M ops/s), FinalRerank |
-| Workload 4 | 85-95% | Semantic Join + 聚类去重 + 5维评分 | SemanticJoin(61.4M ops/s), DeduplicationMap, FinalRerank |
+
+| Workload   | CPU占用 | 主要瓶颈                           | 关键算子                                                 |
+| ---------- | ------- | ---------------------------------- | -------------------------------------------------------- |
+| Workload 1 | 30-50%  | VDB检索                            | EmbeddingMap, VDBRetrieve                                |
+| Workload 2 | 50-70%  | 三路Join + Rerank                  | SemanticJoin(3-way), RerankMap                           |
+| Workload 3 | 70-85%  | Semantic Join + 去重               | SemanticJoin(11.5M ops/s), FinalRerank                   |
+| Workload 4 | 85-95%  | Semantic Join + 聚类去重 + 5维评分 | SemanticJoin(61.4M ops/s), DeduplicationMap, FinalRerank |
 
 ### 分布式特性对比
-| Workload | KeyBy次数 | Join次数 | 并行路径 | Batch层级 |
-|----------|-----------|----------|----------|-----------|
-| Workload 1 | 1 | 0 | 0 | 1 (Global) |
-| Workload 2 | 2 | 2 (3-way + result) | 3 (三路VDB) | 1 (Global) |
-| Workload 3 | 3 | 2 (semantic + result) | 2 (双VDB) | 1 (Global) |
-| Workload 4 | 4 | 2 (semantic + result) | 2 (双VDB 4-stage) | 2 (Category + Global) |
+
+| Workload   | KeyBy次数 | Join次数              | 并行路径          | Batch层级             |
+| ---------- | --------- | --------------------- | ----------------- | --------------------- |
+| Workload 1 | 1         | 0                     | 0                 | 1 (Global)            |
+| Workload 2 | 2         | 2 (3-way + result)    | 3 (三路VDB)       | 1 (Global)            |
+| Workload 3 | 3         | 2 (semantic + result) | 2 (双VDB)         | 1 (Global)            |
+| Workload 4 | 4         | 2 (semantic + result) | 2 (双VDB 4-stage) | 2 (Category + Global) |
 
 ### 调度挑战对比
-| Workload | 窗口状态 | 数据量 | Shuffle次数 | 资源协调 |
-|----------|---------|--------|------------|----------|
-| Workload 1 | 无 | 低 | 1 | 简单 |
-| Workload 2 | 2s Join | 中 | 4 (KeyBy×2 + Join×2) | 中等 |
-| Workload 3 | 30s Join | 中高 | 6 (KeyBy×3 + Join×2 + 双路) | 复杂 |
-| Workload 4 | 60s Join | 极高 | 8 (KeyBy×4 + Join×2 + 双路 + 双层Batch) | 极复杂 |
+
+| Workload   | 窗口状态 | 数据量 | Shuffle次数                             | 资源协调 |
+| ---------- | -------- | ------ | --------------------------------------- | -------- |
+| Workload 1 | 无       | 低     | 1                                       | 简单     |
+| Workload 2 | 2s Join  | 中     | 4 (KeyBy×2 + Join×2)                    | 中等     |
+| Workload 3 | 30s Join | 中高   | 6 (KeyBy×3 + Join×2 + 双路)             | 复杂     |
+| Workload 4 | 60s Join | 极高   | 8 (KeyBy×4 + Join×2 + 双路 + 双层Batch) | 极复杂   |
 
 ### 性能瓶颈预测
+
 **Workload 1 (基准)**:
+
 - ✅ 瓶颈: VDB检索（HNSW遍历）
 - ✅ 优化点: Batch size调优、Filter threshold
 - ✅ 适合场景: 单机测试、基准对比
 
 **Workload 2 (中等复杂度)**:
+
 - ✅ 瓶颈: 三路Join + 混合Rerank
 - ✅ 优化点: Join window调优、并行路径数量
 - ✅ 适合场景: 多路检索融合、并行调度测试
 
 **Workload 3 (高复杂度)**:
+
 - ✅ 瓶颈: Semantic Join (11.5M ops/s) + 去重算法
 - ✅ 优化点: Join窗口大小、去重策略
 - ✅ 适合场景: 双流Join、分布式重排序测试
 - ✅ 挑战: 双流速率匹配、30s窗口内存管理
 
 **Workload 4 (极致复杂度)**:
+
 - ✅ 瓶颈: Semantic Join (61.4M ops/s) + DBSCAN聚类 + 5维评分
 - ✅ 优化点: 并行度调优（parallelism=16）、内存管理
 - ✅ 适合场景: 极限压测、调度策略对比、资源管理测试
-- ✅ 挑战: 
+- ✅ 挑战:
   - 60s窗口状态管理（1500 docs × 1KB ≈ 1.5MB per window）
   - 多次shuffle的网络开销
   - 双层Batch的超时协调
   - 图遍历的不确定性延迟
 
 ### 吞吐量预测
-| Workload | 目标QPS | P50延迟 | P95延迟 | P99延迟 |
-|----------|---------|---------|---------|---------|
-| Workload 1 | 15-20 | 200ms | 400ms | 600ms |
-| Workload 2 | 20-25 | 500ms | 1000ms | 1500ms |
-| Workload 3 | 15-20 | 800ms | 1500ms | 2000ms |
-| Workload 4 | 10-15 | 1200ms | 2000ms | 3000ms |
+
+| Workload   | 目标QPS | P50延迟 | P95延迟 | P99延迟 |
+| ---------- | ------- | ------- | ------- | ------- |
+| Workload 1 | 15-20   | 200ms   | 400ms   | 600ms   |
+| Workload 2 | 20-25   | 500ms   | 1000ms  | 1500ms  |
+| Workload 3 | 15-20   | 800ms   | 1500ms  | 2000ms  |
+| Workload 4 | 10-15   | 1200ms  | 2000ms  | 3000ms  |
 
 ### SAGE调度优势体现
-1. **负载均衡**: KeyBy自动分区，避免单点瓶颈
-2. **并行加速**: 三路/双路并行检索，理论3x/2x加速
-3. **批量优化**: BatchFunction减少LLM调用次数，提高GPU利用率
-4. **容错能力**: Join window容忍网络抖动和节点故障
-5. **弹性扩展**: 支持动态调整parallelism和节点数
-6. **资源隔离**: 不同算子可分配到不同节点，避免资源竞争
 
----
+1. **负载均衡**: KeyBy自动分区，避免单点瓶颈
+1. **并行加速**: 三路/双路并行检索，理论3x/2x加速
+1. **批量优化**: BatchFunction减少LLM调用次数，提高GPU利用率
+1. **容错能力**: Join window容忍网络抖动和节点故障
+1. **弹性扩展**: 支持动态调整parallelism和节点数
+1. **资源隔离**: 不同算子可分配到不同节点，避免资源竞争
+
+______________________________________________________________________
 
 ## 实现路径
 
 ### Stage 1: 基准Pipeline (1-2天)
+
 **目标**: 实现Workload 1，建立性能基线
 
 **任务**:
+
 1. ✅ 实现基本算子: QuerySource, EmbeddingMap, VDBRetrieve, BatchFunction, LLMGenerate
-2. ✅ 配置KeyBy(query_type)实现分区
-3. ✅ 配置FilterFunction过滤低分结果
-4. ✅ 部署到8节点集群
-5. ✅ 性能测试: 验证15-20 QPS吞吐量、30-50% CPU利用率
-6. ✅ 建立监控Dashboard: CPU、内存、延迟、吞吐量
+1. ✅ 配置KeyBy(query_type)实现分区
+1. ✅ 配置FilterFunction过滤低分结果
+1. ✅ 部署到8节点集群
+1. ✅ 性能测试: 验证15-20 QPS吞吐量、30-50% CPU利用率
+1. ✅ 建立监控Dashboard: CPU、内存、延迟、吞吐量
 
 **验收标准**:
+
 - 稳定运行5分钟
 - P50延迟 < 250ms
 - CPU利用率在30-50%区间
 - 无OOM或崩溃
 
 ### Stage 2: 多路Join Pipeline (2-3天)
+
 **目标**: 实现Workload 2，验证分布式Join和并行检索
 
 **任务**:
+
 1. ✅ 实现SessionContext和Memory检索
-2. ✅ 实现三路并行VDB检索（SAGE自动复制）
-3. ✅ 实现BaseJoinFunction汇聚三路结果
-4. ✅ 实现RerankMap的4维度评分
-5. ✅ 测试Join window调优（1s vs 2s vs 3s）
-6. ✅ 测试并行度影响（parallelism=4 vs 8 vs 16）
+1. ✅ 实现三路并行VDB检索（SAGE自动复制）
+1. ✅ 实现BaseJoinFunction汇聚三路结果
+1. ✅ 实现RerankMap的4维度评分
+1. ✅ 测试Join window调优（1s vs 2s vs 3s）
+1. ✅ 测试并行度影响（parallelism=4 vs 8 vs 16）
 
 **验收标准**:
+
 - Join成功率 > 95%
 - P95延迟 < 1200ms
 - CPU利用率在50-70%区间
 - 三路VDB检索时间接近（负载均衡）
 
 ### Stage 3: 双流Semantic Join (3-4天)
+
 **目标**: 实现Workload 3，验证双流Join和分布式去重
 
 **任务**:
+
 1. ✅ 实现双流Source (Query + Doc)
-2. ✅ 实现WindowedEventJoin (30s窗口)
-3. ✅ 实现GraphMemoryRetrieve (图遍历)
-4. ✅ 实现双路VDB并行检索
-5. ✅ 实现DeduplicationMap (SimHash + 相似度矩阵)
-6. ✅ 实现FinalRerank (5维度评分)
-7. ✅ 测试窗口大小影响（15s vs 30s vs 60s）
-8. ✅ 测试Join阈值影响（0.6 vs 0.65 vs 0.7）
+1. ✅ 实现WindowedEventJoin (30s窗口)
+1. ✅ 实现GraphMemoryRetrieve (图遍历)
+1. ✅ 实现双路VDB并行检索
+1. ✅ 实现DeduplicationMap (SimHash + 相似度矩阵)
+1. ✅ 实现FinalRerank (5维度评分)
+1. ✅ 测试窗口大小影响（15s vs 30s vs 60s）
+1. ✅ 测试Join阈值影响（0.6 vs 0.65 vs 0.7）
 
 **验收标准**:
+
 - Join throughput: 20+ matched pairs/s
 - P50延迟 < 1000ms
 - CPU利用率在70-85%区间
@@ -1438,89 +1484,100 @@ def run_test_scenario(scenario_name):
 - 窗口内存稳定（无内存泄漏）
 
 ### Stage 4: 极致复杂Pipeline (4-5天)
+
 **目标**: 实现Workload 4，压测SAGE调度极限
 
 **任务**:
+
 1. ✅ 实现60s大窗口Join
-2. ✅ 实现高并行度KeyBy (parallelism=16)
-3. ✅ 实现双路4-stage VDB分支 (Retrieve → Filter → Rerank → Join)
-4. ✅ 实现DBSCAN聚类去重
-5. ✅ 实现双层Batch (Category + Global)
-6. ✅ 实现MMR多样性过滤
-7. ✅ 压力测试: 40 QPS query + 25 QPS doc
-8. ✅ 调度策略对比: FIFO vs LoadAware vs Priority
+1. ✅ 实现高并行度KeyBy (parallelism=16)
+1. ✅ 实现双路4-stage VDB分支 (Retrieve → Filter → Rerank → Join)
+1. ✅ 实现DBSCAN聚类去重
+1. ✅ 实现双层Batch (Category + Global)
+1. ✅ 实现MMR多样性过滤
+1. ✅ 压力测试: 40 QPS query + 25 QPS doc
+1. ✅ 调度策略对比: FIFO vs LoadAware vs Priority
 
 **验收标准**:
+
 - 稳定运行20分钟
 - CPU利用率在85-95%区间
 - P99延迟 < 3500ms
 - 无节点崩溃或任务超时
-- 调度效率: 任务分布均匀（8节点利用率差异<10%）
+- 调度效率: 任务分布均匀（8节点利用率差异\<10%）
 
 ### Stage 5: 性能调优和对比 (2-3天)
+
 **目标**: 对比4个Workload，生成性能报告
 
 **任务**:
+
 1. ✅ 统一测试环境（相同集群配置）
-2. ✅ 对比实验: 
+1. ✅ 对比实验:
    - CPU利用率对比
    - 延迟对比（P50/P95/P99）
    - 吞吐量对比
    - 调度效率对比（负载均衡、资源利用率）
-3. ✅ 瓶颈分析: 
+1. ✅ 瓶颈分析:
    - 识别每个Workload的关键瓶颈算子
    - 分析shuffle开销
    - 分析join window内存开销
-4. ✅ 生成性能报告和可视化图表
-5. ✅ 编写Benchmark论文章节
+1. ✅ 生成性能报告和可视化图表
+1. ✅ 编写Benchmark论文章节
 
 **输出**:
+
 - 性能对比表格（CPU、延迟、吞吐量）
 - 瓶颈分析报告（火焰图、调用链追踪）
 - 调度策略对比结论
 - Benchmark代码和文档
 
----
+______________________________________________________________________
 
 ## 附录: SAGE算子完整列表
 
 ### 核心算子
-| 算子 | 功能 | 分布式特性 | 适用场景 |
-|------|------|-----------|----------|
-| `SourceFunction` | 数据源 | 可并行 | 生成查询、读取数据流 |
-| `MapFunction` | 1-to-1转换 | 自动并行 | Embedding、检索、重排序 |
-| `FilterFunction` | 过滤 | 自动并行 | 质量过滤、阈值筛选 |
-| `KeyByFunction` | 分区 | 跨节点shuffle | 负载均衡、局部性优化 |
-| `JoinFunction` | 多流汇聚 | 窗口join | 双流语义Join、结果合并 |
-| `BatchFunction` | 批量聚合 | 节点本地 | LLM批量调用、数据聚合 |
-| `SinkFunction` | 数据汇聚 | 可并行 | 指标收集、结果存储 |
-| `FlatMapFunction` | 1-to-N转换 | 自动并行 | 数据扩展、Query expansion |
-| `CoMapFunction` | 双流处理 | 双流协调 | 双流Join前处理 |
+
+| 算子              | 功能       | 分布式特性    | 适用场景                  |
+| ----------------- | ---------- | ------------- | ------------------------- |
+| `SourceFunction`  | 数据源     | 可并行        | 生成查询、读取数据流      |
+| `MapFunction`     | 1-to-1转换 | 自动并行      | Embedding、检索、重排序   |
+| `FilterFunction`  | 过滤       | 自动并行      | 质量过滤、阈值筛选        |
+| `KeyByFunction`   | 分区       | 跨节点shuffle | 负载均衡、局部性优化      |
+| `JoinFunction`    | 多流汇聚   | 窗口join      | 双流语义Join、结果合并    |
+| `BatchFunction`   | 批量聚合   | 节点本地      | LLM批量调用、数据聚合     |
+| `SinkFunction`    | 数据汇聚   | 可并行        | 指标收集、结果存储        |
+| `FlatMapFunction` | 1-to-N转换 | 自动并行      | 数据扩展、Query expansion |
+| `CoMapFunction`   | 双流处理   | 双流协调      | 双流Join前处理            |
 
 ### 特殊算子
-| 算子 | 功能 | 使用场景 |
-|------|------|----------|
+
+| 算子                | 功能         | 使用场景         |
+| ------------------- | ------------ | ---------------- |
 | `WindowedEventJoin` | 窗口语义Join | 双流时间窗口Join |
-| `BaseJoinFunction` | 自定义Join | 复杂Join逻辑 |
-| `LambdaFunction` | 内联函数 | 简单转换 |
-| `FutureFunction` | 异步处理 | 外部API调用 |
+| `BaseJoinFunction`  | 自定义Join   | 复杂Join逻辑     |
+| `LambdaFunction`    | 内联函数     | 简单转换         |
+| `FutureFunction`    | 异步处理     | 外部API调用      |
 
----
+______________________________________________________________________
 
----
+______________________________________________________________________
 
 ## 硬件配置适配性分析
 
 ### 实际硬件配置
+
 **集群规模**: 1台A6000机器 + 16个容器节点
 
 **容器配置**:
+
 - 节点数: 16个容器
 - 每节点CPU: 8核心
 - 每节点内存: 16GB
 - 总计算资源: **128核心 + 256GB内存**
 
 **宿主机服务**:
+
 - GPU: A6000 (48GB显存)
 - LLM服务: Qwen-3B-Instruct (轻量模型，推理快)
 - Rerank服务: Rerank模型 (共享GPU)
@@ -1529,42 +1586,52 @@ def run_test_scenario(scenario_name):
 ### 可行性分析
 
 #### ✅ Workload 1: 完全可行
+
 **资源需求**:
+
 - CPU: 30-50% × 128核 = 38-64核实际使用
 - 内存: ~2GB per node × 16 = 32GB
 - QPS: 20 (轻松应对)
 
-**结论**: 
+**结论**:
+
 - ✅ CPU充足（128核远超需求）
 - ✅ 内存充足（256GB >> 32GB）
 - ✅ 3B模型推理速度快，不会成为瓶颈
 - ⏱️ 预计P50延迟: 150-200ms
 
 #### ✅ Workload 2: 完全可行
+
 **资源需求**:
+
 - CPU: 50-70% × 128核 = 64-90核实际使用
 - 内存: ~4GB per node × 16 = 64GB
 - QPS: 30
 - Join Window: 2s (状态小)
 
 **潜在瓶颈**:
+
 - ⚠️ 三路并行VDB + Rerank需要协调
 - ⚠️ Embedding远程调用可能增加延迟（+50-100ms）
 
 **结论**:
+
 - ✅ CPU充足
 - ✅ 内存充足
 - ⚠️ 需要优化Embedding批量调用减少网络往返
 - ⏱️ 预计P50延迟: 400-500ms（含网络延迟）
 
 #### ⚠️ Workload 3: 可行但需调优
+
 **资源需求**:
+
 - CPU: 70-85% × 128核 = 90-109核实际使用
 - 内存: ~6GB per node × 16 = 96GB
 - QPS: 25 (query) + 15 (doc)
 - Join Window: 30s
 
 **关键计算**:
+
 ```
 Semantic Join负载:
 - 窗口内文档数: 15 QPS × 30s = 450 docs
@@ -1574,6 +1641,7 @@ Semantic Join负载:
 ```
 
 **内存需求**:
+
 ```
 Join Window状态:
 - 单窗口: 450 docs × 1KB = 450KB
@@ -1583,6 +1651,7 @@ Join Window状态:
 ```
 
 **潜在瓶颈**:
+
 - ⚠️ Semantic Join的11.5M ops/s是否能在128核上完成？
   - 假设每次相似度计算需要1000条指令
   - 11.5M × 1000 = 11.5B instructions/s
@@ -1592,26 +1661,31 @@ Join Window状态:
 - ⚠️ 远程Embedding调用可能成为瓶颈（需批量优化）
 
 **优化建议**:
+
 1. **Embedding批量调用**: batch_size=32，减少网络往返
-2. **Join窗口优化**: 可以降低到20s（减少状态）
-3. **KeyBy并行度**: 设置parallelism=16（对齐节点数）
-4. **去重策略**: 使用SimHash快速粗筛（减少O(n²)计算）
+1. **Join窗口优化**: 可以降低到20s（减少状态）
+1. **KeyBy并行度**: 设置parallelism=16（对齐节点数）
+1. **去重策略**: 使用SimHash快速粗筛（减少O(n²)计算）
 
 **结论**:
+
 - ✅ CPU充足（理论利用率仅3.6%，实际可能10-20%）
-- ✅ 内存绝对充足（320MB << 256GB）
+- ✅ 内存绝对充足（320MB \<< 256GB）
 - ⚠️ 需要优化Embedding批量调用
 - ⚠️ 需要监控Join算子CPU利用率
 - ⏱️ 预计P50延迟: 700-900ms
 
 #### ⚠️ Workload 4: 挑战较大但理论可行
+
 **资源需求**:
+
 - CPU: 85-95% × 128核 = 109-122核实际使用（接近满载）
 - 内存: ~10GB per node × 16 = 160GB
 - QPS: 40 (query) + 25 (doc)
 - Join Window: 60s
 
 **关键计算**:
+
 ```
 Semantic Join负载（极致）:
 - 窗口内文档数: 25 QPS × 60s = 1500 docs
@@ -1621,6 +1695,7 @@ Semantic Join负载（极致）:
 ```
 
 **详细CPU分析**:
+
 ```
 假设现代CPU（Intel Cascade Lake / AMD EPYC）:
 - SIMD加速: AVX-512可以同时处理16个float32
@@ -1637,6 +1712,7 @@ Semantic Join负载（极致）:
 ```
 
 **内存需求**:
+
 ```
 Join Window状态（大窗口）:
 - 单窗口: 1500 docs × 1KB = 1.5MB
@@ -1647,6 +1723,7 @@ Join Window状态（大窗口）:
 ```
 
 **潜在瓶颈**:
+
 - ⚠️ **Semantic Join**: 61.4M ops/s是最大挑战
   - 如果用纯Python实现: 可能无法达到
   - 如果用NumPy优化: 应该可以完成
@@ -1660,34 +1737,36 @@ Join Window状态（大窗口）:
   - 分布在16节点上可行
 - ⚠️ **远程Embedding**: 40 QPS可能需要更激进的批量
   - 建议batch_size=64，每1.6s一批
-- ⚠️ **GPU资源竞争**: 
+- ⚠️ **GPU资源竞争**:
   - LLM生成（批量12个query）
   - Rerank模型（SimpleRerank1 + SimpleRerank2）
   - 两者可能竞争A6000显存和算力
 
 **关键优化**:
-1. **Semantic Join实现**: 
+
+1. **Semantic Join实现**:
    - ✅ 使用NumPy/MKL加速的向量化计算
    - ✅ 或者调用SageVDB的C++接口（batch similarity）
    - ❌ 避免纯Python循环计算相似度
-2. **Embedding超级批量**: batch_size=64-128（减少网络往返）
-3. **Join窗口降级**: 考虑40s窗口（1000 docs）而不是60s
-4. **KeyBy超并行**: parallelism=32（超配，利用Ray的任务窃取）
-5. **GPU调度优化**:
+1. **Embedding超级批量**: batch_size=64-128（减少网络往返）
+1. **Join窗口降级**: 考虑40s窗口（1000 docs）而不是60s
+1. **KeyBy超并行**: parallelism=32（超配，利用Ray的任务窃取）
+1. **GPU调度优化**:
    - LLM批量推理：优先级高
    - Rerank：可以CPU fallback（轻量模型）
-6. **内存预分配**: 提前分配Join window buffer避免动态分配
+1. **内存预分配**: 提前分配Join window buffer避免动态分配
 
-**降级方案**:
-如果性能不达标，可以调整：
+**降级方案**: 如果性能不达标，可以调整：
+
 - QPS: 40→30, 25→20（降低25%负载）
 - Join Window: 60s→40s（减少33%状态）
 - Batch Size: 12→8（降低GPU压力）
 - Parallelism: 16→32（增加并行度）
 
 **结论**:
+
 - ✅ CPU理论充足（1.92%理论利用率，5-10%实际）
-- ✅ 内存绝对充足（1.44GB << 256GB）
+- ✅ 内存绝对充足（1.44GB \<< 256GB）
 - ⚠️ **需要优化Semantic Join实现**（NumPy/C++）
 - ⚠️ **需要监控GPU利用率**（LLM + Rerank竞争）
 - ⚠️ **需要激进的Embedding批量**（batch_size=64-128）
@@ -1699,18 +1778,21 @@ Join Window状态（大窗口）:
 ✅ **可以完成所有4个Workload实验**
 
 **前提条件**:
+
 1. ✅ Semantic Join使用NumPy向量化或SageVDB C++接口
-2. ✅ Embedding远程调用使用大批量（batch_size=32-128）
-3. ✅ GPU资源管理良好（LLM + Rerank不冲突）
-4. ⚠️ Workload 4可能需要参数微调（降级QPS或窗口）
+1. ✅ Embedding远程调用使用大批量（batch_size=32-128）
+1. ✅ GPU资源管理良好（LLM + Rerank不冲突）
+1. ⚠️ Workload 4可能需要参数微调（降级QPS或窗口）
 
 **推荐实验顺序**:
+
 1. **Stage 1**: Workload 1（验证基础设施，1天）
-2. **Stage 2**: Workload 2（验证并行Join，2天）
-3. **Stage 3**: Workload 3（验证Semantic Join优化，3天）
-4. **Stage 4**: Workload 4（极限压测，4天 + 调优）
+1. **Stage 2**: Workload 2（验证并行Join，2天）
+1. **Stage 3**: Workload 3（验证Semantic Join优化，3天）
+1. **Stage 4**: Workload 4（极限压测，4天 + 调优）
 
 **关键监控指标**:
+
 - CPU利用率per node（应该均衡，±5%以内）
 - Join算子延迟（Workload 3/4关键瓶颈）
 - Embedding批量调用延迟（网络往返次数）
@@ -1718,22 +1800,24 @@ Join Window状态（大窗口）:
 - 内存使用（Join window状态）
 
 **如果遇到性能瓶颈**:
+
 - Semantic Join慢 → 使用C++ SIMD优化或降低窗口
 - Embedding慢 → 增加batch_size到128
 - GPU冲突 → Rerank改用CPU（轻量distilbert）
 - 内存不足 → 减小Join窗口或增加分区数
 
----
+______________________________________________________________________
 
 ## 总结
 
 本文档设计了4个递进式的**分布式CPU密集型**工作负载，充分利用SAGE的：
 
 1. **丰富的算子生态**: KeyBy、Join、Batch、Filter等
-2. **分布式调度能力**: 自动并行、负载均衡、容错恢复
-3. **灵活的Pipeline构建**: 多路并行、嵌套Join、多层聚合
+1. **分布式调度能力**: 自动并行、负载均衡、容错恢复
+1. **灵活的Pipeline构建**: 多路并行、嵌套Join、多层聚合
 
 通过逐步增加复杂度（从30% CPU到95% CPU），可以全面测试SAGE在：
+
 - **高并发场景** (40 QPS双流输入)
 - **大窗口Join** (60s窗口，1500文档)
 - **复杂计算** (61.4M ops/s向量计算)

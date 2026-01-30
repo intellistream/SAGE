@@ -55,20 +55,8 @@ except ImportError as e:
 # Only import if sage_flow is available
 if _SAGE_FLOW_AVAILABLE:
     from .python.micro_service.sage_flow_service import SageFlowService
-    from .operators import (
-        SageFlowJoinOperator,
-        SageFlowAggregationOperator,
-        SageFlowContextSource,
-        SageFlowJoin,
-        SageFlowAggregation,
-    )
 else:
     SageFlowService = None
-    SageFlowJoinOperator = None
-    SageFlowAggregationOperator = None
-    SageFlowContextSource = None
-    SageFlowJoin = None
-    SageFlowAggregation = None
 
 __all__ = [
     # Core API from isage-flow (may be None if not installed)
@@ -83,12 +71,6 @@ __all__ = [
     "__email__",
     # SAGE-specific services (may be None if isage-flow not installed)
     "SageFlowService",
-    # SAGE pipeline integration operators
-    "SageFlowJoinOperator",
-    "SageFlowAggregationOperator",
-    "SageFlowContextSource",
-    "SageFlowJoin",  # Alias
-    "SageFlowAggregation",  # Alias
     # Availability flag
     "_SAGE_FLOW_AVAILABLE",
 ]

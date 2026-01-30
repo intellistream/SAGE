@@ -34,8 +34,6 @@ Adaptive-RAG SAGE 数据流 Pipeline 实现
 from __future__ import annotations
 
 import json
-import os
-import sys
 import tempfile
 import time
 from dataclasses import dataclass, field
@@ -45,7 +43,6 @@ from typing import Any
 # ============================================================================
 # SAGE 核心导入
 # ============================================================================
-
 from sage.common.core import (
     FilterFunction,
     FlatMapFunction,
@@ -61,7 +58,6 @@ from .classifier import (
     QueryComplexityLevel,
     create_classifier,
 )
-
 
 # ============================================================================
 # 数据结构定义
@@ -84,7 +80,9 @@ class QueryData:
             "classification": {
                 "complexity": self.classification.complexity.value,
                 "confidence": self.classification.confidence,
-            } if self.classification else None,
+            }
+            if self.classification
+            else None,
             "context": self.context,
             "metadata": self.metadata,
         }
@@ -118,7 +116,9 @@ class ResultData:
             "classification": {
                 "complexity": self.classification.complexity.value,
                 "confidence": self.classification.confidence,
-            } if self.classification else None,
+            }
+            if self.classification
+            else None,
             "retrieval_steps": self.retrieval_steps,
             "retrieved_docs": self.retrieved_docs,
             "reasoning_chain": self.reasoning_chain,
@@ -201,7 +201,9 @@ class ClassifierMapFunction(MapFunction):
     def setup(self):
         """初始化分类器"""
         self._classifier = create_classifier(self.classifier_type, llm_client=self.llm_client)
-        self.logger.info(f"ClassifierMapFunction: initialized with {self.classifier_type} classifier")
+        self.logger.info(
+            f"ClassifierMapFunction: initialized with {self.classifier_type} classifier"
+        )
 
     def execute(self, data: QueryData) -> QueryData:
         """对查询进行分类"""
@@ -259,6 +261,7 @@ class AdaptiveRouterMapFunction(MapFunction):
         if self.llm_client is None:
             try:
                 from sage.common.components.sage_llm import UnifiedInferenceClient
+
                 self.llm_client = UnifiedInferenceClient.create()
             except Exception:
                 self.llm_client = MockLLMClient()
@@ -349,7 +352,7 @@ class AdaptiveRouterMapFunction(MapFunction):
         retrieved_docs = self._retrieve(data.query)
 
         # Step 2: 构建上下文
-        context = "\n\n".join([f"[Doc {i+1}]: {doc}" for i, doc in enumerate(retrieved_docs)])
+        context = "\n\n".join([f"[Doc {i + 1}]: {doc}" for i, doc in enumerate(retrieved_docs)])
 
         prompt = f"""基于以下检索到的文档回答问题：
 
@@ -407,8 +410,8 @@ class AdaptiveRouterMapFunction(MapFunction):
 回答:"""
 
             sub_answer = self._generate(think_prompt)
-            intermediate_answers.append(f"Q{i+1}: {sub_q}\nA{i+1}: {sub_answer}")
-            reasoning_chain.append(f"Step {i+1}: Answered '{sub_q[:30]}...'")
+            intermediate_answers.append(f"Q{i + 1}: {sub_q}\nA{i + 1}: {sub_answer}")
+            reasoning_chain.append(f"Step {i + 1}: Answered '{sub_q[:30]}...'")
 
         # Step 3: 综合
         synthesis_prompt = f"""基于以下子问题的回答，综合回答原始问题：
@@ -568,7 +571,9 @@ class StrategyBranchFlatMap(FlatMapFunction):
 
     def execute(self, data: QueryData) -> list[dict]:
         """将查询标记并分发"""
-        complexity = data.classification.complexity if data.classification else QueryComplexityLevel.SINGLE
+        complexity = (
+            data.classification.complexity if data.classification else QueryComplexityLevel.SINGLE
+        )
 
         strategy_map = {
             QueryComplexityLevel.ZERO: "no_retrieval",
@@ -604,7 +609,7 @@ class MockRetriever:
     """Mock 检索器"""
 
     def retrieve(self, query: str, top_k: int = 5) -> list[dict]:
-        return [{"content": f"[Mock Doc {i+1} for: {query[:30]}]"} for i in range(top_k)]
+        return [{"content": f"[Mock Doc {i + 1} for: {query[:30]}]"} for i in range(top_k)]
 
 
 # ============================================================================

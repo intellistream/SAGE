@@ -21,7 +21,7 @@ Pipeline E: Priority Scheduling (优先级调度)
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional
 
@@ -39,6 +39,7 @@ from .scheduler import HeadNodeScheduler
 
 class SchedulerType(str, Enum):
     """调度器类型"""
+
     FIFO = "fifo"
     PRIORITY = "priority"
     SLO_AWARE = "slo_aware"
@@ -47,6 +48,7 @@ class SchedulerType(str, Enum):
 
 class RequestPriority(str, Enum):
     """请求优先级"""
+
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
@@ -55,6 +57,7 @@ class RequestPriority(str, Enum):
 @dataclass
 class SchedulingConfig:
     """Scheduling Pipeline 配置"""
+
     # 请求配置
     num_requests: int = 200
     high_priority_ratio: float = 0.2
@@ -87,6 +90,7 @@ class SchedulingConfig:
 @dataclass
 class SchedulingRequest:
     """调度请求"""
+
     request_id: str
     priority: RequestPriority
     slo_target_ms: float
@@ -197,7 +201,7 @@ class SchedulerMapFunction(MapFunction):
     def _schedule_batch(self) -> list[SchedulingRequest]:
         """根据策略调度批次"""
         batch = self._queue[: self.batch_size]
-        self._queue = self._queue[self.batch_size:]
+        self._queue = self._queue[self.batch_size :]
 
         if self.scheduler_type == "fifo":
             # FIFO: 保持原始顺序
@@ -255,7 +259,9 @@ class SchedulingLLMMapFunction(MapFunction):
         self.llm_model = llm_model
         self.timeout = timeout
 
-    def execute(self, batch: Optional[list[SchedulingRequest]]) -> Optional[list[SchedulingRequest]]:
+    def execute(
+        self, batch: Optional[list[SchedulingRequest]]
+    ) -> Optional[list[SchedulingRequest]]:
         """执行 LLM 调用"""
         if batch is None:
             return None
@@ -309,7 +315,9 @@ class SchedulingSinkFunction(SinkFunction):
                 self.slo_stats[priority]["met"] += 1
 
             status = "✅" if req.slo_met else "❌"
-            print(f"{status} [{req.request_id}] {priority} latency={req.latency_ms:.0f}ms (SLO={req.slo_target_ms}ms)")
+            print(
+                f"{status} [{req.request_id}] {priority} latency={req.latency_ms:.0f}ms (SLO={req.slo_target_ms}ms)"
+            )
 
             result = {
                 "request_id": req.request_id,
@@ -323,8 +331,9 @@ class SchedulingSinkFunction(SinkFunction):
 
         if self.output_path:
             import json
+
             with open(self.output_path, "a") as f:
-                for r in self.results[-len(batch):]:
+                for r in self.results[-len(batch) :]:
                     f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
     def get_slo_compliance(self) -> dict[str, float]:

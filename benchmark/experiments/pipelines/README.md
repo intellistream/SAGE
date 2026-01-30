@@ -1,8 +1,10 @@
-                                                                                                                                       # SAGE Benchmark Pipelines
+```
+                                                                                                                                   # SAGE Benchmark Pipelines
+```
 
 可复用的 Pipeline 定义，使用真实 SAGE 算子 + `RemoteEnvironment` + `HeadNodeScheduler`。
 
----
+______________________________________________________________________
 
 ## Pipeline 拓扑结构
 
@@ -187,21 +189,21 @@
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+______________________________________________________________________
 
 ## 算子覆盖矩阵
 
-| 算子类型 | Pipeline A | Pipeline B | Pipeline C | Pipeline D | Pipeline E | Pipeline F |
-|----------|:----------:|:----------:|:----------:|:----------:|:----------:|:----------:|
-| SourceFunction | ✅ | ✅ | ✅ (Multi) | ✅ | ✅ | ✅ |
-| MapFunction | ✅×4 | ✅×3 | ✅×3 | ✅×3 | ✅×2 | ✅ |
-| FilterFunction | ✅ | ✅ | ✅ | | | ✅ |
-| FlatMapFunction | | ✅ | | | | ✅ |
-| SinkFunction | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| KeyByFunction | | | | | | ✅ |
-| BatchFunction | | | | | | ✅ |
-| BaseJoinFunction | | | | | | ✅ |
-| BaseCoMapFunction | | | | | | ✅ |
+| 算子类型          | Pipeline A | Pipeline B | Pipeline C | Pipeline D | Pipeline E | Pipeline F |
+| ----------------- | :--------: | :--------: | :--------: | :--------: | :--------: | :--------: |
+| SourceFunction    |     ✅     |     ✅     | ✅ (Multi) |     ✅     |     ✅     |     ✅     |
+| MapFunction       |    ✅×4    |    ✅×3    |    ✅×3    |    ✅×3    |    ✅×2    |     ✅     |
+| FilterFunction    |     ✅     |     ✅     |     ✅     |            |            |     ✅     |
+| FlatMapFunction   |            |     ✅     |            |            |            |     ✅     |
+| SinkFunction      |     ✅     |     ✅     |     ✅     |     ✅     |     ✅     |     ✅     |
+| KeyByFunction     |            |            |            |            |            |     ✅     |
+| BatchFunction     |            |            |            |            |            |     ✅     |
+| BaseJoinFunction  |            |            |            |            |            |     ✅     |
+| BaseCoMapFunction |            |            |            |            |            |     ✅     |
 
 ### Pipeline F: SAGE Operators Demo
 
@@ -222,7 +224,7 @@ print(OPERATOR_SUMMARY)
 demo_basic_pipeline()
 ```
 
----
+______________________________________________________________________
 
 ## SAGE 算子类型规范
 
@@ -274,7 +276,7 @@ class CollectStyle(FlatMapFunction):
         return []  # 返回空列表，数据已通过 collect() 发射
 ```
 
----
+______________________________________________________________________
 
 ## HeadNodeScheduler
 
@@ -298,11 +300,12 @@ result = pipeline.run()
 ```
 
 **调度策略**：
+
 - Source 节点 → 绑定到 Head Node（Ray node ID affinity）
 - Sink 节点 → 绑定到 Head Node
 - 其他算子 → Ray 默认负载均衡
 
----
+______________________________________________________________________
 
 ## 文件结构
 

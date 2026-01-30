@@ -68,12 +68,28 @@ def generate_embedding(text: str, dim: int = 128) -> np.ndarray:
 SAMPLE_DOCUMENTS = [
     {"id": 1, "title": "SAGE Overview", "content": "SAGE is a Python framework for AI pipelines."},
     {"id": 2, "title": "Installation", "content": "Run ./quickstart.sh --dev to install SAGE."},
-    {"id": 3, "title": "Architecture", "content": "SAGE has 6 layers: common, platform, kernel, libs, middleware, cli."},
+    {
+        "id": 3,
+        "title": "Architecture",
+        "content": "SAGE has 6 layers: common, platform, kernel, libs, middleware, cli.",
+    },
     {"id": 4, "title": "SageFlow", "content": "SageFlow is a C++ vector stream processing engine."},
-    {"id": 5, "title": "Vector Join", "content": "SageFlow performs real-time vector similarity joins."},
-    {"id": 6, "title": "LLM Service", "content": "SAGE provides unified LLM inference via Control Plane."},
+    {
+        "id": 5,
+        "title": "Vector Join",
+        "content": "SageFlow performs real-time vector similarity joins.",
+    },
+    {
+        "id": 6,
+        "title": "LLM Service",
+        "content": "SAGE provides unified LLM inference via Control Plane.",
+    },
     {"id": 7, "title": "Memory", "content": "NeuroMem provides hierarchical memory management."},
-    {"id": 8, "title": "RAG Pipeline", "content": "Build RAG pipelines with retrieval and generation."},
+    {
+        "id": 8,
+        "title": "RAG Pipeline",
+        "content": "Build RAG pipelines with retrieval and generation.",
+    },
 ]
 
 SAMPLE_QUERIES = [
@@ -156,7 +172,9 @@ class MockLLMOperator(MapFunction):
         num_retrieved = data.get("num_retrieved", 0)
 
         # Mock LLM response
-        response = f"Based on {num_retrieved} retrieved documents, here's the answer to '{query}':\n"
+        response = (
+            f"Based on {num_retrieved} retrieved documents, here's the answer to '{query}':\n"
+        )
         if context:
             response += f"Context summary: {context[:100]}..."
         else:
@@ -176,11 +194,11 @@ class ResponseSink(SinkFunction):
     def execute(self, data: dict[str, Any]) -> None:
         self.results.append(data)
         if self.verbose:
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print(f"Query: {data.get('query', 'N/A')}")
             print(f"Retrieved: {data.get('num_retrieved', 0)} documents")
             print(f"Response: {data.get('response', 'N/A')[:200]}...")
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
 
 
 def run_streaming_rag_demo():
@@ -301,7 +319,9 @@ class GroupProcessorOperator(MapFunction):
         else:
             # This is a group member - use cached response
             query_id = data.get("id")
-            cached_response = self._group_results.get(query_id, "[CACHED] Using group representative's response")
+            cached_response = self._group_results.get(
+                query_id, "[CACHED] Using group representative's response"
+            )
 
             return {
                 **data,
@@ -374,7 +394,7 @@ def run_aggregation_demo():
 
     env.execute()
 
-    print(f"\nAggregation Stats:")
+    print("\nAggregation Stats:")
     print(f"  Total queries: {len(sink.results)}")
     print(f"  Groups formed: {sink.groups_formed}")
     print(f"  LLM calls saved: {len(sink.results) - sink.groups_formed}")
@@ -400,7 +420,10 @@ class ConversationSource(SourceFunction):
             {"role": "assistant", "content": "Run ./quickstart.sh --dev to install..."},
             {"role": "user", "content": "What about the architecture?"},
             {"role": "assistant", "content": "SAGE has 6 layers..."},
-            {"role": "user", "content": "Tell me more about the first thing you mentioned"},  # Reference to earlier
+            {
+                "role": "user",
+                "content": "Tell me more about the first thing you mentioned",
+            },  # Reference to earlier
         ]
         self.index = 0
 
@@ -477,12 +500,14 @@ class SessionContextBuilder(MapFunction):
         for turn_id, score in zip(matched_turns, scores):
             for h in self._history:
                 if h.get("turn_id") == turn_id:
-                    context_turns.append({
-                        "turn_id": turn_id,
-                        "role": h.get("role"),
-                        "content": h.get("content"),
-                        "similarity": score,
-                    })
+                    context_turns.append(
+                        {
+                            "turn_id": turn_id,
+                            "role": h.get("role"),
+                            "content": h.get("content"),
+                            "similarity": score,
+                        }
+                    )
                     break
 
         return {

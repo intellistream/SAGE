@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import os
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Optional
 
 # 禁用代理，确保内网服务可访问
@@ -42,6 +42,7 @@ from .scheduler import HeadNodeScheduler
 @dataclass
 class BatchConfig:
     """Batch Pipeline 配置"""
+
     # 数据集
     dataset_name: str = "bbh"
     num_samples: int = 100
@@ -65,6 +66,7 @@ class BatchConfig:
 @dataclass
 class BatchItem:
     """批处理数据项"""
+
     item_id: int
     query: str
     answer: str = ""
@@ -100,18 +102,22 @@ class BatchSourceFunction(SourceFunction):
 
         if self.dataset_name == "bbh":
             from sage.data.sources.bbh.dataloader import BBHDataLoader
+
             loader = BBHDataLoader()
         else:
             from sage.data.sources.gpqa.dataloader import GPQADataLoader
+
             loader = GPQADataLoader()
 
         raw_data = loader.load()
 
         for i, sample in enumerate(raw_data[: self.num_samples]):
-            self._data.append(BatchItem(
-                item_id=i,
-                query=sample.get("question", sample.get("query", "")),
-            ))
+            self._data.append(
+                BatchItem(
+                    item_id=i,
+                    query=sample.get("question", sample.get("query", "")),
+                )
+            )
 
         self._loaded = True
         print(f"📂 Loaded {len(self._data)} samples from {self.dataset_name}")
@@ -267,8 +273,9 @@ class BatchSinkFunction(SinkFunction):
 
         if self.output_path:
             import json
+
             with open(self.output_path, "a") as f:
-                for r in self.results[-len(window):]:
+                for r in self.results[-len(window) :]:
                     f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
 

@@ -13,9 +13,6 @@ through Question Complexity" (NAACL 2024)
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 
 def example_basic_usage():
     """
@@ -28,7 +25,6 @@ def example_basic_usage():
     print("=" * 60)
 
     from sage.benchmark.benchmark_sage.experiments.pipelines.adaptive_rag import (
-        AdaptiveRAGPipeline,
         QueryComplexityClassifier,
         QueryComplexityLevel,
     )
@@ -76,7 +72,9 @@ def example_pipeline_run():
     print("=" * 60)
 
     from sage.benchmark.benchmark_sage.experiments.pipelines.adaptive_rag import AdaptiveRAGPipeline
-    from sage.benchmark.benchmark_sage.experiments.pipelines.adaptive_rag.pipeline import PipelineConfig
+    from sage.benchmark.benchmark_sage.experiments.pipelines.adaptive_rag.pipeline import (
+        PipelineConfig,
+    )
 
     # 创建模拟 LLM 客户端
     class MockLLMClient:
@@ -216,7 +214,10 @@ def example_strategy_functions():
         documents=[
             {"content": "Machine learning is a type of AI that learns from data.", "id": "1"},
             {"content": "Deep learning uses neural networks with multiple layers.", "id": "2"},
-            {"content": "Natural language processing enables computers to understand text.", "id": "3"},
+            {
+                "content": "Natural language processing enables computers to understand text.",
+                "id": "3",
+            },
         ]
     )
 
@@ -241,13 +242,15 @@ def example_strategy_functions():
     print("\n3. IterativeRetrieverFunction (Level C):")
     print("-" * 40)
     iter_ret = IterativeRetrieverFunction(llm_client=llm, retriever=retriever, max_iterations=2)
-    result = iter_ret.execute("Compare machine learning and deep learning and explain their relationship")
+    result = iter_ret.execute(
+        "Compare machine learning and deep learning and explain their relationship"
+    )
     print(f"  策略: {result.strategy}")
     print(f"  答案: {result.answer}")
     print(f"  检索文档数: {len(result.retrieved_docs)}")
     print(f"  推理步骤: {len(result.reasoning_chain)}")
     for i, step in enumerate(result.reasoning_chain[:3]):
-        print(f"    Step {i+1}: {step[:60]}...")
+        print(f"    Step {i + 1}: {step[:60]}...")
 
 
 def example_batch_processing():
@@ -284,14 +287,16 @@ def example_batch_processing():
 
     for i, (query, result) in enumerate(zip(queries, results)):
         classification = result.metadata.get("classification", {})
-        print(f"\n{i+1}. {query[:40]}...")
+        print(f"\n{i + 1}. {query[:40]}...")
         print(f"   Level: {classification.get('level', 'N/A')} | 策略: {result.strategy}")
 
     print("\n总体指标:")
     metrics = pipeline.get_metrics()
-    print(f"  分类分布: A={metrics['classification_distribution']['A']}, "
-          f"B={metrics['classification_distribution']['B']}, "
-          f"C={metrics['classification_distribution']['C']}")
+    print(
+        f"  分类分布: A={metrics['classification_distribution']['A']}, "
+        f"B={metrics['classification_distribution']['B']}, "
+        f"C={metrics['classification_distribution']['C']}"
+    )
 
 
 def example_sage_integration():

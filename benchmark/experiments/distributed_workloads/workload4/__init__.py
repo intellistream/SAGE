@@ -18,65 +18,59 @@ Workload 4: 极致复杂的分布式CPU密集型工作流
 - P99 Latency: 2500-3500ms
 """
 
-from .models import (
-    QueryEvent,
-    DocumentEvent,
-    JoinedEvent,
-    VDBRetrievalResult,
-    GraphMemoryResult,
-    GraphEnrichedEvent,
-    VDBResultsWrapper,
-    ClusteringResult,
-    RerankingResult,
-    BatchContext,
-    Workload4Metrics,
+from .clustering import (
+    DBSCANClusteringOperator,
+    SimilarityDeduplicator,
+    analyze_clustering_quality,
+    visualize_clusters,
 )
-
 from .config import Workload4Config
-
-from .sources import (
-    Workload4QuerySource,
-    Workload4DocumentSource,
-    EmbeddingPrecompute,
-    BatchedEmbeddingPrecompute,
-    create_query_source,
-    create_document_source,
-    create_embedding_precompute,
-)
-
 from .generation import (
     BatchLLMGenerator,
     Workload4MetricsSink,
     create_mock_batch_context,
 )
 
-from .clustering import (
-    DBSCANClusteringOperator,
-    SimilarityDeduplicator,
-    visualize_clusters,
-    analyze_clustering_quality,
+# 🔧 临时添加：单源测试用工具
+from .mappers import QueryToJoinedMapper
+from .models import (
+    BatchContext,
+    ClusteringResult,
+    DocumentEvent,
+    GraphEnrichedEvent,
+    GraphMemoryResult,
+    JoinedEvent,
+    QueryEvent,
+    RerankingResult,
+    VDBResultsWrapper,
+    VDBRetrievalResult,
+    Workload4Metrics,
 )
-
+from .pipeline import (
+    Workload4Pipeline,
+    create_workload4_pipeline,
+    register_all_services,
+    register_embedding_service,
+    register_graph_memory_service,
+    register_llm_service,
+    register_vdb_services,
+    run_workload4,
+)
 from .reranking import (
-    MultiDimensionalReranker,
     MMRDiversityFilter,
+    MultiDimensionalReranker,
     visualize_score_breakdown,
     visualize_score_distribution,
 )
-
-from .pipeline import (
-    Workload4Pipeline,
-    register_all_services,
-    register_embedding_service,
-    register_vdb_services,
-    register_graph_memory_service,
-    register_llm_service,
-    create_workload4_pipeline,
-    run_workload4,
+from .sources import (
+    BatchedEmbeddingPrecompute,
+    EmbeddingPrecompute,
+    Workload4DocumentSource,
+    Workload4QuerySource,
+    create_document_source,
+    create_embedding_precompute,
+    create_query_source,
 )
-
-# 🔧 临时添加：单源测试用工具
-from .mappers import QueryToJoinedMapper
 
 __all__ = [
     # 数据模型

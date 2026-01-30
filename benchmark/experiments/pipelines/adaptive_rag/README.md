@@ -1,6 +1,8 @@
 # Adaptive-RAG: 基于 SAGE 算子的自适应 RAG Pipeline
 
-基于论文 ["Adaptive-RAG: Learning to Adapt Retrieval-Augmented Large Language Models through Question Complexity"](https://arxiv.org/abs/2403.14403) (NAACL 2024) 的 SAGE 实现。
+基于论文
+["Adaptive-RAG: Learning to Adapt Retrieval-Augmented Large Language Models through Question Complexity"](https://arxiv.org/abs/2403.14403)
+(NAACL 2024) 的 SAGE 实现。
 
 ## 概述
 
@@ -37,11 +39,11 @@ Adaptive-RAG 是一种自适应的问答框架，能够根据问题复杂度动�
 
 ## 复杂度等级
 
-| Level | 名称 | 策略 | 适用场景 |
-|-------|------|------|----------|
-| A | ZERO | 无检索，LLM 直接回答 | 定义类、常识类简单问题 |
-| B | SINGLE | 单步检索 + LLM | 需要事实支撑的一般问题 |
-| C | MULTI | 多跳迭代检索 (IRCoT) | 多实体比较、复杂推理问题 |
+| Level | 名称   | 策略                 | 适用场景                 |
+| ----- | ------ | -------------------- | ------------------------ |
+| A     | ZERO   | 无检索，LLM 直接回答 | 定义类、常识类简单问题   |
+| B     | SINGLE | 单步检索 + LLM       | 需要事实支撑的一般问题   |
+| C     | MULTI  | 多跳迭代检索 (IRCoT) | 多实体比较、复杂推理问题 |
 
 ## 快速开始
 
@@ -95,11 +97,11 @@ config = PipelineConfig(
     # 分类器配置
     classifier_type="rule",  # "rule", "llm", "t5"
     classifier_config={"multi_hop_threshold": 2},
-    
+
     # 检索器配置
     retriever_type="chroma",
     retriever_config={"collection": "my_docs", "top_k": 5},
-    
+
     # LLM 配置
     llm_model="gpt-4",
 )
@@ -182,14 +184,14 @@ env.submit(autostop=True)
 
 ### SAGE 数据流组件一览
 
-| 组件 | 类型 | 说明 |
-|------|------|------|
-| `QuerySource` | SourceFunction | 查询数据源 |
-| `ClassifierMapFunction` | MapFunction | 复杂度分类器 |
-| `AdaptiveRouterMapFunction` | MapFunction | 自适应策略路由器 |
-| `ComplexityFilterFunction` | FilterFunction | 按复杂度过滤 |
-| `StrategyBranchFlatMap` | FlatMapFunction | 策略分支分发 |
-| `ResultSink` | SinkFunction | 结果收集器 |
+| 组件                        | 类型            | 说明             |
+| --------------------------- | --------------- | ---------------- |
+| `QuerySource`               | SourceFunction  | 查询数据源       |
+| `ClassifierMapFunction`     | MapFunction     | 复杂度分类器     |
+| `AdaptiveRouterMapFunction` | MapFunction     | 自适应策略路由器 |
+| `ComplexityFilterFunction`  | FilterFunction  | 按复杂度过滤     |
+| `StrategyBranchFlatMap`     | FlatMapFunction | 策略分支分发     |
+| `ResultSink`                | SinkFunction    | 结果收集器       |
 
 ### 流分支模式 (Multi-Branch Pipeline)
 
@@ -202,6 +204,7 @@ Source -> Classifier -+-> filter(ZERO) -> NoRetrieval -> Sink
 ```
 
 这种模式的优势：
+
 - **真正的流级分支**：不同复杂度在不同的算子链中并行处理
 - **更清晰的 DAG 结构**：每个策略有独立的处理路径
 - **更好的可观测性**：可以独立监控每个分支的性能
@@ -257,13 +260,13 @@ env.submit(autostop=True)
 
 #### 两种模式对比
 
-| 特性 | Router 模式 | 流分支模式 |
-|------|-------------|-----------|
-| 分支方式 | if-else 在 MapFunction 内部 | 多个 filter() 创建独立分支 |
-| DAG 结构 | 单链 | 多分支 |
-| 并行度 | 策略共享并行度 | 各分支独立并行度 |
-| 代码复杂度 | 较简单 | 较复杂但更清晰 |
-| 适用场景 | 简单路由 | 需要独立监控/扩展的场景 |
+| 特性       | Router 模式                 | 流分支模式                 |
+| ---------- | --------------------------- | -------------------------- |
+| 分支方式   | if-else 在 MapFunction 内部 | 多个 filter() 创建独立分支 |
+| DAG 结构   | 单链                        | 多分支                     |
+| 并行度     | 策略共享并行度              | 各分支独立并行度           |
+| 代码复杂度 | 较简单                      | 较复杂但更清晰             |
+| 适用场景   | 简单路由                    | 需要独立监控/扩展的场景    |
 
 ### 旧版集成方式
 
@@ -350,7 +353,7 @@ classifier = create_classifier("rule", config={
 使用 LLM 进行零样本分类：
 
 ```python
-classifier = create_classifier("llm", 
+classifier = create_classifier("llm",
     llm_client=my_llm,
     model="gpt-3.5-turbo",
 )
@@ -437,14 +440,14 @@ pipeline.reset_metrics()
 
 ## 与原论文的对应关系
 
-| 论文概念 | SAGE 实现 |
-|----------|-----------|
+| 论文概念                    | SAGE 实现                                   |
+| --------------------------- | ------------------------------------------- |
 | Query Complexity Classifier | `QueryComplexityClassifier`, `T5Classifier` |
-| No Retrieval (NOR) | `NoRetrievalFunction` |
-| Single-hop Retrieval (ONER) | `SingleRetrieverFunction` |
-| IRCoT (Multi-hop) | `IterativeRetrieverFunction` |
-| Adaptive Pipeline | `AdaptiveRAGPipeline` |
-| Silver/Binary Labels | 可通过 `T5Classifier` 加载训练好的模型 |
+| No Retrieval (NOR)          | `NoRetrievalFunction`                       |
+| Single-hop Retrieval (ONER) | `SingleRetrieverFunction`                   |
+| IRCoT (Multi-hop)           | `IterativeRetrieverFunction`                |
+| Adaptive Pipeline           | `AdaptiveRAGPipeline`                       |
+| Silver/Binary Labels        | 可通过 `T5Classifier` 加载训练好的模型      |
 
 ## 运行示例
 
@@ -488,7 +491,7 @@ from sage.benchmark.benchmark_sage.experiments.pipelines.adaptive_rag.functions 
 
 class MyStrategy(BaseRAGStrategyFunction):
     strategy_name = "my_custom_strategy"
-    
+
     def execute(self, data):
         query = self._extract_query(data)
         # 自定义处理逻辑
@@ -503,9 +506,9 @@ class MyStrategy(BaseRAGStrategyFunction):
 
 ```bibtex
 @inproceedings{jeong2024adaptiverag,
-  author    = {Soyeong Jeong and Jinheon Baek and Sukmin Cho and 
+  author    = {Soyeong Jeong and Jinheon Baek and Sukmin Cho and
                Sung Ju Hwang and Jong Park},
-  title     = {Adaptive-RAG: Learning to Adapt Retrieval-Augmented 
+  title     = {Adaptive-RAG: Learning to Adapt Retrieval-Augmented
                Large Language Models through Question Complexity},
   booktitle = {NAACL},
   year      = {2024},

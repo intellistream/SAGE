@@ -2,10 +2,10 @@
 \label{sec:design_details}
 
 \paragraph{Design goals.}
-SAGE targets hybrid RAG/agent workloads in which each query triggers a multi-stage pipeline---retrieval over vector/text indices, memory read/write, optional refinement (e.g., compression or reranking), and final generation/tool use---and the same workload must scale from local runs to heterogeneous clusters. 
-First, we prioritize \emph{composability} by elevating the pipeline---a dataflow DAG of operators---to the primary abstraction, enabling retrieval, memory, refinement, and generation to be expressed as composable, interchangeable stages rather than entangled control flow. 
-Second, we emphasize \emph{resource-aware execution} by supporting explicit placement and scheduling over CPU-only and GPU nodes, enabling mixed deployments where embedding/retrieval-heavy stages run on CPUs while generation-heavy stages are assigned to GPUs. 
-Third, we enforce \emph{isolation and stability} through streaming-style flow control (bounded queues and backpressure) and policy-driven routing decisions, so slow or bursty stages do not destabilize the rest of the pipeline. 
+SAGE targets hybrid RAG/agent workloads in which each query triggers a multi-stage pipeline---retrieval over vector/text indices, memory read/write, optional refinement (e.g., compression or reranking), and final generation/tool use---and the same workload must scale from local runs to heterogeneous clusters.
+First, we prioritize \emph{composability} by elevating the pipeline---a dataflow DAG of operators---to the primary abstraction, enabling retrieval, memory, refinement, and generation to be expressed as composable, interchangeable stages rather than entangled control flow.
+Second, we emphasize \emph{resource-aware execution} by supporting explicit placement and scheduling over CPU-only and GPU nodes, enabling mixed deployments where embedding/retrieval-heavy stages run on CPUs while generation-heavy stages are assigned to GPUs.
+Third, we enforce \emph{isolation and stability} through streaming-style flow control (bounded queues and backpressure) and policy-driven routing decisions, so slow or bursty stages do not destabilize the rest of the pipeline.
 This architecture also supports rigorous, repeatable system evaluation by representing each workflow as a declarative DAG with interchangeable operators, which enables controlled ablations and fair comparisons; we describe the evaluation methodology in \S\ref{sec:experiments}.
 
 \subsection{Architecture Overview and Layering}

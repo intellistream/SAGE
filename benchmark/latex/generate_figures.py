@@ -21,22 +21,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Set publication-quality defaults (ICML style)
-plt.rcParams.update({
-    "font.family": "serif",
-    "font.serif": ["Times New Roman", "DejaVu Serif"],
-    "font.size": 10,
-    "axes.labelsize": 11,
-    "axes.titlesize": 12,
-    "legend.fontsize": 9,
-    "xtick.labelsize": 9,
-    "ytick.labelsize": 9,
-    "figure.dpi": 300,
-    "savefig.dpi": 300,
-    "savefig.bbox": "tight",
-    "savefig.pad_inches": 0.05,
-    "axes.grid": True,
-    "grid.alpha": 0.3,
-})
+plt.rcParams.update(
+    {
+        "font.family": "serif",
+        "font.serif": ["Times New Roman", "DejaVu Serif"],
+        "font.size": 10,
+        "axes.labelsize": 11,
+        "axes.titlesize": 12,
+        "legend.fontsize": 9,
+        "xtick.labelsize": 9,
+        "ytick.labelsize": 9,
+        "figure.dpi": 300,
+        "savefig.dpi": 300,
+        "savefig.bbox": "tight",
+        "savefig.pad_inches": 0.05,
+        "axes.grid": True,
+        "grid.alpha": 0.3,
+    }
+)
 
 # ICML color palette (colorblind-friendly)
 COLORS = {
@@ -92,12 +94,19 @@ def generate_node_scalability():
     fig, ax = plt.subplots(figsize=(7, 5))
 
     # Plot actual data lines
-    ax.plot(nodes, compute, "o-", label=f"Compute (10.8x)", linewidth=2, markersize=8,
-            color=COLORS["compute"])
-    ax.plot(nodes, rag, "s-", label=f"RAG (11.0x)", linewidth=2, markersize=8,
-            color=COLORS["rag"])
-    ax.plot(nodes, mixed, "^-", label=f"Mixed (10.1x)", linewidth=2, markersize=8,
-            color=COLORS["mixed"])
+    ax.plot(
+        nodes,
+        compute,
+        "o-",
+        label="Compute (10.8x)",
+        linewidth=2,
+        markersize=8,
+        color=COLORS["compute"],
+    )
+    ax.plot(nodes, rag, "s-", label="RAG (11.0x)", linewidth=2, markersize=8, color=COLORS["rag"])
+    ax.plot(
+        nodes, mixed, "^-", label="Mixed (10.1x)", linewidth=2, markersize=8, color=COLORS["mixed"]
+    )
 
     # Ideal linear scaling reference lines (dashed, from each baseline)
     for base, color in [(38.1, COLORS["compute"]), (1.6, COLORS["rag"]), (1.6, COLORS["mixed"])]:
@@ -192,7 +201,9 @@ def generate_scheduler_radar():
     ]
 
     for data, label, style, color in strategies:
-        ax.plot(angles, data, style, linewidth=2, label=label, color=color, markersize=6, marker="o")
+        ax.plot(
+            angles, data, style, linewidth=2, label=label, color=color, markersize=6, marker="o"
+        )
         ax.fill(angles, data, alpha=0.15, color=color)
 
     ax.set_xticks(angles[:-1])
@@ -233,12 +244,15 @@ def generate_concurrency_scaling():
 
     # Bar charts for throughput
     bars1 = ax1.bar(
-        x - width / 2, compute_tp, width, label="Compute Throughput",
-        color=COLORS["compute"], alpha=0.8
+        x - width / 2,
+        compute_tp,
+        width,
+        label="Compute Throughput",
+        color=COLORS["compute"],
+        alpha=0.8,
     )
     bars2 = ax1.bar(
-        x + width / 2, rag_tp, width, label="RAG Throughput",
-        color=COLORS["rag"], alpha=0.8
+        x + width / 2, rag_tp, width, label="RAG Throughput", color=COLORS["rag"], alpha=0.8
     )
     ax1.set_xlabel("Concurrency Level")
     ax1.set_ylabel("Throughput (tasks/sec)")
@@ -250,12 +264,24 @@ def generate_concurrency_scaling():
     # Line charts for P99 latency (right axis)
     ax2 = ax1.twinx()
     ax2.plot(
-        x, np.array(compute_p99) / 1000, "s--", color=COLORS["compute"],
-        alpha=0.7, linewidth=2, markersize=6, label="Compute P99"
+        x,
+        np.array(compute_p99) / 1000,
+        "s--",
+        color=COLORS["compute"],
+        alpha=0.7,
+        linewidth=2,
+        markersize=6,
+        label="Compute P99",
     )
     ax2.plot(
-        x, np.array(rag_p99) / 1000, "o--", color=COLORS["rag"],
-        alpha=0.7, linewidth=2, markersize=6, label="RAG P99"
+        x,
+        np.array(rag_p99) / 1000,
+        "o--",
+        color=COLORS["rag"],
+        alpha=0.7,
+        linewidth=2,
+        markersize=6,
+        label="RAG P99",
     )
     ax2.set_ylabel("P99 Latency (seconds)", color="gray")
     ax2.set_yscale("log")
@@ -264,10 +290,7 @@ def generate_concurrency_scaling():
 
     # Highlight optimal region (concurrency 4-8)
     ax1.axvspan(1.5, 3.5, alpha=0.12, color="green")
-    ax1.text(
-        2.5, 46, "Optimal\nRegion", ha="center", fontsize=9, color="darkgreen",
-        weight="bold"
-    )
+    ax1.text(2.5, 46, "Optimal\nRegion", ha="center", fontsize=9, color="darkgreen", weight="bold")
 
     plt.title("Concurrency Scaling: Throughput vs. Latency Trade-off")
     plt.tight_layout()
@@ -306,8 +329,13 @@ def generate_job_scaling():
     # Add value labels above bars (offset to avoid red dots)
     for bar, val in zip(bars, per_job_tp):
         ax1.text(
-            bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.4,
-            f"{val:.1f}", ha="center", va="bottom", fontsize=9, color="black"
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.4,
+            f"{val:.1f}",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+            color="black",
         )
 
     plt.title("Job Scaling: Per-Job Throughput and Efficiency")
@@ -348,9 +376,13 @@ def generate_admission_control():
 
     # Annotate 57% reduction
     ax1.annotate(
-        "57% latency\nreduction", xy=(3, 30.7), xytext=(2.0, 42),
+        "57% latency\nreduction",
+        xy=(3, 30.7),
+        xytext=(2.0, 42),
         arrowprops={"arrowstyle": "->", "color": "darkgreen", "lw": 1.5},
-        fontsize=9, color="darkgreen", weight="bold"
+        fontsize=9,
+        color="darkgreen",
+        weight="bold",
     )
 
     plt.title("Admission Control: Throughput vs. Tail Latency")
@@ -369,11 +401,11 @@ def generate_all_figures():
     print("Generating ICML 2026 SAGE Paper Figures (V2)...")
     print("=" * 60)
 
-    generate_node_scalability()          # Figure 1
-    generate_scheduler_radar()           # Figure 2
-    generate_concurrency_scaling()       # Figure 3
-    generate_job_scaling()               # Figure 4a
-    generate_admission_control()         # Figure 4b
+    generate_node_scalability()  # Figure 1
+    generate_scheduler_radar()  # Figure 2
+    generate_concurrency_scaling()  # Figure 3
+    generate_job_scaling()  # Figure 4a
+    generate_admission_control()  # Figure 4b
 
     print("=" * 60)
     print(f"All figures saved to: {FIGURES_DIR.absolute()}")

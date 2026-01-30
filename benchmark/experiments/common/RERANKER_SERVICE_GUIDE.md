@@ -11,6 +11,7 @@
 ### 1. SimpleReranker（推荐用于标准RAG）
 
 **使用真实 reranker 服务**（默认，最准确）：
+
 ```python
 .map(
     SimpleReranker,
@@ -24,6 +25,7 @@
 ```
 
 **Fallback 到 embedding 相似度**：
+
 ```python
 .map(
     SimpleReranker,
@@ -41,6 +43,7 @@
 **三种重排序方式**（按准确性排序）：
 
 #### 方式1: 真实 Reranker 服务（最准确）
+
 ```python
 CPUIntensiveReranker(
     num_candidates=500,
@@ -50,11 +53,13 @@ CPUIntensiveReranker(
     reranker_model="BAAI/bge-reranker-v2-m3",
 )
 ```
+
 - ✅ 专门训练的排序模型，最准确
 - ✅ 适合准确性测试和真实RAG场景
-- ⚠️  包含网络I/O + 模型推理
+- ⚠️ 包含网络I/O + 模型推理
 
 #### 方式2: 真实 Embedding + CPU计算（准确 + CPU密集）
+
 ```python
 CPUIntensiveReranker(
     num_candidates=500,
@@ -66,11 +71,13 @@ CPUIntensiveReranker(
     embedding_model=self.config.embedding_model,
 )
 ```
+
 - ✅ 真实语义向量
 - ✅ CPU密集的余弦相似度计算
-- ⚠️  包含网络I/O + CPU计算
+- ⚠️ 包含网络I/O + CPU计算
 
 #### 方式3: 确定性伪随机向量（纯CPU测试）
+
 ```python
 CPUIntensiveReranker(
     num_candidates=500,
@@ -80,10 +87,11 @@ CPUIntensiveReranker(
     use_real_embedding=False,  # ✅ 默认
 )
 ```
+
 - ✅ 纯CPU计算，无网络依赖
 - ✅ 确定性（同一文档总是生成相同向量）
 - ✅ 适合纯CPU性能测试
-- ⚠️  不是真实语义向量
+- ⚠️ 不是真实语义向量
 
 ### 3. 直接调用 Reranker 服务
 
@@ -111,6 +119,7 @@ for result in results:
 ## 完整 RAG Pipeline 示例
 
 ### 标准 RAG（使用真实 reranker）
+
 ```python
 env.from_source(FiQATaskSource, num_tasks=100)
     .map(
@@ -132,6 +141,7 @@ env.from_source(FiQATaskSource, num_tasks=100)
 ```
 
 ### CPU密集型测试（三种模式对比）
+
 ```python
 # 测试1: 真实reranker（最准确）
 .map(CPUIntensiveReranker, use_reranker_service=True, top_k=10, stage=2)
@@ -145,20 +155,20 @@ env.from_source(FiQATaskSource, num_tasks=100)
 
 ## 性能对比
 
-| 重排序方法 | 准确性 | CPU使用率 | 网络I/O | 适用场景 |
-|-----------|-------|----------|---------|----------|
-| Reranker服务 | ⭐⭐⭐⭐⭐ | ~10% | ✅ 有 | 生产RAG、准确性测试 |
-| Embedding + CPU | ⭐⭐⭐⭐ | 50-80% | ✅ 有 | CPU性能测试（真实语义） |
-| 伪随机向量 | ⭐ | 70-100% | ❌ 无 | 纯CPU性能测试 |
-| DelaySimulator | N/A | ~0% | ❌ 无 | ❌ 不推荐（无资源争用） |
+| 重排序方法      | 准确性     | CPU使用率 | 网络I/O | 适用场景                |
+| --------------- | ---------- | --------- | ------- | ----------------------- |
+| Reranker服务    | ⭐⭐⭐⭐⭐ | ~10%      | ✅ 有   | 生产RAG、准确性测试     |
+| Embedding + CPU | ⭐⭐⭐⭐   | 50-80%    | ✅ 有   | CPU性能测试（真实语义） |
+| 伪随机向量      | ⭐         | 70-100%   | ❌ 无   | 纯CPU性能测试           |
+| DelaySimulator  | N/A        | ~0%       | ❌ 无   | ❌ 不推荐（无资源争用） |
 
 ## Reranker vs Embedding 相似度
 
 ### Reranker 的优势
 
 1. **专门训练**: BGE-reranker 专门针对文档排序任务训练
-2. **交互建模**: 考虑 query 和 document 之间的交互关系
-3. **更高准确性**: 在排序任务上比简单的向量相似度更准确
+1. **交互建模**: 考虑 query 和 document 之间的交互关系
+1. **更高准确性**: 在排序任务上比简单的向量相似度更准确
 
 ### 使用建议
 
@@ -214,8 +224,8 @@ curl -X POST http://11.11.11.31:8907/v1/rerank \
 当同时设置多个标志时，优先级为：
 
 1. `use_reranker_service=True` → 使用真实 reranker 服务（最高优先级）
-2. `use_real_embedding=True` → 使用真实 embedding + CPU计算
-3. `use_real_embedding=False` → 使用确定性伪随机向量
+1. `use_real_embedding=True` → 使用真实 embedding + CPU计算
+1. `use_real_embedding=False` → 使用确定性伪随机向量
 
 ## 总结
 

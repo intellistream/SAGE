@@ -20,7 +20,7 @@ def test_minimal():
     print("=" * 80)
     print("Workload 4 最小测试")
     print("=" * 80)
-    
+
     # 使用最小配置
     config = Workload4Config(
         num_tasks=2,
@@ -33,19 +33,19 @@ def test_minimal():
         # 使用 mock 数据而不是真实 FiQA
         vdb_index_dir="/tmp/mock_vdb",  # 不存在的路径，会使用 mock
     )
-    
+
     print(f"Config: {config.num_tasks} tasks, {config.duration}s")
     print(f"VDB Index Dir: {config.vdb_index_dir}")
-    
+
     # 创建 pipeline
     pipeline = Workload4Pipeline(config)
-    
+
     print("\n构建 Pipeline...")
     pipeline.build(name="workload4_minimal_test")
-    
+
     print("\n✓ Pipeline 构建成功")
     print(f"Environment: {type(pipeline.env).__name__}")
-    
+
     # 尝试提交（这里会测试序列化）
     print("\n提交 Pipeline...")
     try:
@@ -55,6 +55,7 @@ def test_minimal():
     except Exception as e:
         print(f"✗ Pipeline 提交失败: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

@@ -41,6 +41,19 @@ https://arxiv.org/abs/2403.14403
     env.submit(autostop=True)
 """
 
+# SAGE 数据流 API 组件 - 流分支模式
+from .branch_pipeline import (
+    IterativeRetrievalStrategy,
+    MultiComplexityFilter,
+    # Strategy Functions
+    NoRetrievalStrategy,
+    SingleComplexityFilter,
+    SingleRetrievalStrategy,
+    # Filters
+    ZeroComplexityFilter,
+    # 构建函数
+    build_branching_adaptive_rag_pipeline,
+)
 from .classifier import QueryComplexityClassifier, QueryComplexityLevel
 from .functions import (
     AdaptiveRouterFunction,
@@ -52,34 +65,20 @@ from .pipeline import AdaptiveRAGPipeline
 
 # SAGE 数据流 API 组件 - Router 模式
 from .sage_dataflow_pipeline import (
-    # 数据结构
-    QueryData,
-    ResultData,
-    # Source
-    QuerySource,
+    AdaptiveRouterMapFunction,
     # Map Functions
     ClassifierMapFunction,
-    AdaptiveRouterMapFunction,
     # Filter
     ComplexityFilterFunction,
+    # 数据结构
+    QueryData,
+    # Source
+    QuerySource,
+    ResultData,
     # Sink
     ResultSink,
     # 构建函数
     build_adaptive_rag_pipeline,
-)
-
-# SAGE 数据流 API 组件 - 流分支模式
-from .branch_pipeline import (
-    # Filters
-    ZeroComplexityFilter,
-    SingleComplexityFilter,
-    MultiComplexityFilter,
-    # Strategy Functions
-    NoRetrievalStrategy,
-    SingleRetrievalStrategy,
-    IterativeRetrievalStrategy,
-    # 构建函数
-    build_branching_adaptive_rag_pipeline,
 )
 
 __all__ = [

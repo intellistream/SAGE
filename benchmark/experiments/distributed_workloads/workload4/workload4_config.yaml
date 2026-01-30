@@ -36,7 +36,7 @@ embedding_timeout: 30.0     # 超时时间（秒）
 # 知识库路径（可选）
 # None 表示使用内置模板生成
 # 如果指定路径，将从文件加载知识库
-knowledge_base_path: null   # 或 "/path/to/knowledge_base.jsonl"
+knowledge_base_path:        # 或 "/path/to/knowledge_base.jsonl"
 
 # 随机种子（用于可复现性）
 seed: 42
@@ -116,11 +116,11 @@ metrics_output_dir: "/tmp/sage_metrics_workload4"
 # === 集群配置 ===
 head_node: "11.11.11.7"         # 头节点 IP
 worker_nodes:                    # 工作节点列表
-  - "sage-node-1"
-  - "sage-node-2"
-  - "sage-node-3"
-  - "sage-node-4"
-  - "sage-node-5"
-  - "sage-node-6"
-  - "sage-node-7"
-  - "sage-node-8"
+- "sage-node-1"
+- "sage-node-2"
+- "sage-node-3"
+- "sage-node-4"
+- "sage-node-5"
+- "sage-node-6"
+- "sage-node-7"
+- "sage-node-8"

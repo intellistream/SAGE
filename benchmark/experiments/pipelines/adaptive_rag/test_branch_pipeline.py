@@ -9,18 +9,17 @@ This demonstrates SAGE's Multi-Branch Pipeline pattern:
 - Each branch processes independently and sinks results
 """
 
-import sys
-import time
 import os
-os.environ["SAGE_LOG_LEVEL"] = "ERROR"
+import time
 
-from sage.kernel.api import LocalEnvironment
-from sage.common.core import MapFunction, SinkFunction, SourceFunction, FilterFunction
+os.environ["SAGE_LOG_LEVEL"] = "ERROR"
 
 # Import classifier
 from sage.benchmark.benchmark_sage.experiments.pipelines.adaptive_rag.classifier import (
-    QueryComplexityLevel, create_classifier
+    create_classifier,
 )
+from sage.common.core import FilterFunction, MapFunction, SinkFunction, SourceFunction
+from sage.kernel.api import LocalEnvironment
 
 # ============================================================================
 # Define Operators
@@ -186,31 +185,27 @@ def main():
     env = LocalEnvironment("adaptive-rag-branch")
 
     # Shared upstream: Source -> Classifier
-    classified_stream = (
-        env.from_source(QuerySource, queries=test_queries, delay=0.1)
-        .map(ClassifierMap)
+    classified_stream = env.from_source(QuerySource, queries=test_queries, delay=0.1).map(
+        ClassifierMap
     )
 
     # Branch A: ZERO complexity
     (
-        classified_stream
-        .filter(ZeroFilter)
+        classified_stream.filter(ZeroFilter)
         .map(NoRetrievalMap)
         .sink(ResultSink, branch_name="ZERO", parallelism=1)
     )
 
     # Branch B: SINGLE complexity
     (
-        classified_stream
-        .filter(SingleFilter)
+        classified_stream.filter(SingleFilter)
         .map(SingleRetrievalMap)
         .sink(ResultSink, branch_name="SINGLE", parallelism=1)
     )
 
     # Branch C: MULTI complexity
     (
-        classified_stream
-        .filter(MultiFilter)
+        classified_stream.filter(MultiFilter)
         .map(IterativeRetrievalMap)
         .sink(ResultSink, branch_name="MULTI", parallelism=1)
     )

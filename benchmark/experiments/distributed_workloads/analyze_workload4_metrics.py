@@ -15,7 +15,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
 
@@ -102,7 +101,8 @@ def compute_quality_stats(df: pd.DataFrame) -> dict[str, Any]:
         "avg_vdb2_results": df["vdb2_results"].mean(),
         "avg_graph_nodes": df["graph_nodes_visited"].mean(),
         "avg_clusters": df["clusters_found"].mean(),
-        "dedup_rate": (df["duplicates_removed"] / (df["vdb1_results"] + df["vdb2_results"])).mean() * 100,
+        "dedup_rate": (df["duplicates_removed"] / (df["vdb1_results"] + df["vdb2_results"])).mean()
+        * 100,
         "avg_final_topk": df["final_top_k"].mean(),
     }
 
@@ -178,17 +178,17 @@ def generate_html_report(stats: dict[str, Any], output_path: Path) -> None:
 </head>
 <body>
     <h1>Workload 4 Performance Report</h1>
-    
+
     <h2>延迟统计</h2>
     <table>
         <tr><th>指标</th><th>值 (ms)</th></tr>
-        <tr><td>总任务数</td><td>{stats['latency']['count']}</td></tr>
-        <tr><td>平均延迟</td><td>{stats['latency']['mean']:.1f}</td></tr>
-        <tr><td>P50</td><td>{stats['latency']['p50']:.1f}</td></tr>
-        <tr><td>P95</td><td>{stats['latency']['p95']:.1f}</td></tr>
-        <tr><td>P99</td><td>{stats['latency']['p99']:.1f}</td></tr>
+        <tr><td>总任务数</td><td>{stats["latency"]["count"]}</td></tr>
+        <tr><td>平均延迟</td><td>{stats["latency"]["mean"]:.1f}</td></tr>
+        <tr><td>P50</td><td>{stats["latency"]["p50"]:.1f}</td></tr>
+        <tr><td>P95</td><td>{stats["latency"]["p95"]:.1f}</td></tr>
+        <tr><td>P99</td><td>{stats["latency"]["p99"]:.1f}</td></tr>
     </table>
-    
+
     <h2>各 Stage 延迟</h2>
     <table>
         <tr><th>Stage</th><th>P50 (ms)</th><th>P95 (ms)</th><th>P99 (ms)</th></tr>
@@ -197,14 +197,14 @@ def generate_html_report(stats: dict[str, Any], output_path: Path) -> None:
     for stage_name, stage_stats in stats["stages"].items():
         html += f"""        <tr>
             <td>{stage_name}</td>
-            <td>{stage_stats['p50']:.1f}</td>
-            <td>{stage_stats['p95']:.1f}</td>
-            <td>{stage_stats['p99']:.1f}</td>
+            <td>{stage_stats["p50"]:.1f}</td>
+            <td>{stage_stats["p95"]:.1f}</td>
+            <td>{stage_stats["p99"]:.1f}</td>
         </tr>
 """
 
     html += """    </table>
-    
+
     <h2>资源使用</h2>
     <table>
         <tr><th>指标</th><th>平均值</th><th>最大值</th></tr>
@@ -219,7 +219,7 @@ def generate_html_report(stats: dict[str, Any], output_path: Path) -> None:
             <td>{:.1f}</td>
         </tr>
     </table>
-    
+
     <h2>质量指标</h2>
     <table>
         <tr><th>指标</th><th>值</th></tr>

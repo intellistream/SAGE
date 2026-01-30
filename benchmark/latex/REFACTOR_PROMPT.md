@@ -5,19 +5,21 @@
 **你是一位经验丰富的 ICML 投稿人和审稿人，正在为 ICML 2026 准备一篇系统论文投稿。**
 
 你深谙 ICML 系统论文的写作规范：
+
 - **篇幅限制**：主文 8 页（不含参考文献），附录不限
 - **评审标准**：技术贡献清晰、实验充分、写作简洁
 - **常见拒稿原因**：内容冗长、贡献不突出、实现细节过多而缺乏洞察
 
 你的任务是将现有过于冗长的 Design Details 章节重构为符合 ICML 标准的精炼版本，同时将必要的技术细节移至附录以供审稿人深入了解。
 
----
+______________________________________________________________________
 
 ## 任务概述
 
 你需要将 `04.5_design.tex` 中的 Design Details 章节进行精简重构，目标是：
+
 1. **主文 (Design Details)**: 精简至 ICML 系统论文风格，约 2-2.5 页，聚焦核心架构和关键设计决策
-2. **附录 (Appendix)**: 将实现细节、完整组件列表、代码级描述移至此处
+1. **附录 (Appendix)**: 将实现细节、完整组件列表、代码级描述移至此处
 
 ## 重要原则
 
@@ -47,20 +49,21 @@ grep -r "class Dispatcher" packages/sage-kernel/
 
 ### 2. 关键代码路径 (必须核实)
 
-| 组件 | 预期路径 | 验证命令 |
-|------|----------|----------|
-| ExecutionGraph | `packages/sage-kernel/src/sage/kernel/` | `grep -r "class ExecutionGraph" packages/` |
-| TaskNode/TaskFactory | `packages/sage-kernel/src/sage/kernel/` | `grep -r "class TaskNode" packages/` |
-| BaseRouter | `packages/sage-kernel/src/sage/kernel/` | `grep -r "class BaseRouter" packages/` |
-| Dispatcher | `packages/sage-kernel/src/sage/kernel/` | `grep -r "class Dispatcher" packages/` |
-| BaseScheduler | `packages/sage-kernel/src/sage/kernel/` | `grep -r "class BaseScheduler" packages/` |
-| 队列描述符 | `packages/sage-platform/src/sage/platform/` | `grep -r "QueueDescriptor" packages/` |
-| RAG Operators | `packages/sage-middleware/src/sage/middleware/` | `ls packages/sage-middleware/src/sage/middleware/operators/` |
-| C++ 扩展 | `packages/sage-middleware/src/sage/middleware/components/` | `ls packages/sage-middleware/src/sage/middleware/components/` |
+| 组件                 | 预期路径                                                   | 验证命令                                                      |
+| -------------------- | ---------------------------------------------------------- | ------------------------------------------------------------- |
+| ExecutionGraph       | `packages/sage-kernel/src/sage/kernel/`                    | `grep -r "class ExecutionGraph" packages/`                    |
+| TaskNode/TaskFactory | `packages/sage-kernel/src/sage/kernel/`                    | `grep -r "class TaskNode" packages/`                          |
+| BaseRouter           | `packages/sage-kernel/src/sage/kernel/`                    | `grep -r "class BaseRouter" packages/`                        |
+| Dispatcher           | `packages/sage-kernel/src/sage/kernel/`                    | `grep -r "class Dispatcher" packages/`                        |
+| BaseScheduler        | `packages/sage-kernel/src/sage/kernel/`                    | `grep -r "class BaseScheduler" packages/`                     |
+| 队列描述符           | `packages/sage-platform/src/sage/platform/`                | `grep -r "QueueDescriptor" packages/`                         |
+| RAG Operators        | `packages/sage-middleware/src/sage/middleware/`            | `ls packages/sage-middleware/src/sage/middleware/operators/`  |
+| C++ 扩展             | `packages/sage-middleware/src/sage/middleware/components/` | `ls packages/sage-middleware/src/sage/middleware/components/` |
 
 ### 3. 包架构说明（main-dev 分支实际状态）
 
 **核心仓库内的包** (packages/ 目录下，共10个)：
+
 - `sage` - Meta-package (PyPI: `isage`)
 - `sage-common` - L1 Foundation (PyPI: `isage-common`)
 - `sage-platform` - L2 Platform (PyPI: `isage-platform`)
@@ -73,23 +76,24 @@ grep -r "class Dispatcher" packages/sage-kernel/
 
 **外部独立仓库的包** (作为 PyPI 依赖引入，已确认存在于 pyproject.toml)：
 
-| PyPI 包名 | 用途 | 依赖位置 |
-|----------|------|----------|
-| `isagellm` | LLM Gateway/Control Plane | `packages/sage/pyproject.toml` |
-| `isage-vdb` | SageVDB 向量数据库 (C++) | `packages/sage-middleware/pyproject.toml` |
-| `isage-neuromem` | NeuroMem 记忆系统 | `packages/sage-middleware/pyproject.toml` |
-| `isage-flow` | SageFlow 流处理 (C++) | `packages/sage-middleware/pyproject.toml` |
-| `isage-tsdb` | SageTSDB 时序数据库 (C++) | `packages/sage-middleware/pyproject.toml` |
-| `isage-refiner` | 上下文压缩 | `packages/sage-middleware/pyproject.toml` |
-| `isage-agentic` | Agent 框架 | `packages/sage-middleware/pyproject.toml` |
-| `isage-rag` | RAG 实现 | `packages/sage-middleware/pyproject.toml` |
-| `isage-eval` | 评估框架 | `packages/sage-middleware/pyproject.toml` |
-| `isage-finetune` | 微调工具 | `packages/sage-middleware/pyproject.toml` |
-| `isage-privacy` | 隐私保护 | `packages/sage-middleware/pyproject.toml` |
-| `isage-safety` | 安全护栏 | `packages/sage-middleware/pyproject.toml` |
-| `isage-studio` | 可视化工作流 | `packages/sage/pyproject.toml` (optional) |
+| PyPI 包名        | 用途                      | 依赖位置                                  |
+| ---------------- | ------------------------- | ----------------------------------------- |
+| `isagellm`       | LLM Gateway/Control Plane | `packages/sage/pyproject.toml`            |
+| `isage-vdb`      | SageVDB 向量数据库 (C++)  | `packages/sage-middleware/pyproject.toml` |
+| `isage-neuromem` | NeuroMem 记忆系统         | `packages/sage-middleware/pyproject.toml` |
+| `isage-flow`     | SageFlow 流处理 (C++)     | `packages/sage-middleware/pyproject.toml` |
+| `isage-tsdb`     | SageTSDB 时序数据库 (C++) | `packages/sage-middleware/pyproject.toml` |
+| `isage-refiner`  | 上下文压缩                | `packages/sage-middleware/pyproject.toml` |
+| `isage-agentic`  | Agent 框架                | `packages/sage-middleware/pyproject.toml` |
+| `isage-rag`      | RAG 实现                  | `packages/sage-middleware/pyproject.toml` |
+| `isage-eval`     | 评估框架                  | `packages/sage-middleware/pyproject.toml` |
+| `isage-finetune` | 微调工具                  | `packages/sage-middleware/pyproject.toml` |
+| `isage-privacy`  | 隐私保护                  | `packages/sage-middleware/pyproject.toml` |
+| `isage-safety`   | 安全护栏                  | `packages/sage-middleware/pyproject.toml` |
+| `isage-studio`   | 可视化工作流              | `packages/sage/pyproject.toml` (optional) |
 
 验证方法：
+
 ```bash
 # 检查 pyproject.toml 中的实际依赖
 grep -E "isage-" packages/sage-middleware/pyproject.toml
@@ -100,7 +104,7 @@ grep -r "from isage" packages/ --include="*.py" | head -10
 grep -r "import isage" packages/ --include="*.py" | head -10
 ```
 
----
+______________________________________________________________________
 
 ## 主文结构 (精简版 Design Details)
 
@@ -145,7 +149,7 @@ grep -r "import isage" packages/ --include="*.py" | head -10
 % - Inference Engine Integration (保留1段核心思想，细节移至 Appendix)
 ```
 
----
+______________________________________________________________________
 
 ## Appendix 结构
 
@@ -190,13 +194,14 @@ grep -r "import isage" packages/ --include="*.py" | head -10
 % 多后端支持
 ```
 
----
+______________________________________________________________________
 
 ## 代码验证 Checklist
 
 在编写/修改任何内容前，必须完成以下验证：
 
 ### Phase 1: 架构验证
+
 ```bash
 # 0. 确保在 main-dev 分支
 git checkout main-dev
@@ -212,6 +217,7 @@ done
 ```
 
 ### Phase 2: 核心组件验证
+
 ```bash
 # 3. ExecutionGraph 相关
 grep -rn "class ExecutionGraph" packages/sage-kernel/
@@ -234,6 +240,7 @@ grep -rn "recovery" packages/sage-kernel/ --include="*.py"
 ```
 
 ### Phase 3: 中间件验证
+
 ```bash
 # 7. Operators 结构
 ls packages/sage-middleware/src/sage/middleware/operators/ 2>/dev/null
@@ -246,29 +253,32 @@ grep -rn "RAGPipeline\|Retriever\|Refiner" packages/sage-middleware/
 ```
 
 ### Phase 4: 外部依赖验证
+
 ```bash
 # 10. 检查哪些是真实外部包，哪些是内部组件
 grep -E "isage-|isagellm" packages/*/pyproject.toml
 ```
 
----
+______________________________________________________________________
 
 ## 写作风格指南
 
 ### ICML 系统论文风格特点
 
 1. **简洁直接**：每个段落聚焦一个核心点
-2. **贡献导向**：强调"我们做了什么"而非"存在什么"
-3. **技术精确**：使用准确的术语，避免模糊描述
-4. **可验证性**：声明的功能必须有代码支撑
+1. **贡献导向**：强调"我们做了什么"而非"存在什么"
+1. **技术精确**：使用准确的术语，避免模糊描述
+1. **可验证性**：声明的功能必须有代码支撑
 
 ### 应保留的内容
+
 - 核心设计决策的 **why** 和 **how**
 - 与现有系统的差异化点
 - 性能/可扩展性相关的架构选择
 - 图/伪代码（如有）
 
 ### 应移至 Appendix 的内容
+
 - 完整的模块/类列表
 - 详细的接口定义
 - 实现级别的代码路径描述
@@ -276,71 +286,78 @@ grep -E "isage-|isagellm" packages/*/pyproject.toml
 - 配置选项列表
 
 ### 应删除的内容
+
 - 重复的解释
 - 过于明显的陈述
 - 与核心贡献无关的背景知识
 
----
+______________________________________________________________________
 
 ## 输出要求
 
 ### 文件 1: `04.5_design.tex` (重写)
+
 - 篇幅：约 120-150 行 LaTeX（不含注释）
 - 结构：保留 4-5 个 subsection
 - 每个 subsection：2-3 段，每段 4-6 句
 
 ### 文件 2: `appendix_design.tex` (新建)
+
 - 篇幅：约 200-300 行 LaTeX
 - 结构：6-8 个 subsection
 - 包含所有从主文移出的详细内容
 
 ### 验证报告
-在完成重构后，提供一份简短报告说明：
-1. 哪些组件在代码中得到验证
-2. 哪些描述需要根据实际代码进行修正
-3. 哪些功能是规划中但尚未实现的（应标注或移除）
 
----
+在完成重构后，提供一份简短报告说明：
+
+1. 哪些组件在代码中得到验证
+1. 哪些描述需要根据实际代码进行修正
+1. 哪些功能是规划中但尚未实现的（应标注或移除）
+
+______________________________________________________________________
 
 ## 示例：精简前后对比
 
 ### 精简前 (当前版本)
+
 ```latex
 \subsection{Compilation and Execution Graph}
 \label{subsec:dd_compilation}
-SAGE compiles a user-authored \emph{logical} pipeline DAG (a sequence of 
-transformations registered in the environment) into a \emph{physical} 
-execution graph that is explicit about parallelism, communication, and 
-routing. Concretely, the \texttt{ExecutionGraph} component in 
-\texttt{sage-kernel} lowers each logical operator (a 
-\texttt{BaseTransformation}) into a set of \emph{task replicas} according 
-to its declared parallelism; each replica is represented as a 
-\texttt{TaskNode} and is associated with a \texttt{TaskFactory} (which in 
-turn uses an \texttt{OperatorFactory}) to instantiate the runnable task. 
-For every logical edge between operators, the compiler materializes a 
-complete bipartite set of physical edges between upstream and downstream 
-replicas (i.e., an $m{\times}n$ expansion when the upstream and downstream 
-parallelisms are $m$ and $n$), producing an execution graph in which the 
+SAGE compiles a user-authored \emph{logical} pipeline DAG (a sequence of
+transformations registered in the environment) into a \emph{physical}
+execution graph that is explicit about parallelism, communication, and
+routing. Concretely, the \texttt{ExecutionGraph} component in
+\texttt{sage-kernel} lowers each logical operator (a
+\texttt{BaseTransformation}) into a set of \emph{task replicas} according
+to its declared parallelism; each replica is represented as a
+\texttt{TaskNode} and is associated with a \texttt{TaskFactory} (which in
+turn uses an \texttt{OperatorFactory}) to instantiate the runnable task.
+For every logical edge between operators, the compiler materializes a
+complete bipartite set of physical edges between upstream and downstream
+replicas (i.e., an $m{\times}n$ expansion when the upstream and downstream
+parallelisms are $m$ and $n$), producing an execution graph in which the
 degree of fan-out and fan-in is no longer implicit.
 ...
 [继续约20行关于边、队列、多输入的细节]
 ```
 
 ### 精简后 (目标版本)
+
 ```latex
 \subsection{Compilation and Execution}
 \label{subsec:compilation}
-SAGE compiles user-authored \emph{logical} DAGs into \emph{physical} 
-execution graphs that make parallelism and communication explicit. Each 
-logical operator is lowered into task replicas based on its declared 
-parallelism, and logical edges expand into $m{\times}n$ physical edges 
-connecting upstream and downstream replicas. Edges are materialized as 
-bounded channels that implement backpressure, ensuring that slow stages 
-throttle their producers rather than accumulating unbounded buffers. 
+SAGE compiles user-authored \emph{logical} DAGs into \emph{physical}
+execution graphs that make parallelism and communication explicit. Each
+logical operator is lowered into task replicas based on its declared
+parallelism, and logical edges expand into $m{\times}n$ physical edges
+connecting upstream and downstream replicas. Edges are materialized as
+bounded channels that implement backpressure, ensuring that slow stages
+throttle their producers rather than accumulating unbounded buffers.
 Implementation details appear in Appendix~\ref{sec:appendix_design}.
 ```
 
----
+______________________________________________________________________
 
 ## 最终检查清单
 
@@ -355,11 +372,12 @@ Implementation details appear in Appendix~\ref{sec:appendix_design}.
 - [ ] 交叉引用正确（主文引用 Appendix）
 - [ ] 无悬空引用或缺失定义
 
----
+______________________________________________________________________
 
 ## 附：当前 tex 文件结构概览 (main-dev 分支)
 
 **实际包结构** (已验证):
+
 ```
 packages/ 目录 (核心仓库内):
 ├── sage/              # Meta-package (isage)
@@ -404,6 +422,7 @@ packages/ 目录 (核心仓库内):
 ```
 
 建议精简后：
+
 ```
 04.5_design.tex 目标结构：
 ├── Design goals (精简)

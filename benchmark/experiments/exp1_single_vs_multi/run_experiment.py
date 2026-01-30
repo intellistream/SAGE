@@ -124,6 +124,7 @@ def run_single_experiment(
     elif pipeline_type == "adaptive_rag":
         # Adaptive-RAG: 根据 num_tasks 从 SAMPLE_QUERIES 生成 queries
         from common.operators import SAMPLE_QUERIES
+
         queries = []
         for i in range(num_tasks):
             queries.append(SAMPLE_QUERIES[i % len(SAMPLE_QUERIES)])

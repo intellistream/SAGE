@@ -21,28 +21,28 @@ from .models import (
     TaskState,
 )
 from .operators import (
+    # Adaptive-RAG operators
+    AdaptiveRAGQuerySource,
+    AdaptiveRAGResultSink,
     # General operators
     ComputeOperator,
-    LLMOperator,
-    MetricsSink,
-    RAGOperator,
-    TaskSource,
+    FinalSynthesizer,
     # FiQA operators
     FiQADataLoader,
     FiQAFAISSRetriever,
     FiQATaskSource,
-    # Adaptive-RAG operators
-    AdaptiveRAGQuerySource,
-    AdaptiveRAGResultSink,
-    FinalSynthesizer,
     IterativeReasoner,
     IterativeRetrievalInit,
     IterativeRetriever,
+    LLMOperator,
+    MetricsSink,
     MultiComplexityFilter,
     NoRetrievalStrategy,
     QueryClassifier,
+    RAGOperator,
     SingleComplexityFilter,
     SingleRetrievalStrategy,
+    TaskSource,
     ZeroComplexityFilter,
 )
 from .pipeline import SchedulingBenchmarkPipeline, register_fiqa_vdb_service

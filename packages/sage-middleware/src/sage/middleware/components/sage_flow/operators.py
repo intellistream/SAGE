@@ -53,7 +53,7 @@ import queue
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -352,7 +352,9 @@ class SageFlowAggregationOperator(MapFunction):
             self._query_buffer.append(data)
 
             # Check if window expired
-            window_expired = (current_time - self._buffer_start_time) * 1000 >= self.aggregation_window_ms
+            window_expired = (
+                current_time - self._buffer_start_time
+            ) * 1000 >= self.aggregation_window_ms
 
             if not window_expired:
                 # Not ready to aggregate yet, mark as pending
@@ -398,9 +400,7 @@ class SageFlowAggregationOperator(MapFunction):
             "aggregation_pending": False,
         }
 
-    def _find_similar_groups(
-        self, queries: list[dict[str, Any]]
-    ) -> list[list[dict[str, Any]]]:
+    def _find_similar_groups(self, queries: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
         """Find groups of similar queries using cosine similarity."""
         if not queries:
             return []

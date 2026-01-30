@@ -16,7 +16,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 
 
 def load_metrics(metrics_dir: Path) -> pd.DataFrame:
@@ -41,13 +40,22 @@ def plot_latency_distribution(df: pd.DataFrame, output_dir: Path) -> None:
     plt.subplot(1, 2, 1)
     plt.hist(latencies, bins=50, color="skyblue", edgecolor="black", alpha=0.7)
     plt.axvline(
-        latencies.quantile(0.50), color="green", linestyle="--", label=f"P50: {latencies.quantile(0.50):.1f} ms"
+        latencies.quantile(0.50),
+        color="green",
+        linestyle="--",
+        label=f"P50: {latencies.quantile(0.50):.1f} ms",
     )
     plt.axvline(
-        latencies.quantile(0.95), color="orange", linestyle="--", label=f"P95: {latencies.quantile(0.95):.1f} ms"
+        latencies.quantile(0.95),
+        color="orange",
+        linestyle="--",
+        label=f"P95: {latencies.quantile(0.95):.1f} ms",
     )
     plt.axvline(
-        latencies.quantile(0.99), color="red", linestyle="--", label=f"P99: {latencies.quantile(0.99):.1f} ms"
+        latencies.quantile(0.99),
+        color="red",
+        linestyle="--",
+        label=f"P99: {latencies.quantile(0.99):.1f} ms",
     )
     plt.xlabel("End-to-End Latency (ms)")
     plt.ylabel("Frequency")
@@ -119,7 +127,12 @@ def plot_resource_usage(df: pd.DataFrame, output_dir: Path) -> None:
     # CPU 时间分布
     plt.subplot(1, 2, 1)
     plt.hist(df["cpu_time"], bins=30, color="lightcoral", edgecolor="black", alpha=0.7)
-    plt.axvline(df["cpu_time"].mean(), color="red", linestyle="--", label=f"Mean: {df['cpu_time'].mean():.2f} s")
+    plt.axvline(
+        df["cpu_time"].mean(),
+        color="red",
+        linestyle="--",
+        label=f"Mean: {df['cpu_time'].mean():.2f} s",
+    )
     plt.xlabel("CPU Time (s)")
     plt.ylabel("Frequency")
     plt.title("CPU Time Distribution")
@@ -186,7 +199,13 @@ def plot_quality_metrics(df: pd.DataFrame, output_dir: Path) -> None:
 
     # 聚类数分布
     plt.subplot(2, 3, 5)
-    plt.hist(df["clusters_found"], bins=range(0, int(df["clusters_found"].max()) + 2), color="gold", edgecolor="black", alpha=0.7)
+    plt.hist(
+        df["clusters_found"],
+        bins=range(0, int(df["clusters_found"].max()) + 2),
+        color="gold",
+        edgecolor="black",
+        alpha=0.7,
+    )
     plt.xlabel("Clusters")
     plt.ylabel("Frequency")
     plt.title("Clustering Results")
@@ -226,7 +245,10 @@ def plot_latency_waterfall(df: pd.DataFrame, output_dir: Path) -> None:
     }
 
     stage_names = list(stages.keys())
-    stage_means = [stages[name].mean() if hasattr(stages[name], "mean") else stages[name] for name in stage_names]
+    stage_means = [
+        stages[name].mean() if hasattr(stages[name], "mean") else stages[name]
+        for name in stage_names
+    ]
 
     # 堆叠柱状图
     plt.figure(figsize=(14, 6))
@@ -237,7 +259,15 @@ def plot_latency_waterfall(df: pd.DataFrame, output_dir: Path) -> None:
         plt.barh(0, mean, left=bottom, height=0.5, color=colors[i], label=name, edgecolor="black")
         # 添加标签
         if mean > 20:  # 只显示超过 20ms 的标签
-            plt.text(bottom + mean / 2, 0, f"{mean:.0f}ms", ha="center", va="center", fontsize=9, fontweight="bold")
+            plt.text(
+                bottom + mean / 2,
+                0,
+                f"{mean:.0f}ms",
+                ha="center",
+                va="center",
+                fontsize=9,
+                fontweight="bold",
+            )
         bottom += mean
 
     plt.xlabel("Latency (ms)")
@@ -256,7 +286,9 @@ def plot_latency_waterfall(df: pd.DataFrame, output_dir: Path) -> None:
 def main():
     parser = argparse.ArgumentParser(description="Visualize Workload 4 metrics")
     parser.add_argument("metrics_dir", type=Path, help="Directory containing metrics.csv")
-    parser.add_argument("--output", type=Path, help="Output directory for plots (default: metrics_dir)")
+    parser.add_argument(
+        "--output", type=Path, help="Output directory for plots (default: metrics_dir)"
+    )
 
     args = parser.parse_args()
 

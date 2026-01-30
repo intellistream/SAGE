@@ -50,13 +50,15 @@ from .scheduler import HeadNodeScheduler
 
 class VectorJoinStrategy(str, Enum):
     """向量 Join 策略"""
-    IVF = "ivf"          # Inverted File Index - 快速近似匹配
-    HNSW = "hnsw"        # Hierarchical Navigable Small World - 高精度匹配
+
+    IVF = "ivf"  # Inverted File Index - 快速近似匹配
+    HNSW = "hnsw"  # Hierarchical Navigable Small World - 高精度匹配
     CLUSTERED = "clustered"  # Clustered Join - 批量窗口匹配
 
 
 class WindowType(str, Enum):
     """时间窗口类型"""
+
     SLIDING = "sliding"
     TUMBLING = "tumbling"
 
@@ -64,6 +66,7 @@ class WindowType(str, Enum):
 @dataclass
 class VectorJoinConfig:
     """Vector Join Pipeline 配置"""
+
     # 数据集
     num_samples: int = 100
     num_sources: int = 3
@@ -94,6 +97,7 @@ class VectorJoinConfig:
 @dataclass
 class VectorStreamItem:
     """向量流中的单个数据项"""
+
     item_id: str
     source_id: int
     source_name: str
@@ -106,6 +110,7 @@ class VectorStreamItem:
 @dataclass
 class MatchedPair:
     """匹配对"""
+
     item1: VectorStreamItem
     item2: VectorStreamItem
     similarity: float
@@ -147,6 +152,7 @@ class MultiSourceFunction(SourceFunction):
         from sage.data.sources.memagentbench.conflict_resolution_loader import (
             ConflictResolutionDataLoader,
         )
+
         loader = ConflictResolutionDataLoader()
         raw_data = loader.load()
 
@@ -165,13 +171,15 @@ class MultiSourceFunction(SourceFunction):
                     text = sample.get("answer", sample.get("response", ""))
 
                 if text:
-                    self._data.append(VectorStreamItem(
-                        item_id=f"item_{i}_{source_id}",
-                        source_id=source_id,
-                        source_name=source_names[source_id],
-                        text=text,
-                        timestamp_ms=base_time + i * 100 + source_id * 10,
-                    ))
+                    self._data.append(
+                        VectorStreamItem(
+                            item_id=f"item_{i}_{source_id}",
+                            source_id=source_id,
+                            source_name=source_names[source_id],
+                            text=text,
+                            timestamp_ms=base_time + i * 100 + source_id * 10,
+                        )
+                    )
 
         self._loaded = True
         print(f"📂 Loaded {len(self._data)} items from {self.num_sources} sources")
@@ -283,11 +291,13 @@ class VectorJoinMapFunction(MapFunction):
                 similarity = self._compute_similarity(item.embedding, other_item.embedding)
 
                 if similarity >= self.similarity_threshold:
-                    matched_pairs.append(MatchedPair(
-                        item1=item,
-                        item2=other_item,
-                        similarity=similarity,
-                    ))
+                    matched_pairs.append(
+                        MatchedPair(
+                            item1=item,
+                            item2=other_item,
+                            similarity=similarity,
+                        )
+                    )
 
         # 返回 TopK 匹配对
         if matched_pairs:
@@ -395,12 +405,15 @@ class VectorJoinSinkFunction(SinkFunction):
             self.results.append(result)
 
             status = "⚠️ CONFLICT" if pair.conflict_detected else "✅ MATCH"
-            print(f"{status} [{pair.item1.source_name}↔{pair.item2.source_name}] sim={pair.similarity:.3f}")
+            print(
+                f"{status} [{pair.item1.source_name}↔{pair.item2.source_name}] sim={pair.similarity:.3f}"
+            )
 
         if self.output_path:
             import json
+
             with open(self.output_path, "a") as f:
-                for r in self.results[-len(pairs):]:
+                for r in self.results[-len(pairs) :]:
                     f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
 

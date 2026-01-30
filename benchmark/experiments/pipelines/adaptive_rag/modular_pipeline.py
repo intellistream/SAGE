@@ -41,7 +41,6 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Any
 
 from sage.common.core import (
     FilterFunction,
@@ -56,7 +55,7 @@ from sage.kernel.api.remote_environment import RemoteEnvironment
 try:
     from .classifier import ClassificationResult, QueryComplexityLevel, create_classifier
 except ImportError:
-    from classifier import ClassificationResult, QueryComplexityLevel, create_classifier
+    from classifier import ClassificationResult, create_classifier
 
 
 # ============================================================================
@@ -67,6 +66,7 @@ except ImportError:
 @dataclass
 class QueryData:
     """查询数据"""
+
     query: str
     query_id: str = ""
     metadata: dict = field(default_factory=dict)
@@ -75,6 +75,7 @@ class QueryData:
 @dataclass
 class ClassifiedQuery:
     """分类后的查询"""
+
     query: str
     query_id: str
     complexity: str  # ZERO, SINGLE, MULTI
@@ -84,6 +85,7 @@ class ClassifiedQuery:
 @dataclass
 class RetrievalState:
     """检索状态 - 用于迭代检索"""
+
     query: str
     original_query: str
     query_id: str
@@ -99,6 +101,7 @@ class RetrievalState:
 @dataclass
 class PromptData:
     """Prompt 数据"""
+
     query: str
     query_id: str
     context: str
@@ -109,6 +112,7 @@ class PromptData:
 @dataclass
 class ResultData:
     """结果数据"""
+
     query: str
     answer: str
     strategy_used: str
@@ -161,7 +165,10 @@ class SimpleRetriever(MapFunction):
 
     # 简单知识库
     KNOWLEDGE_BASE = [
-        {"content": "Machine learning is a subset of artificial intelligence that learns from data.", "id": "1"},
+        {
+            "content": "Machine learning is a subset of artificial intelligence that learns from data.",
+            "id": "1",
+        },
         {"content": "Deep learning uses neural networks with multiple layers.", "id": "2"},
         {"content": "Python is a popular programming language for ML tasks.", "id": "3"},
         {"content": "BERT is a transformer-based model for NLP tasks.", "id": "4"},
@@ -191,11 +198,13 @@ class SimpleRetriever(MapFunction):
                 scored_docs.append({**doc, "score": overlap / len(query_words)})
 
         scored_docs.sort(key=lambda x: x["score"], reverse=True)
-        new_docs = scored_docs[:self.top_k]
+        new_docs = scored_docs[: self.top_k]
 
         # 更新状态
         state.retrieved_docs.extend(new_docs)
-        state.context = "\n".join([f"[Doc {i+1}]: {d['content']}" for i, d in enumerate(state.retrieved_docs)])
+        state.context = "\n".join(
+            [f"[Doc {i + 1}]: {d['content']}" for i, d in enumerate(state.retrieved_docs)]
+        )
 
         print(f"  🔍 Retrieved {len(new_docs)} new docs (total: {len(state.retrieved_docs)})")
 
@@ -228,7 +237,9 @@ class SimplePrompter(MapFunction):
 
             if self.template == "iterative":
                 # 迭代检索的最终合成 prompt
-                chain_text = "\n".join([f"Step {i+1}: {r}" for i, r in enumerate(data.reasoning_chain)])
+                chain_text = "\n".join(
+                    [f"Step {i + 1}: {r}" for i, r in enumerate(data.reasoning_chain)]
+                )
                 prompt = f"""Based on the following reasoning steps and gathered context, provide a comprehensive answer.
 
 Reasoning steps:
@@ -429,7 +440,7 @@ class StateToPrompt(MapFunction):
     """将 RetrievalState 转换为 PromptData（最终合成）"""
 
     def execute(self, state: RetrievalState) -> PromptData:
-        chain_text = "\n".join([f"Step {i+1}: {r}" for i, r in enumerate(state.reasoning_chain)])
+        chain_text = "\n".join([f"Step {i + 1}: {r}" for i, r in enumerate(state.reasoning_chain)])
         context = state.context or "No documents found."
 
         prompt = f"""Based on the reasoning steps and context, provide a comprehensive answer.
@@ -704,10 +715,8 @@ def main():
     test_queries = [
         # ZERO - 直接回答
         "What is 2 + 2?",
-
         # SINGLE - 需要检索
         "What is machine learning?",
-
         # MULTI - 复杂多步推理
         "Compare the differences between BERT and GPT, and explain how they relate to RAG systems.",
     ]

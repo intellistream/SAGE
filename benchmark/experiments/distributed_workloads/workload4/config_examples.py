@@ -22,16 +22,15 @@ def example_1_direct_config():
     print("=" * 80)
     print("示例 1: 直接使用配置类")
     print("=" * 80)
-    
+
     from workload4 import Workload4Config
-    
+
     # 创建配置
     config = Workload4Config(
         # 基础配置
         num_tasks=50,
         query_qps=20.0,
         doc_qps=15.0,
-        
         # 数据分布
         query_type_distribution={
             "factual": 0.5,
@@ -44,15 +43,13 @@ def example_1_direct_config():
             "general": 0.2,
             "healthcare": 0.0,  # 不生成医疗类
         },
-        
         # Embedding 服务
         embedding_base_url="http://11.11.11.7:8090/v1",
         embedding_model="BAAI/bge-large-en-v1.5",
-        
         # 随机种子
         seed=42,
     )
-    
+
     # 验证配置
     try:
         config.validate()
@@ -60,9 +57,9 @@ def example_1_direct_config():
     except AssertionError as e:
         print(f"❌ 配置错误: {e}")
         return
-    
+
     # 显示配置
-    print(f"\n配置详情:")
+    print("\n配置详情:")
     print(f"  任务数量: {config.num_tasks}")
     print(f"  Query QPS: {config.query_qps}")
     print(f"  Document QPS: {config.doc_qps}")
@@ -70,20 +67,20 @@ def example_1_direct_config():
     print(f"  预计运行时长: {config.num_tasks / config.query_qps:.1f}s")
     print(f"\n  查询类型分布: {config.query_type_distribution}")
     print(f"  类别分布: {config.category_distribution}")
-    
+
     # 使用配置创建源算子
     from workload4 import (
-        create_query_source,
         create_document_source,
         create_embedding_precompute,
+        create_query_source,
     )
-    
-    print(f"\n创建源算子...")
+
+    print("\n创建源算子...")
     query_source = create_query_source(config.__dict__)
     doc_source = create_document_source(config.__dict__)
     embedding_precompute = create_embedding_precompute(config.__dict__)
-    
-    print(f"✅ 源算子创建成功")
+
+    print("✅ 源算子创建成功")
     print(f"  Query Source: {query_source.__class__.__name__}")
     print(f"  Document Source: {doc_source.__class__.__name__}")
     print(f"  Embedding Precompute: {embedding_precompute.__class__.__name__}")
@@ -94,27 +91,27 @@ def example_2_yaml_config():
     print("\n" + "=" * 80)
     print("示例 2: 从 YAML 文件加载配置")
     print("=" * 80)
-    
+
     from workload4 import Workload4Config
-    
+
     # 检查配置文件是否存在
     config_file = Path(__file__).parent / "workload4_config.yaml"
     if not config_file.exists():
         print(f"❌ 配置文件不存在: {config_file}")
-        print(f"   请先创建配置文件")
+        print("   请先创建配置文件")
         return
-    
+
     print(f"加载配置文件: {config_file}")
-    
+
     # 加载 YAML 配置
     with open(config_file) as f:
         config_dict = yaml.safe_load(f)
-    
+
     # 创建配置对象
     config = Workload4Config(**config_dict)
-    
-    print(f"✅ 配置加载成功")
-    print(f"\n配置详情:")
+
+    print("✅ 配置加载成功")
+    print("\n配置详情:")
     print(f"  任务数量: {config.num_tasks}")
     print(f"  QPS: Query {config.query_qps} / Doc {config.doc_qps}")
     print(f"  节点数: {config.num_nodes}")
@@ -127,9 +124,9 @@ def example_3_custom_knowledge_base():
     print("\n" + "=" * 80)
     print("示例 3: 使用自定义知识库")
     print("=" * 80)
-    
+
     from workload4 import Workload4DocumentSource
-    
+
     # 创建自定义知识库
     knowledge_base = [
         {
@@ -148,11 +145,11 @@ def example_3_custom_knowledge_base():
             "content": "SAGE supports multiple scheduler strategies: FIFO, LoadAware, Priority, RoundRobin for distributed task execution.",
         },
     ]
-    
+
     print(f"创建知识库: {len(knowledge_base)} 个文档")
     for doc in knowledge_base:
         print(f"  - [{doc['id']}] {doc['title']}")
-    
+
     # 使用知识库创建文档源
     doc_source = Workload4DocumentSource(
         num_docs=10,  # 会循环采样知识库
@@ -160,8 +157,8 @@ def example_3_custom_knowledge_base():
         knowledge_base=knowledge_base,
         seed=42,
     )
-    
-    print(f"\n生成文档示例:")
+
+    print("\n生成文档示例:")
     count = 0
     for doc in doc_source.execute():
         if doc is not None and count < 3:
@@ -181,13 +178,14 @@ def example_4_load_from_file():
     print("\n" + "=" * 80)
     print("示例 4: 从文件加载知识库")
     print("=" * 80)
-    
+
     import json
+
     from workload4 import Workload4DocumentSource
-    
+
     # 创建示例知识库文件
     kb_file = Path("/tmp/test_knowledge_base.jsonl")
-    
+
     print(f"创建示例知识库文件: {kb_file}")
     with open(kb_file, "w", encoding="utf-8") as f:
         for i in range(5):
@@ -197,26 +195,26 @@ def example_4_load_from_file():
                 "content": f"This is test document number {i} with some example content.",
             }
             f.write(json.dumps(doc, ensure_ascii=False) + "\n")
-    
+
     # 从文件加载
-    print(f"从文件加载知识库...")
+    print("从文件加载知识库...")
     knowledge_base = []
     with open(kb_file, encoding="utf-8") as f:
         for line in f:
             if line.strip():
                 knowledge_base.append(json.loads(line))
-    
+
     print(f"✅ 加载成功: {len(knowledge_base)} 个文档")
-    
+
     # 使用加载的知识库
     doc_source = Workload4DocumentSource(
         num_docs=10,
         qps=10.0,
         knowledge_base=knowledge_base,
     )
-    
-    print(f"文档源创建成功，将生成 10 个文档（循环采样）")
-    
+
+    print("文档源创建成功，将生成 10 个文档（循环采样）")
+
     # 清理
     kb_file.unlink()
     print(f"清理临时文件: {kb_file}")
@@ -227,8 +225,8 @@ def example_5_pipeline_integration():
     print("\n" + "=" * 80)
     print("示例 5: Pipeline 集成示例（代码展示）")
     print("=" * 80)
-    
-    code = '''
+
+    code = """
 from sage.kernel.runtime import RemoteEnvironment
 from workload4 import (
     Workload4Config,
@@ -294,8 +292,8 @@ doc_stream = doc_stream.map(
 
 # 7. 执行 Pipeline
 env.submit(autostop=True)
-'''
-    
+"""
+
     print("Pipeline 集成代码结构:")
     print(code)
     print("\n注意: 完整 Pipeline 需要 Task 3-10 实现完成后才能运行")
@@ -310,7 +308,7 @@ def main():
         ("从文件加载", example_4_load_from_file),
         ("Pipeline 集成", example_5_pipeline_integration),
     ]
-    
+
     print("\n" + "=" * 80)
     print("Workload 4 双流源配置示例")
     print("=" * 80)
@@ -318,10 +316,10 @@ def main():
     for i, (name, _) in enumerate(examples, 1):
         print(f"  {i}. {name}")
     print()
-    
+
     choice = input("选择示例 (1-5, 或 'all' 运行全部): ").strip().lower()
     print()
-    
+
     if choice == "all":
         for name, func in examples:
             try:
@@ -336,6 +334,7 @@ def main():
         except Exception as e:
             print(f"❌ 运行失败: {e}")
             import traceback
+
             traceback.print_exc()
     else:
         print("无效选择，运行第一个示例...")

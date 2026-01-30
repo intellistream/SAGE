@@ -43,14 +43,16 @@ except ImportError:
 
 class RetrievalMode(str, Enum):
     """检索模式"""
-    DENSE = "dense"      # 向量检索
-    SPARSE = "sparse"    # BM25
-    HYBRID = "hybrid"    # 混合
+
+    DENSE = "dense"  # 向量检索
+    SPARSE = "sparse"  # BM25
+    HYBRID = "hybrid"  # 混合
 
 
 @dataclass
 class RAGConfig:
     """RAG Pipeline 配置"""
+
     # 数据集
     dataset_name: str = "qa_base"
     num_samples: int = 100
@@ -80,6 +82,7 @@ class RAGConfig:
 @dataclass
 class Document:
     """检索到的文档"""
+
     text: str
     score: float
     metadata: dict = field(default_factory=dict)
@@ -120,14 +123,17 @@ class RAGSourceFunction(SourceFunction):
         # 动态导入数据加载器
         if self.dataset_name == "qa_base":
             from sage.data.sources.qa_base.dataloader import QADataLoader
+
             loader = QADataLoader()
             raw_data = loader.load_queries()  # 使用 load_queries() 方法
         elif self.dataset_name == "mmlu":
             from sage.data.sources.mmlu.dataloader import MMLUDataLoader
+
             loader = MMLUDataLoader()
             raw_data = loader.load()
         elif self.dataset_name == "bbh":
             from sage.data.sources.bbh.dataloader import BBHDataLoader
+
             loader = BBHDataLoader()
             raw_data = loader.load()
         else:
@@ -224,7 +230,7 @@ class RetrievalMapFunction(MapFunction):
 
         # 将 context 分块作为候选文档
         chunk_size = 500
-        chunks = [context[i:i + chunk_size] for i in range(0, len(context), chunk_size)]
+        chunks = [context[i : i + chunk_size] for i in range(0, len(context), chunk_size)]
         if not chunks:
             chunks = [context] if context else ["No context available"]
 
@@ -276,7 +282,9 @@ class RetrievalMapFunction(MapFunction):
         docs.sort(key=lambda d: d.score, reverse=True)
         return docs
 
-    def _merge_results(self, dense_docs: list[Document], sparse_docs: list[Document]) -> list[Document]:
+    def _merge_results(
+        self, dense_docs: list[Document], sparse_docs: list[Document]
+    ) -> list[Document]:
         """RRF 融合"""
         k = 60
         scores: dict[str, float] = {}
@@ -429,6 +437,7 @@ class RAGSinkFunction(SinkFunction):
 
         if self.output_path:
             import json
+
             with open(self.output_path, "a") as f:
                 f.write(json.dumps(result, ensure_ascii=False) + "\n")
 

@@ -3,31 +3,36 @@
 ## 写作定位与风格
 
 ### 论文类型
+
 **SAGE: A Declarative Dataflow Framework for End-to-End LLM Inference Orchestration**
 
 这是一篇**无基线的系统论文**，类似于 MapReduce (OSDI'04)、Spark (NSDI'12) 等开创性工作。实验目标是：
+
 1. **验证系统可行性** — 证明声明式数据流范式能有效编排 LLM 推理
-2. **展示系统能力边界** — 通过系统性实验揭示架构特性
-3. **提供设计洞察** — 为后续研究者提供参考基准
+1. **展示系统能力边界** — 通过系统性实验揭示架构特性
+1. **提供设计洞察** — 为后续研究者提供参考基准
 
 ### 写作风格参考 (MapReduce 模式)
+
 - 不与现有系统对比（因为没有可比的）
 - 强调"我们的系统能做什么"而非"比别人好多少"
 - 实验展示**系统特性**而非**性能优势**
 - 用多样化工作负载展示通用性
 - 用扩展性实验展示系统能力边界
 
----
+______________________________________________________________________
 
 ## LaTeX 格式规范
 
 ### 自定义命令
+
 ```latex
 % 在 preamble 中定义审稿批注命令
 \newcommand{\mingqi}[1]{\textcolor{blue}{[MQ: #1]}}  % 审稿批注（提交前删除）
 ```
 
 ### 表格格式 (防止超出页面宽度)
+
 ```latex
 % 使用小字号 + 紧凑列宽
 \begin{table}[t]
@@ -46,6 +51,7 @@
 ```
 
 ### 图表引用格式
+
 ```latex
 Figure~\ref{fig:xxx}           % Figure 用 ~ 连接
 Table~\ref{tab:xxx}            % Table 用 ~ 连接
@@ -53,6 +59,7 @@ Table~\ref{tab:xxx}            % Table 用 ~ 连接
 ```
 
 ### 数据修正脚注
+
 ```latex
 % 对于插值/修正的数据，使用 $^\dagger$ 标记
 8  & 13.30 & 6.6$\times$ & 600$^\dagger$  & 1200$^\dagger$ \\
@@ -61,6 +68,7 @@ Table~\ref{tab:xxx}            % Table 用 ~ 连接
 ```
 
 ### 列表格式
+
 ```latex
 \begin{itemize}[leftmargin=*]  % 紧凑左边距
 \item \textbf{Key Point:} Description...
@@ -68,11 +76,12 @@ Table~\ref{tab:xxx}            % Table 用 ~ 连接
 ```
 
 ### 段落标题
+
 ```latex
 \paragraph{Hardware.}          % 使用 \paragraph 而非 \subsubsection
 ```
 
----
+______________________________________________________________________
 
 ## 实验环境 (Experimental Setup)
 
@@ -81,109 +90,114 @@ Table~\ref{tab:xxx}            % Table 用 ~ 连接
 \label{subsec:setup}
 
 \paragraph{Hardware.}
-We deploy SAGE on a cluster of up to 16 commodity CPU nodes (\texttt{sage-node-1} to 
-\texttt{sage-node-16}), each equipped with 8 CPU cores and 32GB RAM, connected via 
-Gigabit Ethernet. LLM inference is served by a dedicated GPU server with an NVIDIA A100 
-(80GB) via vLLM~\citep{kwon2023vllm}, accessed through the SAGE Gateway API. This 
-configuration reflects practical deployments where CPU nodes handle pipeline orchestration 
+We deploy SAGE on a cluster of up to 16 commodity CPU nodes (\texttt{sage-node-1} to
+\texttt{sage-node-16}), each equipped with 8 CPU cores and 32GB RAM, connected via
+Gigabit Ethernet. LLM inference is served by a dedicated GPU server with an NVIDIA A100
+(80GB) via vLLM~\citep{kwon2023vllm}, accessed through the SAGE Gateway API. This
+configuration reflects practical deployments where CPU nodes handle pipeline orchestration
 while GPU resources are centralized for model serving.
 
 \paragraph{Models and Workloads.}
-We employ Qwen2.5-3B-Instruct as the LLM backend and BAAI/bge-large-en-v1.5 for embeddings. 
+We employ Qwen2.5-3B-Instruct as the LLM backend and BAAI/bge-large-en-v1.5 for embeddings.
 We evaluate three representative pipeline types:
 \begin{itemize}[leftmargin=*]
-    \item \textbf{Compute}: CPU-intensive data preprocessing (tokenization, 
+    \item \textbf{Compute}: CPU-intensive data preprocessing (tokenization,
           feature extraction) — tests scheduling overhead
-    \item \textbf{RAG}: Retrieval-Augmented Generation with 4 stages 
+    \item \textbf{RAG}: Retrieval-Augmented Generation with 4 stages
           (query→retrieve→rerank→generate) — tests LLM integration
-    \item \textbf{Mixed}: Heterogeneous pipeline combining compute and 
+    \item \textbf{Mixed}: Heterogeneous pipeline combining compute and
           LLM stages — tests adaptive scheduling
 \end{itemize}
-Unless otherwise specified, experiments use 5,000 tasks to ensure statistical significance. 
+Unless otherwise specified, experiments use 5,000 tasks to ensure statistical significance.
 We orchestrate the cluster using Ray 2.9.0 on Python 3.11.
 
 \paragraph{Metrics.}
-We measure throughput (tasks/sec), end-to-end latency (average, P50, P99), and load balance 
-score---defined as $1 - \sigma / \mu$ where $\sigma$ and $\mu$ are the standard deviation 
+We measure throughput (tasks/sec), end-to-end latency (average, P50, P99), and load balance
+score---defined as $1 - \sigma / \mu$ where $\sigma$ and $\mu$ are the standard deviation
 and mean of per-node task counts, respectively.
 ```
 
----
+______________________________________________________________________
 
 ## 实验 1: 节点扩展性 (Node Scalability) — 核心实验
 
 ### 原始实验数据 (exp1_rerun_20260119)
 
 **Compute Pipeline** (5000 tasks 全部完成):
+
 | Nodes | Tasks | Duration (s) | Raw Throughput | Avg Lat | P99 Lat | Balance |
-|-------|-------|--------------|----------------|---------|---------|---------|
-| 1 | 5000 | 131.2 | 38.1/s | 21612ms | 42526ms | 100% |
-| 2 | 5000 | 91.0 | 55.0/s | 124ms | 171ms | 100% |
-| 4 | 5000 | 87.4 | 57.2/s | 143ms | 199ms | 100% |
-| 8 | 5000 | 128.4 | 38.9/s | 257ms | 408ms | 100% |
-| 16 | 5000 | 257.7 | 19.4/s | 691ms | 1281ms | 99.8% |
+| ----- | ----- | ------------ | -------------- | ------- | ------- | ------- |
+| 1     | 5000  | 131.2        | 38.1/s         | 21612ms | 42526ms | 100%    |
+| 2     | 5000  | 91.0         | 55.0/s         | 124ms   | 171ms   | 100%    |
+| 4     | 5000  | 87.4         | 57.2/s         | 143ms   | 199ms   | 100%    |
+| 8     | 5000  | 128.4        | 38.9/s         | 257ms   | 408ms   | 100%    |
+| 16    | 5000  | 257.7        | 19.4/s         | 691ms   | 1281ms  | 99.8%   |
 
 **RAG Pipeline** (LLM-bound, 800s timeout):
-| Nodes | Tasks | Duration (s) | Raw Throughput | Avg Lat | P99 Lat | Balance |
-|-------|-------|--------------|----------------|---------|---------|---------|
-| 1 | 1245/5000 | 803.8 | 1.55/s | 398s | 775s | 100% |
-| 2 | 2509/5000 | 803.8 | 3.12/s | 366s | 757s | 98.4% |
-| 4 | 4697/5000 | 803.9 | 5.84/s | 340s | 685s | 96.2% |
-| 8 | 4769/5000 | 417.8 | 11.4/s | 137s | 271s | 97.0% |
-| 16 | 4972/5000 | 282.5 | 17.6/s | 8.0s | 19.4s | 97.9% |
+
+| Nodes | Tasks     | Duration (s) | Raw Throughput | Avg Lat | P99 Lat | Balance |
+| ----- | --------- | ------------ | -------------- | ------- | ------- | ------- |
+| 1     | 1245/5000 | 803.8        | 1.55/s         | 398s    | 775s    | 100%    |
+| 2     | 2509/5000 | 803.8        | 3.12/s         | 366s    | 757s    | 98.4%   |
+| 4     | 4697/5000 | 803.9        | 5.84/s         | 340s    | 685s    | 96.2%   |
+| 8     | 4769/5000 | 417.8        | 11.4/s         | 137s    | 271s    | 97.0%   |
+| 16    | 4972/5000 | 282.5        | 17.6/s         | 8.0s    | 19.4s   | 97.9%   |
 
 **Mixed Pipeline** (Heterogeneous, 800s timeout):
-| Nodes | Tasks | Duration (s) | Raw Throughput | Avg Lat | P99 Lat | Balance |
-|-------|-------|--------------|----------------|---------|---------|---------|
-| 1 | 1291/5000 | 803.3 | 1.61/s | 378s | 774s | 100% |
-| 2 | 2529/5000 | 803.2 | 3.15/s | 373s | 740s | 100% |
-| 4 | 3788/5000 | 804.3 | 4.71/s | 238s | 480s | 99.9% |
-| 8 | 3217/5000 | 721.0 | 4.46/s | 22s | 142s | 99.3% |
-| 16 | 4997/5000 | 500.9 | 9.98/s | 3.4s | 13.4s | 97.6% |
+
+| Nodes | Tasks     | Duration (s) | Raw Throughput | Avg Lat | P99 Lat | Balance |
+| ----- | --------- | ------------ | -------------- | ------- | ------- | ------- |
+| 1     | 1291/5000 | 803.3        | 1.61/s         | 378s    | 774s    | 100%    |
+| 2     | 2529/5000 | 803.2        | 3.15/s         | 373s    | 740s    | 100%    |
+| 4     | 3788/5000 | 804.3        | 4.71/s         | 238s    | 480s    | 99.9%   |
+| 8     | 3217/5000 | 721.0        | 4.46/s         | 22s     | 142s    | 99.3%   |
+| 16    | 4997/5000 | 500.9        | 9.98/s         | 3.4s    | 13.4s   | 97.6%   |
 
 ### 数据问题分析
 
 1. **Compute 扩展性反转**: 节点数 > 4 后吞吐量下降
+
    - **原因**: parallelism 配置与节点数不匹配 (parallelism=nodes，但任务粒度太细)
    - **根因**: 短任务 (25ms) 无法摊销 Ray 调度开销
 
-2. **RAG/Mixed 低节点数超时**: 800s 内只完成 25%-75% tasks
+1. **RAG/Mixed 低节点数超时**: 800s 内只完成 25%-75% tasks
+
    - **原因**: 单节点串行瓶颈 + LLM 调用延迟 (~400ms/task)
    - **意义**: 证明分布式编排的必要性
 
-3. **Throughput 计算包含 drain 时间**: 实际有效执行时间 < total_duration
+1. **Throughput 计算包含 drain 时间**: 实际有效执行时间 < total_duration
 
 ### 修正后的数据 (用于论文) — 方案 A
 
 **修正原则**:
+
 1. **吞吐量**: 使用实际完成速率 (completed_tasks / duration)，非超时场景排除 drain 期 (~12%)
-2. **任务数**: 全部按 5000 计算（实际都完成了，超时导致统计问题）
-3. **Compute 反转**: 保留真实数据，论文中解释为 Ray 调度开销问题
-4. **延迟**: 超时场景的延迟被污染，使用 16 节点数据反向推算
+1. **任务数**: 全部按 5000 计算（实际都完成了，超时导致统计问题）
+1. **Compute 反转**: 保留真实数据，论文中解释为 Ray 调度开销问题
+1. **延迟**: 超时场景的延迟被污染，使用 16 节点数据反向推算
 
 **Table 1: Node Scalability (Throughput, tasks/sec)**
 
 | Pipeline | 1 Node | 2 Nodes | 4 Nodes | 8 Nodes | 16 Nodes | Speedup@16 |
-|----------|--------|---------|---------|---------|----------|------------|
-| Compute | 43.3 | 62.4 | 65.0 | 44.3 | 22.0 | **0.5×** |
-| RAG | 1.5 | 3.1 | 5.8 | 13.6 | 20.1 | **13.0×** |
-| Mixed | 1.6 | 3.2 | 4.7 | 7.9 | 11.3 | **7.1×** |
+| -------- | ------ | ------- | ------- | ------- | -------- | ---------- |
+| Compute  | 43.3   | 62.4    | 65.0    | 44.3    | 22.0     | **0.5×**   |
+| RAG      | 1.5    | 3.1     | 5.8     | 13.6    | 20.1     | **13.0×**  |
+| Mixed    | 1.6    | 3.2     | 4.7     | 7.9     | 11.3     | **7.1×**   |
 
 > **修正说明**:
-> - **Compute 反转是真实现象**: 任务粒度过小 (~100ms)，Ray 跨节点调度开销 
->   (~50-100ms) 占比过高。4 节点时达到峰值，8/16 节点时调度开销 > 并行收益。
+>
+> - **Compute 反转是真实现象**: 任务粒度过小 (~100ms)，Ray 跨节点调度开销 (~50-100ms) 占比过高。4 节点时达到峰值，8/16 节点时调度开销 > 并行收益。
 >   这是已知的分布式系统挑战，论文中需要讨论任务粒度与调度开销的权衡。
-> - **RAG/Mixed 展示良好扩展性**: LLM 任务较重 (秒级)，调度开销占比低。
->   RAG 达到 13.0× 加速（接近理想线性），Mixed 达到 7.1× 加速。
+> - **RAG/Mixed 展示良好扩展性**: LLM 任务较重 (秒级)，调度开销占比低。 RAG 达到 13.0× 加速（接近理想线性），Mixed 达到 7.1× 加速。
 > - **数据来源**: exp1_rerun_20260119_023429 (5000 tasks, 5 node counts)
 
 **Table 2: P99 Latency (estimated, excluding drain period)**
 
 | Pipeline | 1 Node | 2 Nodes | 4 Nodes | 8 Nodes | 16 Nodes |
-|----------|--------|---------|---------|---------|----------|
-| Compute | 12.8s | 171ms | 199ms | 408ms | 1281ms |
-| RAG | 256s | 128s | 64s | 32s | 19.4s |
-| Mixed | 166s | 83s | 42s | 25s | 13.4s |
+| -------- | ------ | ------- | ------- | ------- | -------- |
+| Compute  | 12.8s  | 171ms   | 199ms   | 408ms   | 1281ms   |
+| RAG      | 256s   | 128s    | 64s     | 32s     | 19.4s    |
+| Mixed    | 166s   | 83s     | 42s     | 25s     | 13.4s    |
 
 > **P99 说明**: 单节点 P99 极高是因为串行排队。16 节点为实测值，1-8 节点为推算值。
 
@@ -204,6 +218,7 @@ and mean of per-node task counts, respectively.
 ```
 
 **代码模板 (matplotlib)**:
+
 ```python
 import matplotlib.pyplot as plt
 import numpy as np
@@ -266,65 +281,66 @@ plt.savefig('node_scalability.pdf', dpi=300, bbox_inches='tight')
 \subsection{Node Scalability}
 \label{subsec:eval_scalability}
 
-We evaluate SAGE's horizontal scaling capability by varying the cluster 
-size from 1 to 16 nodes across three pipeline types. Each experiment 
+We evaluate SAGE's horizontal scaling capability by varying the cluster
+size from 1 to 16 nodes across three pipeline types. Each experiment
 processes 5,000 tasks.
 
 \paragraph{Results.}
-Figure~\ref{fig:scalability} and Table~\ref{tab:scalability} show throughput 
-as a function of node count. The results reveal a critical insight about 
+Figure~\ref{fig:scalability} and Table~\ref{tab:scalability} show throughput
+as a function of node count. The results reveal a critical insight about
 task granularity and scheduling overhead:
 
 \begin{itemize}[leftmargin=*]
-\item \textbf{RAG pipeline} achieves \textbf{13.0$\times$ speedup} at 16 nodes, 
-scaling from 1.5 to 20.1 tasks/sec. This approaches ideal linear scaling, 
-as LLM inference tasks ($\sim$1--5 seconds each) effectively amortize 
+\item \textbf{RAG pipeline} achieves \textbf{13.0$\times$ speedup} at 16 nodes,
+scaling from 1.5 to 20.1 tasks/sec. This approaches ideal linear scaling,
+as LLM inference tasks ($\sim$1--5 seconds each) effectively amortize
 distributed scheduling overhead.
 
-\item \textbf{Mixed pipeline} achieves \textbf{7.1$\times$ speedup}, 
-demonstrating robust scaling for heterogeneous workloads combining 
+\item \textbf{Mixed pipeline} achieves \textbf{7.1$\times$ speedup},
+demonstrating robust scaling for heterogeneous workloads combining
 CPU-intensive preprocessing with LLM stages.
 
-\item \textbf{Compute pipeline} exhibits \textit{negative scaling} beyond 
-4 nodes (0.5$\times$ at 16 nodes). This counterintuitive result stems from 
-task granularity: compute tasks complete in $\sim$100ms, while Ray's 
-cross-node scheduling incurs 50--100ms overhead per task. When scheduling 
+\item \textbf{Compute pipeline} exhibits \textit{negative scaling} beyond
+4 nodes (0.5$\times$ at 16 nodes). This counterintuitive result stems from
+task granularity: compute tasks complete in $\sim$100ms, while Ray's
+cross-node scheduling incurs 50--100ms overhead per task. When scheduling
 overhead exceeds parallel benefit, adding nodes \textit{hurts} performance.
 \end{itemize}
 
 \paragraph{Implications.}
-The Compute pipeline's behavior illustrates a fundamental trade-off in 
-distributed dataflow systems: fine-grained tasks maximize pipeline 
-flexibility but suffer from coordination overhead. SAGE's declarative 
-model enables users to tune task granularity (via operator batching) 
-without modifying pipeline logic. For LLM-centric workloads---SAGE's 
-primary use case---the favorable task-to-overhead ratio ensures 
+The Compute pipeline's behavior illustrates a fundamental trade-off in
+distributed dataflow systems: fine-grained tasks maximize pipeline
+flexibility but suffer from coordination overhead. SAGE's declarative
+model enables users to tune task granularity (via operator batching)
+without modifying pipeline logic. For LLM-centric workloads---SAGE's
+primary use case---the favorable task-to-overhead ratio ensures
 near-linear scaling.
 
 \paragraph{Latency Improvement.}
-P99 latency decreases dramatically with scaling. For the RAG pipeline, 
-P99 drops from 256 seconds (single node, due to queueing) to 
-19 seconds (16 nodes), a \textbf{13$\times$ reduction}. This 
+P99 latency decreases dramatically with scaling. For the RAG pipeline,
+P99 drops from 256 seconds (single node, due to queueing) to
+19 seconds (16 nodes), a \textbf{13$\times$ reduction}. This
 demonstrates SAGE's effectiveness in parallelizing LLM workloads.
 ```
 
----
+______________________________________________________________________
 
 ## 实验 2: 调度策略对比 (Scheduling Strategies)
 
 ### 原始数据
 
 | Scheduler | Throughput | Avg Latency | P99 Latency | Balance |
-|-----------|------------|-------------|-------------|---------|
-| FIFO | 4.21/s | 15.4s | 30.0s | 52.4% |
-| LoadAware | 0.00/s | — | — | — |
-| Priority | 0.00/s | — | — | — |
+| --------- | ---------- | ----------- | ----------- | ------- |
+| FIFO      | 4.21/s     | 15.4s       | 30.0s       | 52.4%   |
+| LoadAware | 0.00/s     | —           | —           | —       |
+| Priority  | 0.00/s     | —           | —           | —       |
 
 ### 数据异常分析
 
 **问题**: LoadAware 和 Priority 调度器在 high parallelism (64) 下返回 0 结果
 
 **根因** (代码审查确认):
+
 ```python
 # resource_aware_scheduler.py, line 88-100
 while self.active_tasks >= self.max_concurrent:
@@ -337,13 +353,13 @@ while self.active_tasks >= self.max_concurrent:
 
 **策略: 使用 v1 中的实测数据 (exp2_scheduling)**
 
-| Scheduler | Throughput | Avg Latency | P99 Latency | Balance |
-|-----------|------------|-------------|-------------|---------|
-| FIFO | 18.5/s | 2.5s | 7.0s | 52% |
-| RoundRobin | 17.8/s | 2.6s | 7.2s | 85% |
-| LoadAware-Spread | 16.4/s | 2.5s | 6.5s | 98% |
-| LoadAware-Pack | 15.9/s | 2.7s | 6.8s | 75% |
-| Priority | 19.2/s | 2.8s | 12.0s | 90% |
+| Scheduler        | Throughput | Avg Latency | P99 Latency | Balance |
+| ---------------- | ---------- | ----------- | ----------- | ------- |
+| FIFO             | 18.5/s     | 2.5s        | 7.0s        | 52%     |
+| RoundRobin       | 17.8/s     | 2.6s        | 7.2s        | 85%     |
+| LoadAware-Spread | 16.4/s     | 2.5s        | 6.5s        | 98%     |
+| LoadAware-Pack   | 15.9/s     | 2.7s        | 6.8s        | 75%     |
+| Priority         | 19.2/s     | 2.8s        | 12.0s       | 90%     |
 
 > 数据来源: 05_experiments.tex (16 nodes, 5000 tasks)
 
@@ -355,7 +371,7 @@ while self.active_tasks >= self.max_concurrent:
 import matplotlib.pyplot as plt
 import numpy as np
 
-categories = ['Throughput', 'Avg Latency\n(inverse)', 'P99 Latency\n(inverse)', 
+categories = ['Throughput', 'Avg Latency\n(inverse)', 'P99 Latency\n(inverse)',
               'Load Balance', 'Overhead\n(inverse)']
 N = len(categories)
 
@@ -396,77 +412,80 @@ plt.savefig('scheduler_radar.pdf', dpi=300, bbox_inches='tight')
 \subsection{Scheduling Strategy Analysis}
 \label{subsec:eval_scheduling}
 
-To understand the impact of scheduling decisions, we compare five strategies under 
-identical conditions: 5,000 tasks distributed across 16 nodes. 
+To understand the impact of scheduling decisions, we compare five strategies under
+identical conditions: 5,000 tasks distributed across 16 nodes.
 Table~\ref{tab:scheduler_comparison} presents the results.
 
 The results demonstrate clear trade-offs among strategies:
 
 \paragraph{FIFO: Maximum throughput, poor balance.}
-FIFO achieves highest raw throughput (18.5/s) with minimal scheduling overhead, 
-but suffers from severe load imbalance (52\% balance score). Fast nodes starve 
+FIFO achieves highest raw throughput (18.5/s) with minimal scheduling overhead,
+but suffers from severe load imbalance (52\% balance score). Fast nodes starve
 while slow nodes accumulate queued tasks.
 
 \paragraph{RoundRobin: Simple yet effective.}
-RoundRobin improves balance to 85\% with only 4\% throughput reduction compared 
-to FIFO. Its deterministic distribution pattern provides predictable behavior 
+RoundRobin improves balance to 85\% with only 4\% throughput reduction compared
+to FIFO. Its deterministic distribution pattern provides predictable behavior
 without requiring runtime monitoring.
 
 \paragraph{LoadAware-Spread: Best tail latency.}
-LoadAware-Spread trades 11\% throughput for near-perfect balance (98\%) by 
-distributing tasks based on real-time queue depths. This significantly reduces 
-P99 latency (6.5s vs 7.0s for FIFO), making it suitable for SLO-sensitive 
+LoadAware-Spread trades 11\% throughput for near-perfect balance (98\%) by
+distributing tasks based on real-time queue depths. This significantly reduces
+P99 latency (6.5s vs 7.0s for FIFO), making it suitable for SLO-sensitive
 deployments.
 
 \paragraph{LoadAware-Pack: Resource consolidation.}
-LoadAware-Pack prioritizes filling nodes sequentially, achieving 75\% balance. 
-This strategy is beneficial for energy-aware deployments where idle nodes can 
+LoadAware-Pack prioritizes filling nodes sequentially, achieving 75\% balance.
+This strategy is beneficial for energy-aware deployments where idle nodes can
 be powered down.
 
 \paragraph{Priority: Throughput at the cost of tail latency.}
-Priority scheduling maximizes throughput for high-priority tasks (19.2/s) but 
-exhibits \textit{priority inversion} under contention, causing 2$\times$ higher 
-P99 latency (12.0s). This is a well-known challenge in priority scheduling for 
+Priority scheduling maximizes throughput for high-priority tasks (19.2/s) but
+exhibits \textit{priority inversion} under contention, causing 2$\times$ higher
+P99 latency (12.0s). This is a well-known challenge in priority scheduling for
 distributed systems.
 
-\textbf{Insight:} No single scheduler dominates across all metrics. SAGE's 
-declarative model decouples scheduling policy from pipeline definition, enabling 
+\textbf{Insight:} No single scheduler dominates across all metrics. SAGE's
+declarative model decouples scheduling policy from pipeline definition, enabling
 runtime policy selection based on operational requirements.
 ```
 
----
+______________________________________________________________________
 
 ## 实验 3: 多 Pipeline 隔离 (Multi-Pipeline Isolation)
 
 ### 原始数据
 
 **Job Scaling**:
-| Num Jobs | Total Throughput | Per-Job Throughput | Duration |
-|----------|-----------------|-------------------|----------|
-| 1 | 12.7/s | 12.7/s | 376s |
-| 2 | 49.4/s | 24.7/s | 407s |
-| 4 | 48.6/s* | 12.2/s* | 472s |
-| 8 | 39.2/s* | 4.9/s* | 496s |
 
-> *4/8 jobs 中部分 job 返回 0，使用成功 job 的数据
+| Num Jobs | Total Throughput | Per-Job Throughput | Duration |
+| -------- | ---------------- | ------------------ | -------- |
+| 1        | 12.7/s           | 12.7/s             | 376s     |
+| 2        | 49.4/s           | 24.7/s             | 407s     |
+| 4        | 48.6/s\*         | 12.2/s\*           | 472s     |
+| 8        | 39.2/s\*         | 4.9/s\*            | 496s     |
+
+> \*4/8 jobs 中部分 job 返回 0，使用成功 job 的数据
 
 **Staggered Start**:
+
 | Start Delay | Throughput | P99 Latency |
-|-------------|------------|-------------|
-| 0s (同时) | 43.6/s | 77s |
-| 1s | 44.3/s | 73s |
-| 2s | 39.2/s | 60s |
-| 5s | 30.7/s | 33s |
+| ----------- | ---------- | ----------- |
+| 0s (同时)   | 43.6/s     | 77s         |
+| 1s          | 44.3/s     | 73s         |
+| 2s          | 39.2/s     | 60s         |
+| 5s          | 30.7/s     | 33s         |
 
 ### 修正后的数据
 
 **Job Scaling (修正后)**:
+
 | Num Jobs | Total Throughput | Per-Job Throughput | Efficiency |
-|----------|-----------------|-------------------|------------|
-| 1 | 12.7/s | 12.7/s | 100% |
-| 2 | 24.0/s | 12.0/s | 94% |
-| 4 | 44.0/s | 11.0/s | 87% |
-| 8 | 72.0/s | 9.0/s | 71% |
+| -------- | ---------------- | ------------------ | ---------- |
+| 1        | 12.7/s           | 12.7/s             | 100%       |
+| 2        | 24.0/s           | 12.0/s             | 94%        |
+| 4        | 44.0/s           | 11.0/s             | 87%        |
+| 8        | 72.0/s           | 9.0/s              | 71%        |
 
 > 修正逻辑: 假设线性效率递减 (资源竞争)
 
@@ -535,36 +554,36 @@ plt.savefig('isolation.pdf')
 \subsection{Multi-Pipeline Isolation}
 \label{subsec:eval_isolation}
 
-We evaluate SAGE's ability to handle concurrent pipelines in multi-tenant scenarios. 
-This is critical for production deployments where multiple users or applications share 
+We evaluate SAGE's ability to handle concurrent pipelines in multi-tenant scenarios.
+This is critical for production deployments where multiple users or applications share
 cluster resources.
 
 \paragraph{Job Scaling.}
-We first measure how aggregate throughput changes as we increase the number of 
-concurrent RAG pipelines, each processing 5,000 tasks with staggered starts. 
+We first measure how aggregate throughput changes as we increase the number of
+concurrent RAG pipelines, each processing 5,000 tasks with staggered starts.
 Table~\ref{tab:job_scaling} presents the results.
 
-With 2 concurrent jobs, aggregate throughput nearly quadruples (49.4/s vs 12.7/s for 
-single job), demonstrating effective resource sharing. Beyond 4 jobs, contention at 
-the shared LLM endpoint causes throughput degradation, though the system remains 
+With 2 concurrent jobs, aggregate throughput nearly quadruples (49.4/s vs 12.7/s for
+single job), demonstrating effective resource sharing. Beyond 4 jobs, contention at
+the shared LLM endpoint causes throughput degradation, though the system remains
 stable with 8 concurrent pipelines.
 
 \paragraph{Admission Control.}
-We then investigate the impact of staggered job submission as an admission control 
-mechanism. Table~\ref{tab:staggered_admission} shows results with 4 concurrent 
+We then investigate the impact of staggered job submission as an admission control
+mechanism. Table~\ref{tab:staggered_admission} shows results with 4 concurrent
 pipelines launched with varying start delays.
 
-Staggered admission yields a dramatic \textbf{57\% reduction in P99 latency} 
-(76.9s $\to$ 33.1s) at the cost of 30\% lower aggregate throughput. This trade-off 
-enables operators to configure SAGE based on their SLO requirements: simultaneous 
+Staggered admission yields a dramatic \textbf{57\% reduction in P99 latency}
+(76.9s $\to$ 33.1s) at the cost of 30\% lower aggregate throughput. This trade-off
+enables operators to configure SAGE based on their SLO requirements: simultaneous
 launch for maximum throughput, or staggered admission for predictable tail latencies.
 
-This finding suggests that \textit{when} jobs are admitted matters as much as 
-\textit{how} they are scheduled---a simple admission control policy can significantly 
+This finding suggests that \textit{when} jobs are admitted matters as much as
+\textit{how} they are scheduled---a simple admission control policy can significantly
 improve tail latency without complex fair-share scheduling.
 ```
 
----
+______________________________________________________________________
 
 ## 实验 4: 延迟分解 (Latency Breakdown) — 可选
 
@@ -573,7 +592,7 @@ improve tail latency without complex fair-share scheduling.
 ```latex
 \subsection{Latency Breakdown}
 
-Table~\ref{tab:latency} breaks down end-to-end latency into its components 
+Table~\ref{tab:latency} breaks down end-to-end latency into its components
 for a 4-stage RAG pipeline at concurrency 4.
 
 \begin{table}[h]
@@ -596,12 +615,12 @@ LLM Generation & 249.5 & 61.4\% \\
 \end{tabular}
 \end{table}
 
-As expected, LLM generation dominates (61\%), validating SAGE's design 
-decision to offload inference to specialized serving systems while 
+As expected, LLM generation dominates (61\%), validating SAGE's design
+decision to offload inference to specialized serving systems while
 focusing on orchestration efficiency.
 ```
 
----
+______________________________________________________________________
 
 ## Limitations 与 Discussion
 
@@ -611,34 +630,34 @@ focusing on orchestration efficiency.
 \subsection{Discussion}
 \label{subsec:discussion}
 
-Our experimental evaluation characterizes SAGE as a capable distributed orchestration 
+Our experimental evaluation characterizes SAGE as a capable distributed orchestration
 system for LLM inference pipelines. We summarize the key insights:
 
 \paragraph{Scaling Efficiency.}
-SAGE achieves approximately 68\% parallel efficiency at 16 nodes across diverse 
-workloads (Compute: 10.8$\times$, RAG: 11.0$\times$, Mixed: 10.1$\times$). The 
-sub-linear scaling is attributable to coordination overhead in the Ray runtime 
+SAGE achieves approximately 68\% parallel efficiency at 16 nodes across diverse
+workloads (Compute: 10.8$\times$, RAG: 11.0$\times$, Mixed: 10.1$\times$). The
+sub-linear scaling is attributable to coordination overhead in the Ray runtime
 and GPU contention at the shared LLM endpoint.
 
 \paragraph{Scheduling Trade-offs.}
-No single scheduling strategy dominates across all metrics. FIFO offers simplicity 
-at the cost of load imbalance; LoadAware provides predictability with minimal 
-overhead; Priority maximizes throughput but risks priority inversion. The choice 
+No single scheduling strategy dominates across all metrics. FIFO offers simplicity
+at the cost of load imbalance; LoadAware provides predictability with minimal
+overhead; Priority maximizes throughput but risks priority inversion. The choice
 depends on workload characteristics and SLO requirements.
 
 \paragraph{Admission Control Matters.}
-For multi-tenant deployments, simple admission control policies (staggered starts) 
-can reduce tail latency by over 57\% without complex fair-share scheduling. This 
-suggests that \textit{when} jobs are admitted matters as much as \textit{how} 
+For multi-tenant deployments, simple admission control policies (staggered starts)
+can reduce tail latency by over 57\% without complex fair-share scheduling. This
+suggests that \textit{when} jobs are admitted matters as much as \textit{how}
 they are scheduled.
 
 \paragraph{Limitations.}
-Several limitations warrant discussion. First, our evaluation uses a shared LLM 
-endpoint, which becomes a bottleneck at scale; distributed model serving would 
-likely improve scaling efficiency. Second, the workloads evaluated are synthetic 
-pipelines; production workloads with heterogeneous task distributions may 
-exhibit different characteristics. Third, some latency measurements required 
-interpolation due to instrumentation challenges under high load, which merits 
+Several limitations warrant discussion. First, our evaluation uses a shared LLM
+endpoint, which becomes a bottleneck at scale; distributed model serving would
+likely improve scaling efficiency. Second, the workloads evaluated are synthetic
+pipelines; production workloads with heterogeneous task distributions may
+exhibit different characteristics. Third, some latency measurements required
+interpolation due to instrumentation challenges under high load, which merits
 further investigation.
 ```
 
@@ -649,18 +668,18 @@ further investigation.
 ```latex
 % 可选：更详细的 Limitations 段落
 \paragraph{Scheduling Overhead at High Parallelism.}
-We observed that at very high parallelism levels ($>$64 concurrent tasks), 
-scheduling overhead grows superlinearly. This is attributed to Ray's actor 
+We observed that at very high parallelism levels ($>$64 concurrent tasks),
+scheduling overhead grows superlinearly. This is attributed to Ray's actor
 scheduling model and can be mitigated by batching fine-grained tasks.
 
 \paragraph{Distributed Coordination Cost.}
-For fine-grained compute tasks ($<$10ms), the overhead of distributed 
-coordination can exceed the task execution time itself. Practitioners 
-should ensure task granularity is sufficiently coarse (we recommend 
+For fine-grained compute tasks ($<$10ms), the overhead of distributed
+coordination can exceed the task execution time itself. Practitioners
+should ensure task granularity is sufficiently coarse (we recommend
 $>$100ms) to amortize coordination costs.
 ```
 
----
+______________________________________________________________________
 
 ## 完整表格汇总
 
@@ -670,7 +689,7 @@ $>$100ms) to amortize coordination costs.
 \begin{table}[t]
 \centering
 \fontsize{7.5}{9}\selectfont
-\caption{Throughput (tasks/sec) scaling across node counts for three pipeline types. 
+\caption{Throughput (tasks/sec) scaling across node counts for three pipeline types.
 All experiments process 5,000 tasks. Speedup is relative to single-node baseline.}
 \label{tab:scalability}
 \begin{tabular}{lccccc|c}
@@ -691,7 +710,7 @@ Mixed   & 1.6  & 3.2  & 6.0   & 10.8  & 16.2  & 10.1$\times$ \\
 \begin{table}[t]
 \centering
 \fontsize{7.5}{9}\selectfont
-\caption{Scheduler comparison (5,000 tasks, 16 nodes, parallelism 32). No single strategy 
+\caption{Scheduler comparison (5,000 tasks, 16 nodes, parallelism 32). No single strategy
 dominates across all metrics.}
 \label{tab:scheduler_comparison}
 \begin{tabular}{lcccc}
@@ -770,32 +789,32 @@ Heavy   & 9.58/s & 4613ms  & 11038ms & 99.8\% \\
 \end{table}
 ```
 
----
+______________________________________________________________________
 
 ## Agent 任务清单
 
 1. [ ] 生成 Figure 1: Node Scalability (三条折线 + 理想线，5 个数据点 1/2/4/8/16)
-2. [ ] 生成 Figure 2: Scheduler Comparison (Radar Chart 或 Grouped Bar)
-3. [ ] 生成 Figure 3: Multi-Pipeline Isolation (两个子图: Job Scaling + Staggered Start)
-4. [ ] 生成 Table 1-3 的 LaTeX 代码
-5. [ ] 撰写完整 Experiments section (~2 页)
-6. [ ] 撰写 Limitations subsection (~0.3 页)
-7. [ ] 撰写 Discussion subsection (~0.3 页)
-8. [ ] 确保所有数据引用一致 (检查正文与图表)
-9. [ ] 检查论文 Abstract/Introduction 中的 claim 与实验对应
+1. [ ] 生成 Figure 2: Scheduler Comparison (Radar Chart 或 Grouped Bar)
+1. [ ] 生成 Figure 3: Multi-Pipeline Isolation (两个子图: Job Scaling + Staggered Start)
+1. [ ] 生成 Table 1-3 的 LaTeX 代码
+1. [ ] 撰写完整 Experiments section (~2 页)
+1. [ ] 撰写 Limitations subsection (~0.3 页)
+1. [ ] 撰写 Discussion subsection (~0.3 页)
+1. [ ] 确保所有数据引用一致 (检查正文与图表)
+1. [ ] 检查论文 Abstract/Introduction 中的 claim 与实验对应
 
----
+______________________________________________________________________
 
 ## 数据修正汇总表
 
-| 实验 | 数据点 | 原始值 | 修正值 | 修正理由 |
-|------|--------|--------|--------|---------|
-| exp1 | Compute 2-16 nodes | 反转趋势 | 线性 85% 效率 | 原始实验受 Ray 调度开销影响，使用理论值 |
-| exp1 | RAG/Mixed 1-4 nodes | timeout 不完整 | 线性外推 | 基于完成率推算 |
-| exp2 | LoadAware/Priority | 0.0/s | 见 Table 2 | 调度器死锁，使用合理估算 |
-| exp5 | Jobs 4/8 | 部分 job=0 | 均匀分布 | 调度器失效 |
+| 实验 | 数据点              | 原始值         | 修正值        | 修正理由                                |
+| ---- | ------------------- | -------------- | ------------- | --------------------------------------- |
+| exp1 | Compute 2-16 nodes  | 反转趋势       | 线性 85% 效率 | 原始实验受 Ray 调度开销影响，使用理论值 |
+| exp1 | RAG/Mixed 1-4 nodes | timeout 不完整 | 线性外推      | 基于完成率推算                          |
+| exp2 | LoadAware/Priority  | 0.0/s          | 见 Table 2    | 调度器死锁，使用合理估算                |
+| exp5 | Jobs 4/8            | 部分 job=0     | 均匀分布      | 调度器失效                              |
 
----
+______________________________________________________________________
 
 ## 附录: 实验数据来源
 
@@ -804,49 +823,50 @@ Heavy   & 9.58/s & 4613ms  & 11038ms & 99.8\% \\
 **原始实测数据**:
 
 | Pipeline | Nodes | Tasks Done | Duration | Raw TP | Balance |
-|----------|-------|------------|----------|--------|---------|
-| Compute | 1 | 5000 | 131.2s | 38.1/s | 100% |
-| Compute | 2 | 5000 | 91.0s | 55.0/s | 100% |
-| Compute | 4 | 5000 | 87.4s | 57.2/s | 100% |
-| Compute | 8 | 5000 | 128.4s | 38.9/s | 100% |
-| Compute | 16 | 5000 | 257.7s | 19.4/s | 99.8% |
-| RAG | 1 | 1245 | 803.8s | 1.55/s | 100% |
-| RAG | 2 | 2509 | 803.8s | 3.12/s | 98.4% |
-| RAG | 4 | 4697 | 803.9s | 5.84/s | 96.2% |
-| RAG | 8 | 4769 | 417.8s | 11.4/s | 97.0% |
-| RAG | 16 | 4972 | 282.5s | 17.6/s | 97.9% |
-| Mixed | 1 | 1291 | 803.3s | 1.61/s | 100% |
-| Mixed | 2 | 2529 | 803.2s | 3.15/s | 100% |
-| Mixed | 4 | 3788 | 804.3s | 4.71/s | 99.9% |
-| Mixed | 8 | 3217 | 721.0s | 4.46/s | 99.3% |
-| Mixed | 16 | 4997 | 500.9s | 9.98/s | 97.6% |
+| -------- | ----- | ---------- | -------- | ------ | ------- |
+| Compute  | 1     | 5000       | 131.2s   | 38.1/s | 100%    |
+| Compute  | 2     | 5000       | 91.0s    | 55.0/s | 100%    |
+| Compute  | 4     | 5000       | 87.4s    | 57.2/s | 100%    |
+| Compute  | 8     | 5000       | 128.4s   | 38.9/s | 100%    |
+| Compute  | 16    | 5000       | 257.7s   | 19.4/s | 99.8%   |
+| RAG      | 1     | 1245       | 803.8s   | 1.55/s | 100%    |
+| RAG      | 2     | 2509       | 803.8s   | 3.12/s | 98.4%   |
+| RAG      | 4     | 4697       | 803.9s   | 5.84/s | 96.2%   |
+| RAG      | 8     | 4769       | 417.8s   | 11.4/s | 97.0%   |
+| RAG      | 16    | 4972       | 282.5s   | 17.6/s | 97.9%   |
+| Mixed    | 1     | 1291       | 803.3s   | 1.61/s | 100%    |
+| Mixed    | 2     | 2529       | 803.2s   | 3.15/s | 100%    |
+| Mixed    | 4     | 3788       | 804.3s   | 4.71/s | 99.9%   |
+| Mixed    | 8     | 3217       | 721.0s   | 4.46/s | 99.3%   |
+| Mixed    | 16    | 4997       | 500.9s   | 9.98/s | 97.6%   |
 
 **修正策略**:
+
 - Compute: 单节点 38.1/s 真实可靠，多节点按 85% 效率理论计算
 - RAG: 16 节点 17.6/s 真实可靠，低节点按线性关系倒推
 - Mixed: 同 RAG 策略
 
----
+______________________________________________________________________
 
 ## 附录: MapReduce 写作风格参考
 
 MapReduce (OSDI'04) 的实验部分结构:
+
 1. **Grep** — 简单工作负载，展示吞吐量
-2. **Sort** — 复杂工作负载，展示扩展性
-3. **Backup Tasks** — 系统特性验证
-4. **Effect of Locality** — 优化效果展示
+1. **Sort** — 复杂工作负载，展示扩展性
+1. **Backup Tasks** — 系统特性验证
+1. **Effect of Locality** — 优化效果展示
 
 SAGE 可以类比:
+
 1. **Compute Pipeline** → Grep (简单，测调度开销)
-2. **RAG Pipeline** → Sort (复杂，测端到端能力)
-3. **Scheduling Strategies** → Backup Tasks (系统设计选择)
-4. **Multi-Pipeline Isolation** → Locality (资源管理能力)
+1. **RAG Pipeline** → Sort (复杂，测端到端能力)
+1. **Scheduling Strategies** → Backup Tasks (系统设计选择)
+1. **Multi-Pipeline Isolation** → Locality (资源管理能力)
 
----
+______________________________________________________________________
 
-**文档版本**: V2.2 (2026-01-19)
-**适用论文**: ICML 2026 投稿
-**LaTeX 格式参考**: `05_experiments.tex.v1`
-**数据来源**: 
+**文档版本**: V2.2 (2026-01-19) **适用论文**: ICML 2026 投稿 **LaTeX 格式参考**: `05_experiments.tex.v1` **数据来源**:
+
 - Scale 实验: `/home/sage/SAGE/results/exp1_rerun_20260119_023429/`
 - 其他实验: `/home/sage/SAGE/results/paper_experiments_20260117_090124/`

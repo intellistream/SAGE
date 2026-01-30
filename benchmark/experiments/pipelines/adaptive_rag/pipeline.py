@@ -39,9 +39,7 @@ from typing import Any
 
 from .classifier import (
     ClassificationResult,
-    QueryComplexityClassifier,
     QueryComplexityLevel,
-    RuleBasedClassifier,
     create_classifier,
 )
 from .functions import (
@@ -87,12 +85,14 @@ class PipelineMetrics:
     """Pipeline 运行指标"""
 
     total_queries: int = 0
-    classification_counts: dict[str, int] = field(
-        default_factory=lambda: {"A": 0, "B": 0, "C": 0}
-    )
+    classification_counts: dict[str, int] = field(default_factory=lambda: {"A": 0, "B": 0, "C": 0})
     avg_latency_ms: float = 0.0
     strategy_latencies: dict[str, float] = field(
-        default_factory=lambda: {"no_retrieval": 0.0, "single_retrieval": 0.0, "iterative_retrieval": 0.0}
+        default_factory=lambda: {
+            "no_retrieval": 0.0,
+            "single_retrieval": 0.0,
+            "iterative_retrieval": 0.0,
+        }
     )
     errors: int = 0
 

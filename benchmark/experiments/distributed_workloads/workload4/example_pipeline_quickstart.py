@@ -17,20 +17,20 @@ try:
         Workload4Config,
         Workload4Pipeline,
         create_workload4_pipeline,
-        run_workload4,
         register_all_services,
+        run_workload4,
     )
+
     from config import Workload4Config
 except ImportError:
     # 如果在包内运行
+    from .config import Workload4Config
     from .pipeline import (
         Workload4Config,
         Workload4Pipeline,
         create_workload4_pipeline,
-        run_workload4,
         register_all_services,
     )
-    from .config import Workload4Config
 
 
 def example_1_minimal():
@@ -38,18 +38,18 @@ def example_1_minimal():
     print("\n" + "=" * 80)
     print("Example 1: Minimal Test")
     print("=" * 80)
-    
+
     pipeline = create_workload4_pipeline(
         num_tasks=5,
         duration=30,
         use_remote=False,  # Local 环境
         query_qps=1.0,
-        doc_qps=1.0
+        doc_qps=1.0,
     )
-    
+
     pipeline.build(name="example_minimal")
     metrics = pipeline.run()
-    
+
     print(f"\n✓ Completed in {metrics.end_to_end_time:.2f}s")
 
 
@@ -58,7 +58,7 @@ def example_2_custom_config():
     print("\n" + "=" * 80)
     print("Example 2: Custom Configuration")
     print("=" * 80)
-    
+
     config = Workload4Config(
         num_tasks=10,
         duration=60,
@@ -68,11 +68,11 @@ def example_2_custom_config():
         join_window_seconds=30,  # 较小的窗口
         rerank_top_k=10,
     )
-    
+
     pipeline = Workload4Pipeline(config)
     pipeline.build(name="example_custom")
     metrics = pipeline.run()
-    
+
     print(f"\n✓ Completed in {metrics.end_to_end_time:.2f}s")
 
 
@@ -81,19 +81,19 @@ def example_3_service_registration_only():
     print("\n" + "=" * 80)
     print("Example 3: Service Registration Only")
     print("=" * 80)
-    
+
     from sage.kernel.api.local_environment import LocalEnvironment
-    
+
     env = LocalEnvironment(name="example_services")
     config = Workload4Config()
-    
+
     results = register_all_services(env, config)
-    
-    print(f"\nService Registration Results:")
+
+    print("\nService Registration Results:")
     for service_name, success in results.items():
         status = "✓" if success else "✗"
         print(f"  {status} {service_name}")
-    
+
     print(f"\n✓ {sum(results.values())}/{len(results)} services registered successfully")
 
 
@@ -102,10 +102,10 @@ def example_4_convenience_api():
     print("\n" + "=" * 80)
     print("Example 4: Convenience API")
     print("=" * 80)
-    
+
     # 注意: 这会实际运行 Pipeline
     # 在这个示例中我们不执行，只展示用法
-    
+
     code = """
     # 一键运行完整工作流
     metrics = run_workload4(
@@ -116,10 +116,10 @@ def example_4_convenience_api():
         query_qps=40.0,
         doc_qps=25.0
     )
-    
+
     print(f"End-to-End Time: {metrics.end_to_end_time}s")
     """
-    
+
     print("\nCode Example:")
     print(code)
     print("\n(Not executed in this demo)")
@@ -132,18 +132,18 @@ def main():
     print("=" * 80)
     print("This script demonstrates various ways to use the Workload 4 Pipeline.")
     print("=" * 80)
-    
+
     # 示例 3: 仅注册服务（不运行 Pipeline，避免耗时）
     example_3_service_registration_only()
-    
+
     # 示例 4: 便捷 API（仅展示用法）
     example_4_convenience_api()
-    
+
     # 其他示例需要实际运行 Pipeline，这里跳过
     # 如果需要，可以取消注释运行
     # example_1_minimal()
     # example_2_custom_config()
-    
+
     print("\n" + "=" * 80)
     print("All Examples Completed!")
     print("=" * 80)

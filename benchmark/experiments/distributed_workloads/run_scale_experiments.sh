@@ -1,7 +1,7 @@
 #!/bin/bash
 ################################################################################
 # Workload 4 规模化实验执行脚本
-# 
+#
 # 用途: 自动化执行不同节点规模 (1, 2, 4, 8) 的 Workload 4 实验
 # 输出: 每次实验的指标数据和日志
 #
@@ -137,19 +137,19 @@ EOF
 # 检查前置条件
 check_prerequisites() {
     print_info "检查前置条件..."
-    
+
     # 检查 Python 脚本是否存在
     if [[ ! -f "${SCRIPT_DIR}/run_workload4.py" ]]; then
         print_error "找不到 run_workload4.py"
         exit 1
     fi
-    
+
     # 检查 Ray 集群状态
     if ! command -v ray &> /dev/null; then
         print_error "Ray 未安装"
         exit 1
     fi
-    
+
     ray status &> /dev/null || {
         print_warning "Ray 集群未启动，尝试启动..."
         sage jobmanager start || {
@@ -157,30 +157,30 @@ check_prerequisites() {
             exit 1
         }
     }
-    
+
     # 检查服务可用性
     print_info "检查 Embedding 服务..."
     curl -s -f http://11.11.11.7:8090/v1/models &> /dev/null || {
         print_warning "Embedding 服务可能未启动 (http://11.11.11.7:8090)"
     }
-    
+
     print_info "检查 LLM 服务..."
     curl -s -f http://11.11.11.7:8904/v1/models &> /dev/null || {
         print_warning "LLM 服务可能未启动 (http://11.11.11.7:8904)"
     }
-    
+
     print_info "✓ 前置条件检查完成"
 }
 
 # 创建输出目录
 setup_directories() {
     print_info "创建输出目录: ${OUTPUT_BASE_DIR}"
-    
+
     mkdir -p "${OUTPUT_BASE_DIR}/logs"
     mkdir -p "${OUTPUT_BASE_DIR}/metrics"
     mkdir -p "${OUTPUT_BASE_DIR}/configs"
     mkdir -p "${OUTPUT_BASE_DIR}/results"
-    
+
     # 保存实验配置
     cat > "${OUTPUT_BASE_DIR}/experiment_config.yaml" << EOF
 # Workload 4 规模化实验配置
@@ -206,7 +206,7 @@ output:
   metrics_dir: ${OUTPUT_BASE_DIR}/metrics
   results_dir: ${OUTPUT_BASE_DIR}/results
 EOF
-    
+
     print_info "✓ 目录结构创建完成"
 }
 
@@ -214,14 +214,14 @@ EOF
 run_single_experiment() {
     local num_nodes=$1
     local rep=$2
-    
+
     local exp_id="nodes${num_nodes}_rep${rep}"
     local log_file="${OUTPUT_BASE_DIR}/logs/${exp_id}.log"
     local metrics_dir="${OUTPUT_BASE_DIR}/metrics/${exp_id}"
     local config_file="${OUTPUT_BASE_DIR}/configs/${exp_id}.yaml"
-    
+
     print_banner "实验 ${exp_id}: ${num_nodes} 节点 (第 ${rep}/${REPETITIONS} 次)"
-    
+
     # 生成配置文件
     cat > "${config_file}" << EOF
 # Workload 4 配置 - ${exp_id}
@@ -243,42 +243,42 @@ metrics_output_dir: ${metrics_dir}
 enable_profiling: true
 enable_detailed_metrics: true
 EOF
-    
+
     print_info "配置文件: ${config_file}"
     print_info "日志文件: ${log_file}"
     print_info "指标目录: ${metrics_dir}"
-    
+
     # 清理旧的指标文件
     rm -rf "${metrics_dir}"
     mkdir -p "${metrics_dir}"
-    
+
     # 运行实验
     local start_time=$(date +%s)
-    
+
     print_info "开始运行 (预计时长: ${DURATION}秒)..."
-    
+
     if python "${SCRIPT_DIR}/run_workload4.py" \
         --config "${config_file}" \
         --verbose \
         > "${log_file}" 2>&1; then
-        
+
         local end_time=$(date +%s)
         local elapsed=$((end_time - start_time))
-        
+
         print_info "✓ 实验完成 (用时: ${elapsed}秒)"
-        
+
         # 检查指标文件
         local metric_files=$(find "${metrics_dir}" -name "metrics_*.jsonl" 2>/dev/null | wc -l)
         print_info "收集到 ${metric_files} 个指标文件"
-        
+
         return 0
     else
         local end_time=$(date +%s)
         local elapsed=$((end_time - start_time))
-        
+
         print_error "实验失败 (用时: ${elapsed}秒)"
         print_error "详见日志: ${log_file}"
-        
+
         return 1
     fi
 }
@@ -286,34 +286,34 @@ EOF
 # 收集和汇总结果
 collect_results() {
     print_banner "收集实验结果"
-    
+
     local summary_file="${OUTPUT_BASE_DIR}/results/summary.csv"
     local report_file="${OUTPUT_BASE_DIR}/results/REPORT.md"
-    
+
     print_info "生成汇总报告..."
-    
+
     # CSV 表头
     echo "experiment_id,num_nodes,repetition,total_tasks,success_count,fail_count,elapsed_sec,throughput_tps,avg_latency_ms,p50_latency_ms,p95_latency_ms,p99_latency_ms" > "${summary_file}"
-    
+
     # 遍历所有实验结果
     local total_experiments=0
     local successful_experiments=0
-    
+
     for num_nodes in ${NODE_SCALES}; do
         for rep in $(seq 1 ${REPETITIONS}); do
             local exp_id="nodes${num_nodes}_rep${rep}"
             local metrics_dir="${OUTPUT_BASE_DIR}/metrics/${exp_id}"
-            
+
             total_experiments=$((total_experiments + 1))
-            
+
             # 查找 summary 文件
             local summary_files=$(find "${metrics_dir}" -name "metrics_*.jsonl" 2>/dev/null)
-            
+
             if [[ -n "${summary_files}" ]]; then
                 # 提取最后一行（summary）
                 for file in ${summary_files}; do
                     local summary_line=$(grep '"type":"summary"' "${file}" | tail -1)
-                    
+
                     if [[ -n "${summary_line}" ]]; then
                         # 使用 Python 解析 JSON
                         python3 << EOF >> "${summary_file}"
@@ -322,7 +322,7 @@ import sys
 
 try:
     data = json.loads('''${summary_line}''')
-    
+
     print(f"${exp_id},${num_nodes},${rep},"
           f"{data.get('total_tasks', 0)},"
           f"{data.get('success_count', 0)},"
@@ -343,10 +343,10 @@ EOF
             fi
         done
     done
-    
+
     print_info "✓ 汇总完成: ${summary_file}"
     print_info "成功实验: ${successful_experiments}/${total_experiments}"
-    
+
     # 生成 Markdown 报告
     generate_report "${report_file}" "${summary_file}" ${successful_experiments} ${total_experiments}
 }
@@ -357,7 +357,7 @@ generate_report() {
     local summary_file=$2
     local successful=$3
     local total=$4
-    
+
     cat > "${report_file}" << EOF
 # Workload 4 规模化实验报告
 
@@ -444,7 +444,7 @@ python compare_schedulers.py \\
 
 $(date)
 EOF
-    
+
     print_info "✓ 报告生成: ${report_file}"
 }
 
@@ -455,9 +455,9 @@ EOF
 main() {
     # 解析命令行参数
     parse_args "$@"
-    
+
     print_banner "Workload 4 规模化实验"
-    
+
     echo "实验配置:"
     echo "  节点规模: ${NODE_SCALES}"
     echo "  调度器: ${SCHEDULER}"
@@ -465,12 +465,12 @@ main() {
     echo "  时长: ${DURATION}s"
     echo "  重复: ${REPETITIONS}次"
     echo "  输出: ${OUTPUT_BASE_DIR}"
-    
+
     if [[ ${QUICK_MODE} -eq 1 ]]; then
         echo ""
         print_warning "快速测试模式 (缩小规模)"
     fi
-    
+
     echo ""
     read -p "继续实验？(y/N) " -n 1 -r
     echo
@@ -478,32 +478,32 @@ main() {
         print_info "实验取消"
         exit 0
     fi
-    
+
     # 检查前置条件
     check_prerequisites
-    
+
     # 创建目录结构
     setup_directories
-    
+
     # 执行所有实验
     local experiment_count=0
     local success_count=0
     local fail_count=0
-    
+
     for num_nodes in ${NODE_SCALES}; do
         for rep in $(seq 1 ${REPETITIONS}); do
             experiment_count=$((experiment_count + 1))
-            
+
             echo ""
             print_info "进度: ${experiment_count}/$(($(echo ${NODE_SCALES} | wc -w) * REPETITIONS))"
-            
+
             if run_single_experiment ${num_nodes} ${rep}; then
                 success_count=$((success_count + 1))
             else
                 fail_count=$((fail_count + 1))
                 print_warning "继续下一个实验..."
             fi
-            
+
             # 等待一小段时间让系统恢复
             if [[ ${experiment_count} -lt $(($(echo ${NODE_SCALES} | wc -w) * REPETITIONS)) ]]; then
                 print_info "等待 10 秒后继续..."
@@ -511,14 +511,14 @@ main() {
             fi
         done
     done
-    
+
     # 收集结果
     echo ""
     collect_results
-    
+
     # 最终摘要
     print_banner "实验完成"
-    
+
     echo "实验统计:"
     echo "  总计: ${experiment_count}"
     echo "  成功: ${success_count}"
@@ -529,7 +529,7 @@ main() {
     echo "  报告: ${OUTPUT_BASE_DIR}/results/REPORT.md"
     echo "  数据: ${OUTPUT_BASE_DIR}/results/summary.csv"
     echo ""
-    
+
     print_info "查看报告: cat ${OUTPUT_BASE_DIR}/results/REPORT.md"
     print_info "查看数据: cat ${OUTPUT_BASE_DIR}/results/summary.csv"
 }

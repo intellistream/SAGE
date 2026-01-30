@@ -15,14 +15,14 @@ config = Workload4Config(
     num_tasks=100,           # 查询数量
     query_qps=40.0,          # 查询流 QPS
     doc_qps=25.0,            # 文档流 QPS
-    
+
     # 查询类型分布
     query_type_distribution={
         "factual": 0.4,      # 事实性 40%
         "analytical": 0.35,  # 分析性 35%
         "exploratory": 0.25, # 探索性 25%
     },
-    
+
     # 类别分布
     category_distribution={
         "finance": 0.30,
@@ -30,7 +30,7 @@ config = Workload4Config(
         "technology": 0.25,
         "general": 0.20,
     },
-    
+
     # Embedding 服务
     embedding_base_url="http://11.11.11.7:8090/v1",
     embedding_model="BAAI/bge-large-en-v1.5",
@@ -111,6 +111,7 @@ doc_source = Workload4DocumentSource(
 ```
 
 **特点**：
+
 - ✅ 零配置，开箱即用
 - ✅ 高多样性：45 个查询模板 × 160+ 占位符 = 数万种组合
 - ✅ 适合基准测试和快速验证
@@ -236,31 +237,34 @@ env.submit(autostop=True)
 
 ## 关键参数说明
 
-| 参数 | 说明 | 默认值 | 范围 |
-|------|------|--------|------|
-| `num_tasks` | 查询数量 | 100 | > 0 |
-| `query_qps` | 查询流 QPS | 40.0 | > 0 |
-| `doc_qps` | 文档流 QPS | 25.0 | > 0 |
-| `query_type_distribution` | 查询类型分布 | 见配置 | 总和 = 1.0 |
-| `category_distribution` | 类别分布 | 见配置 | 总和 = 1.0 |
-| `embedding_base_url` | Embedding 服务 URL | - | 必填 |
-| `embedding_model` | Embedding 模型 | - | 必填 |
-| `knowledge_base` | 内存知识库 | None | 可选 |
-| `knowledge_base_path` | 外部知识库文件 | None | 可选 |
+| 参数                      | 说明               | 默认值 | 范围       |
+| ------------------------- | ------------------ | ------ | ---------- |
+| `num_tasks`               | 查询数量           | 100    | > 0        |
+| `query_qps`               | 查询流 QPS         | 40.0   | > 0        |
+| `doc_qps`                 | 文档流 QPS         | 25.0   | > 0        |
+| `query_type_distribution` | 查询类型分布       | 见配置 | 总和 = 1.0 |
+| `category_distribution`   | 类别分布           | 见配置 | 总和 = 1.0 |
+| `embedding_base_url`      | Embedding 服务 URL | -      | 必填       |
+| `embedding_model`         | Embedding 模型     | -      | 必填       |
+| `knowledge_base`          | 内存知识库         | None   | 可选       |
+| `knowledge_base_path`     | 外部知识库文件     | None   | 可选       |
 
 ## QPS 计算
 
 **预计运行时长**：
+
 ```
 duration = num_tasks / query_qps
 ```
 
 **预计文档数**：
+
 ```
 num_docs = duration * doc_qps = (num_tasks / query_qps) * doc_qps
 ```
 
 **示例**：
+
 - `num_tasks = 100`, `query_qps = 40.0`, `doc_qps = 25.0`
 - 运行时长：`100 / 40 = 2.5` 秒
 - 文档数：`2.5 * 25 = 62.5` ≈ 62 个文档
@@ -304,6 +308,6 @@ python examples_sources.py  # 示例 4
 - ⏳ **Task 3: Semantic Join** - 60s 窗口双流 Join（下一个任务）
 - ⏳ Task 4-10: 后续 stages
 
----
+______________________________________________________________________
 
 **当前状态**: Task 2 已完成，可以开始 Task 3（Semantic Join）的实现。

@@ -25,21 +25,21 @@ execution become first-class concerns rather than application glue.
 
 % \caption{SAGE is organized as a strict five-layer system (L1--L5) with downward-only dependencies. Developer tooling and CLI (L5) sit at the top, while the runtime (L3) and performance-critical C++ middleware operators (L4) are isolated below to enable reproducible evolution and cross-stage optimization.}
 
-\caption{SAGE's five-layer architecture (L1--L5) with strict downward-only dependencies. 
-Developer tooling (L5) sits at the top; the middleware layer (L4) provides performance-critical 
-operators; the core runtime (L3) handles dataflow scheduling and execution; platform services 
-(L2) and foundation utilities (L1) form the stable base. This separation enables independent 
+\caption{SAGE's five-layer architecture (L1--L5) with strict downward-only dependencies.
+Developer tooling (L5) sits at the top; the middleware layer (L4) provides performance-critical
+operators; the core runtime (L3) handles dataflow scheduling and execution; platform services
+(L2) and foundation utilities (L1) form the stable base. This separation enables independent
 evolution of each layer while maintaining system-wide optimization opportunities.}
 \end{figure}
 
 \subsection{Architectural Philosophy}
 SAGE is built as a modular monolith with a strict five-layer architecture (L1--L5) and downward-only
-dependencies. This design ensures that developer tooling (L5) can evolve independently from the 
-performance-critical middleware (L4) and core runtime (L3), while platform services (L2) and foundational 
+dependencies. This design ensures that developer tooling (L5) can evolve independently from the
+performance-critical middleware (L4) and core runtime (L3), while platform services (L2) and foundational
 utilities (L1) provide a stable base.
 
 \begin{itemize}
-  \item \textbf{L5 Interface}: Developer-facing CLI (\texttt{sage-cli}) and development tools 
+  \item \textbf{L5 Interface}: Developer-facing CLI (\texttt{sage-cli}) and development tools
         (\texttt{sage-tools}) for pipeline deployment, testing, and quality assurance.
   \item \textbf{L4 Middleware}: Performance-critical C++ operators and specialized inference components,
         including SageVDB (vector search), SageFlow (streaming semantic state), NeuroMem (structured memory),

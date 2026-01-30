@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+
 # 复杂度等级定义
 class QueryComplexityLevel(str, Enum):
     """问题复杂度等级"""
@@ -161,14 +162,17 @@ class RuleBasedClassifier(BaseClassifier):
         entity_count = self._estimate_entity_count(query)
 
         # 决策逻辑
-        if multi_hop_score >= self.multi_hop_threshold or entity_count >= self.entity_count_threshold:
+        if (
+            multi_hop_score >= self.multi_hop_threshold
+            or entity_count >= self.entity_count_threshold
+        ):
             complexity = QueryComplexityLevel.MULTI
             confidence = min(0.9, 0.5 + multi_hop_score * 0.1 + entity_count * 0.05)
             reasoning = f"Detected {multi_hop_score} multi-hop keywords, {entity_count} entities"
         elif simple_score > 0 and multi_hop_score == 0:
             complexity = QueryComplexityLevel.ZERO
             confidence = min(0.8, 0.5 + simple_score * 0.15)
-            reasoning = f"Simple factual question pattern detected"
+            reasoning = "Simple factual question pattern detected"
         else:
             complexity = QueryComplexityLevel.SINGLE
             confidence = 0.6
@@ -231,12 +235,12 @@ Question: {query}
 Classification Guidelines:
 - Level A (ZERO): Simple factual questions that an LLM can answer directly from its knowledge.
   Examples: "What is the capital of France?", "Define machine learning."
-  
+
 - Level B (SINGLE): Questions requiring a single retrieval step to find relevant documents.
   Examples: "What is the latest iPhone model?", "What are the symptoms of COVID-19?"
-  
+
 - Level C (MULTI): Complex questions requiring multiple retrieval steps or reasoning across documents.
-  Examples: "Compare the economic policies of Obama and Trump.", 
+  Examples: "Compare the economic policies of Obama and Trump.",
             "What was the cause of World War I and how did it lead to World War II?"
 
 Respond with ONLY the classification letter (A, B, or C) followed by a brief explanation.
@@ -269,7 +273,9 @@ Classification:"""
         try:
             response = self.llm_client.chat(prompt)
             # 解析响应
-            response_text = response.strip() if isinstance(response, str) else response.content.strip()
+            response_text = (
+                response.strip() if isinstance(response, str) else response.content.strip()
+            )
             classification, reasoning = self._parse_response(response_text)
 
             return ClassificationResult(
@@ -405,7 +411,9 @@ def create_classifier(
     }
 
     if classifier_type not in classifiers:
-        raise ValueError(f"Unknown classifier type: {classifier_type}. Available: {list(classifiers.keys())}")
+        raise ValueError(
+            f"Unknown classifier type: {classifier_type}. Available: {list(classifiers.keys())}"
+        )
 
     return classifiers[classifier_type](**kwargs)
 

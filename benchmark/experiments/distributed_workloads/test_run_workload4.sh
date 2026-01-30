@@ -22,18 +22,18 @@ NC='\033[0m' # No Color
 test_command() {
     local desc="$1"
     local cmd="$2"
-    
+
     echo -e "${YELLOW}测试: ${desc}${NC}"
     echo "命令: $cmd"
     echo ""
-    
+
     if eval "$cmd"; then
         echo -e "${GREEN}✓ 通过${NC}"
     else
         echo -e "${RED}✗ 失败${NC}"
         return 1
     fi
-    
+
     echo ""
     echo "------------------------------------------"
     echo ""

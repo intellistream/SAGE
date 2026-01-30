@@ -2,7 +2,9 @@
 
 ## Overview
 
-This document describes how to integrate SageFlow as a component within SAGE's DataStream pipeline. SageFlow provides high-performance C++ vector stream processing, while SAGE handles the overall pipeline orchestration.
+This document describes how to integrate SageFlow as a component within SAGE's DataStream pipeline.
+SageFlow provides high-performance C++ vector stream processing, while SAGE handles the overall
+pipeline orchestration.
 
 ## Architecture
 
@@ -103,11 +105,13 @@ join_op = SageFlowJoinOperator(
 ```
 
 **Input**: `dict` with keys:
+
 - `id`: Query ID (int or str)
 - `embedding`: Query vector (list or numpy array)
 - Other fields passed through
 
 **Output**: `dict` with keys:
+
 - All input fields (passed through)
 - `matched_docs`: List of matched document IDs
 - `matched_vectors`: List of matched document vectors
@@ -132,11 +136,13 @@ aggregation_op = SageFlowAggregationOperator(
 ```
 
 **Input**: `dict` with keys:
+
 - `id`: Query ID
 - `embedding`: Query vector
 - `query`: Query text
 
 **Output**: `dict` with keys:
+
 - All input fields
 - `is_representative`: True if this query is group representative
 - `group_ids`: List of query IDs in the same group
@@ -227,7 +233,7 @@ class SessionContextBuilder(MapFunction):
         # Update history and create join operator
         self._history.append(data)
         self._update_join_operator()
-        
+
         # Find semantically related turns
         result = self._join_op.execute(data)
         return {**data, "context": result["matched_docs"]}
@@ -246,41 +252,41 @@ class SessionContextBuilder(MapFunction):
 
 SAGE operators pass data as `dict[str, Any]`. SageFlow operators expect:
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | `int` or `str` | Yes | Unique identifier |
-| `embedding` | `np.ndarray` or `list[float]` | Yes | Vector embedding |
-| `query` | `str` | No | Original query text |
-| `*` | `Any` | No | Other fields passed through |
+| Field       | Type                          | Required | Description                 |
+| ----------- | ----------------------------- | -------- | --------------------------- |
+| `id`        | `int` or `str`                | Yes      | Unique identifier           |
+| `embedding` | `np.ndarray` or `list[float]` | Yes      | Vector embedding            |
+| `query`     | `str`                         | No       | Original query text         |
+| `*`         | `Any`                         | No       | Other fields passed through |
 
 ### SageFlow → SAGE
 
 SageFlow operators return enriched `dict[str, Any]`:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `matched_docs` | `list[int]` | Matched document IDs |
-| `matched_vectors` | `list[list[float]]` | Matched document vectors |
-| `similarity_scores` | `list[float]` | Similarity scores |
-| `join_timestamp` | `int` | Timestamp of join operation |
+| Field               | Type                | Description                 |
+| ------------------- | ------------------- | --------------------------- |
+| `matched_docs`      | `list[int]`         | Matched document IDs        |
+| `matched_vectors`   | `list[list[float]]` | Matched document vectors    |
+| `similarity_scores` | `list[float]`       | Similarity scores           |
+| `join_timestamp`    | `int`               | Timestamp of join operation |
 
 ## Join Methods
 
 SageFlow supports multiple join algorithms:
 
-| Method | Description | Use Case |
-|--------|-------------|----------|
-| `bruteforce_lazy` | Lazy brute force | Small datasets, highest accuracy |
-| `bruteforce_eager` | Eager brute force | Medium datasets |
-| `ivf` | Inverted file index | Large datasets |
-| `hnsw` | Hierarchical NSW | Very large datasets |
+| Method             | Description         | Use Case                         |
+| ------------------ | ------------------- | -------------------------------- |
+| `bruteforce_lazy`  | Lazy brute force    | Small datasets, highest accuracy |
+| `bruteforce_eager` | Eager brute force   | Medium datasets                  |
+| `ivf`              | Inverted file index | Large datasets                   |
+| `hnsw`             | Hierarchical NSW    | Very large datasets              |
 
 ## Performance Considerations
 
 1. **Pre-compute embeddings**: Document embeddings should be computed once and reused
-2. **Adjust similarity threshold**: Higher threshold = fewer matches but faster
-3. **Use appropriate join method**: `bruteforce_lazy` for <10K docs, `ivf`/`hnsw` for larger
-4. **Window size**: Larger windows can improve join quality but increase latency
+1. **Adjust similarity threshold**: Higher threshold = fewer matches but faster
+1. **Use appropriate join method**: `bruteforce_lazy` for \<10K docs, `ivf`/`hnsw` for larger
+1. **Window size**: Larger windows can improve join quality but increase latency
 
 ## Example Files
 

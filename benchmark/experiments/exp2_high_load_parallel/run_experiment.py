@@ -98,11 +98,9 @@ def run_single_experiment(
 
     # 过滤掉描述性字段，只保留 BenchmarkConfig 接受的参数
     filtered_config = {
-        k: v
-        for k, v in config_dict.items()
-        if k not in ["use_remote", "description"]
+        k: v for k, v in config_dict.items() if k not in ["use_remote", "description"]
     }
-    
+
     config = BenchmarkConfig(
         experiment_name=name,
         use_remote=config_dict.get("use_remote", True),

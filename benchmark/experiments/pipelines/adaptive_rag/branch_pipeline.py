@@ -26,11 +26,9 @@ Adaptive-RAG 流分支 Pipeline 实现
 from __future__ import annotations
 
 import json
-import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 from sage.common.core import (
     FilterFunction,
@@ -64,6 +62,7 @@ except ImportError:
 @dataclass
 class QueryData:
     """查询数据"""
+
     query: str
     classification: ClassificationResult | None = None
     metadata: dict = field(default_factory=dict)
@@ -72,6 +71,7 @@ class QueryData:
 @dataclass
 class ResultData:
     """结果数据"""
+
     query: str
     answer: str
     strategy_used: str
@@ -83,13 +83,14 @@ class ResultData:
 @dataclass
 class IterativeState:
     """迭代检索的中间状态 - 在流中传递"""
-    original_query: str                          # 原始问题
-    current_query: str                           # 当前检索 query (可能是子查询)
+
+    original_query: str  # 原始问题
+    current_query: str  # 当前检索 query (可能是子查询)
     accumulated_docs: list[dict] = field(default_factory=list)  # 累积的文档
-    reasoning_chain: list[str] = field(default_factory=list)    # 推理链
-    iteration: int = 0                           # 当前迭代次数
-    is_complete: bool = False                    # 是否已完成（提前终止）
-    start_time: float = 0.0                      # 开始时间
+    reasoning_chain: list[str] = field(default_factory=list)  # 推理链
+    iteration: int = 0  # 当前迭代次数
+    is_complete: bool = False  # 是否已完成（提前终止）
+    start_time: float = 0.0  # 开始时间
     classification: ClassificationResult | None = None
 
 
@@ -259,7 +260,10 @@ class SingleRetrievalStrategy(MapFunction):
 
     # 简单知识库 (可替换为真实检索)
     KNOWLEDGE_BASE = [
-        {"content": "Machine learning is a subset of artificial intelligence that learns from data.", "id": "1"},
+        {
+            "content": "Machine learning is a subset of artificial intelligence that learns from data.",
+            "id": "1",
+        },
         {"content": "Deep learning uses neural networks with multiple layers.", "id": "2"},
         {"content": "Python is a popular programming language for ML tasks.", "id": "3"},
         {"content": "BERT is a transformer-based model for NLP tasks.", "id": "4"},
@@ -292,7 +296,7 @@ class SingleRetrievalStrategy(MapFunction):
                 scored_docs.append({**doc, "score": overlap / len(query_words)})
 
         scored_docs.sort(key=lambda x: x["score"], reverse=True)
-        return scored_docs[:self.top_k]
+        return scored_docs[: self.top_k]
 
     def _generate(self, query: str, context: str) -> str:
         """基于上下文生成回复"""
@@ -333,7 +337,7 @@ class SingleRetrievalStrategy(MapFunction):
 
         # 检索
         docs = self._retrieve(data.query)
-        context = "\n".join([f"[Doc {i+1}]: {d['content']}" for i, d in enumerate(docs)])
+        context = "\n".join([f"[Doc {i + 1}]: {d['content']}" for i, d in enumerate(docs)])
         if not context:
             context = "No relevant documents found."
 
@@ -388,7 +392,10 @@ class SimpleRetriever(MapFunction):
     """
 
     KNOWLEDGE_BASE = [
-        {"content": "Machine learning is a subset of artificial intelligence that learns from data.", "id": "1"},
+        {
+            "content": "Machine learning is a subset of artificial intelligence that learns from data.",
+            "id": "1",
+        },
         {"content": "Deep learning uses neural networks with multiple layers.", "id": "2"},
         {"content": "Python is a popular programming language for ML tasks.", "id": "3"},
         {"content": "BERT is a transformer-based model for NLP tasks.", "id": "4"},
@@ -417,13 +424,17 @@ class SimpleRetriever(MapFunction):
                 scored_docs.append({**doc, "score": overlap / len(query_words)})
 
         scored_docs.sort(key=lambda x: x["score"], reverse=True)
-        new_docs = scored_docs[:self.top_k]
+        new_docs = scored_docs[: self.top_k]
 
         # 更新状态
         state.accumulated_docs.extend(new_docs)
-        state.reasoning_chain.append(f"[Retrieve] Query: '{state.current_query}' -> {len(new_docs)} docs")
+        state.reasoning_chain.append(
+            f"[Retrieve] Query: '{state.current_query}' -> {len(new_docs)} docs"
+        )
 
-        print(f"    📚 Retrieve[{state.iteration}]: {len(new_docs)} docs for '{state.current_query[:30]}...'")
+        print(
+            f"    📚 Retrieve[{state.iteration}]: {len(new_docs)} docs for '{state.current_query[:30]}...'"
+        )
         return state
 
 
@@ -451,10 +462,16 @@ class IterativeReasoner(MapFunction):
 
     def _llm_call(self, messages: list[dict]) -> str:
         import requests
+
         try:
             response = requests.post(
                 f"{self.llm_base_url}/chat/completions",
-                json={"model": self.llm_model, "messages": messages, "max_tokens": 256, "temperature": 0.7},
+                json={
+                    "model": self.llm_model,
+                    "messages": messages,
+                    "max_tokens": 256,
+                    "temperature": 0.7,
+                },
                 timeout=60,
             )
             response.raise_for_status()
@@ -472,20 +489,30 @@ class IterativeReasoner(MapFunction):
         # 检查终止条件
         if state.iteration >= self.max_iterations or len(state.accumulated_docs) >= self.min_docs:
             state.is_complete = True
-            state.reasoning_chain.append(f"[Reason] Iteration {state.iteration}: Complete (docs={len(state.accumulated_docs)})")
+            state.reasoning_chain.append(
+                f"[Reason] Iteration {state.iteration}: Complete (docs={len(state.accumulated_docs)})"
+            )
             print(f"    🧠 Reason[{state.iteration}]: COMPLETE")
             return state
 
         # 生成下一个子查询
         context_so_far = "\n".join([f"- {d['content']}" for d in state.accumulated_docs[-3:]])
         messages = [
-            {"role": "system", "content": "Generate a follow-up search query to find more information. Reply with ONLY the query."},
-            {"role": "user", "content": f"Original: {state.original_query}\n\nContext:\n{context_so_far}\n\nFollow-up query:"},
+            {
+                "role": "system",
+                "content": "Generate a follow-up search query to find more information. Reply with ONLY the query.",
+            },
+            {
+                "role": "user",
+                "content": f"Original: {state.original_query}\n\nContext:\n{context_so_far}\n\nFollow-up query:",
+            },
         ]
         new_query = self._llm_call(messages).strip()
 
         state.current_query = new_query
-        state.reasoning_chain.append(f"[Reason] Iteration {state.iteration}: Next query = '{new_query[:50]}'")
+        state.reasoning_chain.append(
+            f"[Reason] Iteration {state.iteration}: Next query = '{new_query[:50]}'"
+        )
         print(f"    🧠 Reason[{state.iteration}]: Next -> '{new_query[:40]}...'")
         return state
 
@@ -510,10 +537,16 @@ class FinalSynthesizer(MapFunction):
 
     def _llm_call(self, messages: list[dict]) -> str:
         import requests
+
         try:
             response = requests.post(
                 f"{self.llm_base_url}/chat/completions",
-                json={"model": self.llm_model, "messages": messages, "max_tokens": 512, "temperature": 0.7},
+                json={
+                    "model": self.llm_model,
+                    "messages": messages,
+                    "max_tokens": 512,
+                    "temperature": 0.7,
+                },
                 timeout=60,
             )
             response.raise_for_status()
@@ -523,12 +556,17 @@ class FinalSynthesizer(MapFunction):
 
     def execute(self, state: IterativeState) -> ResultData:
         # 构建上下文
-        context = "\n".join([f"[Doc {i+1}]: {d['content']}" for i, d in enumerate(state.accumulated_docs)])
+        context = "\n".join(
+            [f"[Doc {i + 1}]: {d['content']}" for i, d in enumerate(state.accumulated_docs)]
+        )
         chain_text = "\n".join(state.reasoning_chain)
 
         messages = [
             {"role": "system", "content": "Synthesize all information to answer comprehensively."},
-            {"role": "user", "content": f"Question: {state.original_query}\n\nReasoning:\n{chain_text}\n\nContext:\n{context}\n\nAnswer:"},
+            {
+                "role": "user",
+                "content": f"Question: {state.original_query}\n\nReasoning:\n{chain_text}\n\nContext:\n{context}\n\nAnswer:",
+            },
         ]
         answer = self._llm_call(messages)
 
@@ -576,7 +614,6 @@ class ResultSink(SinkFunction):
 
     def _write_to_file(self, data: ResultData) -> None:
         """将结果写入文件 (Remote 模式)"""
-        import json
 
         try:
             record = {
@@ -593,6 +630,7 @@ class ResultSink(SinkFunction):
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
         except Exception as e:
             import sys
+
             print(f"[ResultSink] Write error: {e}", file=sys.stderr, flush=True)
 
     def execute(self, data: ResultData):
@@ -604,6 +642,7 @@ class ResultSink(SinkFunction):
 
         # 打印到 stderr (Remote 模式下可能看不到，但 Local 可以)
         import sys
+
         print(
             f"\n🎯 [{self.branch_name}] Result #{self.count}:\n"
             f"   Query: {data.query}\n"
@@ -633,9 +672,7 @@ class ResultSink(SinkFunction):
 
         会从本地和远程节点收集结果文件。
         """
-        import json
         import subprocess
-        from pathlib import Path
 
         results_dir = Path(cls.RESULTS_OUTPUT_DIR)
         results_dir.mkdir(parents=True, exist_ok=True)
@@ -709,23 +746,20 @@ def build_branching_adaptive_rag_pipeline(
     ResultSink.clear_results()
 
     # Step 1: 创建 Source 和 Classifier（共享的上游）
-    classified_stream = (
-        env.from_source(QuerySource, queries=queries, delay=0.1)
-        .map(ClassifierMap, classifier_type=classifier_type)
+    classified_stream = env.from_source(QuerySource, queries=queries, delay=0.1).map(
+        ClassifierMap, classifier_type=classifier_type
     )
 
     # Step 2: 分支 A - ZERO 复杂度 (无检索，直接生成)
     (
-        classified_stream
-        .filter(ZeroComplexityFilter)
+        classified_stream.filter(ZeroComplexityFilter)
         .map(NoRetrievalStrategy, llm_base_url=llm_base_url, llm_model=llm_model)
         .sink(ResultSink, branch_name="ZERO", parallelism=1)
     )
 
     # Step 3: 分支 B - SINGLE 复杂度 (单次检索 + 生成)
     (
-        classified_stream
-        .filter(SingleComplexityFilter)
+        classified_stream.filter(SingleComplexityFilter)
         .map(SingleRetrievalStrategy, llm_base_url=llm_base_url, llm_model=llm_model)
         .sink(ResultSink, branch_name="SINGLE", parallelism=1)
     )
@@ -733,24 +767,27 @@ def build_branching_adaptive_rag_pipeline(
     # Step 4: 分支 C - MULTI 复杂度 (迭代检索 - 循环展开模式)
     # 架构: InitState -> [Retrieve -> Reason] x N -> Synthesize -> Sink
     multi_stream = (
-        classified_stream
-        .filter(MultiComplexityFilter)
-        .map(IterativeRetrievalStrategy)  # QueryData -> IterativeState
+        classified_stream.filter(MultiComplexityFilter).map(
+            IterativeRetrievalStrategy
+        )  # QueryData -> IterativeState
     )
 
     # 循环展开: 串联 N 个 [Retrieve -> Reason] Stage
     for i in range(max_iterations):
         multi_stream = (
-            multi_stream
-            .map(SimpleRetriever, top_k=3)  # 检索
-            .map(IterativeReasoner, llm_base_url=llm_base_url, llm_model=llm_model, max_iterations=max_iterations)  # 推理
+            multi_stream.map(SimpleRetriever, top_k=3).map(  # 检索
+                IterativeReasoner,
+                llm_base_url=llm_base_url,
+                llm_model=llm_model,
+                max_iterations=max_iterations,
+            )  # 推理
         )
 
     # 最终综合生成
     (
-        multi_stream
-        .map(FinalSynthesizer, llm_base_url=llm_base_url, llm_model=llm_model)  # IterativeState -> ResultData
-        .sink(ResultSink, branch_name="MULTI", parallelism=1)
+        multi_stream.map(
+            FinalSynthesizer, llm_base_url=llm_base_url, llm_model=llm_model
+        ).sink(ResultSink, branch_name="MULTI", parallelism=1)  # IterativeState -> ResultData
     )
 
     return env
@@ -814,7 +851,9 @@ def main():
     print("Pipeline structure (循环展开模式):")
     print("  Source -> Classifier -+-> filter(ZERO) -> Generator -> Sink")
     print("                        +-> filter(SINGLE) -> Retriever -> Generator -> Sink")
-    print("                        +-> filter(MULTI) -> InitState -+-> [Retrieve -> Reason] x3 -> Synthesize -> Sink")
+    print(
+        "                        +-> filter(MULTI) -> InitState -+-> [Retrieve -> Reason] x3 -> Synthesize -> Sink"
+    )
     print("                                            (循环展开: 独立算子串联)")
     print()
 
@@ -864,7 +903,9 @@ def main():
 
     strategy_counts = {}
     for r in total_results:
-        strategy = r.get("strategy_used", r.strategy_used if hasattr(r, "strategy_used") else "unknown")
+        strategy = r.get(
+            "strategy_used", r.strategy_used if hasattr(r, "strategy_used") else "unknown"
+        )
         strategy_counts[strategy] = strategy_counts.get(strategy, 0) + 1
 
     for strategy, count in strategy_counts.items():
@@ -918,9 +959,9 @@ __all__ = [
     "SingleRetrievalStrategy",
     # 迭代检索独立算子 (MULTI 分支循环展开)
     "IterativeRetrievalStrategy",  # InitState
-    "SimpleRetriever",             # 检索算子
-    "IterativeReasoner",           # 推理算子
-    "FinalSynthesizer",            # 综合生成算子
+    "SimpleRetriever",  # 检索算子
+    "IterativeReasoner",  # 推理算子
+    "FinalSynthesizer",  # 综合生成算子
     # Sink & Builder
     "ResultSink",
     "build_branching_adaptive_rag_pipeline",

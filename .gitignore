@@ -29,17 +29,14 @@ install.log
 .sage/tmp/
 .sage/cache/
 .sage/build/
-.sage/htmlcov/
-.sage/benchmarks/
 /.cmake-build/
 /deps/sageFlow/installation/dist/
 /deps/sageFlow/installation/sageflow.egg-info/
 /deps/sageFlow/installation/build/
 /.idea/deployment.xml
 /.idea/misc.xml
-# 根目录构建产物（已统一到 .sage/build/）
 /build/
-/htmlcov/
+/build/
 /installation/sageflow.egg-info/
 /installation/build/
 /installation/dist/
@@ -228,12 +225,6 @@ examples/medical_diagnosis/data/test_results/
 /.vscode/
 
 # ============================================
-# Workspace 相关目录（独立仓库，不在主仓库中跟踪）
-# ============================================
-# docs-public 是旧的 submodule 名称，现在是独立的 SAGE-Pub 仓库
-docs-public/
-
-# ============================================
 # 一些测试文件
 # ============================================
 !examples/memory/data/neuromem/vdb_collection/RAGMemoryCollection/indexes/test_index/faiss.index
@@ -287,27 +278,3 @@ FUNDING_INFO.md
 /tmp/pypi_publisher_*/
 benchmark/experiments/exp1_single_vs_multi/results/*
 packages/sage-llm-core/src/sage/llm/engines/sagellm/
-
-# ============================================
-# 实验脚本和结果（临时文件，不提交）
-# ============================================
-# 根目录的实验分析脚本
-/analyze_collected_logs.py
-/analyze_detailed_with_csv.py
-/collect_all_logs.sh
-/collect_and_analyze_distributed.py
-/compare_data_sources_final.py
-/run_rag_repeat_exp.sh
-/run_scale_up.sh
-
-# Benchmark 实验结果
-/results/
-
-# Analysis reports and scripts
-throughput_analysis.py
-visualize_throughput.py
-THROUGHPUT_ANALYSIS_REPORT.md
-ANALYSIS_SUMMARY.txt
-ANALYSIS_USAGE.md
-analyze_detailed_with_csv.py
-collect_all_logs.sh
