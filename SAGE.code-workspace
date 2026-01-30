@@ -7,6 +7,9 @@
 		{
 			"name": "SAGE-Pub",
 			"path": "../SAGE-Pub"
+		},
+		{
+			"path": "../sage-team-info"
 		}
 	],
 	"settings": {

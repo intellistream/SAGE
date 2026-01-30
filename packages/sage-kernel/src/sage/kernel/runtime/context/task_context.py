@@ -31,6 +31,7 @@ class TaskContext(BaseRuntimeContext):
         "_local_jobmanager_ref",  # weakref 不可序列化
         "dispatcher",  # 避免循环引用
         "_current_packet_key",  # Runtime-only state, should not be serialized
+        "_upstream_stop_signals_received",  # Runtime state for Issue #1418 fix
     ]
 
     def __init__(
@@ -81,6 +82,13 @@ class TaskContext(BaseRuntimeContext):
         self._stop_event = None  # 延迟初始化
         self.received_stop_signals = None  # 延迟初始化
         self.stop_signal_count = 0
+
+        # 跟踪上游并行实例的停止信号 - 解决Issue #1418
+        # 当上游并行度 >= 2 时，需要等待所有上游实例都发送 StopSignal
+        self._upstream_parallelism_map: dict[str, int] = {}  # 上游算子名称 -> 并行度
+        self._upstream_stop_signals_received: dict[
+            str, set[int]
+        ] = {}  # 上游算子名称 -> 已接收的平行索引集合
 
         # 服务相关 - service_manager已在BaseRuntimeContext中定义
         self._service_names: Optional[dict[str, str]] = None  # 只保存服务名称映射而不是实例
@@ -261,7 +269,16 @@ class TaskContext(BaseRuntimeContext):
             )
 
     def handle_stop_signal(self, signal: StopSignal):
-        """Handle the received stop signal."""
+        """
+        Handle the received stop signal.
+
+        Fix for Issue #1418: 上游算子并行度不为 1 时导致任务丢失
+
+        When an upstream operator has multiple parallel instances (parallelism >= 2),
+        we must wait for ALL instances to send StopSignal before stopping.
+        Otherwise, the downstream operator will close prematurely, losing data from
+        upstream instances that haven't completed yet.
+        """
         source_node = signal.name
         self.logger.info(f"Task {self.name} received stop signal from {source_node}")
 
@@ -282,50 +299,99 @@ class TaskContext(BaseRuntimeContext):
             # For SinkOperator (no 'signal' param), continue to normal stop signal handling
             # Note: SinkOperator.handle_stop_signal() is called separately by BaseTask._handle_sink_stop_signal()
 
-        # Initialize stop signal tracking attributes if they don't exist
-        if not hasattr(self, "num_expected_stop_signals"):
-            # 对于某些类型的操作符，我们需要等待多个停止信号
-            # 特别是对于那些可能有多个上游输入的操作符
-            operator_name = getattr(self, "name", "")
-            if "KeyBy" in operator_name and "_1" in operator_name:
-                # 这是一个合并了多个输入的KeyBy节点，等待2个停止信号
-                self.num_expected_stop_signals = 2
-                self.logger.info(f"Task {self.name} (KeyBy merge node) expecting 2 stop signals")
-            else:
-                self.num_expected_stop_signals = 0
-        if not hasattr(self, "stop_signals_received"):
-            self.stop_signals_received = set()
+        # === FIX for Issue #1418: Track upstream stop signals by instance ===
+        if not self._upstream_stop_signals_received:
+            # Initialize tracking on first stop signal
+            self._initialize_upstream_tracking()
 
-        if self.num_expected_stop_signals > 0:
-            self.stop_signals_received.add(source_node)
-            self.logger.info(
-                f"Task {self.name} received stop signals ({len(self.stop_signals_received)}/{self.num_expected_stop_signals}) from: {list(self.stop_signals_received)}"
-            )
-
-            if len(self.stop_signals_received) >= self.num_expected_stop_signals:
-                self.logger.info(
-                    f"Task {self.name} received all expected stop signals, requesting stop and forwarding signal"
-                )
-                # Send stop signal to job manager
-                self.request_stop()
-
-                # Forward the signal to downstream nodes
-                if hasattr(self, "router") and self.router:
-                    self.router.send_stop_signal(signal)
-            else:
-                self.logger.info(f"Task {self.name} waiting for more stop signals")
-                # 不要停止或转发信号，继续等待
-                return
+        # Parse operator name and parallel index from signal
+        # Format may be "operator_name" or "operator_name_#parallel_index"
+        parts = source_node.rsplit("_", 1)
+        if len(parts) == 2 and parts[1].isdigit():
+            operator_base_name = parts[0]
+            parallel_index = int(parts[1])
         else:
-            # No specific number expected, just forward the signal
-            self.logger.info(f"Task {self.name} forwarding stop signal from {source_node}")
+            operator_base_name = source_node
+            parallel_index = 0
 
-            # Send stop signal to job manager
-            self.request_stop()
+        # Track the stop signal from this upstream instance
+        if operator_base_name not in self._upstream_stop_signals_received:
+            self._upstream_stop_signals_received[operator_base_name] = set()
 
-            # Forward the signal to downstream nodes
-            if hasattr(self, "router") and self.router:
-                self.router.send_stop_signal(signal)
+        self._upstream_stop_signals_received[operator_base_name].add(parallel_index)
+
+        # Check if we have received stop signals from all upstream instances
+        expected_parallelism = self._upstream_parallelism_map.get(operator_base_name, 1)
+        received_count = len(self._upstream_stop_signals_received.get(operator_base_name, set()))
+
+        self.logger.info(
+            f"Task {self.name} received stop signals from {operator_base_name}: "
+            f"{received_count}/{expected_parallelism}"
+        )
+
+        # Check if ALL upstream operators have sent stop signals from ALL their instances
+        all_upstream_ready = True
+        if self._upstream_parallelism_map:
+            for op_name, expected_count in self._upstream_parallelism_map.items():
+                received_from_op = len(self._upstream_stop_signals_received.get(op_name, set()))
+                if received_from_op < expected_count:
+                    all_upstream_ready = False
+                    self.logger.debug(
+                        f"Waiting for {op_name}: {received_from_op}/{expected_count} instances"
+                    )
+                    break
+
+        if not all_upstream_ready:
+            # Not ready yet, continue waiting for more stop signals
+            self.logger.debug(f"Task {self.name} waiting for more stop signals from upstream")
+            return
+
+        # All upstream instances have sent stop signals - safe to stop now
+        self.logger.info(
+            f"Task {self.name} received all expected stop signals from upstream, "
+            f"now safe to stop and forward signal"
+        )
+
+        # Send stop signal to job manager
+        self.request_stop()
+
+        # Forward the signal to downstream nodes
+        if hasattr(self, "router") and self.router:
+            self.router.send_stop_signal(signal)
+
+    def _initialize_upstream_tracking(self) -> None:
+        """
+        Initialize upstream parallelism tracking.
+        This extracts upstream operator information from the execution graph.
+        """
+        # Try to get upstream information from execution_graph if available
+        if not hasattr(self, "execution_graph") or not self.execution_graph:
+            # Fall back: mark as empty tracking, will use simple fallback
+            self.logger.debug(
+                f"Task {self.name} could not access execution_graph for upstream info, "
+                f"using runtime detection"
+            )
+            return
+
+        # Try to extract upstream info from router's upstream connections
+        if hasattr(self, "router") and self.router:
+            # Get upstream info from input connections if available
+            try:
+                if hasattr(self.router, "upstream_groups"):
+                    for op_name, instances in self.router.upstream_groups.items():
+                        parallelism = len(instances)
+                        self._upstream_parallelism_map[op_name] = parallelism
+                        self.logger.debug(
+                            f"Task {self.name} upstream operator '{op_name}' "
+                            f"has parallelism={parallelism}"
+                        )
+            except Exception as e:
+                self.logger.debug(f"Could not extract upstream info from router: {e}")
+
+        if self._upstream_parallelism_map:
+            self.logger.info(
+                f"Task {self.name} initialized upstream tracking: {self._upstream_parallelism_map}"
+            )
 
     def __del__(self):
         """析构函数 - 确保资源被正确清理"""
