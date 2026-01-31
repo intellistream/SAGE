@@ -5,10 +5,7 @@ import time
 from sage.benchmark.benchmark_sage.experiments.base_experiment import (
     BaseExperiment,
 )
-from sage.benchmark.benchmark_sage.experiments.common import (
-    BenchmarkClient,
-    RequestResult,
-)
+from sage.benchmark.benchmark_sage.experiments.common import BenchmarkClient, RequestResult
 
 
 class E2EPipelineExperiment(BaseExperiment):

@@ -32,7 +32,7 @@ class BaseFunction(ABC):
     @property
     def logger(self):
         if not hasattr(self, "_logger") or self._logger is None:
-            if self.ctx is None:
+            if not hasattr(self, "ctx") or self.ctx is None:
                 self._logger = logging.getLogger("")
             else:
                 self._logger = self.ctx.logger
@@ -40,7 +40,7 @@ class BaseFunction(ABC):
 
     @property
     def name(self):
-        if self.ctx is None:
+        if not hasattr(self, "ctx") or self.ctx is None:
             return self.__class__.__name__
         return self.ctx.name
 
@@ -53,7 +53,7 @@ class BaseFunction(ABC):
         **kwargs,
     ):
         """同步服务调用语法糖"""
-        if self.ctx is None:
+        if not hasattr(self, "ctx") or self.ctx is None:
             raise RuntimeError("Runtime context not initialized. Cannot access services.")
 
         return self.ctx.call_service(service_name, *args, timeout=timeout, method=method, **kwargs)
@@ -67,7 +67,7 @@ class BaseFunction(ABC):
         **kwargs,
     ):
         """异步服务调用语法糖"""
-        if self.ctx is None:
+        if not hasattr(self, "ctx") or self.ctx is None:
             raise RuntimeError("Runtime context not initialized. Cannot access services.")
 
         return self.ctx.call_service_async(

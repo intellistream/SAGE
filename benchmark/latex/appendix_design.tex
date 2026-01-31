@@ -1,0 +1,106 @@
+\section{Appendix}
+\label{sec:appendix}
+
+In this appendix, we provide the implementation details of the SAGE architecture that were omitted from the main text for brevity. This includes the complete package hierarchy, the logical-to-physical graph compilation process, the formal execution loop algorithm, and specifications for middleware and fault tolerance mechanisms.
+
+\subsection{Detailed Package Structure}
+\label{subsec:app_package}
+SAGE follows a strict layered architecture ($L1 \rightarrow L5$) where higher layers may only depend on lower layers. Table~\ref{tab:package_structure} summarizes the package hierarchy and the responsibilities of each layer.
+
+\begin{table}[h]
+\centering
+\caption{SAGE Package Structure and Responsibilities}
+\label{tab:package_structure}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}llp{5cm}l@{}}
+\toprule
+\textbf{Layer} & \textbf{Package} & \textbf{Responsibility} & \textbf{Key Components} \\ \midrule
+L1 & \texttt{sage-common} & Foundation & Shared types, \texttt{SagePorts}, Environment keys \\
+L2 & \texttt{sage-platform} & Platform Services & \texttt{QueueDescriptor}, \texttt{BaseKVBackend}, Lifecycle Mgr \\
+L3 & \texttt{sage-kernel} & Core Runtime & \texttt{ExecutionGraph}, \texttt{Dispatcher}, \texttt{TaskNode} \\
+L3 & \texttt{sage-libs} & Algorithmic Blocks & \texttt{RAGPipeline}, Agent protocols, Typed artifacts \\
+L4 & \texttt{sage-middleware} & Middleware Operators & \texttt{sage\_db}, \texttt{sage\_mem}, \texttt{SageLLMGenerator} \\
+L5 & \texttt{sage-cli} & Tooling & Command-line interface, Quality tools \\ \bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\subsection{Execution Graph Compilation}
+\label{subsec:app_graph}
+The SAGE compiler transforms a user-authored \emph{logical} pipeline (a DAG of \texttt{BaseTransformation}s) into a \emph{physical} execution graph. This lowering process maps each logical operator to a set of \emph{task replicas} represented as \texttt{TaskNode}s, where the number of replicas is determined by the operator's declared parallelism. To instantiate these tasks at runtime, each \texttt{TaskNode} is associated with a \texttt{TaskFactory}, which wraps an inner \texttt{OperatorFactory} responsible for creating the specific user-code instance.
+
+For communication, the compiler materializes edges as explicit, bounded channels. For a logical edge connecting an upstream operator with parallelism $M$ to a downstream operator with parallelism $N$, the compiler generates a complete bipartite set of $M \times N$ physical edges (unless a specific partitioning strategy reduces this connectivity). These edges are not merely pointers but are backed by allocated \texttt{QueueDescriptor}s in the platform layer.
+
+The graph explicitly manages "fan-out" and "fan-in". Fan-out is optimized by grouping outgoing physical edges from a single replica into \emph{output groups} (one per downstream logical operator), which are compiled into connection metadata. Fan-in is realized by multiple upstream replicas writing into the shared bounded input queue of a downstream replica. To support multi-input operators (e.g., joins), physical edges carry explicit input indices, allowing downstream tasks to demultiplex incoming packets by their logical input port.
+
+\subsection{The Worker Loop}
+\label{subsec:app_worker}
+Each \texttt{TaskNode} executes a continuous lightweight worker loop that handles data ingestion, processing, and routing. Algorithm~\ref{alg:worker_loop} formally describes this procedure.
+
+\begin{algorithm}[h]
+\caption{SAGE Task Worker Loop}
+\label{alg:worker_loop}
+\begin{algorithmic}[1]
+\STATE \textbf{Input:} $Q_{in}$ (Bounded Input Queue), $Op$ (Operator Instance), $Router$
+\STATE \textbf{Initialize:} $Op.\text{setup}()$
+\WHILE{Running}
+    \STATE \COMMENT{Blocking dequeue implements backpressure}
+    \STATE $Item \leftarrow Q_{in}.\text{dequeue\_blocking}()$
+
+    \IF{$Item$ is ControlSignal(Checkpoint)}
+        \STATE \textbf{trigger\_checkpoint()}
+        \STATE \textbf{continue}
+    \ENDIF
+
+    \STATE $Results \leftarrow Op.\text{process}(Item)$
+
+    \FOR{$Res$ in $Results$}
+        \STATE $Packet \leftarrow \text{Wrap}(Res)$
+        \STATE $Meta \leftarrow \text{GetRoutingMetadata}(Packet)$
+        \STATE \COMMENT{Route based on policy (Broadcast, Round-Robin, Hash)}
+        \STATE $Router.\text{route}(Packet, Meta)$
+    \ENDFOR
+
+    \STATE \textbf{update\_metrics()}
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+
+As shown in Line 14, the \texttt{BaseRouter} delivers packets using policy-driven logic. It inspects metadata attached to the packet (e.g., partition keys) and the compiled output groups. Typical strategies include \emph{Broadcast} (send to all $N$ downstream replicas), \emph{Round-Robin} (send to $i \pmod N$), and \emph{Hash-Partitioned} (send to $\text{hash}(key) \pmod N$) for stateful routing.
+
+\subsection{Fault Tolerance Implementation}
+\label{subsec:app_ft}
+SAGE implements two distinct recovery mechanisms to handle failures, configured declaratively.
+
+\subsubsection{Checkpoint-based Recovery}
+This strategy is employed for stateful operators where recomputation is not viable. Tasks expose a uniform interface via \texttt{get\_state()} and \texttt{restore\_state()}. A \texttt{CheckpointManager} coordinates the periodic persistence of these snapshots, versioning them by task ID and timestamp. Upon failure detection, the \texttt{Dispatcher} stops the failed task and provisions a new replica (potentially on a different node). It then retrieves the latest valid snapshot from the storage backend and invokes \texttt{restore\_state()} on the new instance before resuming the worker loop.
+
+\subsubsection{Restart-based Recovery}
+For stateless or idempotent stages, SAGE leverages restart policies without state persistence. The \texttt{Dispatcher} can be configured with strategies such as fixed-delay or exponential backoff. In distributed deployments, a heartbeat monitor complements exception-driven recovery: it periodically polls remote tasks (via Ray actors or equivalent) and treats repeated timeouts as failures, triggering the same recovery workflows as explicit exceptions.
+
+\subsection{Middleware Specifications}
+\label{subsec:app_middleware}
+The L4 layer integrates specialized systems for high-performance retrieval and streaming. Table~\ref{tab:middleware} details these components and their C++ backends.
+
+\begin{table}[h]
+\centering
+\caption{Middleware Operators and Backends}
+\label{tab:middleware}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Component} & \textbf{Backend (C++)} & \textbf{Functionality} \\ \midrule
+\texttt{sage\_db} & \texttt{isage-vdb} & Vector Database (FAISS-compatible ANNS) \\
+\texttt{sage\_mem} & \texttt{isage-neuromem} & Working/Episodic Memory System \\
+\texttt{sage\_refiner} & \texttt{isage-refiner} & Context Compression (LongRefiner) \\
+\texttt{sage\_flow} & \texttt{isage-flow} & Vector-native Stream Processing \\
+\texttt{sage\_tsdb} & \texttt{isage-tsdb} & Time-series Storage \& Windowing \\ \bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\subsection{Inference Integration}
+\label{subsec:app_inference}
+SAGE integrates with the external \texttt{isagellm} ecosystem, decoupling the dataflow runtime from inference heavy-lifting. The system connects to a \textbf{Control Plane} and \textbf{Gateway} that expose OpenAI-compatible endpoints (\texttt{/v1/chat/completions}).
+
+This separation enables independent scaling. The Control Plane manages the provisioning of GPU resources (e.g., vLLM instances), scaling inference throughput by adding engines. Meanwhile, the SAGE \texttt{Dispatcher} scales the pipeline graph (retrieval, orchestration) on CPU-rich nodes. This prevents the "generation-heavy" stages from resource-starving the "retrieval-heavy" or logic-focused stages.

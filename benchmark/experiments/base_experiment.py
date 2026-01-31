@@ -186,9 +186,9 @@ class BaseExperiment(ABC):
         return ExperimentResult(
             experiment_name=self.config.name,
             experiment_section=self.config.experiment_section,
-            start_time=(
-                datetime.fromtimestamp(self.start_time).isoformat() if self.start_time else ""
-            ),
+            start_time=datetime.fromtimestamp(self.start_time).isoformat()
+            if self.start_time
+            else "",
             end_time=datetime.fromtimestamp(self.end_time).isoformat() if self.end_time else "",
             duration_s=duration,
             config=self._config_to_dict(),
@@ -203,11 +203,9 @@ class BaseExperiment(ABC):
             slo_satisfaction_rate=slo_met / len(successful) if successful else 0,
             llm_metrics=self._compute_type_metrics(llm_results),
             embedding_metrics=self._compute_type_metrics(embedding_results),
-            raw_results=(
-                [self._result_to_dict(r) for r in self.results]
-                if self.config.output.save_raw_data
-                else []
-            ),
+            raw_results=[self._result_to_dict(r) for r in self.results]
+            if self.config.output.save_raw_data
+            else [],
         )
 
     def _compute_type_metrics(self, results: list[RequestResult]) -> dict:

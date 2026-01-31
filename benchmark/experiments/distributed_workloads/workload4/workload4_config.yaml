@@ -1,0 +1,126 @@
+# Workload 4 配置示例
+# 用于双流源数据配置
+
+# === 基础配置 ===
+num_tasks: 100              # 查询任务数量
+duration: 1200              # 运行时长（秒），20分钟
+use_remote: true            # 使用分布式环境
+num_nodes: 8                # 集群节点数
+
+# === 双流配置 ===
+query_qps: 40.0             # 查询流生成速率（queries per second）
+doc_qps: 25.0               # 文档流生成速率（documents per second）
+
+# 查询类型分布（三种类型的比例，总和必须为 1.0）
+query_type_distribution:
+  factual: 0.40             # 事实性查询 40%
+  analytical: 0.35          # 分析性查询 35%
+  exploratory: 0.25         # 探索性查询 25%
+
+# 类别分布（四个领域的比例，总和必须为 1.0）
+# Query 和 Document 共享此分布
+category_distribution:
+  finance: 0.30             # 金融 30%
+  healthcare: 0.25          # 医疗 25%
+  technology: 0.25          # 技术 25%
+  general: 0.20             # 通用 20%
+
+# === Embedding 服务配置 ===
+embedding_base_url: "http://11.11.11.7:8090/v1"
+embedding_model: "BAAI/bge-large-en-v1.5"
+embedding_dimension: 1024
+embedding_batch_size: 32    # 批量 embedding 大小
+embedding_timeout: 30.0     # 超时时间（秒）
+
+# === 数据源配置 ===
+# 知识库路径（可选）
+# None 表示使用内置模板生成
+# 如果指定路径，将从文件加载知识库
+knowledge_base_path:        # 或 "/path/to/knowledge_base.jsonl"
+
+# 随机种子（用于可复现性）
+seed: 42
+
+# === Semantic Join 配置 ===
+join_window_seconds: 60     # Join 窗口大小（秒）
+join_threshold: 0.70        # 相似度阈值
+join_parallelism: 16        # Join 并行度
+join_max_matches: 8         # 每个 query 最多匹配的 doc 数量
+
+# === VDB 检索配置 ===
+# VDB1: 专业知识库
+vdb1_backend: "SageVDB"
+vdb1_corpus_size: 100000000 # 100M docs
+vdb1_index_type: "HNSW"
+vdb1_ef_search: 200
+vdb1_top_k: 25
+vdb1_nodes: [1, 2, 3, 4]
+
+# VDB2: 通用知识库
+vdb2_backend: "SageVDB"
+vdb2_corpus_size: 500000000 # 500M docs
+vdb2_index_type: "IVF_HNSW"
+vdb2_nprobe: 50
+vdb2_top_k: 25
+vdb2_nodes: [5, 6, 7, 8]
+
+# 通用 VDB 配置
+vdb_filter_threshold: 0.6
+vdb_parallelism: 8
+
+# === 图遍历配置 ===
+graph_max_depth: 3
+graph_max_nodes: 200
+graph_bfs_beam_width: 10
+
+# === 聚类去重配置 ===
+clustering_algorithm: "dbscan"  # "dbscan" 或 "hierarchical"
+dbscan_eps: 0.15
+dbscan_min_samples: 2
+dedup_similarity_threshold: 0.95
+
+# === 重排序配置 ===
+rerank_top_k: 15
+
+# 5 维评分权重（总和必须为 1.0）
+rerank_score_weights:
+  semantic: 0.30    # 语义相似度
+  freshness: 0.20   # 新鲜度
+  diversity: 0.20   # 多样性
+  authority: 0.15   # 权威性
+  coverage: 0.15    # 覆盖度
+
+# MMR 多样性系数（0-1，越大越关注相关性）
+mmr_lambda: 0.7
+
+# === 批处理配置 ===
+category_batch_size: 8
+category_batch_timeout_ms: 500
+global_batch_size: 12
+global_batch_timeout_ms: 1000
+
+# === LLM 配置 ===
+llm_base_url: "http://11.11.11.7:8904/v1"
+llm_model: "Qwen/Qwen2.5-3B-Instruct"
+llm_max_tokens: 120
+llm_output_file: "/tmp/sage_llm_outputs.jsonl"
+
+# === 调度配置 ===
+scheduler_type: "load_aware"    # "fifo" | "load_aware" | "priority"
+scheduler_strategy: "adaptive"  # 仅 load_aware 生效
+
+# === 监控配置 ===
+enable_profiling: true
+metrics_output_dir: "/tmp/sage_metrics_workload4"
+
+# === 集群配置 ===
+head_node: "11.11.11.7"         # 头节点 IP
+worker_nodes:                    # 工作节点列表
+- "sage-node-1"
+- "sage-node-2"
+- "sage-node-3"
+- "sage-node-4"
+- "sage-node-5"
+- "sage-node-6"
+- "sage-node-7"
+- "sage-node-8"

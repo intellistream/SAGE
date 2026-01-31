@@ -46,14 +46,14 @@ class ExperimentConfig:
     name: str
     description: str
     experiment_section: str
-    gateway_url: str = (
-        "http://localhost:8888"  # allow-control-plane-bypass: benchmark configuration
-    )
+    gateway_url: str = "http://localhost:8888"
     hardware: HardwareConfig = field(default_factory=HardwareConfig)
     llm_model: ModelConfig = field(
         default_factory=lambda: ModelConfig(name="Qwen/Qwen2.5-7B-Instruct")
     )
-    embedding_model: ModelConfig = field(default_factory=lambda: ModelConfig(name="BAAI/bge-m3"))
+    embedding_model: ModelConfig = field(
+        default_factory=lambda: ModelConfig(name="BAAI/bge-large-en-v1.5")
+    )
     workload: WorkloadConfig = field(default_factory=WorkloadConfig)
     metrics: MetricsConfig = field(default_factory=MetricsConfig)
     output: OutputConfig = field(default_factory=OutputConfig)

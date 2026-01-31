@@ -1,24 +1,11 @@
 import argparse
 
-from sage.benchmark.benchmark_sage.experiments.config import (
-    ExperimentConfig,
-    WorkloadConfig,
-)
-from sage.benchmark.benchmark_sage.experiments.exp_5_1_e2e_pipeline import (
-    E2EPipelineExperiment,
-)
-from sage.benchmark.benchmark_sage.experiments.exp_5_2_control_plane import (
-    ControlPlaneExperiment,
-)
-from sage.benchmark.benchmark_sage.experiments.exp_5_3_isolation import (
-    IsolationExperiment,
-)
-from sage.benchmark.benchmark_sage.experiments.exp_5_4_scalability import (
-    ScalabilityExperiment,
-)
-from sage.benchmark.benchmark_sage.experiments.exp_5_5_heterogeneity import (
-    HeterogeneityExperiment,
-)
+from sage.benchmark.benchmark_sage.experiments.config import ExperimentConfig, WorkloadConfig
+from sage.benchmark.benchmark_sage.experiments.exp_5_1_e2e_pipeline import E2EPipelineExperiment
+from sage.benchmark.benchmark_sage.experiments.exp_5_2_control_plane import ControlPlaneExperiment
+from sage.benchmark.benchmark_sage.experiments.exp_5_3_isolation import IsolationExperiment
+from sage.benchmark.benchmark_sage.experiments.exp_5_4_scalability import ScalabilityExperiment
+from sage.benchmark.benchmark_sage.experiments.exp_5_5_heterogeneity import HeterogeneityExperiment
 
 
 def main():
@@ -39,10 +26,7 @@ def main():
     run_parser.add_argument("--count", type=int, default=100, help="Total requests")
     run_parser.add_argument("--llm-ratio", type=float, default=0.7, help="LLM ratio")
     run_parser.add_argument(
-        "--gateway",
-        type=str,
-        default="http://localhost:8888",  # allow-control-plane-bypass: CLI default
-        help="Gateway URL",
+        "--gateway", type=str, default="http://localhost:8888", help="Gateway URL"
     )
     run_parser.add_argument("--output", type=str, default="./outputs", help="Output directory")
 

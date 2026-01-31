@@ -7,8 +7,6 @@ import os
 from importlib import resources
 from typing import Any
 
-import requests
-
 from sage.common.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -108,6 +106,13 @@ def fetch_recommended_models(
         local_models = _load_local_models()
         if local_models:
             return local_models
+
+    # Lazy import requests - only needed when fetching remote models
+    try:
+        import requests
+    except ImportError:
+        logger.warning("requests not installed, using fallback models")
+        return _FALLBACK_MODELS
 
     failures: list[str] = []
     for url in _iter_candidate_urls(index_url):
