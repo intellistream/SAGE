@@ -237,6 +237,11 @@ class SageFlowHotspotPairCoMap(BaseCoMapFunction):
         # 收集所有剩余结果
         return self._drain_pairs()
 
+    def close(self) -> list[dict[str, Any]]:
+        """在 stop signal 时调用，完成 sageflow 并返回所有剩余结果。"""
+        print("[SageFlowHotspotPairCoMap] close() called, finishing sageflow...")
+        return self.finish_and_drain_all()
+
     def map0(self, data: Any) -> Any:
         if not isinstance(data, dict):
             return None
