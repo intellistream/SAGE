@@ -648,6 +648,7 @@ class Workload4Pipeline:
 
             # 收集汇总指标
             # TODO: 从 Sink 收集详细指标
+            # Issue URL: https://github.com/intellistream/SAGE/issues/1424
             self.metrics = Workload4Metrics(
                 task_id="summary",
                 query_id="summary",

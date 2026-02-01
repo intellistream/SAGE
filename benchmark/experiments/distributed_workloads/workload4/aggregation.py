@@ -165,6 +165,7 @@ class MergeAllResultsJoin(BaseJoinFunction):
                 for node in graph_result.retrieved_nodes
             ]
             all_embeddings = []  # TODO: 从文档中提取嵌入（如果有）
+                                 # Issue URL: https://github.com/intellistream/SAGE/issues/1423
 
             clustering_result = ClusteringResult(
                 query=vdb_merged.query,
