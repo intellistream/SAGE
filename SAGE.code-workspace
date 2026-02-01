@@ -12,10 +12,7 @@
 			"path": "../sage-team-info"
 		},
 		{
-			"path": "../sageData"
-		},
-		{
-			"path": "../sage-pypi-publisher"
+			"path": "../sagellm-website"
 		}
 	],
 	"settings": {

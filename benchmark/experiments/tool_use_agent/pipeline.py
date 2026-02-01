@@ -84,9 +84,7 @@ def register_memory_service(env: LocalEnvironment, collection_name: str = "agent
     Falls back gracefully if sage-mem is not available.
     """
     try:
-        from sage.middleware.components.sage_mem.services import (
-            HierarchicalMemoryService,
-        )
+        from sage.middleware.components.sage_mem.services import HierarchicalMemoryService
 
         env.register_service(
             "memory_service",
@@ -163,7 +161,7 @@ def register_vector_db_service(
             knowledge_base = [
                 {
                     "title": "SAGE Framework Overview",
-                    "text": "SAGE is a Python framework for building AI/LLM data processing pipelines with declarative dataflow. It consists of 5 layers from L1-Common to L5-CLI/Tools.",
+                    "text": "SAGE is a Python framework for building AI/LLM data processing pipelines with declarative dataflow. It consists of 6 layers from L1-Common to L6-Interface.",
                     "tags": "overview,architecture",
                 },
                 {
@@ -193,9 +191,7 @@ def register_vector_db_service(
             """Get embeddings using UnifiedInferenceClient"""
             try:
                 from sage.common.components.sage_llm import UnifiedInferenceClient
-                from sage.common.components.sage_llm.unified_client import (
-                    InferenceResult,
-                )
+                from sage.common.components.sage_llm.unified_client import InferenceResult
 
                 client = UnifiedInferenceClient.create()
                 result = client.embed(texts)
@@ -315,8 +311,7 @@ def run_tool_use_demo(
     if not verbose:
         CustomLogger.disable_global_console_debug()
 
-    print(
-        """
+    print("""
 ========================================================================
                     Tool Use Agent Pipeline Demo
 ========================================================================
@@ -333,8 +328,7 @@ def run_tool_use_demo(
     - Automatic context compression
     - Persistent memory across queries
 ========================================================================
-    """
-    )
+    """)
 
     # Create environment
     env = LocalEnvironment("tool_use_agent")
@@ -389,16 +383,14 @@ def run_interactive_mode() -> None:
 
     User can input queries one at a time with persistent memory.
     """
-    print(
-        """
+    print("""
 ========================================================================
               Tool Use Agent - Interactive Mode
   Type your query and press Enter.
   Type 'quit', 'exit', or 'q' to stop.
   Type 'clear' to clear memory.
 ========================================================================
-    """
-    )
+    """)
 
     # Create tool registry with no services initially
     tool_registry = create_default_registry()

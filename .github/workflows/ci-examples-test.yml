@@ -106,6 +106,16 @@ jobs:
           echo "✅ SAGE 安装完成"
         timeout-minutes: 20
 
+      - name: Install Independent Libs (for Examples)
+        run: |
+          echo "📦 安装独立库（examples 依赖）..."
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # 安装 isage-agentic（basic_agent.py 需要）
+          pip install --user isage-agentic
+
+          echo "✅ 独立库安装完成"
+
       - name: Verify Installation
         run: |
           echo "✅ 验证 SAGE 安装..."
@@ -113,6 +123,9 @@ jobs:
           python -c "import sage.common; print('✅ sage.common imported')"
           python -c "import sage.kernel; print('✅ sage.kernel imported')"
           python -c "import sage.libs; print('✅ sage.libs imported')"
+
+          # 验证独立库
+          python -c "import sage_libs.sage_agentic; print('✅ sage_libs.sage_agentic imported')" || echo "⚠️  sage_agentic not available"
 
       - name: Discover Testable Examples
         id: discover
@@ -169,7 +182,7 @@ jobs:
             exit 0
           fi
 
-          # 计数器
+          # 计数器 - 显式初始化为 0
           passed=0
           failed=0
           skipped=0
@@ -182,30 +195,33 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
 
-          # 遍历每个 example
-          for example in $examples; do
+          # 使用 while read 而不是 for，避免空行问题
+          while IFS= read -r example; do
+            # 跳过空行
+            [ -z "$example" ] && continue
+
             echo "📝 测试: $example"
 
             # 运行 example（测试模式）
-            if timeout 30 python "$example" > ".sage/examples-test-results/$(basename $example).log" 2>&1; then
+            if timeout 30 python "$example" > ".sage/examples-test-results/$(basename "$example").log" 2>&1; then
               echo "  ✅ PASS"
-              ((passed++))
+              passed=$((passed + 1))
             else
               exit_code=$?
               if [ $exit_code -eq 124 ]; then
                 echo "  ⏱️  TIMEOUT (30s)"
-                ((failed++))
+                failed=$((failed + 1))
               else
                 echo "  ❌ FAIL (exit code: $exit_code)"
-                ((failed++))
+                failed=$((failed + 1))
 
                 # 显示错误日志
                 echo "  错误日志:"
-                tail -n 10 ".sage/examples-test-results/$(basename $example).log" | sed 's/^/    /'
+                tail -n 10 ".sage/examples-test-results/$(basename "$example").log" | sed 's/^/    /'
               fi
             fi
             echo ""
-          done
+          done < /tmp/testable_examples.txt
 
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "测试结果汇总"

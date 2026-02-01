@@ -1,0 +1,100 @@
+# Workload 4 调试配置
+# ====================================
+#
+# 小规模快速测试，用于开发调试
+# 用法:
+#   python run_workload4.py --config workload4_config_debug.yaml
+
+# === 基础配置（小规模） ===
+num_tasks: 10               # 少量任务
+duration: 60                # 1 分钟
+use_remote: true
+num_nodes: 2                # 仅 2 个节点
+
+# === 双流配置（低 QPS） ===
+query_qps: 2.0              # 低查询 QPS
+doc_qps: 1.5                # 低文档 QPS
+
+query_type_distribution:
+  factual: 0.40
+  analytical: 0.35
+  exploratory: 0.25
+
+category_distribution:
+  finance: 0.30
+  healthcare: 0.25
+  technology: 0.25
+  general: 0.20
+
+# === Semantic Join 配置（小窗口） ===
+join_window_seconds: 30     # 30s 窗口（而非 60s）
+join_threshold: 0.70
+join_parallelism: 4         # 降低并行度
+join_max_matches: 5
+
+# === VDB 检索配置（小 top-k） ===
+vdb1_top_k: 10
+vdb2_top_k: 10
+vdb_filter_threshold: 0.60
+vdb_parallelism: 2
+
+# === 图遍历配置（浅层） ===
+graph_max_depth: 2          # 最大深度 2
+graph_max_nodes: 50         # 最多 50 个节点
+graph_bfs_beam_width: 5
+
+# === 聚类去重配置 ===
+clustering_algorithm: "dbscan"
+dbscan_eps: 0.15
+dbscan_min_samples: 2
+dedup_similarity_threshold: 0.95
+
+# === 重排序配置 ===
+rerank_top_k: 8
+
+rerank_score_weights:
+  semantic: 0.30
+  freshness: 0.20
+  diversity: 0.20
+  authority: 0.15
+  coverage: 0.15
+
+mmr_lambda: 0.7
+
+# === 批处理配置（小批量） ===
+category_batch_size: 4
+category_batch_timeout_ms: 300
+global_batch_size: 6
+global_batch_timeout_ms: 500
+
+# === LLM 配置 ===
+llm_base_url: "http://11.11.11.7:8904/v1"
+llm_model: "Qwen/Qwen2.5-3B-Instruct"
+llm_max_tokens: 80
+llm_temperature: 0.7
+
+# === Embedding 配置 ===
+embedding_base_url: "http://11.11.11.7:8090/v1"
+embedding_model: "BAAI/bge-large-en-v1.5"
+embedding_dimension: 1024
+embedding_batch_size: 16
+
+# === 调度配置 ===
+scheduler_type: "load_aware"
+scheduler_strategy: "adaptive"
+
+# === 监控配置 ===
+enable_profiling: false     # 调试模式不需要 profiling
+enable_detailed_metrics: true
+metrics_output_dir: "/tmp/sage_metrics_workload4_debug"
+metrics_flush_interval: 5
+
+# === 性能优化配置 ===
+enable_numpy_optimization: true
+enable_caching: false  # 调试时禁用缓存
+cache_size: 1000
+
+# === 调试配置 ===
+debug_mode: true
+log_level: "DEBUG"
+save_intermediate_results: true

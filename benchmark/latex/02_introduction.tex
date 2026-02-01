@@ -1,22 +1,57 @@
-% Introduction section for the SAGE systems paper (content, not prompt)
-
 \section{Introduction}
+\label{sec:introduction}
+Large language models are increasingly deployed not as standalone generators but as \emph{end-to-end inference
+pipelines}. A production request may trigger retrieval over a continuously evolving corpus, embedding and
+vector search, memory reads/writes across turns, context refinement under token budgets, and tool calls with
+iterative planning. These stages run across heterogeneous CPU/GPU resources and auxiliary systems, and must
+satisfy strict tail-latency and service-level objectives (SLOs). In this regime, the pipeline---rather than
+any single model---becomes the true unit of production inference.
 
-Large language models (LLMs) are increasingly deployed as part of rich application pipelines that combine retrieval, tools, structured data access, and multi-stage post-processing across heterogeneous CPU/GPU clusters. While modern serving engines deliver impressive single-model throughput and latency, practitioners still struggle to manage end-to-end LLM/AI pipelines: orchestrating multiple models and embedding services, sharing resources across workloads with different latency requirements, and reproducing complex deployments reliably. Existing MLOps and workflow platforms provide generic abstractions for training and batch jobs, but they lack LLM-aware scheduling and dataflow support tailored to online inference pipelines.
-We argue that building and operating LLM-centric pipelines requires a full-stack system that unifies dataflow, control, and evaluation rather than another isolated serving component. Low-level LLM engines such as vLLM, TensorRT-LLM, and SGLang optimize GPU utilization for a single model, but they do not address cross-model coordination or embedding co-scheduling. ML serving frameworks and workflow platforms such as Ray Serve, KServe, Triton, MLflow, Kubeflow, and Airflow focus on deployment and generic DAGs, but offer limited support for fine-grained resource sharing and observability across mixed LLM and embedding workloads. Application frameworks such as LangChain, LlamaIndex, and DSPy simplify prompt engineering and tool wiring, yet they treat the underlying system as a black box and cannot reason about hardware heterogeneity, SLOs, or interference.
-We present SAGE, a Python 3.10+ framework that treats LLM/AI applications as declarative dataflow pipelines mapped onto a strict six-layer architecture. At the bottom, \texttt{sage-common} and \texttt{sage-platform} provide shared configuration, XDG-compliant user paths, port management, and platform services such as storage and cluster configuration. The \texttt{sage-kernel} and \texttt{sage-libs} layers implement a job management and node selection runtime that is aware of CPU-only and GPU nodes, while \texttt{sage-middleware} contributes C++ operators for performance-critical components. On top, \texttt{sage-apps} and \texttt{sage-benchmark} host applications and evaluation suites, and user-facing tools---including \texttt{sage-cli}, \texttt{sage-studio}, \texttt{sage-tools}, and the \texttt{sage-gateway} OpenAI-compatible endpoint---expose the system to developers.
-A central component of SAGE is a unified LLM and embedding control plane (``sageLLM'') that fronts a pool of vLLM and embedding backends behind the \texttt{sage-gateway}. The control plane classifies requests, co-schedules chat/generation and embedding workloads using policies such as \texttt{HybridSchedulingPolicy}, and batches work across engines to improve throughput and tail latency while honoring per-tenant SLOs. Unlike single-engine benchmarks such as AgentBench, ToolBench, or HELM, SAGE's benchmarks focus on system-level behavior: they stress the control plane, dataflow runtime, and heterogeneous deployments, measuring throughput, latency distributions, SLO satisfaction, and interference under realistic RAG and agent-style workloads.
-This paper makes the following contributions. \emph{First}, we design a six-layer architecture and declarative dataflow model for LLM-centric pipelines that cleanly separates concerns between common utilities, platform services, execution kernel, middleware operators, applications, and user interfaces, with strict no-upward dependencies. \emph{Second}, we introduce a unified LLM and embedding control plane that shares resources across multiple engines and supports policy-driven scheduling for mixed interactive and batch traffic. \emph{Third}, we provide systems support for heterogeneous CPU/GPU deployments, including job management, node selection, and reproducible tooling for deployment, testing, and CI. \emph{Fourth}, we develop a comprehensive benchmark suite that evaluates both agent capabilities and system-level behavior, enabling rigorous comparison of scheduling policies, deployment topologies, and baselines. Finally, we show in Section~\ref{sec:experiments} that SAGE reduces end-to-end p99 latency by [X]\% and improves throughput by [Y]\texttimes{} over separately managed LLM and embedding services, while maintaining strict latency SLOs under mixed interactive and batch workloads.
+Building such pipelines remains difficult for three reasons. First, the pipeline spans components with
+fundamentally different performance profiles: embedding and retrieval are batching- and bandwidth-sensitive,
+generation is token-latency-sensitive, memory and refinement introduce additional state and compute, and tool
+invocations add external variability. Second, many workloads are \emph{stateful} and increasingly
+\emph{streaming}: data sources change over time, semantic states must be incrementally materialized, and
+sessions require consistent memory semantics across turns. Third, pipeline behavior is hard to reproduce and
+debug: developers need transparent visibility into operator-level latency, queuing, scheduling, and
+interference, yet existing stacks provide only partial observability across components.
 
-% ---------------------------------------------------------------------------
-% Internal notes for authors (not part of the camera-ready content)
-% ---------------------------------------------------------------------------
-% Possible future refinements to the Introduction:
-% - Once experiments are finalized, add one sentence summarizing the main
-%   quantitative result (e.g., p99 reduction and throughput gain) near the end
-%   of the last paragraph, aligned with the abstract.
-% - Replace generic references to ``RAG and agent-style workloads" with the
-%   concrete benchmark names and datasets used in Section 5.
-% - If space is tight, consider shortening the list of external systems in the
-%   second paragraph and move detailed positioning to Related Work.
-% - Optionally add a final paragraph that previews the paper structure.
+\paragraph{Why existing systems fall short.}
+The current ecosystem is fragmented in ways that hinder \emph{pipeline-level} optimization. \emph{Serving
+systems} optimize a single model backend (e.g., high-throughput decoding, batching, and KV-cache management),
+but typically treat retrieval, refinement, memory, and tool-use operators as external glue rather than
+first-class stages subject to co-optimization. \emph{Orchestration systems and workflow frameworks} ease
+composition and deployment, yet provide limited pipeline-aware scheduling and limited support for reasoning
+about tail latency and interference once execution spans heterogeneous stages and services. \emph{Vector
+databases and retrieval systems} offer scalable similarity search, but are often integrated as black-box
+services without unified semantics for streaming semantic state, refinement, and session memory. Finally,
+\emph{agent frameworks} improve tool use and planning, but rarely integrate agent behavior with system-level control over execution plans, resource sharing, and SLO compliance. These limitations become acute under
+\emph{mixed} workloads where LLM and embedding requests contend for shared accelerators and must be scheduled
+jointly end-to-end.
+
+We present \textbf{SAGE} (Streaming-Augmented Generative Execution), a full-stack system for building LLM inference pipelines that treats the \emph{pipeline}---rather than any single model---as the primary unit of abstraction. SAGE provides a declarative dataflow model that compiles applications into distributed execution plans over heterogeneous CPU/GPU resources, coordinating existing inference engines (e.g., vLLM) with a library of specialized inference components. By elevating retrieval, semantic state, memory, refinement, and tool use to first-class
+dataflow stages, SAGE enables end-to-end co-optimization of scheduling, placement, and resource sharing across the entire inference path, rather than optimizing each backend in isolation.
+
+SAGE is structured as a strict five-layer architecture (L1--L5) with downward-only dependencies, separating
+foundational utilities (L1) and platform services (L2) from the streaming runtime and algorithm libraries
+(L3), performance-critical C++ middleware operators (L4), and developer-facing CLI and tooling (L5). This discipline enables tractable pipeline composition at scale while keeping layers independently evolvable.
+The system integrates a suite of specialized components commonly required by production pipelines---including
+high-performance vector storage and search (SageVDB), vector-native stream processing for incremental
+semantic state (SageFlow), structured memory backends (NeuroMem), time-series operators, and context
+refinement---all exposed through uniform dataflow operators. For LLM inference, SAGE leverages vLLM as
+the backend engine. We defer a detailed component breakdown and interfaces to
+\S\ref{sec:system_overview} and \S\ref{sec:design_details}.
+
+To make pipeline-level claims measurable, SAGE includes an open benchmark suite that evaluates both system
+metrics (throughput, TTFT/TBT, tail latency, SLO compliance) and agent behaviors (tool
+selection, planning, timing). Experiments on a 16-node cluster characterize SAGE's performance envelope: the system achieves 10--11$\times$ throughput scaling at 16 nodes with 68\% parallel efficiency, maintains 99.8\% load balance across heterogeneous workloads through adaptive scheduling, and reduces multi-tenant tail latency by 57\% via simple admission control policies.
+
+\paragraph{Contributions.}
+This paper makes the following contributions.
+\begin{enumerate}
+  \item A pipeline-first, declarative dataflow approach for expressing and compiling end-to-end LLM inference
+  pipelines over heterogeneous CPU/GPU resources.
+  \item A strict five-layer architecture (L1--L5) that integrates a streaming runtime with specialized inference components---SageVDB for vector search, SageFlow for streaming semantic state, NeuroMem for structured memory, and context refinement modules---while enforcing downward-only dependencies for modular evolution.
+  \item An open benchmark suite and evaluation methodology that jointly quantifies system-level SLO behavior
+  and agent-level decision quality under mixed and interfering workloads.
+\end{enumerate}

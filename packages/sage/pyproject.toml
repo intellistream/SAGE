@@ -1,21 +1,13 @@
 [build-system]
-requires = [
-    "setuptools>=64",
-    "wheel",
-    "packaging>=24.2",
-]
+requires = ["setuptools>=64", "wheel", "packaging>=24.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "isage"
-dynamic = [
-    "version",
-]
+dynamic = ["version"]
 description = "SAGE - Streaming-Augmented Generative Execution"
 readme = "README.md"
-authors = [
-    { name = "SAGE Team", email = "shuhao_zhang@hust.edu.cn" },
-]
+authors = [{ name = "SAGE Team", email = "shuhao_zhang@hust.edu.cn" }]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -53,7 +45,8 @@ all = [
     "isage-libs>=0.1.0",
     "isage-middleware>=0.1.0",
     "isage-cli>=0.1.0",
-    "isage-studio>=0.1.0",
+    # Note: isage-studio is excluded to avoid circular dependency
+    # Install separately: pip install isage-studio
     "isagellm[gateway]>=0.1.0",
 ]
 
@@ -65,9 +58,7 @@ Repository = "https://github.com/intellistream/SAGE.git"
 
 [tool.setuptools.packages.find]
 namespaces = true
-where = [
-    "src",
-]
+where = ["src"]
 
 [tool.setuptools.package-dir]
 "" = "src"
