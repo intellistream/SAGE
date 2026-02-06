@@ -18,7 +18,16 @@
 			"path": "../sage-examples"
 		},
 		{
+			"path": "../sage-tutorials"
+		},
+		{
 			"path": "../sagellm"
+		},
+		{
+			"path": "../OmniBenchmark"
+		},
+		{
+			"path": "../sage-benchmark"
 		}
 	],
 	"settings": {

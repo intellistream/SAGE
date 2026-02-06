@@ -287,8 +287,9 @@ L1: sage-common                        # Foundation
 
 **Independent Repositories** (不在 SAGE 核心仓库，独立维护):
 - **sage-studio**: https://github.com/intellistream/sage-studio (Visual workflow builder)
-- **sage-benchmark**: https://github.com/intellistream/sage-benchmark (Evaluation framework, 独立 PyPI: isage-benchmark)
+- **sage-benchmark**: https://github.com/intellistream/sage-benchmark (SAGE特定评估框架, 独立 PyPI: isage-benchmark) - ⚠️ **正在迁移中**: 当前代码仍在 `SAGE/benchmark/` 目录，即将迁移到独立仓库
 - **sage-examples**: https://github.com/intellistream/sage-examples (Examples and applications, 原 sage-apps)
+- **OmniBenchmark**: https://github.com/intellistream/OmniBenchmark (组织级综合benchmark集合，包含所有类型benchmark)
 
 ### 🔌 CLI Plugin System - CRITICAL
 
@@ -577,12 +578,17 @@ sage-middleware depends on the following independent PyPI packages:
   - 使用: `from sage.middleware.components.sage_sias import CoresetSelector`
   - 注意: 放在 L4 middleware 而非 L3 libs，因为依赖 NeuroMem
 
-**Benchmarks (L5)**
+**Benchmarks (L5)** - ⚠️ 即将迁移到独立仓库
 
+当前位置（即将迁移）:
 - Control plane scheduling benchmark (throughput/TTFT/TBT/p99/SLO):
-  `packages/sage-benchmark/src/sage/benchmark/benchmark_control_plane/README.md`
+  `benchmark/experiments/exp_5_2_control_plane.py`
 - Agent benchmarks (tool selection / planning / timing):
-  `packages/sage-benchmark/src/sage/benchmark/benchmark_agent/README.md`
+  `benchmark/experiments/tool_use_agent/`
+- End-to-end pipeline benchmarks:
+  `benchmark/experiments/exp_5_1_e2e_pipeline.py`
+
+迁移后将通过 `pip install isage-benchmark` 使用。详见 `benchmark/MIGRATION_TO_INDEPENDENT_REPO.md`。
 
 **Kernel + Libs (L3)**
 
@@ -1348,11 +1354,23 @@ embedder = EmbeddingFactory.create("hf", model="...")
 embedder.embed(texts=["a", "b"])  # TypeError: embed() got unexpected keyword argument 'texts'
 ```
 
-## sage-benchmark (独立仓库)
+## sage-benchmark (独立仓库) - ⚠️ 正在迁移
 
-**sage-benchmark has been separated into an independent repository**: https://github.com/intellistream/sage-benchmark
+**⚠️ 迁移状态**: sage-benchmark 正在从 SAGE 主仓库迁移到独立仓库。
 
-Comprehensive evaluation framework for AI data processing pipelines, including:
+**重要区分**:
+- **sage-benchmark**: SAGE 框架特定的 benchmark（从 `SAGE/benchmark/` 迁移）
+- **OmniBenchmark**: 组织级综合 benchmark 集合（已存在，https://github.com/intellistream/OmniBenchmark）
+
+**当前状态**:
+- 代码位置: `SAGE/benchmark/` 目录
+- 迁移文档: `SAGE/benchmark/MIGRATION_TO_INDEPENDENT_REPO.md`
+- 目标仓库: https://github.com/intellistream/sage-benchmark (新创建，与OmniBenchmark不同)
+- PyPI 包名: `isage-benchmark` (即将发布)
+
+**迁移完成后**:
+
+sage-benchmark 将成为独立的综合评估框架，包含：
 - **benchmark_agent**: Agent capability evaluation (tool selection, task planning, timing judgment)
 - **benchmark_control_plane**: Control Plane scheduling strategy evaluation
 - **benchmark_memory**: Memory system evaluation
