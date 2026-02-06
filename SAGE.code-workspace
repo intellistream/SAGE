@@ -28,6 +28,27 @@
 		},
 		{
 			"path": "../sage-benchmark"
+		},
+		{
+			"path": "../sage-agent-benchmark"
+		},
+		{
+			"path": "../sage-control-plane-benchmark"
+		},
+		{
+			"path": "../sage-rag-benchmark"
+		},
+		{
+			"path": "../sage-scheduler-benchmark"
+		},
+		{
+			"path": "../sage-longbench-benchmark"
+		},
+		{
+			"path": "../sage-memory-benchmark"
+		},
+		{
+			"path": "../.github"
 		}
 	],
 	"settings": {

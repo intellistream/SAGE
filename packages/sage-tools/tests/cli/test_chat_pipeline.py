@@ -24,19 +24,19 @@ def fake_generator(monkeypatch):
             "type": "local",
         },
         "source": {
-            "class": "sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleQuestionSource",
+            "class": "sage.benchmark_rag.implementations.rag_simple.SimpleQuestionSource",
             "params": {"questions": ["hi"]},
         },
         "stages": [
             {
                 "id": "generator",
                 "kind": "map",
-                "class": "sage.benchmark.benchmark_rag.implementations.rag_simple.SimplePromptor",
+                "class": "sage.benchmark_rag.implementations.rag_simple.SimplePromptor",
                 "params": {},
             }
         ],
         "sink": {
-            "class": "sage.benchmark.benchmark_rag.implementations.rag_simple.SimpleTerminalSink",
+            "class": "sage.benchmark_rag.implementations.rag_simple.SimpleTerminalSink",
             "params": {},
         },
         "services": [],
