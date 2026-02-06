@@ -495,7 +495,7 @@ def visualize_score_breakdown(
     angles = [n / float(num_dims) * 2 * pi for n in range(num_dims)]
     angles += angles[:1]  # 闭合
 
-    fig, ax = plt.subplots(figsize=(10, 8), subplot_kw=dict(projection="polar"))
+    fig, ax = plt.subplots(figsize=(10, 8), subplot_kw={"projection": "polar"})
 
     # 为每个文档绘制雷达图
     for idx, result in enumerate(top_results):

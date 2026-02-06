@@ -19,8 +19,6 @@ from sage.common.core import MapFunction
 # 支持直接运行和模块运行两种方式
 try:
     from .classifier import (
-        ClassificationResult,
-        QueryComplexityClassifier,
         QueryComplexityLevel,
         create_classifier,
     )

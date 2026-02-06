@@ -53,7 +53,7 @@ from sage.kernel.api.remote_environment import RemoteEnvironment
 
 # 支持直接运行和模块运行
 try:
-    from .classifier import ClassificationResult, QueryComplexityLevel, create_classifier
+    from .classifier import ClassificationResult, create_classifier
 except ImportError:
     from classifier import ClassificationResult, create_classifier
 

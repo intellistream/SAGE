@@ -11,7 +11,6 @@ try:
         GraphMemoryRetriever,
         GraphMemoryService,
         build_knowledge_graph,
-        register_graph_memory_service,
     )
     from models import DocumentEvent, JoinedEvent, QueryEvent
 except ImportError:

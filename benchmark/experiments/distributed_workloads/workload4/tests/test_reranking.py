@@ -547,14 +547,11 @@ def test_visualize_score_breakdown_basic():
         visualize_score_breakdown(reranking_results, str(output_path))
 
         # 检查文件是否创建（如果 matplotlib 可用）
-        try:
-            import matplotlib
+        import importlib.util
 
+        if importlib.util.find_spec("matplotlib") is not None:
             assert output_path.exists()
             assert output_path.stat().st_size > 0
-        except ImportError:
-            # matplotlib 不可用，跳过检查
-            pass
 
 
 def test_visualize_score_distribution_basic():
@@ -587,13 +584,11 @@ def test_visualize_score_distribution_basic():
         visualize_score_distribution(reranking_results, str(output_path))
 
         # 检查文件是否创建（如果 matplotlib 可用）
-        try:
-            import matplotlib
+        import importlib.util
 
+        if importlib.util.find_spec("matplotlib") is not None:
             assert output_path.exists()
             assert output_path.stat().st_size > 0
-        except ImportError:
-            pass
 
 
 # ============================================================================

@@ -110,7 +110,7 @@ def example_with_similar_docs():
         embedding=base_embedding.tolist(),
     )
 
-    result = join_op.map0(query)
+    _ = join_op.map0(query)
 
     if result is not None:
         print(f"\n匹配到 {len(result.matched_docs)} 个文档")

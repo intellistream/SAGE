@@ -299,7 +299,6 @@ class GroupProcessorOperator(MapFunction):
     def execute(self, data: dict[str, Any]) -> dict[str, Any]:
         is_representative = data.get("is_representative", True)
         group_ids = data.get("group_ids", [])
-        group_queries = data.get("group_queries", [])
 
         if is_representative:
             # This is the representative query - generate response for the group

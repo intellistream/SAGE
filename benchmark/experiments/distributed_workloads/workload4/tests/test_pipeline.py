@@ -263,7 +263,7 @@ def test_config_validation():
         invalid_config = Workload4Config.__new__(Workload4Config)
         invalid_config.query_qps = -1
         invalid_config.validate()
-        assert False, "Should raise AssertionError"
+        raise AssertionError("Should raise AssertionError")
     except AssertionError as e:
         assert "query_qps" in str(e)
 

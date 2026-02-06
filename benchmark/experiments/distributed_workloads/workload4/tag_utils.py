@@ -18,13 +18,6 @@ from sage.common.core.functions.flatmap_function import FlatMapFunction
 from sage.common.core.functions.map_function import MapFunction
 from sage.kernel.runtime.communication.packet import StopSignal
 
-if TYPE_CHECKING:
-    try:
-        from .models import JoinedEvent
-    except ImportError:
-        pass
-
-
 class TaggedEvent:
     """
     带 tag 的事件包装器。

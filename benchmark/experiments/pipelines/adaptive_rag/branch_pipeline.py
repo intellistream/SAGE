@@ -785,9 +785,9 @@ def build_branching_adaptive_rag_pipeline(
 
     # 最终综合生成
     (
-        multi_stream.map(
-            FinalSynthesizer, llm_base_url=llm_base_url, llm_model=llm_model
-        ).sink(ResultSink, branch_name="MULTI", parallelism=1)  # IterativeState -> ResultData
+        multi_stream.map(FinalSynthesizer, llm_base_url=llm_base_url, llm_model=llm_model).sink(
+            ResultSink, branch_name="MULTI", parallelism=1
+        )  # IterativeState -> ResultData
     )
 
     return env

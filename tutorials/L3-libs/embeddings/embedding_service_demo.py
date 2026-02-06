@@ -12,8 +12,6 @@ Requirements:
 """
 
 import os
-import sys
-from pathlib import Path
 
 
 def demo_basic_embedding_service():

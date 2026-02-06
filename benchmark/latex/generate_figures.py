@@ -243,7 +243,7 @@ def generate_concurrency_scaling():
     width = 0.35
 
     # Bar charts for throughput
-    bars1 = ax1.bar(
+    _ = ax1.bar(
         x - width / 2,
         compute_tp,
         width,
@@ -251,7 +251,7 @@ def generate_concurrency_scaling():
         color=COLORS["compute"],
         alpha=0.8,
     )
-    bars2 = ax1.bar(
+    _ = ax1.bar(
         x + width / 2, rag_tp, width, label="RAG Throughput", color=COLORS["rag"], alpha=0.8
     )
     ax1.set_xlabel("Concurrency Level")
@@ -362,7 +362,7 @@ def generate_admission_control():
     p99 = [77, 73, 60, 33]
 
     x = np.arange(len(delays))
-    bars = ax1.bar(x, throughput, color=COLORS["compute"], alpha=0.7, width=0.6)
+    _ = ax1.bar(x, throughput, color=COLORS["compute"], alpha=0.7, width=0.6)
     ax1.set_xlabel("Start Delay")
     ax1.set_ylabel("Throughput (tasks/sec)", color=COLORS["compute"])
     ax1.set_xticks(x)

@@ -825,7 +825,7 @@ class BatchedEmbeddingPrecompute(MapFunction):
 
         if len(self._buffer) >= self.batch_size:
             # 刷新缓冲
-            processed = self._flush_buffer()
+            _ = self._flush_buffer()
             # 只返回当前这个(其他的会丢失，这是局限)
             # 实际应该用 FlatMapFunction
             return data

@@ -4,10 +4,12 @@ Workload 4 图遍历和内存检索
 实现基于图结构的内存检索，使用 BFS 遍历关联节点。
 """
 
+from __future__ import annotations
+
 import logging
 import time
 from collections import deque
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import networkx as nx
 import numpy as np
@@ -18,6 +20,12 @@ try:
     from .models import GraphMemoryResult, JoinedEvent
 except ImportError:
     from models import GraphMemoryResult, JoinedEvent
+
+if TYPE_CHECKING:
+    try:
+        from .models import GraphEnrichedEvent
+    except ImportError:
+        from models import GraphEnrichedEvent
 
 logger = logging.getLogger(__name__)
 

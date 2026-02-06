@@ -21,6 +21,8 @@ try:
 except RuntimeError as exc:
     print(f"⚠️ 无法加载 .env: {exc}")
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
 
 # ====== 读取 source ======
 def iter_queries(source_cfg: dict[str, Any]) -> Iterable[str]:

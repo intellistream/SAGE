@@ -30,24 +30,14 @@ if TYPE_CHECKING:
 
 try:
     # 流汇聚和分流工具
-    from .aggregation import MergeAllResultsJoin, MergeVDBResultsJoin
+    from .aggregation import MergeVDBResultsJoin
     from .batching import CategoryBatchAggregator, GlobalBatchAggregator
     from .clustering import DBSCANClusteringOperator
     from .config import Workload4Config
     from .generation import BatchLLMGenerator, Workload4MetricsSink
     from .graph_memory import GraphMemoryRetriever
 
-    # 🔧 临时添加：单源测试用的转换器
-    from .mappers import QueryToJoinedMapper
     from .models import (
-        BatchContext,
-        ClusteringResult,
-        DocumentEvent,
-        GraphMemoryResult,
-        JoinedEvent,
-        QueryEvent,
-        RerankingResult,
-        VDBRetrievalResult,
         Workload4Metrics,
     )
     from .reranking import MMRDiversityFilter, MultiDimensionalReranker
@@ -58,12 +48,7 @@ try:
         Workload4QuerySource,
     )
     from .tag_utils import TagFilter, TagMapper
-    from .vdb_retrieval import (
-        LocalReranker,
-        StageAggregator,
-        VDBResultFilter,
-        VDBRetriever,
-    )
+    from .vdb_retrieval import VDBRetriever
 except ImportError:
     # 流汇聚和分流工具
     from aggregation import MergeVDBResultsJoin

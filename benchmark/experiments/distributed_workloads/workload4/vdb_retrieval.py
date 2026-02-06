@@ -20,7 +20,7 @@ from sage.common.core.functions.filter_function import FilterFunction
 from sage.common.core.functions.map_function import MapFunction
 
 if TYPE_CHECKING:
-    from .models import JoinedEvent, VDBRetrievalResult
+    from .models import GraphEnrichedEvent, JoinedEvent, VDBResultsWrapper, VDBRetrievalResult
 
 
 try:

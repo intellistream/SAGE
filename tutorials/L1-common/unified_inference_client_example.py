@@ -1,4 +1,4 @@
-"""  
+"""
 UnifiedInferenceClient 完整使用示例
 
 本示例演示如何使用 SAGE 统一推理客户端进行 LLM 对话和 Embedding 向量化。
@@ -22,8 +22,6 @@ from __future__ import annotations
 
 import math
 import os
-import sys
-from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 from sage.common.config.ports import SagePorts

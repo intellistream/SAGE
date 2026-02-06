@@ -93,7 +93,7 @@ class TestWorkload4QuerySource(unittest.TestCase):
         source = Workload4QuerySource(num_tasks=20, qps=10.0)
 
         start = time.time()
-        queries = list(source.execute())
+        _ = list(source.execute())
         elapsed = time.time() - start
 
         # 20 个查询，10 QPS，应该约 2 秒

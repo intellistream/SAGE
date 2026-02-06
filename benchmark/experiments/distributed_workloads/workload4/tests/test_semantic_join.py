@@ -255,7 +255,7 @@ class TestSemanticJoinOperator:
     def test_empty_window_query(self):
         """测试空窗口查询"""
         query = self._create_query("q1", 1.0)
-        result = self.operator.map0(query)
+        _ = self.operator.map0(query)
 
         assert result is None  # 无匹配
 
@@ -311,7 +311,7 @@ class TestSemanticJoinOperator:
 
         # 查询（时间戳 10，窗口 5s，doc1 应该过期）
         query = self._create_query("q1", 10.0)
-        self.operator.map0(query)
+        _ = self.operator.map0(query)
 
         # doc1 应该被清理
         assert self.operator.window_state.size() == 1
@@ -473,7 +473,7 @@ class TestPerformance:
 
         # 批量计算
         start_time = time.time()
-        similarities = doc_embs @ query_emb
+        _ = doc_embs @ query_emb
         batch_time = time.time() - start_time
 
         print("\n[Performance Test] Batch similarity calculation:")
