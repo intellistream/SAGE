@@ -24,9 +24,6 @@
 			"path": "../sagellm"
 		},
 		{
-			"path": "../OmniBenchmark"
-		},
-		{
 			"path": "../sage-benchmark"
 		},
 		{
@@ -49,6 +46,18 @@
 		},
 		{
 			"path": "../.github"
+		},
+		{
+			"path": "../sage-eval"
+		},
+		{
+			"path": "../sage-refiner-benchmark"
+		},
+		{
+			"path": "../sage-agentic"
+		},
+		{
+			"path": "../sage-tooluse"
 		}
 	],
 	"settings": {
