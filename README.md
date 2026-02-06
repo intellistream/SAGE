@@ -321,7 +321,7 @@ git clone https://github.com/intellistream/SAGE.git
 cd SAGE
 
 # Start learning (30 seconds)
-python tutorials/hello_world.py
+python tutorials/L1-common/hello_world.py
 
 # Follow the quick start guide
 cat tutorials/QUICK_START.md

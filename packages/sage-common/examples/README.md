@@ -28,7 +28,7 @@ cd SAGE
 ./quickstart.sh --dev --yes
 
 # 3. 运行第一个示例
-python tutorials/hello_world.py
+python tutorials/L1-common/hello_world.py
 
 # 4. 查看快速入门指南
 cat tutorials/QUICK_START.md
