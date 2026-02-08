@@ -63,7 +63,6 @@ dev = [
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
     "ruff==0.14.6",
-    "mypy>=1.7.0",
     "pybind11>=2.10.0",
 ]
 # Vector databases and storage
@@ -186,19 +185,6 @@ profile = "black"
 multi_line_output = 3
 line_length = 100
 known_first_party = ["sage"]
-
-[tool.mypy]
-python_version = "3.11"
-cache_dir = "../../.sage/cache/mypy"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-no_implicit_optional = true
-strict_optional = true
-overrides = [
-    { module = "sage.service.*", ignore_missing_imports = false },
-    { module = "fastapi.*", ignore_missing_imports = true },
-]
 
 # ============================================================================
 # Code Quality Configuration

@@ -84,7 +84,6 @@ dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.0.0",
     "ruff==0.14.6",
-    "mypy>=1.7.0",
 ]
 embedding = [
     "python-dotenv>=1.1.0,<2.0.0",
@@ -123,11 +122,6 @@ namespaces = true                          # PEP 420 namespace packages
 # 代码格式化和质量检查 (Ruff)
 [tool.ruff]
 extend = "../../tools/ruff.toml"           # 继承项目级 ruff 配置
-
-# 静态类型检查 (MyPy)
-[tool.mypy]
-cache_dir = "../../.sage/cache/mypy"       # MyPy 缓存目录
-ignore_missing_imports = true             # 忽略缺失的类型注解
 
 # ----------------------------------------------------------------------------
 # 测试配置 (Pytest)

@@ -35,7 +35,6 @@ dev = [
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
     "ruff==0.14.6",
-    "mypy>=1.7.0",
     "pre-commit>=3.5.0",
 ]
 all = [
@@ -68,7 +67,3 @@ attr = "sage._version.__version__"
 
 [tool.ruff]
 extend = "../../tools/ruff.toml"
-
-[tool.mypy]
-cache_dir = "../../.sage/cache/mypy"
-ignore_missing_imports = true

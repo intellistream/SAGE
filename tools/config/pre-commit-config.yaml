@@ -7,11 +7,6 @@
 #   - Install hooks: pre-commit install --config tools/config/pre-commit-config.yaml
 #   - Run manually: pre-commit run --all-files --config tools/config/pre-commit-config.yaml
 #
-# Mypy Type Checking:
-#   - Runs automatically on changed Python files
-#   - Shows type errors as warnings (doesn't block commits/CI)
-#   - To run mypy explicitly: pre-commit run mypy --all-files --config tools/config/pre-commit-config.yaml
-
 default_language_version:
   python: python3.11
 
@@ -77,7 +72,6 @@ repos:
     args: [--config, tools/config/ruff.toml]
     exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm|db)/|.*/(sageLLM|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
-  # Python: mypy type checking (warning mode - shows errors but doesn't block commit)
 - repo: local
   hooks:
   - id: architecture-violation-check
@@ -104,22 +98,6 @@ repos:
     always_run: false
     files: ^packages/.*/src/sage/__init__\.py$
         # Block commit if src/sage/__init__.py is added/modified (violates PEP 420)
-  - id: mypy
-    name: mypy type checking (warnings only)
-    entry: tools/quality/mypy-wrapper.sh
-    language: system
-    types: [python]
-    require_serial: true
-    args:
-    - --cache-dir=.sage/cache/mypy
-    - --ignore-missing-imports
-    - --show-error-codes
-    - --explicit-package-bases
-    - --warn-unused-ignores
-    - --namespace-packages
-    exclude: ^(docs/|docs-public/|examples/|tests/|.*/tests/|setup.py|.*/setup.py|.*/benchmark_(libamm|db)/|.*/(sageLLM|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/src/sage/__init__.py|ThirdParty/|thirdparty/)
-        # This hook will always succeed (exit 0) to avoid blocking commits/CI
-        # Errors are shown but treated as warnings
   - id: markdown-files-location-check
     name: check markdown files are in proper locations
     entry: tools/hooks/check_docs_location.sh
@@ -331,7 +309,6 @@ repos:
         ".benchmarks"  # Deprecated; keep for legacy benchmark artifacts
         ".git"
         ".github"
-        ".mypy_cache"
         ".pytest_cache"
         ".ruff_cache"
         ".sage"

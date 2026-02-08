@@ -170,7 +170,6 @@ dev_reports/
 
 # 如果有遗留的分散缓存目录，也要忽略
 **/.pytest_cache/
-**/.mypy_cache/
 **/.ruff_cache/
 
 # Build artifacts managed by sage-dev toolkit

@@ -47,7 +47,7 @@ jobs:
       - name: Install tools (no SAGE)
         run: |
           pip install --upgrade pip
-          pip install pre-commit ruff mypy types-PyYAML types-requests types-setuptools
+          pip install pre-commit ruff
 
       - name: Configure Git for large diffs
         run: |
