@@ -488,24 +488,32 @@ else:
 
         # 显式安装独立 PyPI 包依赖 (因为下面使用了 --no-deps)
         # 这些包是 sage-middleware 的依赖，但因为 --no-deps 选项会被跳过
-        echo -e "${DIM}  正在安装独立 PyPI 包依赖 (isage-vdb, isage-flow, etc.)...${NC}"
-        log_info "开始安装独立 PyPI 包依赖" "INSTALL"
+        # 注意：这些包都含有 C++ 扩展（需要编译），会耗时较长，所以使用详细进度显示
+        echo -e "${DIM}  正在安装独立 PyPI 包依赖...${NC}"
+        echo -e "${DIM}     (isage-vdb, isage-tsdb, isage-flow, isage-refiner, isage-neuromem)${NC}"
+        echo -e "${DIM}     此步骤包含 C++ 编译，预计耗时 2-10 分钟，请耐心等待...${NC}"
+        log_info "开始安装独立 PyPI 包依赖（包含 C++ 编译）" "INSTALL"
 
         # 使用与 pyproject.toml 一致的版本约束
         # 使用单引号包裹每个包名，防止 shell 将 > 解析为重定向
-        local independent_packages="'isage-vdb>=0.1.5' 'isage-tsdb>=0.1.5' 'isage-flow>=0.1.1' 'isage-refiner>=0.1.0' 'isage-neuromem>=0.2.1.1'"
+        local independent_packages="isage-vdb>=0.1.5 isage-tsdb>=0.1.5 isage-flow>=0.1.1 isage-refiner>=0.1.0 isage-neuromem>=0.2.1.1"
 
         # 注意：独立包是 PyPI 包，不能使用 -e (install_flags)
+        # 使用 log_pip_install_with_verbose_progress 显示实时编译进度，避免用户认为卡住
         log_debug "PIP命令: $PIP_CMD install $independent_packages $pip_args" "INSTALL"
 
-        if ! log_command "INSTALL" "Deps" "$PIP_CMD install $independent_packages $pip_args"; then
+        echo "" >&2
+        if ! log_pip_install_with_verbose_progress "INSTALL" "Deps" "$PIP_CMD install $independent_packages $pip_args"; then
             log_warn "独立 PyPI 包安装失败，可能导致部分功能不可用" "INSTALL"
-            echo -e "${WARNING} 独立 PyPI 包安装失败，可能导致部分功能不可用"
+            echo -e "${WARNING} ⚠️  独立 PyPI 包安装失败，可能导致部分功能不可用"
+            echo -e "${DIM}     （这些包是可选的，您可以稍后运行以下命令重试：）${NC}"
+            echo -e "${DIM}     pip install $independent_packages${NC}"
             # 不中断安装，因为这些可能是可选的或者网络问题
         else
             log_info "独立 PyPI 包安装成功" "INSTALL"
             echo -e "${CHECK} 独立 PyPI 包安装成功"
         fi
+        echo ""
 
         # L4: middleware (Python 兼容层)
         # 注意：必须使用 --no-deps 防止 pip 重新安装已有的 sage 子包依赖
