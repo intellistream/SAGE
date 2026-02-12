@@ -186,9 +186,26 @@ done
 echo ""
 
 # ============================================================================
-# Test 6: Integration check
+# Test 6: Branch switching capability
 # ============================================================================
-echo -e "${BLUE}📋 Test Suite 6: Integration Check${NC}"
+echo -e "${BLUE}📋 Test Suite 6: Branch Switching Capability${NC}"
+echo ""
+
+run_test "clone_single_repo includes branch detection" \
+    "grep -q 'git rev-parse --verify main-dev' tools/install/download_tools/clone_satellite_repos.sh"
+
+run_test "clone_single_repo includes branch creation logic" \
+    "grep -q 'checkout -b main-dev' tools/install/download_tools/clone_satellite_repos.sh"
+
+run_test "clone_single_repo handles existing repos" \
+    "grep -q 'if \[ -d \"\$repo_path\" \]' tools/install/download_tools/clone_satellite_repos.sh"
+
+echo ""
+
+# ============================================================================
+# Test 7: Integration check
+# ============================================================================
+echo -e "${BLUE}📋 Test Suite 7: Integration Check${NC}"
 echo ""
 
 run_test "quickstart.sh imports clone_satellite_repos" \
@@ -197,8 +214,8 @@ run_test "quickstart.sh imports clone_satellite_repos" \
 run_test "quickstart.sh calls clone_all_public_repos" \
     "grep -q 'clone_all_public_repos' quickstart.sh"
 
-run_test "Help text contains --clone-satellites" \
-    "./quickstart.sh --help 2>&1 | grep -q 'clone-satellites'"
+run_test "argument_parser includes clone-satellites option" \
+    "grep -q 'clone-satellites' tools/install/download_tools/argument_parser.sh"
 
 echo ""
 

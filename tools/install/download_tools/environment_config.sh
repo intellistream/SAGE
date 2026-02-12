@@ -150,26 +150,28 @@ configure_pip_mirror() {
         "auto")
             # 自动检测最优镜像，优先根据公网 IP 判断
             if detect_mainland_china_ip; then
-                # 检测清华镜像是否可用（快速健康检查）
-                if curl -s --connect-timeout 3 --max-time 3 -I "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
+                # 检测清华镜像是否可用（增加超时时间到 8 秒，避免网络延迟导致的误判）
+                if curl -s --connect-timeout 5 --max-time 8 -I "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
                     export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
                     export PIP_EXTRA_INDEX_URL=""
                     echo -e "${GREEN}  ✓ 检测到中国大陆网络，自动使用清华镜像加速${NC}"
                 else
                     export PIP_INDEX_URL="https://pypi.org/simple/"
                     export PIP_EXTRA_INDEX_URL=""
-                    echo -e "${YELLOW}  ⚠️  清华镜像不可用，降级到官方 PyPI${NC}"
+                    echo -e "${YELLOW}  ⚠️  清华镜像暂时不可用或网络连接较慢，已降级到官方 PyPI${NC}"
+                    echo -e "${DIM}     如需强制使用清华镜像，请运行: SAGE_FORCE_CHINA_MIRROR=true ./quickstart.sh${NC}"
                 fi
             elif [[ "${LANG:-}" == zh_* ]] || [[ "${LC_ALL:-}" == zh_* ]] || [[ "${LC_CTYPE:-}" == zh_* ]]; then
-                # 中文环境也进行健康检查
-                if curl -s --connect-timeout 3 --max-time 3 -I "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
+                # 中文环境也进行健康检查（同样增加超时时间）
+                if curl -s --connect-timeout 5 --max-time 8 -I "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
                     export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
                     export PIP_EXTRA_INDEX_URL=""
                     echo -e "${GREEN}  ✓ 检测到中文环境，自动使用清华镜像加速${NC}"
                 else
                     export PIP_INDEX_URL="https://pypi.org/simple/"
                     export PIP_EXTRA_INDEX_URL=""
-                    echo -e "${YELLOW}  ⚠️  清华镜像不可用，使用官方 PyPI${NC}"
+                    echo -e "${YELLOW}  ⚠️  清华镜像暂时不可用或网络连接较慢，已降级到官方 PyPI${NC}"
+                    echo -e "${DIM}     如需强制使用清华镜像，请运行: SAGE_FORCE_CHINA_MIRROR=true ./quickstart.sh${NC}"
                 fi
             else
                 export PIP_INDEX_URL="https://pypi.org/simple/"

@@ -72,17 +72,66 @@ clone_single_repo() {
     local repo_name="$1"
     local repo_url="$2"
     local target_dir="$3"
+    local repo_path="$target_dir/$repo_name"
 
     # 检查目录是否已存在
-    if [ -d "$target_dir/$repo_name" ]; then
-        echo -e "${YELLOW}⚠️  $repo_name 已存在，跳过克隆${NC}"
+    if [ -d "$repo_path" ]; then
+        echo -e "${YELLOW}⚠️  $repo_name 已存在${NC}"
+
+        # 尝试切换到 main-dev 分支
+        if cd "$repo_path" 2>/dev/null; then
+            # 检查是否是 git 仓库
+            if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+                # 获取当前分支
+                local current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+                # 检查 main-dev 分支是否存在（本地）
+                if git rev-parse --verify main-dev 2>/dev/null; then
+                    # 本地存在 main-dev，直接切换
+                    if git checkout main-dev >/dev/null 2>&1; then
+                        echo -e "${GREEN}   ✓ 已切换到 main-dev 分支${NC}"
+                    else
+                        echo -e "${YELLOW}   ⚠️  无法切换到 main-dev 分支${NC}"
+                    fi
+                elif git fetch origin main-dev 2>/dev/null; then
+                    # 远程存在 main-dev，先 fetch 再创建
+                    if git checkout -b main-dev origin/main-dev 2>/dev/null; then
+                        echo -e "${GREEN}   ✓ 已创建并切换到 main-dev 分支${NC}"
+                    else
+                        echo -e "${YELLOW}   ⚠️  无法创建/切换到 main-dev 分支${NC}"
+                    fi
+                else
+                    echo -e "${DIM}   ℹ️  main-dev 分支不存在（当前分支: $current_branch）${NC}"
+                fi
+            else
+                echo -e "${YELLOW}   ⚠️  不是有效的 git 仓库${NC}"
+            fi
+            cd - >/dev/null 2>&1
+        else
+            echo -e "${YELLOW}   ⚠️  无法进入目录${NC}"
+        fi
         return 0
     fi
 
     echo -e "${BLUE}📥 克隆 $repo_name...${NC}"
 
-    if git clone "$repo_url" "$target_dir/$repo_name" 2>/dev/null; then
+    if git clone "$repo_url" "$repo_path" 2>/dev/null; then
         echo -e "${GREEN}✅ $repo_name 克隆成功${NC}"
+
+        # 克隆成功后，尝试切换到 main-dev 分支
+        if cd "$repo_path" 2>/dev/null; then
+            # 检查远程是否有 main-dev 分支
+            if git fetch origin main-dev 2>/dev/null && git rev-parse origin/main-dev 2>/dev/null; then
+                if git checkout -b main-dev origin/main-dev 2>/dev/null; then
+                    echo -e "${GREEN}   ✓ 已切换到 main-dev 分支${NC}"
+                fi
+            else
+                # 如果没有 main-dev，保持默认分支
+                local default_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+                echo -e "${DIM}   ℹ️  使用默认分支: $default_branch${NC}"
+            fi
+            cd - >/dev/null 2>&1
+        fi
         return 0
     else
         echo -e "${RED}❌ $repo_name 克隆失败${NC}"
