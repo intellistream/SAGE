@@ -343,11 +343,41 @@ verify_sage_imports() {
             local version=$($PYTHON_CMD -c "import ${pkg}; print(${pkg}.__version__)" 2>/dev/null)
             echo -e "${GREEN}   ✅ $pkg $version 导入成功${NC}"
         else
+            # 获取详细的导入错误信息
+            local import_error=$($PYTHON_CMD -c "import ${pkg}" 2>&1 | head -n 10)
+            
             if [ "$is_optional" = true ]; then
                 echo -e "${YELLOW}   ⚠️  $pkg 导入失败（可选包）${NC}"
                 optional_failed+=("$pkg")
             else
                 echo -e "${RED}   ❌ $pkg 导入失败${NC}"
+                
+                # 显示详细错误信息（缩进）
+                if [ -n "$import_error" ]; then
+                    echo -e "${DIM}      错误详情:${NC}"
+                    echo "$import_error" | sed 's/^/      /' | head -n 5
+                fi
+                
+                # 针对特定包提供诊断提示
+                case "$pkg" in
+                    "sage.middleware")
+                        echo -e "${DIM}      💡 诊断提示:${NC}"
+                        echo -e "${DIM}         • 检查 packages/sage-middleware 是否存在${NC}"
+                        echo -e "${DIM}         • 运行: pip show isage-middleware${NC}"
+                        echo -e "${DIM}         • 如未安装，运行: pip install -e packages/sage-middleware${NC}"
+                        ;;
+                    "sage.kernel")
+                        echo -e "${DIM}      💡 诊断提示:${NC}"
+                        echo -e "${DIM}         • 运行: pip show isage-kernel${NC}"
+                        echo -e "${DIM}         • 如未安装，运行: pip install -e packages/sage-kernel${NC}"
+                        ;;
+                    "sage.libs")
+                        echo -e "${DIM}      💡 诊断提示:${NC}"
+                        echo -e "${DIM}         • 运行: pip show isage-libs${NC}"
+                        echo -e "${DIM}         • 如未安装，运行: pip install -e packages/sage-libs${NC}"
+                        ;;
+                esac
+                
                 failed_imports+=("$pkg")
             fi
         fi
@@ -369,6 +399,36 @@ verify_sage_imports() {
         return 0
     else
         log_verification_result "sage_imports" "FAIL" "核心包导入失败: ${failed_imports[*]}"
+        
+        # 输出详细的故障排查建议
+        echo ""
+        echo -e "${RED}${BOLD}❌ 导入失败诊断${NC}"
+        echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${YELLOW}失败的包: ${failed_imports[*]}${NC}"
+        echo ""
+        echo -e "${BOLD}建议的修复步骤:${NC}"
+        echo -e "1. 检查包是否已安装:"
+        for pkg in "${failed_imports[@]}"; do
+            local pypi_name=$(echo "$pkg" | sed 's/sage\./isage-/')
+            echo -e "   ${DIM}pip show $pypi_name${NC}"
+        done
+        echo ""
+        echo -e "2. 检查 Python 环境:"
+        echo -e "   ${DIM}which python3${NC}"
+        echo -e "   ${DIM}python3 -m site${NC}"
+        echo ""
+        echo -e "3. 尝试重新安装失败的包:"
+        echo -e "   ${DIM}cd /path/to/SAGE${NC}"
+        for pkg in "${failed_imports[@]}"; do
+            local pkg_dir=$(echo "$pkg" | sed 's/sage\./sage-/')
+            echo -e "   ${DIM}pip install -e packages/$pkg_dir${NC}"
+        done
+        echo ""
+        echo -e "4. 查看安装日志:"
+        echo -e "   ${DIM}cat .sage/logs/install.log${NC}"
+        echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+        
         return 1
     fi
 }

@@ -32,7 +32,9 @@ if not TYPE_CHECKING:
         import sagevdb  # noqa: F401
 
         _SAGE_DB_AVAILABLE = True
-    except ImportError:
+    except (ImportError, OSError):
+        # ImportError: package not installed
+        # OSError: .so library dependencies missing (e.g., libfaiss.so)
         # Don't warn on import - only when trying to use the feature
         pass
 
@@ -41,7 +43,7 @@ if not TYPE_CHECKING:
         from sage.middleware.components.sage_flow.python import sage_flow as _sage_flow
 
         _SAGE_FLOW_AVAILABLE = True
-    except ImportError:
+    except (ImportError, OSError):
         _sage_flow = None
         # Don't warn on import - only when trying to use the feature
         pass
@@ -51,7 +53,9 @@ if not TYPE_CHECKING:
         import sage_tsdb  # noqa: F401
 
         _SAGE_TSDB_AVAILABLE = True
-    except ImportError:
+    except (ImportError, OSError):
+        # ImportError: package not installed
+        # OSError: .so library dependencies missing
         # Don't warn on import - only when trying to use the feature
         pass
 
