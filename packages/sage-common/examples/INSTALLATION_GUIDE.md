@@ -112,12 +112,24 @@ pip install isage-libs
 python -m sage.libs.examples.rag_basic
 ```
 
-### isage-apps
+### Applications (sage-examples)
+
+应用示例已迁移到独立仓库：
 
 ```bash
-pip install isage-apps[video]
-python -m sage.apps.video.demo
+# 克隆 sage-examples 仓库
+git clone https://github.com/intellistream/sage-examples.git
+cd sage-examples
+
+# 安装依赖
+pip install -r requirements.txt
+
+# 运行应用示例
+python examples/run_video_intelligence.py
+python examples/run_medical_diagnosis.py
 ```
+
+查看更多: https://github.com/intellistream/sage-examples
 
 这些示例是 **可运行的代码片段**，专门设计用于 PyPI 安装的用户。
 

@@ -171,6 +171,10 @@ dev_reports/
 # 如果有遗留的分散缓存目录，也要忽略
 **/.pytest_cache/
 **/.ruff_cache/
+**/.mypy_cache/
+.mypy_cache/
+**/.dmypy.json
+**/dmypy.json
 
 # Build artifacts managed by sage-dev toolkit
 **/*.egg-info/
