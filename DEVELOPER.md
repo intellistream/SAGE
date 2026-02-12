@@ -196,6 +196,13 @@ pip install black isort ruff mypy pytest pytest-cov
 
 The `sage-dev` CLI (provided by `packages/sage-tools`) offers the same development workflows:
 
+> **💡 Note**: Additional development utilities are available via `sage-dev-tools` (automatically
+> installed in `--dev` mode):
+>
+> - Work report generation: `sage-dev-tools report --period weekly`
+> - Cluster code sync: `sage-dev-tools maintenance sync-cluster`
+> - See: https://github.com/intellistream/sage-dev-tools
+
 ```bash
 # Format code / auto-fix quality issues
 sage-dev quality fix --all-files

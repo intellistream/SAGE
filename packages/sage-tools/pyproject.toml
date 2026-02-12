@@ -66,6 +66,8 @@ dev = [
     "bandit>=1.7.0",
     "safety>=2.3.0",
     "virtualenv>=20.31.2",
+    # SAGE development utilities
+    "isage-dev-tools>=0.1.0",
 ]
 # HuggingFace integration
 hf = ["huggingface-hub>=0.34.0,<1.0.0"]

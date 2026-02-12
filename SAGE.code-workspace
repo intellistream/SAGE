@@ -61,6 +61,9 @@
 		},
 		{
 			"path": "../sage-agentic-tooluse-benchmark"
+		},
+		{
+			"path": "../sage-dev-tools"
 		}
 	],
 	"settings": {

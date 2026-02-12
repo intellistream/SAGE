@@ -298,6 +298,7 @@ L1: sage-common                        # Foundation
 - **sage-studio**: https://github.com/intellistream/sage-studio (Visual workflow builder)
 - **sage-benchmark**: https://github.com/intellistream/sage-benchmark (Evaluation framework, 独立 PyPI: isage-benchmark)
 - **sage-examples**: https://github.com/intellistream/sage-examples (Examples and applications, 原 sage-apps)
+- **sage-dev-tools**: https://github.com/intellistream/sage-dev-tools (Development utilities: work reports, maintenance scripts, 独立 PyPI: isage-dev-tools, auto-installed in `--dev` mode)
 
 ### 🔌 CLI Plugin System - CRITICAL
 
