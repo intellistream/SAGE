@@ -5,65 +5,48 @@
 			"path": "."
 		},
 		{
-			"name": "SAGE-Pub",
-			"path": "../SAGE-Pub"
-		},
-		{
-			"path": "../sage-team-info"
-		},
-		{
-			"path": "../sagellm-website"
-		},
-		{
+			"name": "sage-examples",
 			"path": "../sage-examples"
 		},
 		{
+			"name": "sage-tutorials",
 			"path": "../sage-tutorials"
 		},
 		{
+			"name": "sagellm",
 			"path": "../sagellm"
 		},
 		{
+			"name": "sage-benchmark",
 			"path": "../sage-benchmark"
 		},
 		{
-			"path": "../sage-agent-benchmark"
+			"name": "sage-dev-tools",
+			"path": "../sage-dev-tools"
 		},
 		{
-			"path": "../sage-control-plane-benchmark"
-		},
-		{
-			"path": "../sage-rag-benchmark"
-		},
-		{
-			"path": "../sage-scheduler-benchmark"
-		},
-		{
-			"path": "../sage-longbench-benchmark"
-		},
-		{
-			"path": "../sage-memory-benchmark"
-		},
-		{
-			"path": "../.github"
-		},
-		{
-			"path": "../sage-eval"
-		},
-		{
-			"path": "../sage-refiner-benchmark"
-		},
-		{
+			"name": "sage-agentic",
 			"path": "../sage-agentic"
 		},
 		{
+			"name": "sage-agentic-tooluse",
 			"path": "../sage-agentic-tooluse"
 		},
 		{
-			"path": "../sage-agentic-tooluse-benchmark"
+			"name": "sage-anns",
+			"path": "../sage-anns"
 		},
 		{
-			"path": "../sage-dev-tools"
+			"name": "sage-eval",
+			"path": "../sage-eval"
+		},
+		{
+			"name": "sage-finetune",
+			"path": "../sage-finetune"
+		},
+		{
+			"name": "sage-studio",
+			"path": "../sage-studio"
 		}
 	],
 	"settings": {

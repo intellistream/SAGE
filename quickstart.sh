@@ -63,6 +63,7 @@ source "$TOOLS_DIR/examination_tools/comprehensive_check.sh"
 source "$TOOLS_DIR/examination_tools/environment_prechecks.sh"
 source "$TOOLS_DIR/examination_tools/install_verification.sh"
 source "$TOOLS_DIR/download_tools/argument_parser.sh"
+source "$TOOLS_DIR/download_tools/clone_satellite_repos.sh"
 source "$TOOLS_DIR/examination_tools/mirror_selector.sh"  # 网络加速优化（增强版）
 source "$TOOLS_DIR/installation_table/main_installer.sh"
 source "$TOOLS_DIR/fixes/environment_doctor.sh"
@@ -497,6 +498,12 @@ main() {
             center_text "${ROCKET} 欢迎使用 SAGE！${ROCKET}" "$GREEN$BOLD"
         fi
         echo ""
+
+        # 处理克隆附属仓库
+        local clone_satellites=$(should_clone_satellite_repos)
+        if [ "$clone_satellites" = "true" ]; then
+            clone_all_public_repos "$(cd "$SAGE_ROOT" && cd .. && pwd)"
+        fi
 
         # 检查是否跳过了 Git LFS 大文件下载（使用默认值 0）
         if [ "${SAGE_SET_SKIP_SMUDGE:-0}" = 1 ]; then
