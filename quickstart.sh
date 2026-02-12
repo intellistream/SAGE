@@ -498,7 +498,8 @@ main() {
         fi
         echo ""
 
-        if [ "$SAGE_SET_SKIP_SMUDGE" = 1 ]; then
+        # 检查是否跳过了 Git LFS 大文件下载（使用默认值 0）
+        if [ "${SAGE_SET_SKIP_SMUDGE:-0}" = 1 ]; then
             echo -e "${DIM}提示: 已跳过 Git LFS 大文件的自动下载，以缩短初始化时间。${NC}"
             echo -e "${DIM}如需使用 LibAMM 基准数据，请手动执行:${NC}"
             echo -e "  ${DIM}cd packages/sage-benchmark/src/sage/data && git lfs pull${NC}"
