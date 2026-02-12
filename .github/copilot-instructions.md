@@ -1703,7 +1703,25 @@ db.load("/path/to/index")
 
 **Trust these instructions** - search only if incomplete, errors occur, or deep architecture needed.
 
-**🔍 When encountering difficulties or uncertainties:**
+**� NO Summary Documents After Task Completion**
+
+**CRITICAL**: Do NOT create summary, recap, or documentation files after completing tasks unless explicitly requested by the user.
+- ❌ NO "work_summary.md", "changes_summary.md", or similar
+- ❌ NO "completion reports" or status documents
+- ❌ NO markdown files documenting what was accomplished
+- ✅ DO provide brief inline completion messages in the conversation
+- ✅ DO use commit messages for documentation (git history is your record)
+- ✅ DO update existing documentation if needed (only when relevant)
+
+**Why**: Task history is preserved in:
+1. Git commits with detailed messages
+2. Conversation history (saved externally)
+3. File changes tracked in version control
+4. Pull request descriptions (if created)
+
+Summary documents create clutter and duplicate what git history already provides.
+
+**�🔍 When encountering difficulties or uncertainties:**
 
 1. **First**, check if there's relevant documentation in `docs-public/docs_src/dev-notes/`
 2. **Use tools** like `grep_search` or `semantic_search` to find documentation before making assumptions
