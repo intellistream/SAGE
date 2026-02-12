@@ -181,6 +181,7 @@ if [ "$VERSION_UPDATED" = true ]; then
     echo -e "${GREEN}✓ [${REPO_NAME}] Version updated to ${CURRENT_VERSION}${NC}"
 
     # Quick PyPI check (5s timeout, non-blocking)
+    # Exit codes: 0=version exists, 1=version not found, 2=network/other error
     PYPI_CHECK_RESULT=1
     if [ "$PACKAGE_NAME" != "unknown" ] && command -v python3 &> /dev/null; then
         python3 - "$PACKAGE_NAME" "$CURRENT_VERSION" <<'PY' && PYPI_CHECK_RESULT=0 || PYPI_CHECK_RESULT=$?
@@ -188,8 +189,12 @@ import json, sys, urllib.request
 try:
     with urllib.request.urlopen(f"https://pypi.org/pypi/{sys.argv[1]}/json", timeout=5) as r:
         sys.exit(0 if sys.argv[2] in json.load(r).get("releases", {}) else 1)
+except urllib.error.HTTPError as e:
+    sys.exit(1 if e.code == 404 else 2)  # 404 = package not found (normal)
+except (urllib.error.URLError, OSError, TimeoutError):
+    sys.exit(2)  # Network error
 except Exception:
-    sys.exit(2)
+    sys.exit(2)  # Other errors
 PY
     fi
 
@@ -222,7 +227,7 @@ PY
             exit 1
         fi
     elif [ "$PYPI_CHECK_RESULT" -eq 2 ]; then
-        echo -e "${DIM}(PyPI check skipped - network unavailable)${NC}"
+        echo -e "${DIM}(PyPI check skipped - network/timeout issue)${NC}"
     fi
 
     # Ask about publishing
