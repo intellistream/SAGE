@@ -192,6 +192,21 @@ This is a **mandatory workflow** for all package modifications to ensure version
 
 #### Implementation
 
+**sage-pypi-publisher (独立工具)**
+
+sage-pypi-publisher 已发布到 PyPI 并可作为独立命令行工具使用：
+
+```bash
+# 方式 1: 从源代码运行（推荐开发者）
+git clone https://github.com/intellistream/sage-pypi-publisher.git
+cd sage-pypi-publisher
+./publish.sh sage-common --auto-bump patch
+
+# 方式 2: 作为 PyPI 工具安装（未来版本）
+pip install isage-pypi-publisher
+sage-publish sage-common --auto-bump patch
+```
+
 **Manual workflow** (until Git hooks are set up):
 
 ```bash
