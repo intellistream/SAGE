@@ -309,6 +309,7 @@ repos:
         ".benchmarks"  # Deprecated; keep for legacy benchmark artifacts
         ".git"
         ".github"
+        ".mypy_cache"  # mypy cache (temporary; should use .sage/cache/mypy)
         ".pytest_cache"
         ".ruff_cache"
         ".sage"
