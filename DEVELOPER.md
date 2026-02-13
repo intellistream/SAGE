@@ -3,22 +3,9 @@
 Welcome to the sage-development guide! This document will help you get started with contributing to
 SAGE.
 
-## ⚠️ 重要：安装一致性
+## ⚠️ Installation Note
 
-**在开始之前，请务必阅读 [安装一致性指南](docs-public/docs_src/dev-notes/l2-platform/INSTALLATION_CONSISTENCY.md)**
-
-为了避免 "CI/CD 通过但本地失败" 的问题，所有开发者**必须**使用 `quickstart.sh` 进行安装。不要手动运行 `pip install` 命令。
-
-```bash
-# ✅ 正确的安装方式
-./quickstart.sh --dev --yes
-
-# ❌ 不要使用
-pip install isage
-pip install -e .
-```
-
-详细说明请参阅：[docs-public/docs_src/dev-notes/l2-platform/INSTALLATION_CONSISTENCY.md](docs-public/docs_src/dev-notes/l2-platform/INSTALLATION_CONSISTENCY.md)
+Use `./quickstart.sh` for installation to ensure consistency across all environments.
 
 ______________________________________________________________________
 
@@ -28,6 +15,11 @@ ______________________________________________________________________
   - [Prerequisites](#prerequisites)
   - [Initial Setup](#initial-setup)
   - [Submodule Management](#submodule-management)
+- [Dependency Management](#dependency-management)
+  - [Core Dependencies Architecture](#core-dependencies-architecture)
+  - [Per-Layer Dependencies](#per-layer-dependencies)
+  - [Feature Modules](#feature-modules)
+  - [Installation Examples](#installation-examples)
 - [Development Workflow](#development-workflow)
 - [Code Quality](#code-quality)
 - [Testing](#testing)
@@ -64,131 +56,165 @@ git checkout main-dev
 - ✅ 配置 Git hooks（自动代码质量检查）
 - ✅ 安装 sage-dev 工具（用于维护和测试）
 
-> 💡 **注意**: 文档已迁移到独立的 [SAGE-Pub](https://github.com/intellistream/SAGE-Pub) 仓库。
+> 💡 **注意**: 文档已迁移到独立的 [SAGE-Pub](https://github.com/intellistream/SAGE-Pub) 仓库。### Initial Setup
 
-> 💡 **不确定该选哪种模式？** 请参考
-> [README.md 中的安装模式决策树](./README.md#-%E5%BA%94%E8%AF%A5%E9%80%89%E6%8B%A9%E5%93%AA%E7%A7%8D%E5%AE%89%E8%A3%85%E6%A8%A1%E5%BC%8F)
-> 了解 core/standard/full/dev 的区别。
-
-### Initial Setup
-
-1. **Clone the repository**
+1. Clone and switch to development branch
 
    ```bash
-   git clone https://github.com/intellistream/SAGE.git
-   cd SAGE
-   ```
-
-1. **Switch to development branch**
-
-   ```bash
+   git clone https://github.com/intellistream/SAGE.git && cd SAGE
    git checkout main-dev
    ```
 
-1. **(Recommended) Setup workspace dependencies**
-
-   If you plan to use the `SAGE.code-workspace` for multi-folder editing in VS Code:
-
-   **Option 1: During installation (recommended)**
+1. Install development environment
 
    ```bash
-   # Automatically setup workspace during installation
-   ./quickstart.sh --dev --yes --workspace
-   ```
-
-   **Option 2: After installation**
-
-   ```bash
-   # Standalone script
-   ./tools/scripts/setup_workspace_deps.sh
-   ```
-
-   This will:
-
-   - ✅ Clone `SAGE-Pub` repository (documentation)
-   - ✅ Optionally clone `sage-team-info` if you're a core team member
-
-   **Or manually:**
-
-   ```bash
-   # Clone SAGE-Pub (documentation repository)
-   cd ..
-   git clone https://github.com/intellistream/SAGE-Pub.git
-   cd SAGE-Pub && git checkout main-dev && cd ../SAGE
-
-   # Clone sage-team-info (optional, for core team members only)
-   cd ..
-   git clone https://github.com/intellistream/sage-team-info.git
-   cd SAGE
-   ```
-
-   > 💡 **Note**:
-   >
-   > - `SAGE-Pub` is an independent repository for SAGE documentation
-   > - `sage-team-info` is an optional private repository for team documentation
-   > - If you skip these, VS Code may show warnings which you can safely ignore
-
-1. **Recommended: Use quickstart with dev mode**
-
-   ```bash
-   # This is the easiest way for contributors
    ./quickstart.sh --dev --yes
    ```
 
-   **Or, if you prefer manual setup:**
-
-   a. **Install development dependencies**
-
-   ```bash
-   pip install -e ".[dev]"
-   ```
-
-   b. **Initialize the developer CLI**
-
-   ```bash
-   sage-dev --help                # 验证 CLI 可用
-   sage-dev maintain hooks install
-   sage-dev maintain doctor
-   ```
-
-   These commands ensure Git hooks are installed and run the built-in maintenance doctor.
-
-1. **Verify the setup**
-
-   ```bash
-   sage-dev quality check --check-only --all-files
-
-   # Check project health
-   ./tools/maintenance/sage-maintenance.sh doctor
-   ```
-
-### Repository Management
-
-**SAGE-Pub Documentation**: The comprehensive documentation is maintained in a separate repository.
-See [Setup workspace dependencies](#1-recommended-setup-workspace-dependencies) for cloning
-instructions.
-
-**Git Workflow**: Use feature branches for development, submit PRs to `main-dev` branch.
-
-For more details, see [tools/maintenance/README.md](tools/maintenance/README.md).
-
-> **💡 提示：** 使用 `./quickstart.sh --dev --yes` 会自动处理所有 submodule 相关操作，无需手动运行上述命令。
-
-### Alternative: Manual Setup
-
-If you prefer manual setup:
-
-```bash
-# Install in development mode
-pip install -e ".[dev]"
-
-# Install pre-commit hooks
-pip install pre-commit
-pre-commit install
+> 💡 For multi-folder VS Code editing, clone `SAGE-Pub` repository in the parent directory pre-commit
+> install
 
 # Install development tools
+
 pip install black isort ruff mypy pytest pytest-cov
+
+````
+
+______________________________________________________________________
+
+## Dependency Management
+
+### Core Dependencies Architecture
+
+SAGE follows a **minimalist core dependency strategy** with a **modular feature model**:
+
+- **Core Dependencies** (`dependencies`): Only packages necessary for base functionality
+- **Dev Dependencies** (`dev` extra): Testing tools, linters, and development utilities
+- **Feature Modules**: Functionality available through independent PyPI packages
+
+**Key Principle**: We maintain **minimal core** to reduce bloat and installation time. Specialized functionality is available through independent packages that users can install as needed.
+
+### Per-Layer Dependencies
+
+Each SAGE layer has carefully scoped core dependencies:
+
+#### L1. sage-common (Foundation)
+
+**Core**:
+- `pyyaml>=6.0` - Configuration files
+- `psutil>=6.1.0` - System information
+- `dill>=0.3.8` - Object serialization
+- `numpy>=1.26.0,<2.3.0` - Numerical computation
+- `pydantic>=2.10.0,<3.0.0` - Data validation
+- `platformdirs>=4.0.0` - User paths
+
+**Why minimal**: All packages extend from here; keep base lean.
+
+#### L2. sage-platform (Cluster Services)
+
+**Core**:
+- `ray[client]>=2.48.0,<3.0.0` ⭐ **Distributed scheduling (mandatory)**
+- `paramiko>=3.5.0,<4.0.0` - SSH remote execution
+- `fabric>=3.2.0,<4.0.0` - Cluster management
+
+**Why ray is core**: Distributed execution is fundamental to SAGE's dataflow engine.
+
+#### L3a. sage-kernel (Dataflow Engine)
+
+**Core**: (Inherits from sage-platform via dependency)
+
+**Why**: Receives ray transitively through sage-platform.
+
+#### L3b. sage-libs (Algorithm Interfaces)
+
+**Core**:
+- `numpy>=1.26.0,<2.3.0`
+- `isage-common>=0.2.0`
+
+**Feature modules** (independent packages):
+- `isage-agentic` → Agent frameworks
+- `isage-rag` → RAG algorithms
+- `isage-eval` → Evaluation metrics
+- `isage-finetune` → Fine-tuning trainers
+- `isage-privacy` → Privacy-preserving tools
+- `isage-safety` → Safety checkers
+- `isage-anns` → ANN algorithms
+
+#### L4. sage-middleware (Runtime Operators)
+
+**Core**:
+- `openai>=1.52.0` - LLM API client
+- `httpx>=0.28.0` - Async HTTP
+- `aiohttp>=3.12.0` - Network utilities
+- `beautifulsoup4>=4.12.0` - Web scraping
+- `feedparser>=6.0.11` - RSS feeds
+- `json_repair>=0.30.0` - Fix malformed JSON
+- `bm25s>=0.2.13` - Keyword search
+- `rank-bm25>=0.2.0` - BM25 ranking
+- `PyStemmer>=3.0.0` - Word stemming
+
+**Feature modules** (independent packages):
+- `isage-vdb` → Vector databases (SageVDB, FAISS)
+- `isage-neuromem` → Memory systems
+- `isage-flow` → Stream processing
+- `isage-tsdb` → Time-series databases
+
+#### L5. sage-cli, sage-tools (CLI & Tools)
+
+**Core**:
+- `typer>=0.15.0` - CLI framework
+- `rich>=13.0.0` - Pretty output
+- `click>=8.0.0` - Command parsing
+- `jinja2>=3.1.0` - Templates
+- `isage-dev-tools>=0.1.0` - Dev utilities
+
+### Feature Modules
+
+When extras were removed, functionality migrated to independent packages:
+
+| Feature | Before | Now |
+|---------|--------|-----|
+| Embedding | `commons[embedding]` | → `isage-neuromem` |
+| Agentic | `libs[agentic]` | → `isage-agentic` |
+| RAG | `libs[rag]` | → `isage-rag` |
+| Evaluation | `libs[eval]` | → `isage-eval` |
+| Vector DB | `middleware[vdb]` | → `isage-vdb` |
+| Memory | `middleware[neuromem]` | → `isage-neuromem` |
+| Streaming | `middleware[streaming]` | → `isage-flow` |
+
+### Installation Examples
+
+#### Minimal (core only)
+
+```bash
+pip install isage-common
+pip install isage-platform       # Includes ray
+pip install isage-kernel isage-libs isage-middleware
+````
+
+#### Standard (recommended for most users)
+
+```bash
+pip install isage                # Meta package with all core layers
 ```
+
+Then add features as needed:
+
+```bash
+pip install isage-agentic        # For agents
+pip install isage-rag            # For RAG
+pip install isage-vdb            # For vector search
+pip install isagellm             # For LLM inference
+```
+
+#### Development (with all tools)
+
+```bash
+cd /path/to/SAGE
+./quickstart.sh --dev --yes      # Installs core + dev tools
+```
+
+______________________________________________________________________
 
 ## Development Workflow
 

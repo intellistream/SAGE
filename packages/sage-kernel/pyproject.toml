@@ -37,8 +37,8 @@ dependencies = [
     # 核心依赖 - 只包含 sage.kernel 模块导入时必需的最小依赖集
     # 原则：所有重型依赖（torch, fastapi, etc.）都放在 optional-dependencies
     # ============================================================================
-    # NOTE: sage-kernel reuses dependencies from sage-platform (ray, etc.)
-    # These are pulled in transitively via isage-platform dependency
+    # SAGE Platform layer - required for RPC queue registration and ray scheduler
+    "isage-platform>=0.2.0",
 ]
 
 license = { text = "MIT" }
