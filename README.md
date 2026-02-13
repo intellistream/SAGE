@@ -152,10 +152,8 @@ git clone https://github.com/intellistream/SAGE.git && cd SAGE
 **PyPI Install**
 
 ```bash
-pip install isage[standard]    # Recommended
-pip install isage[core]        # Minimal runtime
-pip install isage[full]        # Full features + Web UI
-pip install isage[dev]         # Development tools
+pip install isage              # Core framework
+pip install isage[dev]         # Development tools (includes pre-commit, pytest, etc.)
 ```
 
 **Optional Feature Modules** 🧩
