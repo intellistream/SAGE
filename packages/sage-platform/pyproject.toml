@@ -38,7 +38,6 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "ruff==0.14.6",
 ]
-all = []
 [project.urls]
 Homepage = "https://github.com/sage-ai/sage"
 Documentation = "https://sage-ai.org/docs"

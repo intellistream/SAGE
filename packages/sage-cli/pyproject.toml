@@ -36,7 +36,6 @@ dev = [
     "pytest-cov>=4.0.0",
     "ruff==0.14.6",
 ]
-all = []
 [project.scripts]
 sage = "sage.cli.main:app"
 

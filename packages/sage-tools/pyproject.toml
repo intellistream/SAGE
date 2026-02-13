@@ -47,6 +47,9 @@ dependencies = [
 
     # File locking for safe operations
     "filelock>=3.16.0,<4.0.0",
+
+    # SAGE development tools - required for test runner (IntermediateResultsChecker)
+    "isage-dev-tools>=0.1.0",
 ]
 
 [project.optional-dependencies]
@@ -66,14 +69,7 @@ dev = [
     "bandit>=1.7.0",
     "safety>=2.3.0",
     "virtualenv>=20.31.2",
-    # SAGE development utilities
-    "isage-dev-tools>=0.1.0",
 ]
-# HuggingFace integration
-hf = ["huggingface-hub>=0.34.0,<1.0.0"]
-# Documentation tools
-docs = ["markdown>=3.4.4,<4.0.0"]
-all = ["isage-tools[dev,hf,docs]"]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Documentation = "https://intellistream.github.io/SAGE-Pub/"

@@ -29,24 +29,12 @@ license = "MIT"
 
 [project.optional-dependencies]
 dev = [
-    "isage[all]",
     "isage-tools>=0.1.0",
     "pytest>=7.4.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
     "ruff==0.14.6",
     "pre-commit>=3.5.0",
-]
-all = [
-    "isage-common>=0.1.0",
-    "isage-platform>=0.1.0",
-    "isage-kernel>=0.1.0",
-    "isage-libs>=0.1.0",
-    "isage-middleware>=0.1.0",
-    "isage-cli>=0.1.0",
-    # Note: isage-studio is excluded to avoid circular dependency
-    # Install separately: pip install isage-studio
-    "isagellm[gateway]>=0.1.0",
 ]
 
 [project.urls]

@@ -457,70 +457,99 @@ When answering questions or making code changes in this repo, the assistant **mu
 
 - Root overview: `README.md` (features, quick start)
 - Dev workflow: `DEVELOPER.md`, `CONTRIBUTING.md`
-- Architecture: `docs-public/docs_src/dev-notes/package-architecture.md`
-- Cross-layer index: `docs-public/docs_src/dev-notes/cross-layer/README.md`
+- Architecture: SAGE-Pub repo `docs/` or `.sage/docs/` (if cloned locally)
+- Cross-layer index: SAGE-Pub repo or `.sage/docs/`
 
 **When working on a specific layer/package, Copilot should additionally read:**
 
-- The corresponding dev-notes README, e.g.
-  - `docs-public/docs_src/dev-notes/l1-common/README.md`
-  - `docs-public/docs_src/dev-notes/l2-platform/README.md`
-  - `docs-public/docs_src/dev-notes/l3-kernel/README.md` / `l3-libs/README.md`
-  - `docs-public/docs_src/dev-notes/l4-middleware/README.md`
-  - `docs-public/docs_src/dev-notes/l5-cli/README.md`
+- The corresponding layer documentation from SAGE-Pub or `.sage/docs/`:
+  - L1 (common) documentation
+  - L2 (platform) documentation
+  - L3 (kernel/libs) documentation  
+  - L4 (middleware) documentation
+  - L5 (CLI/tools) documentation
 
 **🔍 When encountering difficulties or uncertainties:**
 
-- **ALWAYS read relevant documentation in `docs-public/` first** before making assumptions
-- Look for topic-specific guides in `docs-public/docs_src/dev-notes/cross-layer/` (e.g., `documentation-policy.md`, `ci-cd.md`)
+- **First** check if SAGE-Pub repository is cloned and read docs there
+- **Otherwise** check `.sage/docs/` for local development documentation
+- Look for topic-specific guides (documentation-policy, ci-cd, etc.) in SAGE-Pub
 - Check package-specific docs in `packages/<package-name>/README.md` or `packages/<package-name>/docs/`
 - If the issue involves installation, testing, or CI/CD, consult `DEVELOPER.md` or `CONTRIBUTING.md`
 - Use `grep_search` or `semantic_search` to find relevant documentation before implementing solutions
 
-**Rule:** Don't guess architectural decisions or policies. Read the docs. They exist for this reason.
+**Documentation Locations:**
+- **Public documentation** (recommended): Clone SAGE-Pub repository and check `docs/` directory
+- **Local draft documentation**: `.sage/docs/` (for offline development)
+- **Package documentation**: Always maintained in `packages/<package-name>/`
+- **Root files**: `README.md`, `DEVELOPER.md`, `CONTRIBUTING.md`
+
+**Rule:** Don't guess architectural decisions or policies. Read the docs. They exist for this reason. If docs are not in SAGE core repo, check SAGE-Pub or use `.sage/docs/` for local reference.
 
 Only after consulting these READMEs should the assistant propose designs, refactors, or architectural explanations. If documentation and code appear inconsistent, Copilot should **call it out explicitly** in the answer and, when in doubt, ask the user which source of truth to follow.
 
 ## Documentation Location Policy - CRITICAL
 
-**The root `docs/` directory is STRICTLY FORBIDDEN for committed documentation.**
+**The root `docs/` and `docs-public/` directories are STRICTLY FORBIDDEN for NEW committed documentation in SAGE core.**
 
-### ❌ NEVER Create Files in Root `docs/`
+### ❌ NEVER Create Files in These Locations
 
 - Root `docs/` is gitignored and must not contain committed files
-- Pre-commit hooks will REJECT any commits with files in root `docs/`
-- This directory should not exist in the repository
+- **NEW:** Root `docs-public/` is now RESERVED for `SAGE-Pub` repository only
+- Pre-commit hooks will REJECT any commits with new documentation files in these directories
 - ✅ **Exception:** Package and submodule `docs/` directories ARE ALLOWED
 
 ### ✅ CORRECT Documentation Locations
 
 **All documentation must go to these approved locations:**
 
-1. **User-facing docs:** `docs-public/docs_src/` (guides, tutorials, concepts)
-2. **Developer notes:** `docs-public/docs_src/dev-notes/<layer>/` (architecture, design)
+1. **Central documentation site (RECOMMENDED):** `SAGE-Pub/docs/` repository
+   - User-facing docs, tutorials, concepts
+   - Developer notes, architecture guides
+   - All cross-layer and public-facing documentation
+   - Install: `git clone https://github.com/intellistream/SAGE-Pub.git`
+
+2. **If SAGE-Pub not available:** `.sage/docs/` (local development only)
+   - Temporary local documentation
+   - Draft specifications
+   - Not committed to git (`.sage/` is gitignored)
+
 3. **Package docs:** `packages/<package-name>/README.md` or `packages/<package-name>/docs/`
+
 4. **Independent repo docs:** See respective repositories (sageVDB, sageFlow, sageRefiner, sageTSDB, NeuroMem, etc.)
+
 5. **Tool docs:** `tools/<tool-name>/README.md` or `tools/<tool-name>/docs/`
+
 6. **Examples:** `examples/<name>/README.md`
+
 7. **Root files:** Only `README.md`, `CONTRIBUTING.md`, `DEVELOPER.md`, `LICENSE`, `CHANGELOG.md`
-8. **sageLLM docs:** 独立私有仓库 `sageLLM/docs/`（不在 SAGE 仓库内）
+
+8. **Independent repositories:**
+   - **sageLLM docs:** `sageLLM/docs/` (private repository)
+   - **sage-benchmark docs:** `sage-benchmark/docs/` (independent repository)
+   - **sage-tutorials docs:** `sage-tutorials/docs/` (independent repository)
 
 **Rationale:**
 
-- Prevents confusion between root `docs/` and `docs-public/`
-- Maintains single source of truth for project-level documentation
-- Allows packages and tools to maintain their own documentation
-- Independent repositories (PyPI packages) have their own documentation
-- Tools are independent components that may have complex documentation needs
-- Avoids accidental gitignore of important documentation
+- Centralizes documentation in dedicated SAGE-Pub repository for maintainability
+- Keeps SAGE core repository focused on code
+- Allows local draft documentation in `.sage/` without polluting git history
+- Enables strict separation of concerns between docs and code repositories
+- Maintains single source of truth for official documentation
+
+**Workflow:**
+
+1. **For public documentation**: Clone SAGE-Pub, add docs there, create PR to SAGE-Pub
+2. **For draft/temporary documentation**: Use `.sage/docs/` for local development
+3. **For package-specific documentation**: Keep in package directories
 
 **Enforcement:**
 
-- Hook `markdown-files-location-check`: Rejects any `.md` files in root `docs/` ONLY
-- Hook `root-directory-cleanup-check`: Flags root `docs/` directory as unauthorized
+- Hook `markdown-files-location-check`: Rejects any new `.md` files in root `docs/` or `docs-public/`
+- Hook `root-directory-cleanup-check`: Flags root doc directories as unauthorized
 - Package/submodule `docs/` directories are explicitly allowed and encouraged
 
-**See:** `docs-public/docs_src/dev-notes/cross-layer/documentation-policy.md` for full policy.
+**See:** SAGE-Pub repository structure for approved documentation organization.
 
 ## Inference Components Map (Reality-First)
 
@@ -1723,15 +1752,15 @@ Summary documents create clutter and duplicate what git history already provides
 
 **�🔍 When encountering difficulties or uncertainties:**
 
-1. **First**, check if there's relevant documentation in `docs-public/docs_src/dev-notes/`
+1. **First**, check if there's relevant documentation in SAGE-Pub repo `docs/` or `.sage/docs/`
 2. **Use tools** like `grep_search` or `semantic_search` to find documentation before making assumptions
 3. **Read before acting** - documentation exists to guide you, not as optional reference
 4. **Common documentation locations:**
    - Installation/Testing: `DEVELOPER.md`, `CONTRIBUTING.md`
-   - CI/CD: `docs-public/docs_src/dev-notes/cross-layer/ci-cd.md`
-   - Documentation policy: `docs-public/docs_src/dev-notes/cross-layer/documentation-policy.md`
-   - Package architecture: `docs-public/docs_src/dev-notes/package-architecture.md`
-   - Layer-specific guides: `docs-public/docs_src/dev-notes/l{1-6}-*/`
-   - Cross-cutting concerns: `docs-public/docs_src/dev-notes/cross-layer/`
+   - CI/CD: SAGE-Pub `docs/` or `.sage/docs/`
+   - Documentation policy: SAGE-Pub `docs/` or `.sage/docs/`
+   - Package architecture: SAGE-Pub `docs/` or `.sage/docs/`
+   - Layer-specific guides: SAGE-Pub `docs/` or `.sage/docs/`
+   - Cross-cutting concerns: SAGE-Pub `docs/` or `.sage/docs/`
 
 **Remember**: Don't guess. Read the docs. They exist for this reason.

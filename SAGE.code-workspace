@@ -47,6 +47,9 @@
 		{
 			"name": "sage-studio",
 			"path": "../sage-studio"
+		},
+		{
+			"path": "../SAGE-Pub"
 		}
 	],
 	"settings": {
