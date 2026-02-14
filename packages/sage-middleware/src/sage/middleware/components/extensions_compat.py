@@ -22,7 +22,7 @@ else:
     _sage_flow: Any = None
 
 # 尝试导入C++扩展，失败时使用纯Python实现
-_SAGE_DB_AVAILABLE = False  # 通过 isage-vdb 包检测 (Python: sagevdb)
+_SAGE_VDB_AVAILABLE = False  # 通过 isage-vdb 包检测 (Python: sagevdb)
 _SAGE_FLOW_AVAILABLE = False
 _SAGE_TSDB_AVAILABLE = False  # 通过 isage-tsdb 包检测
 
@@ -31,7 +31,7 @@ if not TYPE_CHECKING:
     try:
         import sagevdb  # noqa: F401
 
-        _SAGE_DB_AVAILABLE = True
+        _SAGE_VDB_AVAILABLE = True
     except (ImportError, OSError):
         # ImportError: package not installed
         # OSError: .so library dependencies missing (e.g., libfaiss.so)
@@ -60,9 +60,9 @@ if not TYPE_CHECKING:
         pass
 
 
-def is_sage_db_available() -> bool:
-    """检查SAGE DB扩展是否可用"""
-    return _SAGE_DB_AVAILABLE
+def is_sage_vdb_available() -> bool:
+    """检查SAGE VDB扩展是否可用"""
+    return _SAGE_VDB_AVAILABLE
 
 
 def is_sage_flow_available() -> bool:
@@ -78,10 +78,10 @@ def is_sage_tsdb_available() -> bool:
 def get_extension_status() -> dict:
     """获取所有扩展的状态"""
     return {
-        "sage_db": _SAGE_DB_AVAILABLE,
+        "sage_vdb": _SAGE_VDB_AVAILABLE,
         "sage_flow": _SAGE_FLOW_AVAILABLE,
         "sage_tsdb": _SAGE_TSDB_AVAILABLE,
-        "total_available": sum([_SAGE_DB_AVAILABLE, _SAGE_FLOW_AVAILABLE, _SAGE_TSDB_AVAILABLE]),
+        "total_available": sum([_SAGE_VDB_AVAILABLE, _SAGE_FLOW_AVAILABLE, _SAGE_TSDB_AVAILABLE]),
         "total_extensions": 3,
     }
 
@@ -89,15 +89,15 @@ def get_extension_status() -> dict:
 def check_extensions_availability() -> dict:
     """检查扩展可用性，返回兼容格式用于CI"""
     return {
-        "sage_db": _SAGE_DB_AVAILABLE,
+        "sage_vdb": _SAGE_VDB_AVAILABLE,
         "sage_flow": _SAGE_FLOW_AVAILABLE,
         "sage_tsdb": _SAGE_TSDB_AVAILABLE,
     }
 
 
-def require_sage_db():
+def require_sage_vdb():
     """要求SageVDB可用，否则抛出异常"""
-    if not _SAGE_DB_AVAILABLE:
+    if not _SAGE_VDB_AVAILABLE:
         raise ImportError(
             "此功能需要 SageVDB。请安装:\n"
             "  pip install isage-vdb\n"
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     status = get_extension_status()
     if status["total_available"] < status["total_extensions"]:
         print(f"ℹ️  SAGE扩展状态: {status['total_available']}/{status['total_extensions']} 可用")
-        if not _SAGE_DB_AVAILABLE:
+        if not _SAGE_VDB_AVAILABLE:
             print("  ❌ SageVDB: 未安装 (pip install isage-vdb)")
         if not _SAGE_FLOW_AVAILABLE:
             print("  ❌ SAGE Flow: C++扩展不可用")

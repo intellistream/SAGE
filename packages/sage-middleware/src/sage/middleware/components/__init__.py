@@ -13,12 +13,12 @@ Note: sage_refiner has been migrated to the independent isage-refiner package.
 _available_components = []
 
 try:
-    from . import sage_db
+    from . import sage_vdb
 
-    _available_components.append("sage_db")
+    _available_components.append("sage_vdb")
 except (ImportError, OSError):
     # OSError can occur when .so libraries are missing (e.g., libfaiss.so)
-    sage_db = None
+    sage_vdb = None
 
 try:
     from . import sage_flow
@@ -54,7 +54,7 @@ except ImportError:
 
 
 __all__ = [
-    "sage_db",
+    "sage_vdb",
     "sage_flow",
     "sage_mem",
     "sage_sias",

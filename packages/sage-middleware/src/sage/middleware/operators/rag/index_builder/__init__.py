@@ -6,7 +6,7 @@ It orchestrates document processing, embedding, and vector storage.
 Layer: L4 (sage-middleware/operators/rag)
 Dependencies:
   - sage.libs.rag (L3) - chunk, document_loaders
-  - sage.middleware.components.sage_db (L4) - SageDB backend
+  - sage.middleware.components.sage_vdb (L4) - SageDB backend
   - sage.common (L1) - embedding models
 
 Components:
@@ -22,7 +22,7 @@ Architecture Pattern:
 
 Example Usage:
     >>> from sage.middleware.operators.rag.index_builder import IndexBuilder
-    >>> from sage.middleware.components.sage_db import SageVDBBackend
+    >>> from sage.middleware.components.sage_vdb import SageVDBBackend
     >>>
     >>> # Create backend factory
     >>> def factory(path, dim):

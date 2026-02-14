@@ -1,5 +1,5 @@
 """
-Tests for Multimodal SAGE DB (multimodal_sage_db.py).
+Tests for Multimodal SAGE DB (multimodal_sage_vdb.py).
 
 This module tests the multimodal fusion and search capabilities of SAGE DB.
 """
@@ -7,9 +7,9 @@ This module tests the multimodal fusion and search capabilities of SAGE DB.
 import numpy as np
 import pytest
 
-# Try to import multimodal_sage_db components
+# Try to import multimodal_sage_vdb components
 try:
-    from sage.middleware.components.sage_db.python.multimodal_sage_db import (
+    from sage.middleware.components.sage_vdb.python.multimodal_sage_vdb import (
         FusionParams,
         FusionStrategy,
         ModalData,

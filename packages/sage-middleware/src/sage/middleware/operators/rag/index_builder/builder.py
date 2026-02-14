@@ -79,7 +79,7 @@ class IndexBuilder:
 
     Architecture Pattern:
         - L4 defines this builder (orchestration logic)
-        - L4 provides SageDB backend (sage.middleware.components.sage_db)
+        - L4 provides SageDB backend (sage.middleware.components.sage_vdb)
         - L3 provides ChromaDB backend (sage.libs.integrations.chroma)
         - L5 uses IndexBuilder with injected backend factory
 
@@ -90,7 +90,7 @@ class IndexBuilder:
     Example:
         >>> # In sage-cli (L5)
         >>> from sage.middleware.operators.rag.index_builder import IndexBuilder
-        >>> from sage.middleware.components.sage_db import SageVDBBackend
+        >>> from sage.middleware.components.sage_vdb import SageVDBBackend
         >>>
         >>> def factory(path: Path, dim: int):
         ...     return SageVDBBackend(path, dim)

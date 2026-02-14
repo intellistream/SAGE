@@ -7,9 +7,9 @@ This module tests the microservice-style wrapper for SAGE DB.
 import numpy as np
 import pytest
 
-# Try to import sage_db_service components
+# Try to import sage_vdb_service components
 try:
-    from sage.middleware.components.sage_db.python.micro_service.sage_db_service import (
+    from sage.middleware.components.sage_vdb.python.micro_service.sage_db_service import (
         SageDBService,
         SageDBServiceConfig,
     )

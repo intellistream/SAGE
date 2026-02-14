@@ -280,7 +280,7 @@ class DenseRetriever:
         self.index = index
 
 # ✅ 正确：在 L4 middleware 中组合
-from sage.middleware.components.sage_db import SageVDB
+from sage.middleware.components.sage_vdb import SageVDB
 from sage_libs.sage_rag.retrievers import DenseRetriever
 
 index = SageVDB(dimension=768)

@@ -108,7 +108,7 @@ def __getattr__(name):
     """Provide friendly error message when SageVDB is not installed"""
     if name in __all__ and not _SAGE_DB_AVAILABLE:
         raise ImportError(
-            f"Cannot import '{name}' from sage.middleware.components.sage_db. "
+            f"Cannot import '{name}' from sage.middleware.components.sage_vdb. "
             "SageVDB is not installed. Please install it using:\n"
             "  pip install isage-vdb\n"
             "Note: PyPI package name is 'isage-vdb', Python import name is 'sagevdb'"

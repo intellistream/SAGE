@@ -10,9 +10,9 @@ import tempfile
 import numpy as np
 import pytest
 
-# Try to import sage_db components
+# Try to import sage_vdb components
 try:
-    from sage.middleware.components.sage_db.python.sage_db import (
+    from sage.middleware.components.sage_vdb.python.sage_db import (
         DatabaseConfig,
         DistanceMetric,
         IndexType,
@@ -26,7 +26,7 @@ except ImportError:
     SAGE_DB_AVAILABLE = False
 
 try:
-    from sage.middleware.components.sage_db.python.sage_db import SageDBException  # noqa: F401
+    from sage.middleware.components.sage_vdb.python.sage_db import SageDBException  # noqa: F401
 
     SAGE_DB_EXCEPTION_AVAILABLE = True
 except ImportError:
@@ -464,7 +464,7 @@ class TestSageDBImportExport:
 
     def test_all_exports(self):
         """Test that all expected symbols are exported."""
-        from sage.middleware.components.sage_db.python import sage_db
+        from sage.middleware.components.sage_vdb.python import sage_db
 
         expected_exports = [
             "SageDB",

@@ -22,7 +22,7 @@ class VectorStore(Protocol):
     Example Implementation:
         >>> class SageVDBBackend:
         ...     def __init__(self, persist_path: Path, dim: int):
-        ...         from sage.middleware.components.sage_db import SageDB
+        ...         from sage.middleware.components.sage_vdb import SageDB
         ...         self.db = SageDB(dim)
         ...         self.path = persist_path
         ...

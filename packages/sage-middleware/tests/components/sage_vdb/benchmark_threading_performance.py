@@ -25,7 +25,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 if TYPE_CHECKING:
-    from sage.middleware.components.sage_db.python.sage_db import (
+    from sage.middleware.components.sage_vdb.python.sage_db import (
         DatabaseConfig,
         DistanceMetric,
         IndexType,
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     )
 
 try:
-    from sage.middleware.components.sage_db.python.sage_db import (
+    from sage.middleware.components.sage_vdb.python.sage_db import (
         DatabaseConfig,
         DistanceMetric,
         IndexType,

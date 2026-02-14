@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 import sys
 
-# Add parent directory to path to find _sage_db.so
+# Add parent directory to path to find _sage_vdb.so
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import time
@@ -19,10 +19,10 @@ import numpy as np
 import pytest
 
 if TYPE_CHECKING:
-    import _sage_db  # type: ignore[import-not-found]
+    import _sage_vdb  # type: ignore[import-not-found]
 
 try:
-    import _sage_db  # type: ignore[import-not-found]
+    import _sage_vdb  # type: ignore[import-not-found]
 
     SAGE_DB_AVAILABLE = True
 except ImportError:
@@ -42,11 +42,11 @@ def create_database():
         pytest.skip("SageDB not available")
     print(f"Creating SageDB ({NUM_VECTORS} vectors, {DIMENSION} dims)...")
 
-    config = _sage_db.DatabaseConfig()
+    config = _sage_vdb.DatabaseConfig()
     config.dimension = DIMENSION
-    config.index_type = _sage_db.IndexType.FLAT  # Correct enum value
+    config.index_type = _sage_vdb.IndexType.FLAT  # Correct enum value
 
-    db = _sage_db.SageDB(config)
+    db = _sage_vdb.SageDB(config)
 
     # Add vectors
     vectors = np.random.randn(NUM_VECTORS, DIMENSION).astype("float32")

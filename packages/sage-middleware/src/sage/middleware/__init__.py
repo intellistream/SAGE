@@ -14,7 +14,7 @@ Dependencies: sage.libs (L3), sage.kernel (L3), sage.platform (L2), sage.common 
   * Filters: 业务过滤器 (tool_filter, evaluate_filter, context_source/sink)
 - 业务上下文：Agent/RAG workflow 上下文管理 (ModelContext, SearchSession等)
 - 中间件组件：
-  * sage_db: 数据库抽象
+  * sage_vdb: 数据库抽象
   * sage_mem: 内存管理和缓存
   * sage_refiner: 数据精炼工具 (仅保留service层，算法已下移到sage.libs.context.compression)
   * sage_flow: 工作流编排

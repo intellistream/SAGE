@@ -12,21 +12,21 @@ import pytest
 from sage.middleware.components.extensions_compat import (
     check_extensions_availability,
     get_extension_status,
-    is_sage_db_available,
     is_sage_flow_available,
     is_sage_tsdb_available,
-    require_sage_db,
+    is_sage_vdb_available,
     require_sage_flow,
     require_sage_tsdb,
+    require_sage_vdb,
 )
 
 
 class TestExtensionAvailabilityChecks:
     """Test individual extension availability checks."""
 
-    def test_is_sage_db_available(self):
-        """Test is_sage_db_available returns boolean."""
-        result = is_sage_db_available()
+    def test_is_sage_vdb_available(self):
+        """Test is_sage_vdb_available returns boolean."""
+        result = is_sage_vdb_available()
         assert isinstance(result, bool)
 
     def test_is_sage_flow_available(self):
@@ -40,13 +40,13 @@ class TestExtensionAvailabilityChecks:
         assert isinstance(result, bool)
 
     @patch("sage.middleware.components.extensions_compat._SAGE_DB_AVAILABLE", True)
-    def test_is_sage_db_available_when_true(self):
-        """Test is_sage_db_available returns True when available."""
+    def test_is_sage_vdb_available_when_true(self):
+        """Test is_sage_vdb_available returns True when available."""
         # Re-import to get the patched value
         from sage.middleware.components import extensions_compat
 
         with patch.object(extensions_compat, "_SAGE_DB_AVAILABLE", True):
-            result = is_sage_db_available()
+            result = is_sage_vdb_available()
             assert result is True or result is False  # Just verify it doesn't crash
 
     @patch("sage.middleware.components.extensions_compat._SAGE_FLOW_AVAILABLE", False)
@@ -67,7 +67,7 @@ class TestExtensionStatusReporting:
         status = get_extension_status()
 
         assert isinstance(status, dict)
-        assert "sage_db" in status
+        assert "sage_vdb" in status
         assert "sage_flow" in status
         assert "sage_tsdb" in status
         assert "total_available" in status
@@ -77,7 +77,7 @@ class TestExtensionStatusReporting:
         """Test get_extension_status values are booleans and ints."""
         status = get_extension_status()
 
-        assert isinstance(status["sage_db"], bool)
+        assert isinstance(status["sage_vdb"], bool)
         assert isinstance(status["sage_flow"], bool)
         assert isinstance(status["sage_tsdb"], bool)
         assert isinstance(status["total_available"], int)
@@ -97,7 +97,7 @@ class TestExtensionStatusReporting:
 
         expected_total = sum(
             [
-                status["sage_db"],
+                status["sage_vdb"],
                 status["sage_flow"],
                 status["sage_tsdb"],
             ]
@@ -109,7 +109,7 @@ class TestExtensionStatusReporting:
         availability = check_extensions_availability()
 
         assert isinstance(availability, dict)
-        assert "sage_db" in availability
+        assert "sage_vdb" in availability
         assert "sage_flow" in availability
         assert "sage_tsdb" in availability
 
@@ -117,7 +117,7 @@ class TestExtensionStatusReporting:
         """Test check_extensions_availability values are booleans."""
         availability = check_extensions_availability()
 
-        assert isinstance(availability["sage_db"], bool)
+        assert isinstance(availability["sage_vdb"], bool)
         assert isinstance(availability["sage_flow"], bool)
         assert isinstance(availability["sage_tsdb"], bool)
 
@@ -126,7 +126,7 @@ class TestExtensionStatusReporting:
         status = get_extension_status()
         availability = check_extensions_availability()
 
-        assert availability["sage_db"] == status["sage_db"]
+        assert availability["sage_vdb"] == status["sage_vdb"]
         assert availability["sage_flow"] == status["sage_flow"]
         assert availability["sage_tsdb"] == status["sage_tsdb"]
 
@@ -134,23 +134,23 @@ class TestExtensionStatusReporting:
 class TestRequirementChecking:
     """Test requirement checking functions that raise on unavailability."""
 
-    def test_require_sage_db_available(self):
-        """Test require_sage_db returns module when available."""
+    def test_require_sage_vdb_available(self):
+        """Test require_sage_vdb returns module when available."""
         from sage.middleware.components import extensions_compat
 
         # Mock sagevdb import by patching availability and the import
         with patch.object(extensions_compat, "_SAGE_DB_AVAILABLE", True):
             with patch.dict("sys.modules", {"sagevdb": MagicMock()}):
-                result = require_sage_db()
+                result = require_sage_vdb()
                 assert result is not None
 
-    def test_require_sage_db_unavailable_raises(self):
-        """Test require_sage_db raises when unavailable."""
+    def test_require_sage_vdb_unavailable_raises(self):
+        """Test require_sage_vdb raises when unavailable."""
         from sage.middleware.components import extensions_compat
 
         with patch.object(extensions_compat, "_SAGE_DB_AVAILABLE", False):
             with pytest.raises(ImportError, match="SageVDB|isage-vdb"):
-                require_sage_db()
+                require_sage_vdb()
 
     @patch("sage.middleware.components.extensions_compat._SAGE_FLOW_AVAILABLE", True)
     @patch("sage.middleware.components.extensions_compat._sage_flow", MagicMock())
@@ -195,13 +195,13 @@ class TestRequirementChecking:
 class TestErrorMessages:
     """Test error message content for requirement failures."""
 
-    def test_require_sage_db_error_message_helpful(self):
-        """Test require_sage_db error message is helpful."""
+    def test_require_sage_vdb_error_message_helpful(self):
+        """Test require_sage_vdb error message is helpful."""
         from sage.middleware.components import extensions_compat
 
         with patch.object(extensions_compat, "_SAGE_DB_AVAILABLE", False):
             try:
-                require_sage_db()
+                require_sage_vdb()
             except ImportError as e:
                 error_msg = str(e)
                 # SageVDB is independent PyPI package (isage-vdb)
@@ -270,7 +270,7 @@ class TestExtensionModuleReferences:
         # Test that require functions raise when not available
         if not extensions_compat._SAGE_DB_AVAILABLE:
             with pytest.raises(ImportError):
-                require_sage_db()
+                require_sage_vdb()
 
         if not extensions_compat._SAGE_FLOW_AVAILABLE:
             with pytest.raises(ImportError):
@@ -286,7 +286,7 @@ class TestExtensionModuleReferences:
 
         # Test that require functions return module when available
         if extensions_compat._SAGE_DB_AVAILABLE:
-            result = require_sage_db()
+            result = require_sage_vdb()
             assert result is not None
 
         if extensions_compat._SAGE_FLOW_AVAILABLE:
@@ -306,7 +306,7 @@ class TestConsistency:
         status = get_extension_status()
         check = check_extensions_availability()
 
-        assert is_sage_db_available() == status["sage_db"] == check["sage_db"]
+        assert is_sage_vdb_available() == status["sage_vdb"] == check["sage_vdb"]
         assert is_sage_flow_available() == status["sage_flow"] == check["sage_flow"]
         assert is_sage_tsdb_available() == status["sage_tsdb"] == check["sage_tsdb"]
 
@@ -316,7 +316,7 @@ class TestConsistency:
 
         available_count = sum(
             [
-                is_sage_db_available(),
+                is_sage_vdb_available(),
                 is_sage_flow_available(),
                 is_sage_tsdb_available(),
             ]
@@ -329,7 +329,7 @@ class TestConsistency:
         status1 = get_extension_status()
 
         # Perform multiple checks
-        is_sage_db_available()
+        is_sage_vdb_available()
         is_sage_flow_available()
         is_sage_tsdb_available()
         check_extensions_availability()
@@ -352,7 +352,7 @@ class TestEdgeCases:
 
     def test_all_checks_return_expected_types(self):
         """Test all functions return expected types."""
-        assert isinstance(is_sage_db_available(), bool)
+        assert isinstance(is_sage_vdb_available(), bool)
         assert isinstance(is_sage_flow_available(), bool)
         assert isinstance(is_sage_tsdb_available(), bool)
         assert isinstance(get_extension_status(), dict)
@@ -362,8 +362,8 @@ class TestEdgeCases:
         """Test require functions are consistent with availability checks."""
 
         # If available, require should return something
-        if is_sage_db_available():
-            result = require_sage_db()
+        if is_sage_vdb_available():
+            result = require_sage_vdb()
             assert result is not None
 
         # If not available, require should raise
@@ -390,19 +390,19 @@ class TestModuleInitialization:
         """Test all public functions are callable."""
         from sage.middleware.components import extensions_compat
 
-        assert callable(extensions_compat.is_sage_db_available)
+        assert callable(extensions_compat.is_sage_vdb_available)
         assert callable(extensions_compat.is_sage_flow_available)
         assert callable(extensions_compat.is_sage_tsdb_available)
         assert callable(extensions_compat.get_extension_status)
         assert callable(extensions_compat.check_extensions_availability)
-        assert callable(extensions_compat.require_sage_db)
+        assert callable(extensions_compat.require_sage_vdb)
         assert callable(extensions_compat.require_sage_flow)
         assert callable(extensions_compat.require_sage_tsdb)
 
     def test_functions_no_required_arguments(self):
         """Test that check functions have no required arguments."""
         # These should be callable with no arguments
-        is_sage_db_available()
+        is_sage_vdb_available()
         is_sage_flow_available()
         is_sage_tsdb_available()
         get_extension_status()
@@ -412,9 +412,9 @@ class TestModuleInitialization:
 class TestTypeAnnotations:
     """Test that functions have proper type annotations."""
 
-    def test_is_sage_db_available_returns_bool(self):
-        """Test is_sage_db_available returns bool."""
-        result = is_sage_db_available()
+    def test_is_sage_vdb_available_returns_bool(self):
+        """Test is_sage_vdb_available returns bool."""
+        result = is_sage_vdb_available()
         assert result is True or result is False
 
     def test_get_extension_status_returns_dict_with_int_values(self):
@@ -435,11 +435,11 @@ class TestRequireReturnValues:
 
         # Test sage_db
         if extensions_compat._SAGE_DB_AVAILABLE:
-            result = require_sage_db()
+            result = require_sage_vdb()
             assert result is not None  # Should return something when available
         else:
             with pytest.raises(ImportError):
-                require_sage_db()  # Should raise when not available
+                require_sage_vdb()  # Should raise when not available
 
         # Test sage_flow
         if extensions_compat._SAGE_FLOW_AVAILABLE:

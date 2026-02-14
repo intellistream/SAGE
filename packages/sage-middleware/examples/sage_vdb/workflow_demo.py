@@ -37,11 +37,11 @@ for path in PACKAGE_SRC_ROOTS:
 
 try:
     from sage.common.components.sage_embedding.embedding_model import EmbeddingModel
-    from sage.middleware.components.sage_db.python.micro_service.sage_db_service import (
+    from sage.middleware.components.sage_vdb.python.micro_service.sage_db_service import (
         SageDBService,
     )
 except ImportError as exc:  # pragma: no cover - surface build guidance early
-    if "_sage_db" in str(exc):
+    if "_sage_vdb" in str(exc):
         raise SystemExit(
             "❌ SageDB native extension not found. Install it before running this demo:\n"
             "   sage extensions install sage_db  # add --force to rebuild"

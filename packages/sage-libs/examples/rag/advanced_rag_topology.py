@@ -320,7 +320,7 @@ class VectorRetriever(MapFunction):
     def _init_db(self):
         """尝试初始化 sage_db"""
         try:
-            from sage.middleware.components.sage_db import SageDB
+            from sage.middleware.components.sage_vdb import SageDB
 
             self._db = SageDB(dim=self.config.get("dim", 384))
             self.logger.info("✓ 已初始化 sage_db")

@@ -6,7 +6,7 @@ import numpy as np
 try:
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.local_environment import LocalEnvironment
-    from sage.middleware.components.sage_db.python.micro_service.sage_db_service import (
+    from sage.middleware.components.sage_vdb.python.micro_service.sage_db_service import (
         SageDBService,
     )
 except ModuleNotFoundError:
@@ -32,24 +32,24 @@ except ModuleNotFoundError:
 
     from sage.common.utils.logging.custom_logger import CustomLogger
     from sage.kernel.api.local_environment import LocalEnvironment
-    from sage.middleware.components.sage_db.python.micro_service.sage_db_service import (
+    from sage.middleware.components.sage_vdb.python.micro_service.sage_db_service import (
         SageDBService,
     )
 
 
 def main():
-    env = LocalEnvironment("hello_sage_db_service")
+    env = LocalEnvironment("hello_sage_vdb_service")
 
     # Register service
     env.register_service(
-        "hello_sage_db_service",
+        "hello_sage_vdb_service",
         SageDBService,
         dimension=4,
         index_type="AUTO",
     )
 
     # Create service instance
-    svc_factory = env.service_factories["hello_sage_db_service"]
+    svc_factory = env.service_factories["hello_sage_vdb_service"]
     svc: SageDBService = svc_factory.create_service()
 
     # Insert demo vectors

@@ -28,7 +28,7 @@ class SageVDBBackend:
 
     Example:
         >>> from sage.libs.rag.index_builder import IndexBuilder
-        >>> from sage.middleware.components.sage_db import SageVDBBackend
+        >>> from sage.middleware.components.sage_vdb import SageVDBBackend
         >>>
         >>> def factory(path: Path, dim: int):
         ...     return SageVDBBackend(path, dim)
