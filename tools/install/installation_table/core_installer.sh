@@ -333,13 +333,22 @@ for pkg_dir in package_dirs:
             match = re.search(r'\"([^\"]+)\"', line)
             if match:
                 dep = match.group(1)
-                # 允许独立的工具包（如 isage-dev-tools）和其他外部依赖
-                # 排除 SAGE 框架核心包，但保留独立工具包
+                # 排除 SAGE 框架核心包（仅限本地开发的包）
+                # 保留独立的 PyPI 包（如 isage-vdb, isage-flow, isage-neuromem 等）
                 core_packages = ['isage-common', 'isage-platform', 'isage-kernel', 'isage-libs',
                                 'isage-middleware', 'isage-cli', 'isage-tools', 'isage']
+                # 独立 PyPI 包列表（需要从 PyPI 安装）
+                independent_packages = ['isage-vdb', 'isage-flow', 'isage-tsdb', 'isage-neuromem',
+                                       'isage-refiner', 'isage-agentic', 'isage-rag', 'isage-eval',
+                                       'isage-privacy', 'isage-safety', 'isage-finetune', 'isage-data',
+                                       'isage-dev-tools', 'isage-benchmark', 'isage-tooluse',
+                                       'isage-anns', 'isage-edge', 'isagellm', 'isage-studio']
                 dep_lower = dep.lower()
-                is_core_package = any(dep_lower.startswith(pkg) for pkg in core_packages)
-                if not is_core_package:
+                dep_name = dep.split('[')[0].split('>')[0].split('<')[0].split('=')[0].split('!')[0].strip()
+                is_core_package = dep_name.lower() in [pkg.lower() for pkg in core_packages]
+                is_independent = dep_name.lower() in [pkg.lower() for pkg in independent_packages]
+                # 包含独立包和其他外部依赖
+                if not is_core_package or is_independent:
                     # 提取包名和版本约束
                     pkg_match = re.match(r'^([a-zA-Z0-9_-]+[a-zA-Z0-9_\[\]-]*)', dep)
                     if pkg_match:
