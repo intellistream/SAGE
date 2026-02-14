@@ -84,9 +84,7 @@ env.submit()
 ```
 
 > 💡 **LLM Engine**: SAGE uses `sageLLM` as the default inference engine. For OpenAI-compatible APIs,
-> use `OpenAIGenerator`. See
-> [Migration Guide](./docs-public/docs_src/dev-notes/migration/VLLM_TO_SAGELLM_MIGRATION.md) if
-> migrating from vLLM.
+> use `OpenAIGenerator`. See [CHANGELOG](./CHANGELOG.md) if migrating from vLLM.
 
 **Try it yourself:**
 
@@ -130,8 +128,8 @@ L1: sage-common                       # Foundation
 - **sage-studio**: Visual workflow builder (PyPI: `isage-studio`)
 - **sageLLM**: LLM inference engine (PyPI: `isagellm`)
 
-📖 **[Architecture Guide](./docs-public/docs_src/dev-notes/package-architecture.md)** - Detailed
-design principles and dependency rules
+📖 **[Architecture Guide](./docs-public/docs_src/concepts/architecture/package-structure.md)** -
+Detailed design principles and dependency rules
 
 ## Installation
 
@@ -258,7 +256,7 @@ See `tutorials/README.md` for complete learning paths.
   - Tutorials, RAG examples, and production applications
   - Will be published as `isage-examples` on PyPI
 - **Architecture**:
-  [docs-public/docs_src/dev-notes/package-architecture.md](./docs-public/docs_src/dev-notes/package-architecture.md)
+  [docs-public/docs_src/concepts/architecture/package-structure.md](./docs-public/docs_src/concepts/architecture/package-structure.md)
 
 ## Contributing
 
@@ -296,7 +294,7 @@ sage-dev test       # Run tests
 make docs           # Build documentation
 ```
 
-📖 **Complete reference**: [docs/dev-notes/DEV_COMMANDS.md](./docs/dev-notes/DEV_COMMANDS.md)
+📖 **Complete reference**: [DEVELOPER.md](./DEVELOPER.md)
 
 ## SAGE Ecosystem
 

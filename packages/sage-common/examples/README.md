@@ -14,8 +14,7 @@
 - 📖 **在线浏览**: https://intellistream.github.io/SAGE-Pub/tutorials/
 - 📦 **轻量示例**: PyPI 包中的 `packages/*/examples/`
 
-**为什么不打包？** 见
-[设计决策](../docs-public/docs_src/dev-notes/cross-layer/architecture/EXAMPLES_TESTING_PYPI_STRATEGY.md)
+**为什么不打包？** 见 [设计决策](../../../CHANGELOG.md)
 
 ## ⚡ 5 分钟快速开始
 
@@ -73,7 +72,7 @@ SAGE 采用 **5 层分层架构**，从底层基础设施到顶层接口：
 
 - ✅ **单向依赖**：只能向下依赖（L5→L4→L3→L2→L1）
 - ❌ **禁止反向**：禁止向上或循环依赖
-- 📚 **详细说明**：[SAGE 包架构文档](../../docs-public/docs_src/dev-notes/package-architecture.md)
+- 📚 **详细说明**：[SAGE 变更日志](../../../CHANGELOG.md)
 
 ## 📚 Tutorial 目录结构
 
@@ -323,7 +322,7 @@ ______________________________________________________________________
 1. 查看 [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 1. 检查示例的注释和 docstring
 1. 阅读对应层级的 README
-1. 查看 [SAGE 包架构文档](../../docs-public/docs_src/dev-notes/package-architecture.md)
+1. 查看 [SAGE 变更日志](../../../CHANGELOG.md)
 1. 提交 Issue 到 GitHub
 
 ## 🤝 贡献

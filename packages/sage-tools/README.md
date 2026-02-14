@@ -45,7 +45,7 @@ SAGE Tools 提供了一整套开发、测试、部署和维护工具，帮助开
 
 - Pre-commit hooks for code quality checks (black, isort, ruff, mypy)
 - Architecture compliance validation (layer dependencies, import paths)
-- Dev-notes documentation standards checking
+- Documentation standards checking
 - Easy install/uninstall with `sage-dev hooks` commands
 
 ### 🔬 Examples Testing (Dev Environment Only)
@@ -161,7 +161,7 @@ sage-dev maintain hooks reinstall
 
 - 代码格式化和质量检查（black, isort, ruff, mypy）
 - 架构合规性验证（包依赖、导入路径）
-- Dev-notes 文档规范检查
+- 文档规范检查
 
 **使用提示:**
 
@@ -189,7 +189,7 @@ sage-dev architecture --no-dependencies  # 只显示层级定义
 sage-dev check-architecture              # 检查所有文件
 sage-dev check-architecture --changed-only  # 仅检查变更
 
-# Dev-notes 文档规范检查
+# 文档规范检查
 sage-dev quality devnotes                # 检查所有文档
 sage-dev quality devnotes --warn-only    # 只警告不中断
 
@@ -291,7 +291,7 @@ for r in results:
 - CI/CD 流程集成
 - 开发过程中手动检查
 
-### Dev-notes Documentation Checker
+### Documentation Checker
 
 检查开发文档规范：
 

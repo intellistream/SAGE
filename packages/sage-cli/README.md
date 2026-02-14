@@ -209,7 +209,7 @@ sage-dev project test --package sage-cli
 For detailed documentation, see:
 
 - [SAGE Documentation](https://intellistream.github.io/SAGE)
-- [CLI Package Plan](../../docs/dev-notes/architecture/SAGE_CLI_PACKAGE_PLAN.md)
+- [Project Changelog](../../CHANGELOG.md)
 
 ## 🏗️ Architecture
 

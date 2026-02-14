@@ -1,15 +1,32 @@
 """
 SageDB Middleware Service
 
-This module provides the middleware service interface for SageDB,
-wrapping the Python bindings from the sageDB C++ core.
+⚠️  DEPRECATED: This module's imports are no longer available.
+
+SageVDB has been migrated to an independent PyPI package (isage-vdb).
+The old .python.* submodules have been removed.
+
+Migration:
+    pip install isage-vdb
+
+    # Old import (deprecated):
+    # from sage.middleware.components.sage_vdb.python.sage_db import SageDB
+
+    # New import:
+    from sagevdb import SageVDB
+
+For backward compatibility, use:
+    from sage.middleware.components.sage_vdb import SageVDB
 """
 
-# Micro-service wrapper
-from .python.micro_service.sage_db_service import SageDBService, SageDBServiceConfig
-from .python.multimodal_sage_vdb import MultimodalSageDB
+import warnings
 
-# Core Python bindings
-from .python.sage_db import SageDB
+warnings.warn(
+    "sage.middleware.components.sage_vdb.service is deprecated. "
+    "SageVDB has migrated to 'isage-vdb' (import: sagevdb). "
+    "See module docstring for migration guide.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-__all__ = ["SageDB", "MultimodalSageDB", "SageDBService", "SageDBServiceConfig"]
+__all__ = []  # No exports - module deprecated

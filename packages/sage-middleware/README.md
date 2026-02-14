@@ -95,8 +95,7 @@ resp = client.chat_completion(
 print(resp)
 ```
 
-> 📖 **迁移指南**：如果您正在使用 `VLLMGenerator`，请参阅
-> [vLLM to sageLLM Migration Guide](../../docs-public/docs_src/dev-notes/migration/VLLM_TO_SAGELLM_MIGRATION.md)
+> 📖 **迁移指南**：如果您正在使用 `VLLMGenerator`，请参阅 [Project Changelog](../../CHANGELOG.md)
 
 ## 📦 Package Structure
 
@@ -155,8 +154,7 @@ middleware:
 - **用户指南**: 参见 [SAGE-Pub](https://intellistream.github.io/SAGE-Pub/)
 - **API 参考**: 参见 [API 文档](https://intellistream.github.io/SAGE-Pub/api/)
 - **治理文档**: 参见 [docs/governance/](docs/governance/)
-- **迁移指南**: 参见
-  [vLLM to sageLLM Migration](../../docs-public/docs_src/dev-notes/migration/VLLM_TO_SAGELLM_MIGRATION.md)
+- **迁移指南**: 参见 [Project Changelog](../../CHANGELOG.md)
 
 ## 🧪 Testing
 

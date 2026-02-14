@@ -16,10 +16,9 @@ For detailed migration information, see:
     docs-public/docs_src/dev-notes/cross-layer/sagedb-independence-migration.md
 """
 
-import warnings
-
 # Re-export everything from sagevdb (Python import name, PyPI: isage-vdb)
 _SAGE_DB_AVAILABLE = False
+_SAGE_DB_IMPORT_ERROR = None
 try:
     from sagevdb import (
         DatabaseConfig,
@@ -43,12 +42,11 @@ try:
     )
 
     _SAGE_DB_AVAILABLE = True
-except ImportError as e:
-    # Don't warn on import - only when actually trying to use SageVDB
-    # Store error message for later use
+except (ImportError, OSError) as e:
+    # Don't raise on import - allow module to be imported but mark as unavailable
+    # This enables proper test skipping and graceful degradation
     _SAGE_DB_IMPORT_ERROR = str(e)
-    pass
-    # Provide stub exports to prevent ImportError
+    # Provide stub exports to prevent ImportError on module-level imports
     SageVDB = None
     IndexType = None
     DistanceMetric = None
@@ -107,10 +105,13 @@ __all__ = [
 def __getattr__(name):
     """Provide friendly error message when SageVDB is not installed"""
     if name in __all__ and not _SAGE_DB_AVAILABLE:
-        raise ImportError(
+        error_msg = (
             f"Cannot import '{name}' from sage.middleware.components.sage_vdb. "
             "SageVDB is not installed. Please install it using:\n"
             "  pip install isage-vdb\n"
             "Note: PyPI package name is 'isage-vdb', Python import name is 'sagevdb'"
         )
+        if _SAGE_DB_IMPORT_ERROR:
+            error_msg += f"\nOriginal error: {_SAGE_DB_IMPORT_ERROR}"
+        raise ImportError(error_msg)
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

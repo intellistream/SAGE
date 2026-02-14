@@ -542,18 +542,17 @@ sage-dev docs serve
 
 1. **User Guides**: Place in `docs-public/docs_src/`
 
-1. **Dev Notes**: Use the template in `docs/dev-notes/TEMPLATE.md`
+1. **Changelog**: 重要变更统一记录到 `CHANGELOG.md`
 
-### Creating Dev Notes
+### Updating Changelog
 
 When documenting fixes or features:
 
 ```bash
-# Copy the template
-cp docs/dev-notes/TEMPLATE.md docs/dev-notes/<category>/<FEATURE_NAME>_<ISSUE_NUM>.md
+# Edit repo changelog directly
+$EDITOR CHANGELOG.md
 
-# Fill in the template
-# See docs/dev-notes/QUICK_START.md for guidance
+# Add key changes under [Unreleased]
 ```
 
 ## Release Process
@@ -679,8 +678,7 @@ We follow [Semantic Versioning](https://semver.org/):
 ## Useful Resources
 
 - [Architecture Diagram](docs/images/architecture.svg)
-- [Dev Notes Template](docs/dev-notes/TEMPLATE.md)
-- [Dev Notes Quick Start](docs/dev-notes/QUICK_START.md)
+- [Project Changelog](CHANGELOG.md)
 - [Keep a Changelog](https://keepachangelog.com/)
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [Semantic Versioning](https://semver.org/)

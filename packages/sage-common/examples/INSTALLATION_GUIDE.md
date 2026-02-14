@@ -75,8 +75,7 @@ ______________________________________________________________________
 
 ## 💡 为什么 Tutorials 不打包到 PyPI？
 
-参考:
-[EXAMPLES_TESTING_PYPI_STRATEGY.md](../docs-public/docs_src/dev-notes/cross-layer/architecture/EXAMPLES_TESTING_PYPI_STRATEGY.md)
+参考: [CHANGELOG.md](../../../CHANGELOG.md)
 
 ### ❌ 打包的问题
 
