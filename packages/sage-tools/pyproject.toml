@@ -50,6 +50,9 @@ dependencies = [
 
     # SAGE development tools - required for test runner (IntermediateResultsChecker)
     "isage-dev-tools>=0.1.0",
+
+    # FastAPI form data support - required for CLI tools with web interfaces
+    "python-multipart>=0.0.6",
 ]
 
 [project.optional-dependencies]

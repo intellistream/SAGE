@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-class TestFailureCache:
+class FailedTestsCache:
     """Manages caching of failed test paths for quick re-execution."""
 
     def __init__(self, project_root: str):

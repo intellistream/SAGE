@@ -15,7 +15,7 @@ from pathlib import Path
 from sage.common.config.output_paths import get_sage_paths
 
 from ..core.exceptions import SAGEDevToolkitError
-from .test_failure_cache import TestFailureCache
+from .failed_tests_cache import FailedTestsCache
 
 # IntermediateResultsChecker is optional - imported dynamically
 try:
@@ -44,7 +44,7 @@ class EnhancedTestRunner:
         self.debug = debug
 
         # Initialize test failure cache
-        self.failure_cache = TestFailureCache(str(self.project_root))
+        self.failure_cache = FailedTestsCache(str(self.project_root))
 
         # Initialize intermediate results checker (optional)
         if HAS_INTERMEDIATE_CHECKER:
