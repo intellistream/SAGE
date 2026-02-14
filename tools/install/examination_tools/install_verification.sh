@@ -345,19 +345,19 @@ verify_sage_imports() {
         else
             # 获取详细的导入错误信息
             local import_error=$($PYTHON_CMD -c "import ${pkg}" 2>&1 | head -n 10)
-            
+
             if [ "$is_optional" = true ]; then
                 echo -e "${YELLOW}   ⚠️  $pkg 导入失败（可选包）${NC}"
                 optional_failed+=("$pkg")
             else
                 echo -e "${RED}   ❌ $pkg 导入失败${NC}"
-                
+
                 # 显示详细错误信息（缩进）
                 if [ -n "$import_error" ]; then
                     echo -e "${DIM}      错误详情:${NC}"
                     echo "$import_error" | sed 's/^/      /' | head -n 5
                 fi
-                
+
                 # 针对特定包提供诊断提示
                 case "$pkg" in
                     "sage.middleware")
@@ -377,7 +377,7 @@ verify_sage_imports() {
                         echo -e "${DIM}         • 如未安装，运行: pip install -e packages/sage-libs${NC}"
                         ;;
                 esac
-                
+
                 failed_imports+=("$pkg")
             fi
         fi
@@ -399,7 +399,7 @@ verify_sage_imports() {
         return 0
     else
         log_verification_result "sage_imports" "FAIL" "核心包导入失败: ${failed_imports[*]}"
-        
+
         # 输出详细的故障排查建议
         echo ""
         echo -e "${RED}${BOLD}❌ 导入失败诊断${NC}"
@@ -428,7 +428,7 @@ verify_sage_imports() {
         echo -e "   ${DIM}cat .sage/logs/install.log${NC}"
         echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo ""
-        
+
         return 1
     fi
 }

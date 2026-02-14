@@ -7,8 +7,8 @@
 > - [DEVELOPER.md](../../DEVELOPER.md) - 开发环境设置
 > - [CONTRIBUTING.md](../../CONTRIBUTING.md) - 贡献指南
 
-> **⚠️ 重要变更：** SAGE 已不再使用 git submodules。所有依赖（如 SageVDB、NeuroMem 等）
-> 现在都作为独立的 PyPI 包安装。`submodule` 相关命令已被移除。
+> **⚠️ 重要变更：** SAGE 已不再使用 git submodules。所有依赖（如 SageVDB、NeuroMem 等） 现在都作为独立的 PyPI 包安装。`submodule`
+> 相关命令已被移除。
 
 ## 🚀 快速开始
 
@@ -53,13 +53,13 @@
 
 ### 类型检查工具
 
-| 命令                                | 说明                     |
-| ----------------------------------- | ------------------------ |
-| `typecheck status`                  | 检查类型错误状态         |
-| `typecheck show-new`                | 显示格式化后新增的错误   |
-| `typecheck explain <file>`          | 解释文件修改原因         |
-| `typecheck safe-commit`             | 安全提交（逐步提示）     |
-| `typecheck reset`                   | 撤销自动格式化           |
+| 命令                       | 说明                   |
+| -------------------------- | ---------------------- |
+| `typecheck status`         | 检查类型错误状态       |
+| `typecheck show-new`       | 显示格式化后新增的错误 |
+| `typecheck explain <file>` | 解释文件修改原因       |
+| `typecheck safe-commit`    | 安全提交（逐步提示）   |
+| `typecheck reset`          | 撤销自动格式化         |
 
 ## 📁 目录结构
 
@@ -142,6 +142,6 @@ tools/maintenance/
 - **贡献指南** - [CONTRIBUTING.md](../../CONTRIBUTING.md)
 - **更新日志** - [CHANGELOG.md](./CHANGELOG.md)
 
----
+______________________________________________________________________
 
 💡 **提示**: 遇到问题先运行 `doctor`，它会给出诊断和建议！
