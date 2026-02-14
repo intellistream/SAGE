@@ -69,17 +69,17 @@ def example_1_basic_usage():
 def example_2_custom_method():
     """示例 2: 使用自定义 embedding 方法"""
     print("=" * 80)
-    print("示例 2: 使用 mockembedder 方法")
+    print("示例 2: 使用 hf (HuggingFace) 方法 + sagellm Control Plane")
     print("=" * 80)
 
-    # 使用缓存的知识库
-    kb = _get_or_create_kb("mockembedder")
+    # 使用缓存的知识库（sagellm Control Plane 统一调度）
+    kb = _get_or_create_kb("hf", model="BAAI/bge-small-zh-v1.5")
 
     query = "向量检索算法"
     results = kb.search(query, top_k=3)
 
     print(f"\n查询: {query}")
-    print("检索方法: mockembedder")
+    print("检索方法: hf (HuggingFace) + sagellm Control Plane")
     print(f"结果数量: {len(results)}\n")
 
     for idx, chunk in enumerate(results, 1):
@@ -91,17 +91,17 @@ def example_2_custom_method():
 def example_3_compare_methods():
     """示例 3: 对比不同 embedding 方法的检索效果"""
     print("=" * 80)
-    print("示例 3: 对比 hash vs mockembedder")
+    print("示例 3: 对比 hash vs hf+sagellm")
     print("=" * 80)
 
     query = "语义搜索"
-    methods = ["hash", "mockembedder"]
+    methods = {"hash": None, "hf": "BAAI/bge-small-zh-v1.5"}
 
-    for method in methods:
-        print(f"\n--- 方法: {method} ---")
+    for method, model in methods.items():
+        print(f"\n--- 方法: {method} (sagellm Control Plane) ---")
 
-        # 使用缓存的知识库
-        kb = _get_or_create_kb(method)
+        # 使用缓存的知识库（sagellm 统一调度）
+        kb = _get_or_create_kb(method, model=model)
 
         import time
 
