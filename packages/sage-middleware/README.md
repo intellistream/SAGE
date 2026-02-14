@@ -184,7 +184,7 @@ pytest --cov=sage.middleware --cov-report=html
 当添加新的中间件组件时，请遵循以下要求：
 
 1. **目录结构**: 在 `src/sage/middleware/components/` 下创建组件目录
-2. **C++ 扩展**: 如包含 C++ 扩展，必须遵守依赖约束（参见下文详细规范）
+1. **C++ 扩展**: 如包含 C++ 扩展，必须遵守依赖约束（参见下文详细规范）
 1. **构建脚本**: 提供标准的 `build.sh`，支持 `--install-deps`
 1. **setup.py 集成**: 在 `setup.py` 中添加构建方法
 1. **测试**: 添加单元测试和集成测试
