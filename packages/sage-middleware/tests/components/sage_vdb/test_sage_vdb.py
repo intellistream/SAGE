@@ -12,24 +12,20 @@ import pytest
 
 # Try to import sage_vdb components
 try:
-    from sage.middleware.components.sage_vdb.python.sage_db import (
+    from sage.middleware.components.sage_vdb import (
+        _SAGE_DB_AVAILABLE,
         DatabaseConfig,
         DistanceMetric,
         IndexType,
         SearchParams,
         create_database,
-        create_database_from_config,
     )
 
-    SAGE_DB_AVAILABLE = True
-except ImportError:
+    SAGE_DB_AVAILABLE = _SAGE_DB_AVAILABLE
+    SAGE_DB_EXCEPTION_AVAILABLE = _SAGE_DB_AVAILABLE
+except (ImportError, OSError):
     SAGE_DB_AVAILABLE = False
-
-try:
-    from sage.middleware.components.sage_vdb.python.sage_db import SageDBException  # noqa: F401
-
-    SAGE_DB_EXCEPTION_AVAILABLE = True
-except ImportError:
+    SAGE_DB_EXCEPTION_AVAILABLE = False
     SAGE_DB_EXCEPTION_AVAILABLE = False
 
 
@@ -91,13 +87,19 @@ class TestSageDBBasic:
             pytest.skip("COSINE metric not available")
 
     def test_create_database_from_config(self):
-        """Test database creation from config."""
+        """Test database creation from config object.
+
+        Note: create_database_from_config was removed from sagevdb API.
+        This test now uses create_database() with explicit parameters.
+        """
+        # Create config for reference
         config = DatabaseConfig()
         config.dimension = 128
         config.index_type = IndexType.FLAT
         config.metric = DistanceMetric.L2
 
-        db = create_database_from_config(config)
+        # Use create_database with explicit parameters
+        db = create_database(config.dimension, config.index_type, config.metric)
         assert db.dimension == 128
 
     def test_add_vector_list(self, sample_db):
@@ -464,21 +466,22 @@ class TestSageDBImportExport:
 
     def test_all_exports(self):
         """Test that all expected symbols are exported."""
-        from sage.middleware.components.sage_vdb.python import sage_db
+        from sage.middleware.components import sage_vdb
 
         expected_exports = [
-            "SageDB",
+            "SageVDB",  # Updated from SageDB
             "IndexType",
             "DistanceMetric",
             "QueryResult",
             "SearchParams",
             "DatabaseConfig",
             "create_database",
-            "create_database_from_config",
+            "SageVDBException",  # Updated from SageDBException
+            "_SAGE_DB_AVAILABLE",
         ]
 
         for export in expected_exports:
-            assert hasattr(sage_db, export), f"Missing export: {export}"
+            assert hasattr(sage_vdb, export), f"Missing export: {export}"
 
 
 if __name__ == "__main__":

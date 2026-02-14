@@ -9,7 +9,7 @@ import pytest
 
 # Try to import multimodal_sage_vdb components
 try:
-    from sage.middleware.components.sage_vdb.python.multimodal_sage_vdb import (
+    from sage.middleware.components.sage_vdb import (
         FusionParams,
         FusionStrategy,
         ModalData,

@@ -25,26 +25,26 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 if TYPE_CHECKING:
-    from sage.middleware.components.sage_vdb.python.sage_db import (
+    from sage.middleware.components.sage_vdb import (
         DatabaseConfig,
         DistanceMetric,
         IndexType,
-        SageDB,
     )
 
 try:
-    from sage.middleware.components.sage_vdb.python.sage_db import (
+    from sage.middleware.components.sage_vdb import (
+        _SAGE_DB_AVAILABLE,
         DatabaseConfig,
         DistanceMetric,
         IndexType,
-        SageDB,
+        create_database,
     )
 
-    SAGE_DB_AVAILABLE = True
-except ImportError:
+    SAGE_DB_AVAILABLE = _SAGE_DB_AVAILABLE
+except (ImportError, OSError):
     SAGE_DB_AVAILABLE = False
     pytestmark = pytest.mark.skip(
-        reason="SageDB C++ extension not built. Run ./build.sh to enable this test."
+        reason="SageDB C++ extension not available. Install with: pip install isage-vdb"
     )
 
 
@@ -58,7 +58,7 @@ def prepare_test_database(dimension: int = 768, num_vectors: int = 10000):
     config.index_type = IndexType.FLAT  # Use FLAT for consistent performance
     config.metric = DistanceMetric.L2
 
-    db = SageDB.from_config(config)
+    db = create_database(config.dimension, config.index_type, config.metric)
 
     # Add random vectors
     np.random.seed(42)
@@ -74,7 +74,7 @@ def prepare_test_database(dimension: int = 768, num_vectors: int = 10000):
     return db
 
 
-def benchmark_single_thread(db: SageDB, num_queries: int = 1000, dimension: int = 768) -> float:
+def benchmark_single_thread(db, num_queries: int = 1000, dimension: int = 768) -> float:
     """Benchmark single-threaded search performance."""
     print(f"\n🔍 Single-threaded benchmark ({num_queries} queries)...")
 
@@ -94,7 +94,7 @@ def benchmark_single_thread(db: SageDB, num_queries: int = 1000, dimension: int 
 
 
 def benchmark_multi_thread(
-    db: SageDB, num_threads: int, queries_per_thread: int = 500, dimension: int = 768
+    db, num_threads: int, queries_per_thread: int = 500, dimension: int = 768
 ) -> tuple[float, float]:
     """Benchmark multi-threaded search performance."""
     print(
@@ -147,7 +147,7 @@ def benchmark_multi_thread(
 
 
 def benchmark_batch_search(
-    db: SageDB, batch_size: int = 100, num_batches: int = 10, dimension: int = 768
+    db, batch_size: int = 100, num_batches: int = 10, dimension: int = 768
 ) -> float:
     """Benchmark batch search performance."""
     print(f"\n🔍 Batch search benchmark ({num_batches} batches × {batch_size} queries)...")

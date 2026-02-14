@@ -7,6 +7,20 @@ from types import SimpleNamespace
 
 import pytest
 
+# Check if peft is available (optional dependency)
+try:
+    import peft  # noqa: F401
+
+    PEFT_AVAILABLE = True
+except ImportError:
+    PEFT_AVAILABLE = False
+
+# Skip entire module if peft not available
+pytestmark = pytest.mark.skipif(
+    not PEFT_AVAILABLE,
+    reason="peft not installed (install with: pip install isage-tools[agent-training])",
+)
+
 # Import SIAS components from middleware
 from sage.middleware.components.sage_sias import CoresetSelector, OnlineContinualLearner
 from sage.tools.agent_training.data_formatter import AgentSFTFormatter

@@ -73,6 +73,14 @@ dev = [
     "safety>=2.3.0",
     "virtualenv>=20.31.2",
 ]
+
+# Agent training tools - for fine-tuning models
+agent-training = [
+    "peft>=0.12.0",  # LoRA and other PEFT methods
+    "transformers>=4.52.0",  # Model training
+    "torch>=2.7.0",  # PyTorch
+    "datasets>=2.14.0",  # Dataset handling
+]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Documentation = "https://intellistream.github.io/SAGE-Pub/"

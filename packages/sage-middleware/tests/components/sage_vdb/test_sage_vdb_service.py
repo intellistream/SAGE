@@ -7,16 +7,22 @@ This module tests the microservice-style wrapper for SAGE DB.
 import numpy as np
 import pytest
 
-# Try to import sage_vdb_service components
-try:
-    from sage.middleware.components.sage_vdb.python.micro_service.sage_db_service import (
-        SageDBService,
-        SageDBServiceConfig,
-    )
+# ⚠️  Service module is deprecated - tests will be skipped
+# SageVDB migrated to independent package (isage-vdb)
+SAGE_DB_SERVICE_AVAILABLE = False
 
-    SAGE_DB_SERVICE_AVAILABLE = True
-except ImportError:
-    SAGE_DB_SERVICE_AVAILABLE = False
+pytestmark = pytest.mark.skip(
+    reason="SageDBService deprecated - SageVDB migrated to independent package (isage-vdb)"
+)
+
+
+# Stub classes to avoid ruff undefined name errors
+class SageDBService:  # noqa: D101
+    pass
+
+
+class SageDBServiceConfig:  # noqa: D101
+    pass
 
 
 @pytest.mark.skipif(not SAGE_DB_SERVICE_AVAILABLE, reason="SAGE DB Service not available")

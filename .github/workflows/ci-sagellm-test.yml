@@ -93,6 +93,9 @@ jobs:
           pip install isage-data
 
           # Install ANNS and vector database packages for tests
+          # Note: isage-vdb>=0.1.10 automatically installs faiss-cpu as dependency
+          # We explicitly install faiss-cpu first to ensure correct version
+          pip install faiss-cpu
           pip install isage-vdb chromadb pymilvus
 
           echo "✅ L3 packages installed"
