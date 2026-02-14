@@ -296,6 +296,7 @@ repos:
         "LICENSE"
         "Makefile"
         "manage.sh"
+        "pytest.ini"
         "quickstart.sh"
         "README.md"
         "CHANGELOG.md"
