@@ -32,10 +32,10 @@ env:
 
 jobs:
   # ============================================================================
-  # Job 1: SageLLM Mock Backend Tests (Required for all PRs)
+  # Job 1: SageLLM CPU Backend Tests (Required for all PRs)
   # ============================================================================
-  sagellm-mock-test:
-    name: SageLLM Mock Backend
+  sagellm-cpu-test:
+    name: SageLLM CPU Backend
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Skip version bump commits
@@ -112,20 +112,23 @@ jobs:
         run: |
           pip install pytest pytest-cov pytest-timeout pytest-xdist pytest-mock
 
-          # Install torch for tests that import HFClient or other torch-dependent modules
+          # Install torch for CPU
+          echo "📦 Installing PyTorch (CPU version)..."
           pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-          # Install transformers for HFClient tests
+          # Install transformers for HF model loading
           pip install transformers
 
-          # Install datasets for agent training tests
-          pip install datasets
+          # Install required packages for tests
+          pip install datasets peft numpy accelerate
 
-          # Install peft for LoRA fine-tuning in AgentSFTTrainer
-          pip install peft
-
-          # Install numpy for evaluator metrics
-          pip install numpy
+          # Verify torch CPU installation
+          python -c "
+          import torch
+          print(f'PyTorch version: {torch.__version__}')
+          print(f'CUDA available: {torch.cuda.is_available()}')
+          print('✅ Using CPU backend for testing')
+          "
 
       - name: Run SageLLM Mock Tests
         run: |

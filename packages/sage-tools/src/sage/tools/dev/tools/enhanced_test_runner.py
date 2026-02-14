@@ -15,8 +15,23 @@ from pathlib import Path
 from sage.common.config.output_paths import get_sage_paths
 
 from ..core.exceptions import SAGEDevToolkitError
-from ..utils.intermediate_results_checker import IntermediateResultsChecker
 from .test_failure_cache import TestFailureCache
+
+# IntermediateResultsChecker is optional - imported dynamically
+try:
+    from ..utils.intermediate_results_checker import IntermediateResultsChecker
+
+    HAS_INTERMEDIATE_CHECKER = True
+except ImportError as e:
+    HAS_INTERMEDIATE_CHECKER = False
+    import warnings
+
+    warnings.warn(
+        f"IntermediateResultsChecker not available: {e}\n"
+        "Install isage-dev-tools for intermediate results checking: pip install isage-dev-tools",
+        ImportWarning,
+        stacklevel=2,
+    )
 
 
 class EnhancedTestRunner:
@@ -31,8 +46,15 @@ class EnhancedTestRunner:
         # Initialize test failure cache
         self.failure_cache = TestFailureCache(str(self.project_root))
 
-        # Initialize intermediate results checker
-        self.intermediate_checker = IntermediateResultsChecker(str(self.project_root))
+        # Initialize intermediate results checker (optional)
+        if HAS_INTERMEDIATE_CHECKER:
+            try:
+                self.intermediate_checker = IntermediateResultsChecker(str(self.project_root))
+            except Exception as e:
+                print(f"Warning: Failed to initialize IntermediateResultsChecker: {e}")
+                self.intermediate_checker = None
+        else:
+            self.intermediate_checker = None
 
         # Get project name from path
 
@@ -124,10 +146,11 @@ class EnhancedTestRunner:
             print(f"   Logs: {self.test_logs_dir}")
             print(f"   Reports: {self.reports_dir}")
 
-            # 检查中间结果放置
-            print("\n" + "=" * 50)
-            self.intermediate_checker.print_check_result()
-            print("=" * 50)
+            # 检查中间结果放置（可选）
+            if self.intermediate_checker is not None:
+                print("\n" + "=" * 50)
+                self.intermediate_checker.print_check_result()
+                print("=" * 50)
 
             # Update failure cache with results (except for failed mode to avoid recursion)
             if mode != "failed":

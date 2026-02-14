@@ -12,13 +12,15 @@
 
 ## 运行前置
 
-SAGE-DB 依赖已编译的 Python 扩展模块 `_sage_db`。如未安装，可运行：
+SAGE-DB (SageVDB) 已独立为 PyPI 包。如未安装，可运行：
 
 ```bash
-sage extensions install sage_db  # 若需重新编译可加 --force
-```
+# 方式 1: 直接安装 SageVDB
+pip install isage-vdb
 
-该命令会在仓库根目录下构建并同步 `_sage_db` 扩展，示例中的相对导入即可找到。
+# 方式 2: 通过 sage-middleware 完整依赖安装
+pip install isage-middleware[extensions]
+```
 
 ## 运行示例
 

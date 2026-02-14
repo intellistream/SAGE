@@ -65,6 +65,26 @@ dev = [
     "ruff==0.14.6",
     "pybind11>=2.10.0",
 ]
+
+# C++ 扩展包（已独立为 PyPI 包）
+extensions = [
+    "isage-vdb>=0.2.0",        # SageVDB 向量数据库
+    "isage-flow>=0.2.0",       # SageFlow 流处理引擎
+    "isage-tsdb>=0.2.0",       # SageTSDB 时序数据库
+    "isage-neuromem>=0.2.0",   # NeuroMem 内存系统
+    "isage-refiner>=0.2.0",    # SageRefiner 上下文压缩
+]
+
+# 向量数据库依赖
+vdb = [
+    "faiss-cpu>=1.7.4",        # FAISS 向量检索（CPU 版本）
+    # 如需 GPU 版本，请手动安装: pip install faiss-gpu
+]
+
+# 完整安装（包含所有 C++ 扩展和向量数据库）
+full = [
+    "isage-middleware[extensions,vdb]",
+]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
 Repository = "https://github.com/intellistream/SAGE.git"

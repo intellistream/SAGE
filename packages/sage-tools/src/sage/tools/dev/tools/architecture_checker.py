@@ -171,6 +171,10 @@ ALLOWED_ROOT_FILES = {
     # Shell 脚本
     "manage.sh",
     "quickstart.sh",
+    # VS Code workspace files
+    "sage.code-workspace",
+    "sagellm.code-workspace",
+    "sage-studio.code-workspace",
     # 其他
     "cmakelists.txt",
 }

@@ -146,7 +146,7 @@ install_core_packages() {
         "minimal")
             echo -e "${GRAY}最小安装：核心运行时包${NC}"
             echo -e "${DIM}包含: L1-L5 核心包，无开发工具，无可选依赖 (~80 包)${NC}"
-            echo -e "${DIM}💡 如需 ML/VDB 等功能，稍后运行: pip install isage-middleware[ml,vdb,...]${NC}"
+            echo -e "${DIM}💡 如需 ML/VDB 等功能，稍后运行: pip install isage-middleware[extensions,vdb]${NC}"
             ;;
         "dev")
             echo -e "${GREEN}开发安装：核心 + 开发工具${NC}"
@@ -335,7 +335,13 @@ for pkg_dir in package_dirs:
             match = re.search(r'\"([^\"]+)\"', line)
             if match:
                 dep = match.group(1)
-                if not dep.startswith('isage-'):
+                # 允许独立的工具包（如 isage-dev-tools）和其他外部依赖
+                # 排除 SAGE 框架核心包，但保留独立工具包
+                core_packages = ['isage-common', 'isage-platform', 'isage-kernel', 'isage-libs',
+                                'isage-middleware', 'isage-cli', 'isage-tools', 'isage']
+                dep_lower = dep.lower()
+                is_core_package = any(dep_lower.startswith(pkg) for pkg in core_packages)
+                if not is_core_package:
                     # 提取包名和版本约束
                     pkg_match = re.match(r'^([a-zA-Z0-9_-]+[a-zA-Z0-9_\[\]-]*)', dep)
                     if pkg_match:
@@ -512,6 +518,82 @@ else:
         else
             log_info "独立 PyPI 包安装成功" "INSTALL"
             echo -e "${CHECK} 独立 PyPI 包安装成功"
+        fi
+        echo ""
+
+        # 安装 FAISS（向量检索必需依赖）
+        echo -e "${DIM}  正在安装 FAISS（向量检索库）...${NC}"
+        log_info "开始安装 FAISS" "INSTALL"
+
+        # 检测环境并选择 FAISS 版本
+        local faiss_package="faiss-cpu>=1.7.4"
+        if command -v nvidia-smi &> /dev/null && nvidia-smi &> /dev/null; then
+            echo -e "${DIM}     检测到 NVIDIA GPU，建议手动安装 faiss-gpu${NC}"
+            echo -e "${DIM}     当前自动安装 CPU 版本，如需 GPU 加速请运行：${NC}"
+            echo -e "${DIM}     conda install -c conda-forge faiss-gpu${NC}"
+        fi
+
+        log_debug "PIP命令: $PIP_CMD install '$faiss_package' $pip_args" "INSTALL"
+
+        if ! log_command "INSTALL" "FAISS" "$PIP_CMD install '$faiss_package' $pip_args"; then
+            # 尝试使用 conda 安装（如果在 conda 环境中）
+            if [ -n "$CONDA_DEFAULT_ENV" ] || [ -n "$CONDA_PREFIX" ]; then
+                log_info "pip 安装失败，尝试使用 conda 安装 FAISS" "INSTALL"
+                echo -e "${DIM}     pip 安装失败，尝试使用 conda...${NC}"
+
+                if command -v conda &> /dev/null; then
+                    if conda install -y -c conda-forge faiss-cpu 2>&1 | tee -a "$log_file"; then
+                        log_info "conda 安装 FAISS 成功" "INSTALL"
+                        echo -e "${CHECK} FAISS 安装成功（通过 conda）"
+                    else
+                        log_warn "FAISS 安装失败（pip 和 conda 均失败）" "INSTALL"
+                        echo -e "${WARNING} ⚠️  FAISS 安装失败，向量检索功能将不可用"
+                        echo -e "${DIM}     您可以稍后手动安装：${NC}"
+                        echo -e "${DIM}     conda install -c conda-forge faiss-cpu${NC}"
+                    fi
+                else
+                    log_warn "FAISS 安装失败且 conda 不可用" "INSTALL"
+                    echo -e "${WARNING} ⚠️  FAISS 安装失败，向量检索功能将不可用"
+                fi
+            else
+                log_warn "FAISS pip 安装失败（非 conda 环境）" "INSTALL"
+                echo -e "${WARNING} ⚠️  FAISS 安装失败，向量检索功能将不可用"
+                echo -e "${DIM}     您可以稍后手动安装：${NC}"
+                echo -e "${DIM}     pip install faiss-cpu${NC}"
+            fi
+        else
+            log_info "FAISS 安装成功" "INSTALL"
+            echo -e "${CHECK} FAISS 安装成功"
+        fi
+        echo ""
+
+        # 安装 MKL（数学核心库，FAISS 和科学计算依赖）
+        echo -e "${DIM}  正在安装 MKL（数学核心库）...${NC}"
+        log_info "开始安装 MKL" "INSTALL"
+
+        # MKL 通常通过 conda 安装更可靠
+        if [ -n "$CONDA_DEFAULT_ENV" ] || [ -n "$CONDA_PREFIX" ]; then
+            if command -v conda &> /dev/null; then
+                log_info "在 conda 环境中，使用 conda 安装 MKL" "INSTALL"
+                echo -e "${DIM}     在 conda 环境中，推荐使用 conda 安装 MKL${NC}"
+
+                if conda install -y -c conda-forge mkl 2>&1 | tee -a "$log_file"; then
+                    log_info "MKL 安装成功" "INSTALL"
+                    echo -e "${CHECK} MKL 安装成功"
+                else
+                    log_warn "MKL 安装失败" "INSTALL"
+                    echo -e "${WARNING} ⚠️  MKL 安装失败，可能影响性能"
+                    echo -e "${DIM}     您可以稍后手动安装：${NC}"
+                    echo -e "${DIM}     conda install -c conda-forge mkl${NC}"
+                fi
+            else
+                log_warn "conda 不可用，跳过 MKL 安装" "INSTALL"
+                echo -e "${DIM}     conda 不可用，跳过 MKL 安装${NC}"
+                echo -e "${DIM}     MKL 通常作为 numpy/scipy 依赖自动安装${NC}"
+            fi
+        else
+            log_info "非 conda 环境，MKL 通常作为 numpy/scipy 依赖自动安装" "INSTALL"
+            echo -e "${DIM}     非 conda 环境，MKL 通常作为 numpy/scipy 依赖自动安装${NC}"
         fi
         echo ""
 
