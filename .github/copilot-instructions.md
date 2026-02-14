@@ -1030,14 +1030,15 @@ tools/pytest.ini, tools/pre-commit-config.yaml
 
 ```bash
 # 对每个包逐个运行（不使用脚本）
+# publish 命令自动检测包类型、构建并上传（一步完成）
 cd /home/shuhao/SAGE/packages/sage-common
-sage-pypi-publisher build . --upload -r testpypi --no-dry-run
+sage-pypi-publisher publish . -r testpypi --no-dry-run
 
 cd /home/shuhao/SAGE/packages/sage-platform
-sage-pypi-publisher build . --upload -r testpypi --no-dry-run
+sage-pypi-publisher publish . -r testpypi --no-dry-run
 
 cd /home/shuhao/SAGE/packages/sage-kernel
-sage-pypi-publisher build . --upload -r testpypi --no-dry-run
+sage-pypi-publisher publish . -r testpypi --no-dry-run
 
 # ... 依次发布其他包
 ```
@@ -1054,10 +1055,10 @@ pip install -i https://test.pypi.org/simple/ isage-common==0.2.4.12 --dry-run
 ```bash
 # 对每个包逐个运行到生产 PyPI
 cd /home/shuhao/SAGE/packages/sage-common
-sage-pypi-publisher build . --upload -r pypi --no-dry-run
+sage-pypi-publisher publish . -r pypi --no-dry-run
 
 cd /home/shuhao/SAGE/packages/sage-platform
-sage-pypi-publisher build . --upload -r pypi --no-dry-run
+sage-pypi-publisher publish . -r pypi --no-dry-run
 
 # ... 依次发布其他包
 ```
@@ -1075,8 +1076,8 @@ sage-pypi-publisher build . --upload -r pypi --no-dry-run
 ### Key Commands
 
 ```bash
-# ✅ CORRECT: Manual one-by-one using sage-pypi-publisher
-cd /path/to/package && sage-pypi-publisher build . --upload -r testpypi --no-dry-run
+# ✅ CORRECT: Manual one-by-one using publish command (一步完成)
+cd /path/to/package && sage-pypi-publisher publish . -r testpypi --no-dry-run
 
 # ❌ WRONG: Using bash scripts or loops
 # for pkg in ...; do sage-pypi-publisher ...; done  # Don't do this!
@@ -1084,20 +1085,25 @@ cd /path/to/package && sage-pypi-publisher build . --upload -r testpypi --no-dry
 # ❌ WRONG: Manual twine
 # twine upload dist/*.whl
 
-# ❌ WRONG: Using ./publish.sh from sage-pypi-publisher
+# ❌ WRONG: Using ./publish.sh scripts
 # ./publish.sh <package-name>  # Use CLI directly instead
 ```
 
 **Common sage-pypi-publisher Options**:
-- `build .` - 构建当前包
-- `--upload` - 上传到 PyPI（默认需要 --no-dry-run 确认）
+- `publish .` - 一步完成：检测包类型 → 构建 → 上传（推荐）
 - `-r testpypi` - 上传到 TestPyPI（测试）
-- `-r pypi` - 上传到生产 PyPI
+- `-r pypi` - 上传到生产 PyPI（默认）
 - `--no-dry-run` - 实际上传（不是预演模式）
+- `--auto-bump patch` - 自动递增版本号
 - `--dry-run` - 预演模式（默认）
 
+**Auto-Detection Features**:
+- 自动检测包类型（Pure Python / C++ Extension）
+- Pure Python → universal wheel (py3-none-any)
+- C++ Extension → manylinux wheel (无需手动指定 --force-manylinux)
+
 **Note**:
-- 每个包需要单独在其目录中运行 `sage-pypi-publisher build . --upload ...`
+- 每个包需要单独在其目录中运行 `sage-pypi-publisher publish . -r XXX --no-dry-run`
 - 不要使用 bash 循环或脚本组合多个包
 - 如果一个包失败，直接重新运行那个包的命令，无需处理其他包
 
@@ -1131,14 +1137,15 @@ SAGE 的 PyPI 包名与内部包名不同：
 
 **Phase 1: TestPyPI** (验证包可以构建和上传)
 ```bash
-cd /home/shuhao/SAGE/packages/sage-common && sage-pypi-publisher build . --upload -r testpypi --no-dry-run
-cd /home/shuhao/SAGE/packages/sage-platform && sage-pypi-publisher build . --upload -r testpypi --no-dry-run
-cd /home/shuhao/SAGE/packages/sage-kernel && sage-pypi-publisher build . --upload -r testpypi --no-dry-run
-cd /home/shuhao/SAGE/packages/sage-libs && sage-pypi-publisher build . --upload -r testpypi --no-dry-run
-cd /home/shuhao/SAGE/packages/sage-middleware && sage-pypi-publisher build . --upload -r testpypi --no-dry-run
-cd /home/shuhao/SAGE/packages/sage-cli && sage-pypi-publisher build . --upload -r testpypi --no-dry-run
-cd /home/shuhao/SAGE/packages/sage-tools && sage-pypi-publisher build . --upload -r testpypi --no-dry-run
-cd /home/shuhao/SAGE/packages/sage && sage-pypi-publisher build . --upload -r testpypi --no-dry-run
+# publish 命令自动检测、构建并上传（一步完成）
+cd /home/shuhao/SAGE/packages/sage-common && sage-pypi-publisher publish . -r testpypi --no-dry-run
+cd /home/shuhao/SAGE/packages/sage-platform && sage-pypi-publisher publish . -r testpypi --no-dry-run
+cd /home/shuhao/SAGE/packages/sage-kernel && sage-pypi-publisher publish . -r testpypi --no-dry-run
+cd /home/shuhao/SAGE/packages/sage-libs && sage-pypi-publisher publish . -r testpypi --no-dry-run
+cd /home/shuhao/SAGE/packages/sage-middleware && sage-pypi-publisher publish . -r testpypi --no-dry-run
+cd /home/shuhao/SAGE/packages/sage-cli && sage-pypi-publisher publish . -r testpypi --no-dry-run
+cd /home/shuhao/SAGE/packages/sage-tools && sage-pypi-publisher publish . -r testpypi --no-dry-run
+cd /home/shuhao/SAGE/packages/sage && sage-pypi-publisher publish . -r testpypi --no-dry-run
 ```
 
 **Phase 2: Verify on TestPyPI** (检查包是否可安装)
@@ -1149,8 +1156,9 @@ pip install -i https://test.pypi.org/simple/ isage-common==X.Y.Z.W --dry-run
 
 **Phase 3: Production PyPI** (相同的命令，但改为 pypi)
 ```bash
-cd /home/shuhao/SAGE/packages/sage-common && sage-pypi-publisher build . --upload -r pypi --no-dry-run
-cd /home/shuhao/SAGE/packages/sage-platform && sage-pypi-publisher build . --upload -r pypi --no-dry-run
+# publish 命令自动检测、构建并上传（一步完成）
+cd /home/shuhao/SAGE/packages/sage-common && sage-pypi-publisher publish . -r pypi --no-dry-run
+cd /home/shuhao/SAGE/packages/sage-platform && sage-pypi-publisher publish . -r pypi --no-dry-run
 # ... 依次发布其他每个包
 ```
 
