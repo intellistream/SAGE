@@ -50,9 +50,6 @@
 		},
 		{
 			"path": "../sage-docs"
-		},
-		{
-			"path": "../sageVDB"
 		}
 	],
 	"settings": {

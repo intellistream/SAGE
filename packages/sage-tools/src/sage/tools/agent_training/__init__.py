@@ -19,7 +19,6 @@ from .data_formatter import AgentSFTFormatter
 from .dialog_processor import AgentDialogProcessor
 from .evaluator import AgentTrainingEvaluator
 from .reward_model import AgentRewardModel
-from .sft_trainer import AgentSFTTrainer
 
 __all__ = [
     # Config
@@ -29,10 +28,9 @@ __all__ = [
     # Data
     "AgentSFTFormatter",
     "AgentDialogProcessor",
-    "AgentSFTTrainer",
     # SIAS components (re-exported for compatibility)
     # Training
-    # "AgentSFTTrainer",  # TODO
+    # "AgentSFTTrainer",  # Optional dependency (peft/trl)
     # "AgentRLTrainer",   # TODO
     # Evaluation
     "AgentRewardModel",

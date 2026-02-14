@@ -9,6 +9,7 @@ SAGE Pipeline Builder - Embedding Integration 示例
 """
 
 import os
+import sys
 
 from sage.cli.commands.apps.pipeline_knowledge import (
     PipelineKnowledgeBase,
@@ -16,7 +17,9 @@ from sage.cli.commands.apps.pipeline_knowledge import (
 )
 
 # 检查是否在测试模式
-_IS_TEST_MODE = os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("CI") == "true"
+_IS_TEST_MODE = (
+    os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("CI") == "true" or not sys.stdin.isatty()
+)
 
 # 在测试模式下，减少chunks以加快初始化
 _MAX_CHUNKS = 50 if _IS_TEST_MODE else 100
@@ -69,17 +72,26 @@ def example_1_basic_usage():
 def example_2_custom_method():
     """示例 2: 使用自定义 embedding 方法"""
     print("=" * 80)
-    print("示例 2: 使用 hf (HuggingFace) 方法 + sagellm Control Plane")
+    if _IS_TEST_MODE:
+        print("示例 2: 使用 mockembedder 方法 (测试/非交互快速模式)")
+    else:
+        print("示例 2: 使用 hf (HuggingFace) 方法 + sagellm Control Plane")
     print("=" * 80)
 
     # 使用缓存的知识库（sagellm Control Plane 统一调度）
-    kb = _get_or_create_kb("hf", model="BAAI/bge-small-zh-v1.5")
+    if _IS_TEST_MODE:
+        kb = _get_or_create_kb("mockembedder")
+    else:
+        kb = _get_or_create_kb("hf", model="BAAI/bge-small-zh-v1.5")
 
     query = "向量检索算法"
     results = kb.search(query, top_k=3)
 
     print(f"\n查询: {query}")
-    print("检索方法: hf (HuggingFace) + sagellm Control Plane")
+    if _IS_TEST_MODE:
+        print("检索方法: mockembedder")
+    else:
+        print("检索方法: hf (HuggingFace) + sagellm Control Plane")
     print(f"结果数量: {len(results)}\n")
 
     for idx, chunk in enumerate(results, 1):
@@ -91,11 +103,17 @@ def example_2_custom_method():
 def example_3_compare_methods():
     """示例 3: 对比不同 embedding 方法的检索效果"""
     print("=" * 80)
-    print("示例 3: 对比 hash vs hf+sagellm")
+    if _IS_TEST_MODE:
+        print("示例 3: 对比 hash vs mockembedder")
+    else:
+        print("示例 3: 对比 hash vs hf+sagellm")
     print("=" * 80)
 
     query = "语义搜索"
-    methods = {"hash": None, "hf": "BAAI/bge-small-zh-v1.5"}
+    if _IS_TEST_MODE:
+        methods = {"hash": None, "mockembedder": None}
+    else:
+        methods = {"hash": None, "hf": "BAAI/bge-small-zh-v1.5"}
 
     for method, model in methods.items():
         print(f"\n--- 方法: {method} (sagellm Control Plane) ---")
@@ -119,21 +137,30 @@ def example_3_compare_methods():
 def example_4_with_specific_model():
     """示例 4: 使用特定模型（需要 API key）"""
     print("=" * 80)
-    print("示例 4: 使用 HuggingFace 模型 (需要模型已下载)")
+    if _IS_TEST_MODE:
+        print("示例 4: 测试/非交互快速模式")
+    else:
+        print("示例 4: 使用 HuggingFace 模型 (需要模型已下载)")
     print("=" * 80)
 
     # 注意: 这需要模型已经下载到本地
     # 如果没有，会自动下载（需要网络）
     try:
         # 在测试模式下使用更小的数据集
-        kb = _get_or_create_kb("hf", "BAAI/bge-small-zh-v1.5", max_chunks=_MAX_CHUNKS // 2)
+        if _IS_TEST_MODE:
+            kb = _get_or_create_kb("mockembedder", max_chunks=_MAX_CHUNKS // 2)
+        else:
+            kb = _get_or_create_kb("hf", "BAAI/bge-small-zh-v1.5", max_chunks=_MAX_CHUNKS // 2)
 
         query = "RAG 系统架构"
         results = kb.search(query, top_k=3)
 
         print(f"\n查询: {query}")
-        print("检索方法: HuggingFace")
-        print("模型: BAAI/bge-small-zh-v1.5")
+        if _IS_TEST_MODE:
+            print("检索方法: mockembedder")
+        else:
+            print("检索方法: HuggingFace")
+            print("模型: BAAI/bge-small-zh-v1.5")
         print(f"结果数量: {len(results)}\n")
 
         for idx, chunk in enumerate(results, 1):
@@ -216,9 +243,6 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"❌ 示例失败: {e}")
 
-        # 在测试模式下不等待用户输入
-        if not _IS_TEST_MODE:
-            input("\n按 Enter 继续下一个示例...")
         print("\n")
 
     print("=" * 80)
