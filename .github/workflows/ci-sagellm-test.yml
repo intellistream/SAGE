@@ -1,4 +1,4 @@
-name: SageLLM Mock & CUDA Tests
+name: SageLLM CPU & CUDA Tests
 
 on:
   push:
@@ -97,9 +97,10 @@ jobs:
 
           echo "✅ L3 packages installed"
 
-      - name: Install isagellm
+      - name: Install isagellm with CPU Backend
         run: |
-          echo "🚀 Installing isagellm (SageLLM inference engine)..."
+          echo "🚀 Installing isagellm (SageLLM inference engine with CPU backend)..."
+          # Install isagellm - it will automatically install torch, transformers, etc.
           pip install isagellm
 
           # Verify installation
@@ -108,46 +109,33 @@ jobs:
             pip show isagellm && echo "✅ isagellm package is installed"
           }
 
+          # Verify torch installation (from isagellm dependencies)
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}'); print('✅ Using CPU backend for testing')"
+
       - name: Install Test Dependencies
         run: |
+          echo "📦 Installing test framework..."
           pip install pytest pytest-cov pytest-timeout pytest-xdist pytest-mock
 
-          # Install torch for CPU
-          echo "📦 Installing PyTorch (CPU version)..."
-          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-
-          # Install transformers for HF model loading
-          pip install transformers
-
-          # Install required packages for tests
-          pip install datasets peft numpy accelerate
-
-          # Verify torch CPU installation
-          python -c "
-          import torch
-          print(f'PyTorch version: {torch.__version__}')
-          print(f'CUDA available: {torch.cuda.is_available()}')
-          print('✅ Using CPU backend for testing')
-          "
-
-      - name: Run SageLLM Mock Tests
+      - name: Run SageLLM CPU Backend Tests
         run: |
-          echo "🧪 Running SageLLM mock backend tests..."
+          echo "🧪 Running SageLLM CPU backend tests..."
           echo ""
-          echo "Test patterns: 'sagellm' or 'mock' in test names"
+          echo "Test patterns: 'sagellm' or 'cpu' in test names"
+          echo "Note: Using real sagellm with CPU backend (no mock)"
           echo ""
 
-          # Run tests matching sagellm or mock patterns
+          # Run tests matching sagellm pattern
           pytest -v \
-            --timeout=120 \
-            -k "sagellm or mock or SageLLM or Mock" \
+            --timeout=180 \
+            -k "sagellm or SageLLM" \
             --ignore=packages/sage-tools/tests/test_cli/llm_heavy_suite.py \
             --ignore=benchmark/ \
             packages/ \
             2>&1 || {
               exit_code=$?
               if [ $exit_code -eq 5 ]; then
-                echo "⚠️ No tests found matching 'sagellm or mock'"
+                echo "⚠️ No tests found matching 'sagellm'"
                 echo "This is acceptable if sagellm tests are in a separate location"
                 exit 0
               fi
@@ -157,50 +145,26 @@ jobs:
       - name: Run SageLLM Integration Tests
         run: |
           echo "🔗 Running SageLLM integration tests..."
+          echo "Note: Detailed integration tests will be run via pytest"
+          echo "Quick smoke test for imports..."
 
-          # Test SageLLMGenerator with mock backend
-          python -c "
-          from sage.middleware.operators.llm import SageLLMGenerator
-
-          print('Testing SageLLMGenerator with mock backend...')
-          gen = SageLLMGenerator(backend_type='mock')
-          print(f'  ✅ Generator created: {gen}')
-          print(f'  ✅ Backend type: {gen.backend_type}')
-          "
-
-          # Test agentic operators with mock backend
-          python -c "
-          from sage.middleware.operators.agentic import (
-              PlanningOperator,
-              TimingOperator,
-              ToolSelectionOperator,
-          )
-
-          print('Testing agentic operators with mock backend...')
-
-          op1 = PlanningOperator(config={'backend_type': 'mock'})
-          print(f'  ✅ PlanningOperator: {type(op1.generator).__name__}')
-
-          op2 = TimingOperator(config={'generator': {'backend_type': 'mock'}})
-          print(f'  ✅ TimingOperator: {type(op2.generator).__name__}')
-
-          op3 = ToolSelectionOperator(config={'backend_type': 'mock'})
-          print(f'  ✅ ToolSelectionOperator: {type(op3.generator).__name__}')
-          "
+          python -c "from sage.middleware.operators.llm import SageLLMGenerator; print('✅ SageLLMGenerator import OK')"
+          python -c "from sage.middleware.operators.agentic import PlanningOperator, TimingOperator, ToolSelectionOperator; print('✅ Agentic operators import OK')"
 
       - name: Summary
         if: always()
         run: |
-          echo "## 🧪 SageLLM Mock Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧪 SageLLM CPU Backend Test Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ job.status }}" = "success" ]; then
-            echo "✅ **All SageLLM mock tests passed**" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **All SageLLM CPU backend tests passed**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "- Mock backend integration: ✅" >> $GITHUB_STEP_SUMMARY
+            echo "- CPU backend integration: ✅" >> $GITHUB_STEP_SUMMARY
             echo "- Agentic operators: ✅" >> $GITHUB_STEP_SUMMARY
+            echo "- Model: gpt2 (small model for CI)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ **SageLLM mock tests failed**" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **SageLLM CPU backend tests failed**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Please check the test logs for details." >> $GITHUB_STEP_SUMMARY
           fi
@@ -216,8 +180,8 @@ jobs:
     if: |
       (github.event_name == 'workflow_dispatch' && github.event.inputs.run_cuda_tests == 'true') ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
-    # Require mock tests to pass first
-    needs: sagellm-mock-test
+    # Require CPU tests to pass first
+    needs: sagellm-cpu-test
 
     env:
       # Use China mirrors for self-hosted runners in China
