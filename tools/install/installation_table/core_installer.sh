@@ -145,13 +145,11 @@ install_core_packages() {
     case "$install_mode" in
         "minimal")
             echo -e "${GRAY}最小安装：核心运行时包${NC}"
-            echo -e "${DIM}包含: L1-L5 核心包，无开发工具，无可选依赖 (~80 包)${NC}"
-            echo -e "${DIM}💡 如需 ML/VDB 等功能，稍后运行: pip install isage-middleware[extensions,vdb]${NC}"
+            echo -e "${DIM}包含: L1-L5 核心包，无开发工具 (~80 包)${NC}"
             ;;
         "dev")
             echo -e "${GREEN}开发安装：核心 + 开发工具${NC}"
             echo -e "${DIM}包含: 核心包 + pytest, ruff, mypy, pre-commit (~120 包)${NC}"
-            echo -e "${DIM}💡 如需 ML/VDB 等功能，稍后运行: pip install isage-middleware[ml,vdb,...]${NC}"
             ;;
         "full")
             echo -e "${YELLOW}完整安装：核心 + 开发工具 + 所有可选依赖${NC}"
@@ -492,117 +490,14 @@ else:
     if [ "$install_mode" != "core" ]; then
         echo -e "${DIM}步骤 4/5: 安装上层包 (L4-L5)...${NC}"
 
-        # 显式安装独立 PyPI 包依赖 (因为下面使用了 --no-deps)
-        # 这些包是 sage-middleware 的依赖，但因为 --no-deps 选项会被跳过
-        # 注意：这些包都含有 C++ 扩展（需要编译），会耗时较长，所以使用详细进度显示
-        echo -e "${DIM}  正在安装独立 PyPI 包依赖...${NC}"
-        echo -e "${DIM}     (isage-vdb, isage-tsdb, isage-flow, isage-refiner, isage-neuromem)${NC}"
-        echo -e "${DIM}     此步骤包含 C++ 编译，预计耗时 2-10 分钟，请耐心等待...${NC}"
-        log_info "开始安装独立 PyPI 包依赖（包含 C++ 编译）" "INSTALL"
-
-        # 使用与 pyproject.toml 一致的版本约束
-        # 使用单引号包裹每个包名，防止 shell 将 > 解析为重定向
-        local independent_packages="isage-vdb>=0.1.5 isage-tsdb>=0.1.5 isage-flow>=0.1.1 isage-refiner>=0.1.0 isage-neuromem>=0.2.1.1"
-
-        # 注意：独立包是 PyPI 包，不能使用 -e (install_flags)
-        # 使用 log_pip_install_with_verbose_progress 显示实时编译进度，避免用户认为卡住
-        log_debug "PIP命令: $PIP_CMD install $independent_packages $pip_args" "INSTALL"
-
-        echo "" >&2
-        if ! log_pip_install_with_verbose_progress "INSTALL" "Deps" "$PIP_CMD install $independent_packages $pip_args"; then
-            log_warn "独立 PyPI 包安装失败，可能导致部分功能不可用" "INSTALL"
-            echo -e "${WARNING} ⚠️  独立 PyPI 包安装失败，可能导致部分功能不可用"
-            echo -e "${DIM}     （这些包是可选的，您可以稍后运行以下命令重试：）${NC}"
-            echo -e "${DIM}     pip install $independent_packages${NC}"
-            # 不中断安装，因为这些可能是可选的或者网络问题
-        else
-            log_info "独立 PyPI 包安装成功" "INSTALL"
-            echo -e "${CHECK} 独立 PyPI 包安装成功"
-        fi
-        echo ""
-
-        # 安装 FAISS（向量检索必需依赖）
-        echo -e "${DIM}  正在安装 FAISS（向量检索库）...${NC}"
-        log_info "开始安装 FAISS" "INSTALL"
-
-        # 检测环境并选择 FAISS 版本
-        local faiss_package="faiss-cpu>=1.7.4"
-        if command -v nvidia-smi &> /dev/null && nvidia-smi &> /dev/null; then
-            echo -e "${DIM}     检测到 NVIDIA GPU，建议手动安装 faiss-gpu${NC}"
-            echo -e "${DIM}     当前自动安装 CPU 版本，如需 GPU 加速请运行：${NC}"
-            echo -e "${DIM}     conda install -c conda-forge faiss-gpu${NC}"
-        fi
-
-        log_debug "PIP命令: $PIP_CMD install '$faiss_package' $pip_args" "INSTALL"
-
-        if ! log_command "INSTALL" "FAISS" "$PIP_CMD install '$faiss_package' $pip_args"; then
-            # 尝试使用 conda 安装（如果在 conda 环境中）
-            if [ -n "$CONDA_DEFAULT_ENV" ] || [ -n "$CONDA_PREFIX" ]; then
-                log_info "pip 安装失败，尝试使用 conda 安装 FAISS" "INSTALL"
-                echo -e "${DIM}     pip 安装失败，尝试使用 conda...${NC}"
-
-                if command -v conda &> /dev/null; then
-                    if conda install -y -c conda-forge faiss-cpu 2>&1 | tee -a "$log_file"; then
-                        log_info "conda 安装 FAISS 成功" "INSTALL"
-                        echo -e "${CHECK} FAISS 安装成功（通过 conda）"
-                    else
-                        log_warn "FAISS 安装失败（pip 和 conda 均失败）" "INSTALL"
-                        echo -e "${WARNING} ⚠️  FAISS 安装失败，向量检索功能将不可用"
-                        echo -e "${DIM}     您可以稍后手动安装：${NC}"
-                        echo -e "${DIM}     conda install -c conda-forge faiss-cpu${NC}"
-                    fi
-                else
-                    log_warn "FAISS 安装失败且 conda 不可用" "INSTALL"
-                    echo -e "${WARNING} ⚠️  FAISS 安装失败，向量检索功能将不可用"
-                fi
-            else
-                log_warn "FAISS pip 安装失败（非 conda 环境）" "INSTALL"
-                echo -e "${WARNING} ⚠️  FAISS 安装失败，向量检索功能将不可用"
-                echo -e "${DIM}     您可以稍后手动安装：${NC}"
-                echo -e "${DIM}     pip install faiss-cpu${NC}"
-            fi
-        else
-            log_info "FAISS 安装成功" "INSTALL"
-            echo -e "${CHECK} FAISS 安装成功"
-        fi
-        echo ""
-
-        # 安装 MKL（数学核心库，FAISS 和科学计算依赖）
-        echo -e "${DIM}  正在安装 MKL（数学核心库）...${NC}"
-        log_info "开始安装 MKL" "INSTALL"
-
-        # MKL 通常通过 conda 安装更可靠
-        if [ -n "$CONDA_DEFAULT_ENV" ] || [ -n "$CONDA_PREFIX" ]; then
-            if command -v conda &> /dev/null; then
-                log_info "在 conda 环境中，使用 conda 安装 MKL" "INSTALL"
-                echo -e "${DIM}     在 conda 环境中，推荐使用 conda 安装 MKL${NC}"
-
-                if conda install -y -c conda-forge mkl 2>&1 | tee -a "$log_file"; then
-                    log_info "MKL 安装成功" "INSTALL"
-                    echo -e "${CHECK} MKL 安装成功"
-                else
-                    log_warn "MKL 安装失败" "INSTALL"
-                    echo -e "${WARNING} ⚠️  MKL 安装失败，可能影响性能"
-                    echo -e "${DIM}     您可以稍后手动安装：${NC}"
-                    echo -e "${DIM}     conda install -c conda-forge mkl${NC}"
-                fi
-            else
-                log_warn "conda 不可用，跳过 MKL 安装" "INSTALL"
-                echo -e "${DIM}     conda 不可用，跳过 MKL 安装${NC}"
-                echo -e "${DIM}     MKL 通常作为 numpy/scipy 依赖自动安装${NC}"
-            fi
-        else
-            log_info "非 conda 环境，MKL 通常作为 numpy/scipy 依赖自动安装" "INSTALL"
-            echo -e "${DIM}     非 conda 环境，MKL 通常作为 numpy/scipy 依赖自动安装${NC}"
-        fi
-        echo ""
-
-        # L4: middleware (Python 兼容层)
-        # 注意：必须使用 --no-deps 防止 pip 重新安装已有的 sage 子包依赖
-        # 运行时依赖（isage-common/platform/kernel/libs）在 step 1-2 已安装
-        # C++ 扩展（isage-vdb/isage-flow/isage-tsdb/isage-neuromem/isage-refiner）通过外部依赖安装
+        # L4: middleware (Python 兼容层 + 核心依赖)
+        # 注意：sage-middleware 的 pyproject.toml 中已声明所有核心依赖，包括：
+        #   - isage-vdb, isage-flow, isage-tsdb, isage-neuromem, isage-refiner (C++ 扩展)
+        #   - faiss-cpu (向量检索)
+        # 这些依赖会在安装 sage-middleware 时自动安装
         echo -e "${DIM}  正在安装: packages/sage-middleware${NC}"
-        log_info "开始安装: packages/sage-middleware" "INSTALL"
+        echo -e "${DIM}     (包含 C++ 扩展编译，预计耗时 2-10 分钟)${NC}"
+        log_info "开始安装: packages/sage-middleware（包含所有核心依赖）" "INSTALL"
         log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-middleware $pip_args --no-deps" "INSTALL"
 
         if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-middleware\" $pip_args --no-deps"; then
@@ -614,6 +509,7 @@ else:
         log_info "安装成功: packages/sage-middleware" "INSTALL"
         log_pip_package_info "isage-middleware" "INSTALL"
         echo -e "${CHECK} sage-middleware 安装完成"
+        echo ""
 
         # L5: apps & benchmark (standard/full/dev 模式)
         if [ "$install_mode" != "core" ]; then
