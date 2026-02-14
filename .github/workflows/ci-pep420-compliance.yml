@@ -95,11 +95,12 @@ jobs:
 
       - name: Install SAGE packages (dev mode)
         run: |
-          # Install minimal set for testing
-          pip install -e packages/sage-common --no-deps
-          pip install -e packages/sage-platform --no-deps
-          pip install -e packages/sage-kernel --no-deps
-          pip install -e packages/sage-libs --no-deps
+          # Install packages with dependencies for runtime testing
+          # Note: We test namespace isolation via structure checks, not --no-deps
+          pip install -e packages/sage-common
+          pip install -e packages/sage-platform
+          pip install -e packages/sage-kernel
+          pip install -e packages/sage-libs
 
       - name: Run PEP 420 integration tests
         run: |
