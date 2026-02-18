@@ -97,7 +97,6 @@ try:
         head_app,
         job_app,
         jobmanager_app,
-        logs_app,
         version_app,
         worker_app,
     )
@@ -149,12 +148,6 @@ try:
             docs_app,
             name="docs",
             help="📚 文档管理 - 预览、构建和部署文档 (serve, build, install-deps, info)",
-        )
-    if logs_app:
-        app.add_typer(
-            logs_app,
-            name="logs",
-            help="📝 日志管理 - 清理和查看日志文件 (clean, list, info)",
         )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 platform 命令组: {e}[/yellow]")
@@ -234,38 +227,6 @@ except ImportError as e:
 
 # 注意: 开发命令已经从 sage-cli 中移除，现在由 sage-tools 包通过 sage-dev 命令提供
 # 如需使用开发工具，请使用: sage-dev --help
-
-
-# ============================================================================
-# Plugin System - 动态加载外部CLI插件
-# ============================================================================
-
-
-def load_cli_plugins():
-    """动态加载通过 entry points 注册的 CLI 插件。
-
-    插件通过 pyproject.toml 的 [project.entry-points."sage.cli.plugins"] 注册。
-    例如 sage-studio:
-        [project.entry-points."sage.cli.plugins"]
-        studio = "sage.studio.cli:register_studio_command"
-    """
-    try:
-        import importlib.metadata as importlib_metadata
-    except ImportError:
-        import importlib_metadata  # type: ignore
-
-    for entry_point in importlib_metadata.entry_points(group="sage.cli.plugins"):
-        try:
-            register_func = entry_point.load()
-            register_func(app)
-        except Exception:
-            # Silently skip plugins that fail to load
-            # This allows SAGE to work without optional plugins like studio
-            pass
-
-
-# Load plugins after all built-in commands are registered
-load_cli_plugins()
 
 
 # ============================================================================

@@ -102,8 +102,8 @@ PACKAGE_MODULE_PATHS = {
     "sage-tools": "sage/tools",
 }
 
-# External repository directories to exclude from checks
-EXCLUDED_EXTERNAL_PATHS = {
+# Submodules to exclude from checks (maintained in separate repositories)
+SUBMODULE_PATHS = {
     "sageLLM",
     "sageVDB",
     "sageFlow",
@@ -159,7 +159,6 @@ ALLOWED_ROOT_FILES = {
     "setup.py",
     "setup.cfg",
     "requirements.txt",
-    "pytest.ini",
     "makefile",
     "dockerfile",
     "docker-compose.yml",
@@ -172,10 +171,6 @@ ALLOWED_ROOT_FILES = {
     # Shell 脚本
     "manage.sh",
     "quickstart.sh",
-    # VS Code workspace files
-    "sage.code-workspace",
-    "sagellm.code-workspace",
-    "sage-studio.code-workspace",
     # 其他
     "cmakelists.txt",
 }
@@ -726,23 +721,21 @@ class ArchitectureChecker:
                 full_path = self.root_dir / pkg_path
                 if full_path.exists():
                     for py_file in full_path.rglob("*.py"):
-                        # 排除外部独立仓库目录中的文件
-                        if not any(
-                            excluded in py_file.parts for excluded in EXCLUDED_EXTERNAL_PATHS
-                        ):
+                        # 排除 submodules 中的文件
+                        if not any(submodule in py_file.parts for submodule in SUBMODULE_PATHS):
                             files_to_check.append(py_file)
-            print(f"📝 检查全部 {len(files_to_check)} 个 Python 文件 (排除外部独立仓库目录)")
+            print(f"📝 检查全部 {len(files_to_check)} 个 Python 文件 (排除 submodules)")
 
-        # 过滤掉外部独立仓库目录中的文件（如果是 changed_files 模式）
+        # 过滤掉 submodules 中的文件（如果是 changed_files 模式）
         if changed_files:
             original_count = len(files_to_check)
             files_to_check = [
                 f
                 for f in files_to_check
-                if not any(excluded in f.parts for excluded in EXCLUDED_EXTERNAL_PATHS)
+                if not any(submodule in f.parts for submodule in SUBMODULE_PATHS)
             ]
             if len(files_to_check) < original_count:
-                print(f"⏭️  排除了 {original_count - len(files_to_check)} 个外部目录文件")
+                print(f"⏭️  排除了 {original_count - len(files_to_check)} 个 submodule 文件")
 
         # 统计信息
         stats = {

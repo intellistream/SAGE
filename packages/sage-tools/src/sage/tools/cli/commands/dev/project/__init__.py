@@ -58,10 +58,7 @@ def project_analyze(
 
 @app.command(name="clean")
 def project_clean(
-    target: str = typer.Option(
-        "all",
-        help="清理目标: all, all-deep, cache, build, logs, empty-dirs, cmake, temp, node-modules",
-    ),
+    target: str = typer.Option("all", help="清理目标: all, cache, build, logs"),
     project_root: str = typer.Option(".", help="项目根目录"),
     dry_run: bool = typer.Option(False, help="预览模式，不实际删除"),
 ):

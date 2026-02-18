@@ -35,7 +35,8 @@ classifiers = [
 ]
 dependencies = [
     # ============================================================================
-    # 核心依赖 - sage.middleware 运行时必需的所有依赖
+    # 核心依赖 - 只包含 sage.middleware 模块导入时必需的最小依赖集
+    # 原则：重型依赖（transformers, celery, ML libs）放在 optional-dependencies
     # ============================================================================
     # API clients - required for LLM integrations
     "openai>=1.52.0,<1.91.0",
@@ -53,19 +54,6 @@ dependencies = [
     "bm25s>=0.2.13,<1.0.0",
     "rank-bm25>=0.2.0,<1.0.0",
     "PyStemmer>=3.0.0,<4.0.0",
-
-    # C++ 扩展包（已独立为 PyPI 包）
-    # 注意: 使用实际 PyPI 上可用的版本
-    "isage-vdb>=0.1.5,<0.2.0",        # SageVDB 向量数据库
-    "isage-flow>=0.1.0,<0.2.0",       # SageFlow 流处理引擎
-    "isage-tsdb>=0.1.0,<0.2.0",       # SageTSDB 时序数据库
-    "isage-neuromem>=0.2.0,<0.3.0",   # NeuroMem 内存系统
-    "isage-refiner>=0.1.0,<0.2.0",    # SageRefiner 上下文压缩
-
-    # 向量数据库依赖
-    "faiss-cpu>=1.7.4",        # FAISS 向量检索（CPU 版本）
-    # 注意: 如需 GPU 版本，请手动卸载 faiss-cpu 并安装 faiss-gpu:
-    #       pip uninstall faiss-cpu && conda install -c conda-forge faiss-gpu
 ]
 license = { text = "MIT" }
 
@@ -75,7 +63,66 @@ dev = [
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
     "ruff==0.14.6",
+    "mypy>=1.7.0",
     "pybind11>=2.10.0",
+]
+# Vector databases and storage
+vdb = [
+    "isage-vdb>=0.1.5",        # SageVDB vector database
+    "faiss-cpu>=1.7.0,<2.0.0", # FAISS CPU backend
+]
+# Memory system
+neuromem = [
+    "isage-neuromem>=0.2.1.1", # NeuroMem memory system
+]
+# Streaming and time-series
+streaming = [
+    "isage-flow>=0.1.1", # SageFlow stream processing
+    "isage-tsdb>=0.1.5", # SageTSDB time series database
+]
+# ML/AI - transformers, embeddings, etc.
+ml = [
+    "transformers>=4.52.0,<4.54.0",
+    "tokenizers>=0.21.0,<0.24.0",
+    "sentence-transformers>=3.1.0,<4.0.0",
+    "InstructorEmbedding>=1.0.0,<2.0.0",
+    "accelerate>=1.9.0,<2.0.0",
+    "huggingface-hub>=0.34.0,<1.0.0",
+    "peft>=0.18.0,<1.0.0",
+    "scipy>=1.15.0,<2.0.0",
+]
+# Prompt compression
+compression = [
+    "llmlingua>=0.2.0,<1.0.0", # LLMLingua family
+]
+# Task queue for distributed processing
+queue = ["celery>=5.5.0,<6.0.0", "flower>=2.0.0,<3.0.0"]
+# Authentication and security
+auth = [
+    "python-jose[cryptography]>=3.5.0,<4.0.0",
+    "passlib[argon2]>=1.7.4,<2.0.0",
+]
+# Additional LLM providers
+llm-providers = [
+    "ollama>=0.5.0,<1.0.0",
+    "zhipuai>=2.1.0,<3.0.0",
+    "cohere>=5.16.0,<6.0.0",
+    "anthropic>=0.25.0,<1.0.0",
+]
+# L3 Independent Algorithm Libraries
+libs = [
+    "isage-libs",              # Core interface library
+    "isage-agentic>=0.1.0.0",
+    "isage-eval>=0.1.0.0",
+    "isage-finetune>=0.1.0.0",
+    "isage-privacy>=0.1.0.0",
+    "isage-rag>=0.1.0.0",
+    "isage-safety>=0.1.0.0",
+    "isage-refiner>=0.1.0.0",
+]
+# Full installation with all optional dependencies
+all = [
+    "isage-middleware[vdb,neuromem,streaming,ml,compression,queue,auth,llm-providers,libs]",
 ]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
@@ -139,6 +186,19 @@ profile = "black"
 multi_line_output = 3
 line_length = 100
 known_first_party = ["sage"]
+
+[tool.mypy]
+python_version = "3.11"
+cache_dir = "../../.sage/cache/mypy"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+strict_optional = true
+overrides = [
+    { module = "sage.service.*", ignore_missing_imports = false },
+    { module = "fastapi.*", ignore_missing_imports = true },
+]
 
 # ============================================================================
 # Code Quality Configuration

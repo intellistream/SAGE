@@ -592,27 +592,13 @@ def analyze(
 
 @app.command()
 def clean(
-    target: str = typer.Option(
-        "all",
-        help="清理目标: all, all-deep, cache, build, logs, empty-dirs, cmake, temp, node-modules",
-    ),
+    target: str = typer.Option("all", help="清理目标: all, cache, build, logs"),
     project_root: str = typer.Option(".", help="项目根目录"),
     dry_run: bool = typer.Option(False, help="预览模式，不实际删除"),
 ):
     """清理项目文件
 
     清理各类临时文件、缓存和构建产物。根据 SAGE 架构设计，这些文件应该统一生成在 .sage/ 目录下。
-
-    支持的清理目标:
-      - all: 清理所有缓存、构建产物、日志和空目录
-      - all-deep: 清理所有可清理的内容（包括 node_modules，用于彻底清理）
-      - cache: Python缓存（.ruff_cache, .mypy_cache, __pycache__, *.pyc等）
-      - build: 构建产物（build/, dist/, *.egg-info等）
-      - logs: 日志文件（*.log等）
-      - empty-dirs: 空目录
-      - cmake: CMake构建产物（CMakeFiles/, cmake_build/等）
-      - temp: 临时文件（.tmp, *.tmp等）
-      - node-modules: 清理 node_modules（用于前端项目，如 sage-studio）
     """
     try:
         import shutil
@@ -621,7 +607,7 @@ def clean(
         project_path = Path(project_root).resolve()
 
         if dry_run:
-            console.print("[yellow]预览模式 - 不会实际删除文件[/yellow]\n")
+            console.print("[yellow]预览模式 - 不会实际删除文件[/yellow]")
 
         cleaned_items = []
 
@@ -629,28 +615,15 @@ def clean(
         # 包括根目录和递归查找的模式
         clean_targets = {
             "cache": {
-                "root_dirs": [
-                    ".ruff_cache",
-                    ".mypy_cache",
-                    ".pytest_cache",
-                    ".pyre",
-                    ".basedpyright",
-                ],
+                "root_dirs": [".ruff_cache", ".mypy_cache", ".pytest_cache"],
                 "root_files": [".coverage", "coverage.xml"],
-                "recursive_dirs": [
-                    "__pycache__",
-                    "htmlcov",
-                    ".pytest_cache",
-                    ".mypy_cache",
-                    ".ruff_cache",
-                    ".pyre",
-                ],
+                "recursive_dirs": ["__pycache__", "htmlcov", ".pytest_cache", ".mypy_cache"],
                 "recursive_files": ["*.pyc", "*.pyo", ".coverage", "coverage.xml"],
             },
             "build": {
-                "root_dirs": ["build", "dist", ".eggs"],
+                "root_dirs": ["build", "dist"],
                 "root_files": [],
-                "recursive_dirs": ["build", "dist", ".eggs"],
+                "recursive_dirs": ["build", "dist", "*.egg-info", "*.egg", ".eggs"],
                 "recursive_files": ["*.egg-info"],
             },
             "logs": {
@@ -659,65 +632,23 @@ def clean(
                 "recursive_dirs": ["logs", "test_logs"],
                 "recursive_files": ["*.log"],
             },
-            "cmake": {
-                "root_dirs": ["cmake_build", "CMakeFiles"],
-                "root_files": ["CMakeCache.txt", "cmake_install.cmake"],
-                "recursive_dirs": ["CMakeFiles"],
-                "recursive_files": ["cmake_install.cmake", "CMakeCache.txt"],
-            },
-            "temp": {
-                "root_dirs": [".tmp"],
-                "root_files": ["*.tmp", "*.bak", "*.swp"],
-                "recursive_dirs": [".tmp"],
-                "recursive_files": ["*.tmp", "*.bak", "*.swp"],
-            },
-            "node-modules": {
-                "root_dirs": ["node_modules"],
-                "root_files": [],
-                "recursive_dirs": ["node_modules"],
-                "recursive_files": [],
-            },
         }
 
         # 受保护的目录（不会被递归清理）
-        PROTECTED_PATHS = {
-            ".git",
-            ".venv",
-            "venv",
-            "env",
-            ".idea",
-            ".vscode",
-            ".sage",
-        }
-
-        # node_modules 仅在显式指定时清理
-        protect_node_modules = target not in ["all-deep", "node-modules"]
-        if protect_node_modules:
-            PROTECTED_PATHS.add("node_modules")
+        PROTECTED_PATHS = {".git", ".venv", "venv", "env", "node_modules", ".idea", ".vscode"}
 
         targets_to_clean = []
         if target == "all":
-            targets_to_clean = list(clean_targets.keys()) + ["empty-dirs"]
-            targets_to_clean.remove("node-modules")  # 默认 all 不包括 node_modules
-        elif target == "all-deep":
-            targets_to_clean = list(clean_targets.keys()) + ["empty-dirs"]
+            targets_to_clean = list(clean_targets.keys())
         elif target in clean_targets:
             targets_to_clean = [target]
-        elif target == "empty-dirs":
-            targets_to_clean = ["empty-dirs"]
         else:
             console.print(f"[red]不支持的清理目标: {target}[/red]")
-            console.print(
-                "支持的目标: all, all-deep, cache, build, logs, empty-dirs, cmake, temp, node-modules"
-            )
+            console.print("支持的目标: all, cache, build, logs")
             raise typer.Exit(1)
 
         # 执行清理
         for target_type in targets_to_clean:
-            if target_type == "empty-dirs":
-                # 特殊处理：清理空目录
-                continue
-
             target_config = clean_targets[target_type]
 
             # 1. 清理根目录的特定目录
@@ -729,7 +660,7 @@ def clean(
                         cleaned_items.append(rel + "/")
                         if not dry_run:
                             shutil.rmtree(dir_path)
-                            console.print(f"[green]✓[/green] 删除: {rel}/")
+                            console.print(f"[green]✓[/green] 删除根目录: {rel}/")
                     except Exception as e:
                         console.print(f"[yellow]⚠️ 无法删除 {rel}: {e}[/yellow]")
 
@@ -744,7 +675,7 @@ def clean(
                                 cleaned_items.append(rel)
                                 if not dry_run:
                                     file_path.unlink()
-                                    console.print(f"[green]✓[/green] 删除: {rel}")
+                                    console.print(f"[green]✓[/green] 删除根文件: {rel}")
                             except Exception as e:
                                 console.print(f"[yellow]⚠️ 无法删除 {rel}: {e}[/yellow]")
                 else:
@@ -755,102 +686,72 @@ def clean(
                             cleaned_items.append(rel)
                             if not dry_run:
                                 file_path.unlink()
-                                console.print(f"[green]✓[/green] 删除: {rel}")
+                                console.print(f"[green]✓[/green] 删除根文件: {rel}")
                         except Exception as e:
                             console.print(f"[yellow]⚠️ 无法删除 {rel}: {e}[/yellow]")
 
-            # 3. 递归清理子目录中的目录和文件
+            # 3. 递归清理子目录中的文件
             for pattern in target_config.get("recursive_dirs", []) + target_config.get(
                 "recursive_files", []
             ):
-                # 特殊处理隐藏目录（以 . 开头的目录）
-                # rglob 默认不匹配隐藏目录，需要手动处理
-                if pattern.startswith("."):
-                    # 对于隐藏目录，直接使用 glob 的 `**/<pattern>` 模式
-                    try:
-                        for path in project_path.glob(f"**/{pattern}"):
-                            # 跳过受保护的路径
-                            if any(protected in path.parts for protected in PROTECTED_PATHS):
-                                continue
-
-                            # 跳过 .sage 目录（这是有意设计的工作目录）
-                            if ".sage" in path.parts:
-                                continue
-
-                            rel = str(path.relative_to(project_path))
-                            try:
-                                if path.is_dir():
-                                    cleaned_items.append(rel + "/")
-                                    if not dry_run:
-                                        shutil.rmtree(path)
-                                elif path.is_file():
-                                    cleaned_items.append(rel)
-                                    if not dry_run:
-                                        path.unlink()
-                            except Exception as e:
-                                console.print(f"[yellow]⚠️ 无法删除 {rel}: {e}[/yellow]")
-                    except Exception:
-                        pass  # 忽略无法搜索的路径
-                else:
-                    # 对于普通目录和文件，使用 rglob
-                    for path in project_path.rglob(pattern):
-                        # 跳过受保护的路径
-                        if any(protected in path.parts for protected in PROTECTED_PATHS):
-                            continue
-
-                        # 跳过 .sage 目录（这是有意设计的工作目录）
-                        if ".sage" in path.parts:
-                            continue
-
-                        rel = str(path.relative_to(project_path))
-                        try:
-                            if path.is_dir():
-                                cleaned_items.append(rel + "/")
-                                if not dry_run:
-                                    shutil.rmtree(path)
-                            elif path.is_file():
-                                cleaned_items.append(rel)
-                                if not dry_run:
-                                    path.unlink()
-                        except Exception as e:
-                            console.print(f"[yellow]⚠️ 无法删除 {rel}: {e}[/yellow]")
-
-        # 最后清理空目录（自底向上）
-        # 这包括在 clean 函数中总是会执行，除非明确只清理特定目标
-        if "empty-dirs" in targets_to_clean or target == "all":
-            empty_dirs = []
-            for dirpath in sorted(
-                project_path.rglob("*"), key=lambda p: len(p.parts), reverse=True
-            ):
-                if dirpath.is_dir() and not any(dirpath.iterdir()):
-                    # 跳过受保护的目录
-                    if any(protected in dirpath.parts for protected in PROTECTED_PATHS | {".sage"}):
+                for path in project_path.rglob(pattern):
+                    # 跳过受保护的路径
+                    if any(protected in path.parts for protected in PROTECTED_PATHS):
                         continue
-                    try:
-                        rel = str(dirpath.relative_to(project_path))
-                        if not dry_run:
-                            dirpath.rmdir()
-                        empty_dirs.append(rel + "/")
-                    except Exception:
-                        pass  # 忽略删除失败的情况
 
-            if empty_dirs:
-                cleaned_items.extend(empty_dirs)
-                if not dry_run and len(empty_dirs) > 0:
-                    console.print(f"[green]清理了 {len(empty_dirs)} 个空目录[/green]")
+                    # 跳过 .sage 目录（这是有意设计的工作目录）
+                    if ".sage" in path.parts:
+                        continue
+
+                    rel = str(path.relative_to(project_path))
+                    try:
+                        if path.is_dir():
+                            cleaned_items.append(rel + "/")
+                            if not dry_run:
+                                shutil.rmtree(path)
+                        elif path.is_file():
+                            cleaned_items.append(rel)
+                            if not dry_run:
+                                path.unlink()
+                    except Exception as e:
+                        console.print(f"[yellow]⚠️ 无法删除 {rel}: {e}[/yellow]")
+
+        # 清理空目录（自底向上）
+        empty_dirs = []
+        for dirpath in sorted(project_path.rglob("*"), key=lambda p: len(p.parts), reverse=True):
+            if dirpath.is_dir() and not any(dirpath.iterdir()):
+                # 跳过受保护的目录
+                if any(protected in dirpath.parts for protected in PROTECTED_PATHS | {".sage"}):
+                    continue
+                try:
+                    rel = str(dirpath.relative_to(project_path))
+                    if not dry_run:
+                        dirpath.rmdir()
+                    empty_dirs.append(rel + "/")
+                except Exception:
+                    pass  # 忽略删除失败的情况
+
+        if empty_dirs:
+            cleaned_items.extend(empty_dirs)
+            if not dry_run:
+                console.print(f"[green]清理了 {len(empty_dirs)} 个空目录[/green]")
 
         # 报告结果
         if cleaned_items:
             console.print(
                 f"\n[green]{'[预览] 将清理' if dry_run else '✅ 已清理'} {len(cleaned_items)} 个项目[/green]"
             )
-            if len(cleaned_items) <= 30:
+            if dry_run or len(cleaned_items) <= 20:
                 for item in cleaned_items:
                     console.print(f"  📁 {item}")
             else:
-                for item in cleaned_items[:30]:
+                for item in cleaned_items[:10]:
                     console.print(f"  📁 {item}")
-                console.print(f"  ... 还有 {len(cleaned_items) - 30} 个项目")
+                console.print(f"  ... 还有 {len(cleaned_items) - 10} 个项目")
+
+            if not dry_run:
+                console.print("\n[blue]💡 提示: 这些临时文件应该生成在 .sage/ 目录下[/blue]")
+                console.print("[blue]   可通过环境变量配置工具缓存位置（见 DEVELOPER.md）[/blue]")
         else:
             console.print("[blue]✨ 没有找到需要清理的项目[/blue]")
 

@@ -1,13 +1,21 @@
 [build-system]
-requires = ["setuptools>=64", "wheel", "packaging>=24.2"]
+requires = [
+    "setuptools>=64",
+    "wheel",
+    "packaging>=24.2",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "isage"
-dynamic = ["version"]
+dynamic = [
+    "version",
+]
 description = "SAGE - Streaming-Augmented Generative Execution"
 readme = "README.md"
-authors = [{ name = "SAGE Team", email = "shuhao_zhang@hust.edu.cn" }]
+authors = [
+    { name = "SAGE Team", email = "shuhao_zhang@hust.edu.cn" },
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -29,12 +37,24 @@ license = "MIT"
 
 [project.optional-dependencies]
 dev = [
+    "isage[all]",
     "isage-tools>=0.1.0",
     "pytest>=7.4.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
     "ruff==0.14.6",
+    "mypy>=1.7.0",
     "pre-commit>=3.5.0",
+]
+all = [
+    "isage-common>=0.1.0",
+    "isage-platform>=0.1.0",
+    "isage-kernel>=0.1.0",
+    "isage-libs>=0.1.0",
+    "isage-middleware>=0.1.0",
+    "isage-cli>=0.1.0",
+    "isage-studio>=0.1.0",
+    "isagellm[gateway]>=0.1.0",
 ]
 
 [project.urls]
@@ -45,7 +65,9 @@ Repository = "https://github.com/intellistream/SAGE.git"
 
 [tool.setuptools.packages.find]
 namespaces = true
-where = ["src"]
+where = [
+    "src",
+]
 
 [tool.setuptools.package-dir]
 "" = "src"
@@ -55,3 +77,7 @@ attr = "sage._version.__version__"
 
 [tool.ruff]
 extend = "../../tools/ruff.toml"
+
+[tool.mypy]
+cache_dir = "../../.sage/cache/mypy"
+ignore_missing_imports = true

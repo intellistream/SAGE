@@ -145,11 +145,13 @@ install_core_packages() {
     case "$install_mode" in
         "minimal")
             echo -e "${GRAY}最小安装：核心运行时包${NC}"
-            echo -e "${DIM}包含: L1-L5 核心包，无开发工具 (~80 包)${NC}"
+            echo -e "${DIM}包含: L1-L5 核心包，无开发工具，无可选依赖 (~80 包)${NC}"
+            echo -e "${DIM}💡 如需 ML/VDB 等功能，稍后运行: pip install isage-middleware[ml,vdb,...]${NC}"
             ;;
         "dev")
             echo -e "${GREEN}开发安装：核心 + 开发工具${NC}"
             echo -e "${DIM}包含: 核心包 + pytest, ruff, mypy, pre-commit (~120 包)${NC}"
+            echo -e "${DIM}💡 如需 ML/VDB 等功能，稍后运行: pip install isage-middleware[ml,vdb,...]${NC}"
             ;;
         "full")
             echo -e "${YELLOW}完整安装：核心 + 开发工具 + 所有可选依赖${NC}"
@@ -333,22 +335,7 @@ for pkg_dir in package_dirs:
             match = re.search(r'\"([^\"]+)\"', line)
             if match:
                 dep = match.group(1)
-                # 排除 SAGE 框架核心包（仅限本地开发的包）
-                # 保留独立的 PyPI 包（如 isage-vdb, isage-flow, isage-neuromem 等）
-                core_packages = ['isage-common', 'isage-platform', 'isage-kernel', 'isage-libs',
-                                'isage-middleware', 'isage-cli', 'isage-tools', 'isage']
-                # 独立 PyPI 包列表（需要从 PyPI 安装）
-                independent_packages = ['isage-vdb', 'isage-flow', 'isage-tsdb', 'isage-neuromem',
-                                       'isage-refiner', 'isage-agentic', 'isage-rag', 'isage-eval',
-                                       'isage-privacy', 'isage-safety', 'isage-finetune', 'isage-data',
-                                       'isage-dev-tools', 'isage-benchmark', 'isage-tooluse',
-                                       'isage-anns', 'isage-edge', 'isagellm', 'isage-studio']
-                dep_lower = dep.lower()
-                dep_name = dep.split('[')[0].split('>')[0].split('<')[0].split('=')[0].split('!')[0].strip()
-                is_core_package = dep_name.lower() in [pkg.lower() for pkg in core_packages]
-                is_independent = dep_name.lower() in [pkg.lower() for pkg in independent_packages]
-                # 包含独立包和其他外部依赖
-                if not is_core_package or is_independent:
+                if not dep.startswith('isage-'):
                     # 提取包名和版本约束
                     pkg_match = re.match(r'^([a-zA-Z0-9_-]+[a-zA-Z0-9_\[\]-]*)', dep)
                     if pkg_match:
@@ -499,14 +486,33 @@ else:
     if [ "$install_mode" != "core" ]; then
         echo -e "${DIM}步骤 4/5: 安装上层包 (L4-L5)...${NC}"
 
-        # L4: middleware (Python 兼容层 + 核心依赖)
-        # 注意：sage-middleware 的 pyproject.toml 中已声明所有核心依赖，包括：
-        #   - isage-vdb, isage-flow, isage-tsdb, isage-neuromem, isage-refiner (C++ 扩展)
-        #   - faiss-cpu (向量检索)
-        # 这些依赖会在安装 sage-middleware 时自动安装
+        # 显式安装独立 PyPI 包依赖 (因为下面使用了 --no-deps)
+        # 这些包是 sage-middleware 的依赖，但因为 --no-deps 选项会被跳过
+        echo -e "${DIM}  正在安装独立 PyPI 包依赖 (isage-vdb, isage-flow, etc.)...${NC}"
+        log_info "开始安装独立 PyPI 包依赖" "INSTALL"
+
+        # 使用与 pyproject.toml 一致的版本约束
+        # 使用单引号包裹每个包名，防止 shell 将 > 解析为重定向
+        local independent_packages="'isage-vdb>=0.1.5' 'isage-tsdb>=0.1.5' 'isage-flow>=0.1.1' 'isage-refiner>=0.1.0' 'isage-neuromem>=0.2.1.1'"
+
+        # 注意：独立包是 PyPI 包，不能使用 -e (install_flags)
+        log_debug "PIP命令: $PIP_CMD install $independent_packages $pip_args" "INSTALL"
+
+        if ! log_command "INSTALL" "Deps" "$PIP_CMD install $independent_packages $pip_args"; then
+            log_warn "独立 PyPI 包安装失败，可能导致部分功能不可用" "INSTALL"
+            echo -e "${WARNING} 独立 PyPI 包安装失败，可能导致部分功能不可用"
+            # 不中断安装，因为这些可能是可选的或者网络问题
+        else
+            log_info "独立 PyPI 包安装成功" "INSTALL"
+            echo -e "${CHECK} 独立 PyPI 包安装成功"
+        fi
+
+        # L4: middleware (Python 兼容层)
+        # 注意：必须使用 --no-deps 防止 pip 重新安装已有的 sage 子包依赖
+        # 运行时依赖（isage-common/platform/kernel/libs）在 step 1-2 已安装
+        # C++ 扩展（isage-vdb/isage-flow/isage-tsdb/isage-neuromem/isage-refiner）通过外部依赖安装
         echo -e "${DIM}  正在安装: packages/sage-middleware${NC}"
-        echo -e "${DIM}     (包含 C++ 扩展编译，预计耗时 2-10 分钟)${NC}"
-        log_info "开始安装: packages/sage-middleware（包含所有核心依赖）" "INSTALL"
+        log_info "开始安装: packages/sage-middleware" "INSTALL"
         log_debug "PIP命令: $PIP_CMD install $install_flags packages/sage-middleware $pip_args --no-deps" "INSTALL"
 
         if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"packages/sage-middleware\" $pip_args --no-deps"; then
@@ -518,7 +524,6 @@ else:
         log_info "安装成功: packages/sage-middleware" "INSTALL"
         log_pip_package_info "isage-middleware" "INSTALL"
         echo -e "${CHECK} sage-middleware 安装完成"
-        echo ""
 
         # L5: apps & benchmark (standard/full/dev 模式)
         if [ "$install_mode" != "core" ]; then

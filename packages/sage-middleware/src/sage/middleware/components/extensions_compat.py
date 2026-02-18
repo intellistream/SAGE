@@ -22,9 +22,7 @@ else:
     _sage_flow: Any = None
 
 # 尝试导入C++扩展，失败时使用纯Python实现
-# NOTE: 保持 _SAGE_DB_AVAILABLE 兼容旧测试与调用方。
 _SAGE_DB_AVAILABLE = False  # 通过 isage-vdb 包检测 (Python: sagevdb)
-_SAGE_VDB_AVAILABLE = False  # alias，避免破坏既有引用
 _SAGE_FLOW_AVAILABLE = False
 _SAGE_TSDB_AVAILABLE = False  # 通过 isage-tsdb 包检测
 
@@ -34,10 +32,7 @@ if not TYPE_CHECKING:
         import sagevdb  # noqa: F401
 
         _SAGE_DB_AVAILABLE = True
-        _SAGE_VDB_AVAILABLE = True
-    except (ImportError, OSError):
-        # ImportError: package not installed
-        # OSError: .so library dependencies missing (e.g., libfaiss.so)
+    except ImportError:
         # Don't warn on import - only when trying to use the feature
         pass
 
@@ -46,7 +41,7 @@ if not TYPE_CHECKING:
         from sage.middleware.components.sage_flow.python import sage_flow as _sage_flow
 
         _SAGE_FLOW_AVAILABLE = True
-    except (ImportError, OSError):
+    except ImportError:
         _sage_flow = None
         # Don't warn on import - only when trying to use the feature
         pass
@@ -56,15 +51,13 @@ if not TYPE_CHECKING:
         import sage_tsdb  # noqa: F401
 
         _SAGE_TSDB_AVAILABLE = True
-    except (ImportError, OSError):
-        # ImportError: package not installed
-        # OSError: .so library dependencies missing
+    except ImportError:
         # Don't warn on import - only when trying to use the feature
         pass
 
 
-def is_sage_vdb_available() -> bool:
-    """检查SAGE VDB扩展是否可用"""
+def is_sage_db_available() -> bool:
+    """检查SAGE DB扩展是否可用"""
     return _SAGE_DB_AVAILABLE
 
 
@@ -81,7 +74,7 @@ def is_sage_tsdb_available() -> bool:
 def get_extension_status() -> dict:
     """获取所有扩展的状态"""
     return {
-        "sage_vdb": _SAGE_DB_AVAILABLE,
+        "sage_db": _SAGE_DB_AVAILABLE,
         "sage_flow": _SAGE_FLOW_AVAILABLE,
         "sage_tsdb": _SAGE_TSDB_AVAILABLE,
         "total_available": sum([_SAGE_DB_AVAILABLE, _SAGE_FLOW_AVAILABLE, _SAGE_TSDB_AVAILABLE]),
@@ -92,13 +85,13 @@ def get_extension_status() -> dict:
 def check_extensions_availability() -> dict:
     """检查扩展可用性，返回兼容格式用于CI"""
     return {
-        "sage_vdb": _SAGE_DB_AVAILABLE,
+        "sage_db": _SAGE_DB_AVAILABLE,
         "sage_flow": _SAGE_FLOW_AVAILABLE,
         "sage_tsdb": _SAGE_TSDB_AVAILABLE,
     }
 
 
-def require_sage_vdb():
+def require_sage_db():
     """要求SageVDB可用，否则抛出异常"""
     if not _SAGE_DB_AVAILABLE:
         raise ImportError(
