@@ -99,6 +99,7 @@ AUTO_VENV=false  # 新增：自动创建虚拟环境
 SKIP_HOOKS=false
 HOOKS_MODE="auto"
 SETUP_WORKSPACE=false  # 新增：设置 workspace 依赖
+CLONE_SATELLITE_REPOS=false  # 新增：克隆附属仓库
 HOOKS_PROFILE="lightweight"
 USE_PIP_MIRROR=true  # 默认启用pip镜像自动检测（中国用户自动使用清华源）
 MIRROR_SOURCE="auto"
@@ -412,6 +413,22 @@ show_installation_menu() {
     done
 
     echo ""
+
+    # 询问是否克隆附属仓库
+    echo -e "${BOLD}3. 克隆附属仓库？${NC}"
+    echo -e "  ${DIM}包括: sage-examples, sage-tutorials, sagellm, sage-benchmark 等${NC}"
+    echo ""
+    read -p "是否克隆 SAGE 附属仓库？[y/N]: " -n 1 -r clone_choice
+    echo ""
+    if [[ "$clone_choice" =~ ^[Yy]$ ]]; then
+        CLONE_SATELLITE_REPOS=true
+        echo -e "${GREEN}✅ 将克隆附属仓库${NC}"
+    else
+        CLONE_SATELLITE_REPOS=false
+        echo -e "${DIM}跳过克隆（可稍后手动克隆）${NC}"
+    fi
+
+    echo ""
 }
 
 # 显示参数帮助信息
@@ -480,6 +497,13 @@ show_parameter_help() {
     echo -e "  ${BOLD}--workspace${NC}                              ${GREEN}设置 workspace 依赖${NC}"
     echo -e "    ${DIM}克隆 SAGE-Pub 和 sage-team-info 仓库${NC}"
     echo -e "    ${DIM}用于 VS Code 多文件夹编辑（SAGE.code-workspace）${NC}"
+    echo ""
+    echo -e "  ${BOLD}--clone-satellites${NC}                       ${GREEN}克隆附属仓库${NC}"
+    echo -e "    ${DIM}克隆所有 SAGE 附属仓库（examples, tutorials, benchmark 等）${NC}"
+    echo -e "    ${DIM}支持别名: --clone-repos, --satellites${NC}"
+    echo ""
+    echo -e "  ${BOLD}--no-clone-satellites${NC}                    ${YELLOW}跳过克隆附属仓库${NC}"
+    echo -e "    ${DIM}支持别名: --skip-satellites, --no-repos${NC}"
     echo ""
     echo -e "  ${BOLD}--hooks-mode <auto|background|sync>${NC}      ${GREEN}控制 hooks 安装方式${NC}"
     echo -e "    ${DIM}auto: 交互式安装后台运行，其余场景同步${NC}"
@@ -553,11 +577,13 @@ show_parameter_help() {
     echo -e "  ./quickstart.sh --dev --yes                      ${DIM}# 开发安装 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --minimal --pip --yes            ${DIM}# 最小安装 + 当前环境 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --full --conda                   ${DIM}# 完整安装 + 创建conda环境${NC}"
+    echo -e "  ./quickstart.sh --full --clone-satellites --yes  ${DIM}# 完整安装 + 克隆附属仓库${NC}"
     echo ""
     echo -e "${PURPLE}📝 注意：${NC}"
     echo -e "  ${DIM}• quickstart.sh 默认使用 full 模式（包含所有功能）${NC}"
     echo -e "  ${DIM}• minimal/dev 模式缺少的功能会在运行时给出安装提示${NC}"
     echo -e "  ${DIM}• pip 安装: pip install isage (等同于 minimal 模式)${NC}"
+    echo -e "  ${DIM}• 克隆要求网络连接到 GitHub，多个仓库可能需要几十秒${NC}"
     echo ""
 }
 
@@ -755,6 +781,24 @@ parse_force_rebuild_option() {
     esac
 }
 
+# 解析克隆附属仓库参数
+parse_clone_satellites_option() {
+    local param="$1"
+    case "$param" in
+        "--clone-satellites"|"--clone-repos"|"--satellites")
+            CLONE_SATELLITE_REPOS=true
+            return 0
+            ;;
+        "--no-clone-satellites"|"--skip-satellites"|"--no-repos")
+            CLONE_SATELLITE_REPOS=false
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # 主参数解析函数
 parse_arguments() {
     local unknown_params=()
@@ -840,6 +884,9 @@ parse_arguments() {
             shift
         elif parse_force_rebuild_option "$param"; then
             # 强制重新编译参数
+            shift
+        elif parse_clone_satellites_option "$param"; then
+            # 克隆附属仓库参数
             shift
         else
             # 未知参数
@@ -985,6 +1032,13 @@ show_install_configuration() {
     if [ "$CLEAN_PIP_CACHE" = false ]; then
         echo -e "  ${BLUE}特殊选项:${NC} ${YELLOW}跳过 pip 缓存清理${NC}"
     fi
+
+    if [ "$CLONE_SATELLITE_REPOS" = true ]; then
+        echo -e "  ${BLUE}附属仓库:${NC} ${GREEN}克隆所有仓库${NC}"
+    else
+        echo -e "  ${BLUE}附属仓库:${NC} ${YELLOW}跳过克隆${NC}"
+    fi
+
     echo ""
 }
 
@@ -1076,6 +1130,10 @@ should_use_pip_mirror() {
 
 get_setup_workspace() {
     echo "$SETUP_WORKSPACE"
+}
+
+should_clone_satellite_repos() {
+    echo "$CLONE_SATELLITE_REPOS"
 }
 
 get_mirror_source_value() {

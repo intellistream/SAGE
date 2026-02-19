@@ -67,7 +67,7 @@ deactivate && rm -rf /tmp/test
 ## 📂 文件位置
 
 - **自动脚本**：`tools/scripts/remove_libamm_submodule.sh`
-- **详细指南**：`docs-public/docs_src/dev-notes/cross-layer/libamm-migration-guide.md`
+- **详细指南**：`CHANGELOG.md`
 - **备份位置**：`/tmp/sage-libamm-backup-<timestamp>/`（脚本会显示）
 
 ## ⏪ 快速回滚

@@ -76,9 +76,6 @@ pre_check_system_environment
 # 根据偏移探测结果设置Unicode符号
 setup_unicode_symbols
 
-# 初始化可选功能标志（防止 unbound variable 错误）
-SAGE_SET_SKIP_SMUDGE="${SAGE_SET_SKIP_SMUDGE:-0}"
-
 # 主函数
 main() {
     # 运行日志管理
@@ -465,22 +462,6 @@ main() {
         fi
 
         show_usage_tips "$mode"
-
-        # 设置 workspace 依赖（如果指定了 --workspace）
-        local setup_workspace=$(get_setup_workspace)
-        if [ "$setup_workspace" = "true" ]; then
-            echo ""
-            echo -e "${INFO} 设置 workspace 依赖..."
-            if [ -f "$SAGE_ROOT/tools/scripts/setup_workspace_deps.sh" ]; then
-                if bash "$SAGE_ROOT/tools/scripts/setup_workspace_deps.sh"; then
-                    echo -e "${GREEN}✅ Workspace 依赖设置完成${NC}"
-                else
-                    echo -e "${YELLOW}⚠️  Workspace 设置遇到问题，但不影响 SAGE 使用${NC}"
-                fi
-            else
-                echo -e "${YELLOW}⚠️  Workspace 设置脚本未找到${NC}"
-            fi
-        fi
 
         # 显示快速启动服务菜单（交互模式）
         # 注意：已由 show_usage_tips 内部调用 prompt_start_llm_service

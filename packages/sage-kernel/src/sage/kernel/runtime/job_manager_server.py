@@ -3,8 +3,6 @@ import os
 import sys
 from typing import TYPE_CHECKING, Any
 
-import ray
-
 from sage.common.utils.network.local_tcp_server import BaseTcpServer
 from sage.common.utils.serialization.dill import deserialize_object
 
@@ -410,7 +408,7 @@ class JobManagerServer(BaseTcpServer):
                 "python_version": sys.version,
                 "python_executable": sys.executable,
                 "platform": platform.platform(),
-                "ray_version": (ray.__version__ if hasattr(ray, "__version__") else "unknown"),
+                "runtime_engine": "flownet",
                 "session_id": self.jobmanager.session_id,
                 "log_base_dir": str(self.jobmanager.log_base_dir),
                 "working_directory": os.getcwd(),

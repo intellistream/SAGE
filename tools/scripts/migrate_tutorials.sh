@@ -105,19 +105,17 @@ for src in "${!MIGRATION_MAP[@]}"; do
     migrate_directory "$src" "$dst"
 done
 
-# 迁移根目录的入门示例到 sage-common
+# 迁移根目录的索引与文档到 sage-common
 echo ""
-echo "📁 迁移根目录入门示例..."
+echo "📁 迁移根目录索引与文档..."
 if [[ "$DRY_RUN" == "false" ]]; then
     mkdir -p "$COMMON_TUTORIALS"
 
-    # 移动根目录的 Python 文件
-    for file in tutorials/hello_world.py tutorials/embedding_server_example.py tutorials/__init__.py; do
-        if [[ -f "$file" ]]; then
-            cp "$file" "$COMMON_TUTORIALS/"
-            echo "  ✅ $(basename $file) → sage-common/tutorials/"
-        fi
-    done
+    # 移动根目录的 Python 索引文件
+    if [[ -f "tutorials/__init__.py" ]]; then
+        cp "tutorials/__init__.py" "$COMMON_TUTORIALS/"
+        echo "  ✅ __init__.py → sage-common/tutorials/"
+    fi
 
     # 移动 README 和 QUICK_START
     for file in tutorials/README.md tutorials/QUICK_START.md tutorials/INSTALLATION_GUIDE.md; do
@@ -134,7 +132,7 @@ echo "📁 迁移 Control Plane 教程..."
 if [[ "$DRY_RUN" == "false" ]]; then
     mkdir -p "$LLM_CORE_TUTORIALS"
 
-    for file in tutorials/vllm_control_plane_tutorial.py tutorials/benchmark_control_plane_demo.py; do
+    for file in tutorials/L3-libs/llm/vllm_control_plane_tutorial.py tutorials/L5-apps/benchmark_control_plane_demo.py; do
         if [[ -f "$file" ]]; then
             cp "$file" "$LLM_CORE_TUTORIALS/"
             echo "  ✅ $(basename $file) → sage-llm-core/tutorials/"
@@ -142,8 +140,8 @@ if [[ "$DRY_RUN" == "false" ]]; then
     done
 
     # 移动 markdown 文件
-    if [[ -f "tutorials/vllm_control_plane_config_examples.md" ]]; then
-        cp "tutorials/vllm_control_plane_config_examples.md" "$LLM_CORE_TUTORIALS/"
+    if [[ -f "tutorials/L3-libs/llm/vllm_control_plane_config_examples.md" ]]; then
+        cp "tutorials/L3-libs/llm/vllm_control_plane_config_examples.md" "$LLM_CORE_TUTORIALS/"
         echo "  ✅ vllm_control_plane_config_examples.md → sage-llm-core/tutorials/"
     fi
 

@@ -2,15 +2,29 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 from types import SimpleNamespace
 
 import pytest
 
-# Import SIAS components from middleware
-from sage.middleware.components.sage_sias import CoresetSelector, OnlineContinualLearner
-from sage.tools.agent_training.data_formatter import AgentSFTFormatter
-from sage.tools.agent_training.dialog_processor import AgentDialogProcessor, ProcessedDialog
+# Optional dependencies required by this test module
+PEFT_AVAILABLE = importlib.util.find_spec("peft") is not None
+SAGE_DATA_AVAILABLE = importlib.util.find_spec("sage.data") is not None
+
+# Skip entire module if optional dependencies are unavailable
+pytestmark = pytest.mark.skipif(
+    not (PEFT_AVAILABLE and SAGE_DATA_AVAILABLE),
+    reason=(
+        "Optional dependencies unavailable "
+        "(requires peft and sage.data providers for agent-training tests)."
+    ),
+)
+
+if PEFT_AVAILABLE and SAGE_DATA_AVAILABLE:
+    from sage.middleware.components.sage_sias import CoresetSelector, OnlineContinualLearner
+    from sage.tools.agent_training.data_formatter import AgentSFTFormatter
+    from sage.tools.agent_training.dialog_processor import AgentDialogProcessor, ProcessedDialog
 
 
 def _make_turn(role: str, **kwargs):

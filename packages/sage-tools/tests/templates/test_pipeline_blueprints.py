@@ -48,11 +48,11 @@ def test_multimodal_blueprint_references_real_components():
     assert candidates, "multimodal blueprint should be registered"
     blueprint = candidates[0]
     assert blueprint.source.class_path == (
-        "sage.benchmark.benchmark_rag.implementations.qa_multimodal_fusion.MultimodalQuestionSource"
+        "sage.benchmark_rag.implementations.qa_multimodal_fusion.MultimodalQuestionSource"
     )
     stage_classes = [stage.class_path for stage in blueprint.stages]
     assert (
-        "sage.benchmark.benchmark_rag.implementations.qa_multimodal_fusion.MultimodalFusionRetriever"
+        "sage.benchmark_rag.implementations.qa_multimodal_fusion.MultimodalFusionRetriever"
         in stage_classes
     )
     assert "sage.middleware.operators.rag.generator.OpenAIGenerator" in stage_classes

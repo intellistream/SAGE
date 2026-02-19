@@ -4,21 +4,21 @@
 
 ## 📂 示例列表
 
-### RemoteEnvironment
+### FlownetEnvironment
 
-- **remote_env.py** - RemoteEnvironment 基础使用示例
-  - 演示如何创建和使用 RemoteEnvironment
-  - 展示分布式执行的基本概念
+- **remote_env.py** - FlownetEnvironment 基础使用示例（原 RemoteEnvironment，迁移至 #1443）
+  - 演示如何创建和使用 FlownetEnvironment
+  - 展示基于 sageFlownet 的分布式执行的基本概念
 
 ## 🎯 学习路径
 
-1. **remote_env.py** - 了解 RemoteEnvironment 的基本用法
+1. **remote_env.py** - 了解 FlownetEnvironment 的基本用法
 
 ## 💡 核心概念
 
-### RemoteEnvironment
+### FlownetEnvironment
 
-- 分布式执行环境
+- 基于 sageFlownet 运行时的分布式执行环境
 - 支持跨节点的任务调度
 - 适用于大规模数据处理
 

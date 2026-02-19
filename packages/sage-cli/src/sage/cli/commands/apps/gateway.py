@@ -159,11 +159,11 @@ def start(
 
     console.print(f"[blue]🚀 启动 SAGE Gateway (端口 {port})...[/blue]")
 
-    # Build command (requires isagellm package)
+    # Build command (requires isagellm-gateway package, module name is sagellm_gateway)
     cmd = [
         sys.executable,
         "-m",
-        "isagellm.gateway",
+        "sagellm_gateway",
         "--host",
         host,
         "--port",
@@ -173,7 +173,7 @@ def start(
     ]
 
     if enable_control_plane:
-        cmd.append("--enable-control-plane")
+        cmd.append("--control-plane")
 
     if background:
         # Start in background

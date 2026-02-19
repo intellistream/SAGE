@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from sage.middleware.components.sage_db.python.multimodal_sage_db import (
+from sage.middleware.components.sage_vdb.python.multimodal_sage_db import (
     FusionParams,
     FusionStrategy,
     ModalityType,

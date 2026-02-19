@@ -232,25 +232,29 @@ class ProjectStatusChecker:
     def _check_services(self) -> dict[str, Any]:
         """检查相关服务状态"""
         services_info = {
-            "ray": self._check_ray_status(),
+            "flownet": self._check_flownet_status(),
             "jobmanager": self._check_jobmanager_status(),
         }
 
         return services_info
 
-    def _check_ray_status(self) -> dict[str, Any]:
-        """检查Ray服务状态"""
+    def _check_flownet_status(self) -> dict[str, Any]:
+        """检查 sageFlownet 运行时状态"""
         try:
-            result = subprocess.run(["ray", "status"], capture_output=True, text=True, timeout=10)
+            spec = importlib.util.find_spec("sage.flownet")
+            if spec is None:
+                return {"available": False, "error": "sage.flownet 包未安装"}
+
+            # 使用公开 API 检查运行时单例是否已初始化
+            from sage.flownet.runtime.runtime import try_get_runtime
+
+            runtime = try_get_runtime()
+            running = runtime is not None
             return {
                 "available": True,
-                "running": result.returncode == 0,
-                "output": result.stdout if result.returncode == 0 else result.stderr,
+                "running": running,
+                "output": "Flownet 运行时已初始化" if running else "Flownet 包可用，运行时未启动",
             }
-        except FileNotFoundError:
-            return {"available": False, "error": "Ray command not found"}
-        except subprocess.TimeoutExpired:
-            return {"available": True, "running": False, "error": "Command timeout"}
         except Exception as e:
             return {"available": False, "error": str(e)}
 
@@ -339,10 +343,13 @@ class ProjectStatusChecker:
                 return "\n".join(lines)
 
             # 特殊处理服务信息
-            if "ray" in result:
-                lines.append(
-                    f"⚡ Ray: {'✅ 运行中' if result['ray'].get('running') else '❌ 未运行'}"
-                )
+            if "flownet" in result:
+                flownet = result["flownet"]
+                if flownet.get("available", False):
+                    status = "✅ 运行中" if flownet.get("running") else "⏸ 未启动"
+                else:
+                    status = "❌ 未安装"
+                lines.append(f"⚡ Flownet 运行时: {status}")
                 lines.append(
                     f"🔧 JobManager: {'✅ 可用' if result['jobmanager'].get('available') else '❌ 不可用'}"
                 )

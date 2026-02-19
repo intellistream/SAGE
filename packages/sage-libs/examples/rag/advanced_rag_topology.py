@@ -297,7 +297,7 @@ class VectorRetriever(MapFunction):
             },
             {
                 "id": "doc_2",
-                "content": "SAGE 基于 Ray 构建分布式执行能力。使用 RemoteEnvironment 可以在集群上运行 Pipeline，JobManager 负责任务调度。",
+                "content": "SAGE 基于 sageFlownet 构建分布式执行能力。使用 FlownetEnvironment 可以在集群上运行 Pipeline，JobManager 负责任务调度。",
                 "metadata": {"topic": "distributed", "source": "docs"},
             },
             {
@@ -320,7 +320,7 @@ class VectorRetriever(MapFunction):
     def _init_db(self):
         """尝试初始化 sage_db"""
         try:
-            from sage.middleware.components.sage_db import SageDB
+            from sage.middleware.components.sage_vdb import SageDB
 
             self._db = SageDB(dim=self.config.get("dim", 384))
             self.logger.info("✓ 已初始化 sage_db")
@@ -688,7 +688,7 @@ class LLMGenerator(MapFunction):
         if "LLM" in query or "后端" in query:
             return "SAGE 支持多种 LLM 后端，包括 vLLM（本地高性能推理）、OpenAI API、DashScope 等。通过 UnifiedInferenceClient 可以统一调用。"
         elif "分布式" in query:
-            return "SAGE 基于 Ray 构建分布式能力。使用 RemoteEnvironment 在集群运行 Pipeline，JobManager 负责调度。"
+            return "SAGE 基于 sageFlownet 构建分布式能力。使用 FlownetEnvironment 在集群运行 Pipeline，JobManager 负责调度。"
         elif "sage_db" in query or "sage_tsdb" in query or "区别" in query:
             return "sage_db 是向量数据库，用于文档检索；sage_tsdb 是时序数据库，用于存储时间序列数据如监控指标和对话历史。"
         else:

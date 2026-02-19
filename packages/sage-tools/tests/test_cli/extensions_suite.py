@@ -16,7 +16,7 @@ def _patch_extensions_import():
 
     def fake_import(name, *args, **kwargs):
         extensions = {
-            "sage.middleware.components.sage_db.python._sage_db",
+            "sage.middleware.components.sage_vdb.python._sage_db",
             "sage.middleware.components.sage_flow.python._sage_flow",
         }
         if name in extensions:

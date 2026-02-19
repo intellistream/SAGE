@@ -7,11 +7,6 @@
 #   - Install hooks: pre-commit install --config tools/config/pre-commit-config.yaml
 #   - Run manually: pre-commit run --all-files --config tools/config/pre-commit-config.yaml
 #
-# Mypy Type Checking:
-#   - Runs automatically on changed Python files
-#   - Shows type errors as warnings (doesn't block commits/CI)
-#   - To run mypy explicitly: pre-commit run mypy --all-files --config tools/config/pre-commit-config.yaml
-
 default_language_version:
   python: python3.11
 
@@ -77,7 +72,6 @@ repos:
     args: [--config, tools/config/ruff.toml]
     exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm|db)/|.*/(sageLLM|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
-  # Python: mypy type checking (warning mode - shows errors but doesn't block commit)
 - repo: local
   hooks:
   - id: architecture-violation-check
@@ -104,22 +98,16 @@ repos:
     always_run: false
     files: ^packages/.*/src/sage/__init__\.py$
         # Block commit if src/sage/__init__.py is added/modified (violates PEP 420)
-  - id: mypy
-    name: mypy type checking (warnings only)
-    entry: tools/quality/mypy-wrapper.sh
+  - id: cross-repo-dedup-check
+    name: cross-repo duplicate declaration check (SAGE vs sageFlownet)
+    entry: python3 tools/scripts/check_cross_repo_dedup.py
     language: system
-    types: [python]
-    require_serial: true
-    args:
-    - --cache-dir=.sage/cache/mypy
-    - --ignore-missing-imports
-    - --show-error-codes
-    - --explicit-package-bases
-    - --warn-unused-ignores
-    - --namespace-packages
-    exclude: ^(docs/|docs-public/|examples/|tests/|.*/tests/|setup.py|.*/setup.py|.*/benchmark_(libamm|db)/|.*/(sageLLM|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/src/sage/__init__.py|ThirdParty/|thirdparty/)
-        # This hook will always succeed (exit 0) to avoid blocking commits/CI
-        # Errors are shown but treated as warnings
+    pass_filenames: false
+    always_run: false
+    stages: [pre-commit, manual]
+    files: \.py$
+        # Enforces move-then-delete rule: migrated symbols must not be redefined in Flownet.
+        # See Issue #1439 and flownet-migration-boundary.md
   - id: markdown-files-location-check
     name: check markdown files are in proper locations
     entry: tools/hooks/check_docs_location.sh
@@ -233,6 +221,7 @@ repos:
         "testing"
         "archive"
         "research_work"
+        "hooks"
       )
 
       # Get all first-level directories under docs-public/docs_src/dev-notes/
@@ -317,6 +306,7 @@ repos:
         "LICENSE"
         "Makefile"
         "manage.sh"
+        "pytest.ini"
         "quickstart.sh"
         "README.md"
         "CHANGELOG.md"
@@ -330,7 +320,7 @@ repos:
         ".benchmarks"  # Deprecated; keep for legacy benchmark artifacts
         ".git"
         ".github"
-        ".mypy_cache"
+        ".mypy_cache"  # mypy cache (temporary; should use .sage/cache/mypy)
         ".pytest_cache"
         ".ruff_cache"
         ".sage"
@@ -346,6 +336,7 @@ repos:
         "packages"
         "data"
         "tools"
+        "hooks"
       )
 
       violations=""
@@ -458,6 +449,15 @@ repos:
     files: ^(\.github/(copilot-instructions\.md|agents/my-agent\.agent\.md|workflows/.*\.yml)|quickstart\.sh|manage\.sh|Makefile|tools/(install/.*\.sh|pre-commit-config\.yaml|pytest\.ini|ruff\.toml)|packages/sage-common/src/sage/common/config/(ports|user_paths)\.py|packages/sage-cli/src/sage/cli/|packages/sage-gateway/src/sage/gateway/|packages/sage-common/src/sage/common/components/sage_(llm|embedding)/|packages/sage-[^/]+/pyproject\.toml|config/(config|cluster)\.yaml)
     stages: [pre-commit, manual]
     description: Warn if critical project files change without updating copilot instructions
+  - id: cli-ray-terminology-check
+    name: check sage-cli user-visible strings for Ray terminology (Issue #1438)
+    entry: bash tools/hooks/check_cli_ray_terminology.sh
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: ^packages/sage-cli/src/sage/cli/.*\.py$
+    stages: [pre-commit, manual]
+    description: Block commits if sage-cli CLI help text, echo messages or command docstrings contain Ray terminology instead of Flownet/SAGE
 # To install pre-commit hooks:
 #   pre-commit install
 #

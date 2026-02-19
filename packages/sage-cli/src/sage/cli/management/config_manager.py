@@ -153,20 +153,19 @@ class ConfigManager:
         default_config = {
             "head": {
                 "host": "localhost",
-                "head_port": 6379,
-                "dashboard_port": 8265,
-                "dashboard_host": "0.0.0.0",
-                "temp_dir": "/var/tmp/ray",
+                "flownet_port": 8787,
+                "head_port": 8787,
                 "log_dir": "/var/tmp/sage_head_logs",
                 "conda_env": "sage",
                 "python_path": "",  # 自动检测
-                "ray_command": "",  # 自动检测
+                "node_id": "head",
+                "threads": 4,
                 "sage_home": "",
             },
             "worker": {
                 "bind_host": "localhost",
-                "temp_dir": "/tmp/ray_worker",
                 "log_dir": "/tmp/sage_worker_logs",
+                "threads": 4,
             },
             "ssh": {
                 "user": "sage",
@@ -181,7 +180,7 @@ class ConfigManager:
             "remote": {
                 "sage_home": "/home/sage",
                 "python_path": "",  # 自动检测
-                "ray_command": "",  # 自动检测
+                "runtime_command": "flownet",
                 "conda_env": "sage",
             },
             "daemon": {

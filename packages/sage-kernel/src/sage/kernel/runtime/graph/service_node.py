@@ -32,9 +32,9 @@ def _create_queue_descriptor(env: BaseEnvironment, name: str, maxsize: int) -> B
         对应平台的队列描述符
     """
     if env.platform == "remote":
-        from sage.platform.queue.ray_queue_descriptor import RayQueueDescriptor
+        from sage.platform.queue.rpc_queue_descriptor import RPCQueueDescriptor
 
-        return RayQueueDescriptor(maxsize=maxsize, queue_id=name)
+        return RPCQueueDescriptor(queue_id=name)
     else:  # local 或其他情况使用 python 队列
         from sage.platform.queue.python_queue_descriptor import PythonQueueDescriptor
 

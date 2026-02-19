@@ -121,7 +121,7 @@ python examples/tutorials/L3-libs/amms_example.py
 - AMMS README: `packages/sage-libs/src/sage/libs/amms/README.md`
 - Benchmark README: `packages/sage-benchmark/src/sage/benchmark/benchmark_libamm/README.md`
 - ANNS structure (reference): `packages/sage-libs/src/sage/libs/anns/README.md`
-- Architecture docs: `docs-public/docs_src/dev-notes/package-architecture.md`
+- Architecture docs: `CHANGELOG.md`
 
 ## Status
 

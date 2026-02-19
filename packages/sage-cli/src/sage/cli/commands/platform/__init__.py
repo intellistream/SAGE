@@ -87,6 +87,12 @@ except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 logs 命令: {e}[/yellow]")
     logs_app = None
 
+try:
+    from .runtime import app as runtime_app
+except ImportError as e:
+    console.print(f"[yellow]警告: 无法导入 runtime 命令: {e}[/yellow]")
+    runtime_app = None
+
 # 导出所有命令
 __all__ = [
     "cluster_app",
@@ -100,4 +106,5 @@ __all__ = [
     "extensions_app",
     "docs_app",
     "logs_app",
+    "runtime_app",
 ]

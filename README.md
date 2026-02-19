@@ -12,31 +12,10 @@
 
 ### Try SAGE Studio
 
-**Option 1: HUST Campus Network Access** 🎓
-
-Our team maintains a live deployment accessible within HUST campus network:
-
-```
-🌐 Contact team for access URL
-```
-
-**Requirements**: HUST campus network or VPN connection
-
-Experience SAGE's visual pipeline editor and AI-powered chat assistant with RAG capabilities!
-
-**Option 2: Local Installation**
-
 ```bash
-# 1. Install SAGE Studio (independent package)
 pip install isage-studio
-
-# 2. Start SAGE Studio
-sage-studio start
-# Visit http://localhost:4200
+sage-studio start         # Open http://localhost:4200
 ```
-
-> 💡 **Note**: SAGE Studio is an independent package. For SAGE core framework installation, see
-> [Installation](#installation) section below.
 
 ______________________________________________________________________
 
@@ -48,35 +27,17 @@ ______________________________________________________________________
 [![GitHub Issues](https://img.shields.io/github/issues/intellistream/SAGE)](https://github.com/intellistream/SAGE/issues)
 [![GitHub Stars](https://img.shields.io/github/stars/intellistream/SAGE?style=social)](https://github.com/intellistream/SAGE/stargazers)
 
-[![WeChat Group](https://img.shields.io/badge/WeChat-%E5%8A%A0%E5%85%A5%E5%BE%AE%E4%BF%A1%E7%BE%A4-brightgreen?style=flat&logo=wechat)](./docs/COMMUNITY.md)
-[![QQ Group](https://img.shields.io/badge/%E3%80%90IntelliStream%E8%AF%BE%E9%A2%98%E7%BB%84%E8%AE%A8%E8%AE%BAQQ%E7%BE%A4%E3%80%91-blue?style=flat&logo=tencentqq)](https://qm.qq.com/q/bcnuyQVcvm)
-[![Slack](https://img.shields.io/badge/Slack-Join%20Slack-purple?style=flat&logo=slack)](https://join.slack.com/t/intellistream/shared_invite/zt-2qayp8bs7-v4F71ge0RkO_rn34hBDWQg)
-
 **SAGE** is a high-performance streaming framework for building AI-powered data processing
 pipelines. Transform complex LLM reasoning workflows into transparent, scalable, and maintainable
 systems through declarative dataflow abstractions.
 
-## Why Choose SAGE?
+## Key Features
 
-## Project Team & Collaboration
-
-See `docs-public/docs_src/dev-notes/cross-layer/team-management.md` for the current team
-coordination entrypoint (team management + incubation policy).
-
-**Production-Ready**: Built for enterprise-scale applications with distributed processing, fault
-tolerance, and comprehensive monitoring out of the box.
-
-**Developer Experience**: Write complex AI pipelines in just a few lines of code with intuitive
-declarative APIs that eliminate boilerplate.
-
-**Performance**: Optimized for high-throughput streaming workloads with intelligent memory
-management and parallel execution capabilities.
-
-**Transparency**: Built-in observability and debugging tools provide complete visibility into
-execution paths and performance characteristics.
-
-**Flexible Deployment**: Full support for CPU-only compute nodes alongside GPU nodes, with
-intelligent resource-aware scheduling for hybrid clusters.
+- **Production-Ready**: Distributed processing, fault tolerance, comprehensive monitoring
+- **Developer Experience**: Complex AI pipelines in just a few lines of code
+- **High Performance**: Optimized streaming with intelligent memory management
+- **Observable**: Built-in visibility into execution and performance
+- **Flexible**: CPU-only or GPU nodes with intelligent resource scheduling
 
 ## Quick Start
 
@@ -123,9 +84,7 @@ env.submit()
 ```
 
 > 💡 **LLM Engine**: SAGE uses `sageLLM` as the default inference engine. For OpenAI-compatible APIs,
-> use `OpenAIGenerator`. See
-> [Migration Guide](./docs-public/docs_src/dev-notes/migration/VLLM_TO_SAGELLM_MIGRATION.md) if
-> migrating from vLLM.
+> use `OpenAIGenerator`. See [CHANGELOG](./CHANGELOG.md) if migrating from vLLM.
 
 **Try it yourself:**
 
@@ -150,100 +109,27 @@ git clone https://github.com/intellistream/sage-examples.git
 python sage-examples/tutorials/L3-kernel/cpu_node_demo.py
 ```
 
-## Architecture Excellence
+## Architecture
 
-### System Architecture
-
-SAGE is built on a **layered modular architecture** with 8 core packages organized across 5 layers:
+SAGE is built on a **5-layer modular architecture** with 8 core packages:
 
 ```
-L5: sage-cli, sage-tools                  # Interface Layer (CLI & Dev Tools)
-L4: sage-middleware                       # Middleware Layer (Operators, C++ Extensions)
-L3: sage-kernel, sage-libs                # Core Layer (Engine & Algorithm Library)
-L2: sage-platform                         # Platform Layer (Queue, Storage)
-L1: sage-common                           # Foundation Layer (Config, Types, Utilities)
+L5: sage-cli, sage-tools              # CLI & Dev Tools
+L4: sage-middleware                   # Operators with C++ extensions
+L3: sage-kernel, sage-libs            # Dataflow engine & algorithms
+L2: sage-platform                     # Platform services (queue, storage)
+L1: sage-common                       # Foundation
 ```
 
-**Independent Repositories** (not in SAGE core):
+**Independent Repositories** (not in core):
 
-- **sage-benchmark**: https://github.com/intellistream/sage-benchmark (PyPI: `isage-benchmark`)
-- **sage-examples**: https://github.com/intellistream/sage-examples (Tutorials & Applications)
-- **sage-studio**: https://github.com/intellistream/sage-studio (PyPI: `isage-studio`)
-- **sageLLM**: LLM inference engine (PyPI: `isagellm`)
-- **SageEdge**: Edge aggregator for distributed deployment (PyPI: `isage-edge`)
-
-**Optional Dependencies** (independent PyPI packages):
-
-*sage-middleware optional dependencies:*
-
-| Package      | PyPI             | Category      | Description                                 |
-| ------------ | ---------------- | ------------- | ------------------------------------------- |
-| **SageVDB**  | `isage-vdb`      | `[vdb]`       | High-performance C++ vector database        |
-| **NeuroMem** | `isage-neuromem` | `[neuromem]`  | Brain-inspired memory system (VDB/KV/Graph) |
-| **SageFlow** | `isage-flow`     | `[streaming]` | Vector-native stream processing engine      |
-| **SageTSDB** | `isage-tsdb`     | `[streaming]` | Time-series database with C++ core          |
-
-*sage-libs optional dependencies (L3 algorithm libraries):*
-
-| Package         | PyPI            | Category   | Description                                                 |
-| --------------- | --------------- | ---------- | ----------------------------------------------------------- |
-| **SageANNS**    | `isage-anns`    | `[anns]`   | Approximate nearest neighbor search algorithms              |
-| **SageAMMs**    | `isage-amms`    | `[amms]`   | Approximate matrix multiplication                           |
-| **SageRefiner** | `isage-refiner` | `[libs]`\* | Context compression for RAG (LongRefiner, REFORM, Provence) |
-
-> \* SageRefiner is an L3 algorithm library, also available via `isage-middleware[libs]`
-
-```bash
-# Install with specific optional dependencies
-pip install isage-middleware[vdb]           # Vector database support
-pip install isage-middleware[streaming]     # Stream processing + time-series
-pip install isage-libs[anns]                # ANNS algorithms
-pip install isage-libs[amms]                # AMM algorithms
-```
-
-**Key Architectural Principles:**
-
-- **Unidirectional Dependencies**: Clean layer-to-layer dependencies (no upward dependencies)
-- **Separation of Concerns**: Each package has a clear, focused responsibility
-- **Pluggable Components**: Modular design allows easy component replacement
-- **Production Ready**: Built-in fault tolerance, monitoring, and distributed execution
-
-📖 **[Complete Architecture Guide](./docs-public/docs_src/dev-notes/package-architecture.md)** -
-Detailed package descriptions, dependency rules, and design principles
-
-### Modular Design
-
-**8 Core Packages**, each with clear responsibilities:
-
-- **sage** (meta): Meta-package that installs all SAGE components
-- **sage-common** (L1): Foundation utilities, configuration, logging
-- **sage-platform** (L2): Platform services - queue, storage abstractions
-- **sage-kernel** (L3): Distributed execution engine and runtime
-- **sage-libs** (L3): Algorithm library, RAG tools, Agent framework
-- **sage-middleware** (L4): Domain operators and middleware components
-- **sage-cli** (L5): Unified command-line interface (`sage` command)
-- **sage-tools** (L5): Development tools and testing framework (`sage-dev` command)
-
-**Independent Repositories:**
-
-- **sage-examples**: Tutorials, examples, and production applications
-  - Repository: [intellistream/sage-examples](https://github.com/intellistream/sage-examples)
-  - Includes: tutorials, RAG examples, application demos
+- **sage-examples**: Tutorials and applications
 - **sage-benchmark**: Evaluation framework (PyPI: `isage-benchmark`)
-  - Repository: [intellistream/sage-benchmark](https://github.com/intellistream/sage-benchmark)
 - **sage-studio**: Visual workflow builder (PyPI: `isage-studio`)
-  - Repository: [intellistream/sage-studio](https://github.com/intellistream/sage-studio)
 - **sageLLM**: LLM inference engine (PyPI: `isagellm`)
 
-> 💡 **Note**: All PyPI packages use `isage-` prefix (e.g., `pip install isage-vdb`) because `sage`
-> is already taken on PyPI.
-
-### Production Features
-
-- **Distributed Execution** with automatic load balancing
-- **Fault Tolerance** and error recovery
-- **Observability** with metrics and monitoring
-- **Extensible Integration** for databases, queues, and AI services
+📖 **[Architecture Guide](./docs-public/docs_src/concepts/architecture/package-structure.md)** -
+Detailed design principles and dependency rules
 
 ## Installation
 
@@ -264,11 +150,34 @@ git clone https://github.com/intellistream/SAGE.git && cd SAGE
 **PyPI Install**
 
 ```bash
-pip install isage[standard]    # Recommended
-pip install isage[core]        # Minimal runtime
-pip install isage[full]        # Full features + Web UI
-pip install isage[dev]         # Development tools
+pip install isage              # Core framework
+pip install isage[dev]         # Development tools (includes pre-commit, pytest, etc.)
 ```
+
+**Optional Feature Modules** 🧩
+
+SAGE uses a modular architecture. Core package is minimal; advanced features available through
+independent packages:
+
+| Feature            | Package                      | Use Case                                |
+| ------------------ | ---------------------------- | --------------------------------------- |
+| **Agents**         | `pip install isage-agentic`  | ReAct, PlanExecute, complex reasoning   |
+| **RAG**            | `pip install isage-rag`      | Retrieval-augmented generation          |
+| **Vector DB**      | `pip install isage-vdb`      | Fast vector search (SageVDB)            |
+| **Memory Systems** | `pip install isage-neuromem` | Persistent memory + sessions            |
+| **Evaluation**     | `pip install isage-eval`     | Metrics, judges, benchmarking           |
+| **Fine-tuning**    | `pip install isage-finetune` | Model adaptation + training             |
+| **Privacy**        | `pip install isage-privacy`  | Differential privacy, PII handling      |
+| **LLM Gateway**    | `pip install isagellm`       | Control plane, unified inference client |
+
+Example: Build an agentic RAG system
+
+```bash
+pip install isage isage-agentic isage-rag isage-vdb isagellm
+```
+
+See [Dependency Management](./DEVELOPER.md#dependency-management) in DEVELOPER.md for detailed
+guidance.
 
 **Verification & Troubleshooting**
 
@@ -321,7 +230,7 @@ git clone https://github.com/intellistream/SAGE.git
 cd SAGE
 
 # Start learning (30 seconds)
-python tutorials/hello_world.py
+python tutorials/L1-common/hello_world.py
 
 # Follow the quick start guide
 cat tutorials/QUICK_START.md
@@ -347,7 +256,7 @@ See `tutorials/README.md` for complete learning paths.
   - Tutorials, RAG examples, and production applications
   - Will be published as `isage-examples` on PyPI
 - **Architecture**:
-  [docs-public/docs_src/dev-notes/package-architecture.md](./docs-public/docs_src/dev-notes/package-architecture.md)
+  [docs-public/docs_src/concepts/architecture/package-structure.md](./docs-public/docs_src/concepts/architecture/package-structure.md)
 
 ## Contributing
 
@@ -385,7 +294,7 @@ sage-dev test       # Run tests
 make docs           # Build documentation
 ```
 
-📖 **Complete reference**: [docs/dev-notes/DEV_COMMANDS.md](./docs/dev-notes/DEV_COMMANDS.md)
+📖 **Complete reference**: [DEVELOPER.md](./DEVELOPER.md)
 
 ## SAGE Ecosystem
 

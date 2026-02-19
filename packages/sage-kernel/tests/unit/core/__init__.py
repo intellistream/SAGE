@@ -2,7 +2,7 @@
 SAGE Core Module Tests
 
 This package contains all tests for the SAGE core functionality including:
-- API tests (LocalEnvironment, RemoteEnvironment)
+- API tests (LocalEnvironment, FlownetEnvironment)
 - Transformation tests (filter, map, flatmap, keyby, join, comap)
 - Operator tests
 - Function tests

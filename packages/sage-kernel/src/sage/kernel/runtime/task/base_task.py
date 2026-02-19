@@ -4,10 +4,6 @@ from abc import ABC
 from queue import Empty as QueueEmpty
 from typing import TYPE_CHECKING
 
-try:
-    from ray.util.queue import Empty as RayQueueEmpty  # type: ignore
-except ImportError:
-    RayQueueEmpty = QueueEmpty  # type: ignore
 from sage.kernel.runtime.communication.packet import Packet, StopSignal
 from sage.kernel.runtime.context.task_context import TaskContext
 from sage.kernel.runtime.monitoring import (
@@ -23,9 +19,7 @@ if TYPE_CHECKING:
     from sage.kernel.runtime.factory.operator_factory import OperatorFactory
 
 
-QUEUE_EMPTY_EXCEPTIONS = (
-    (QueueEmpty,) if RayQueueEmpty is QueueEmpty else (QueueEmpty, RayQueueEmpty)
-)
+QUEUE_EMPTY_EXCEPTIONS = (QueueEmpty,)
 
 
 class BaseTask(ABC):  # noqa: B024
@@ -646,7 +640,7 @@ class BaseTask(ABC):  # noqa: B024
         if not self.input_qd:
             return 0
         drained_packets = 0
-        timeout = 5.0
+        timeout = 18000.0  # 5 hours max, but will exit early if queue is empty (quiet_period=0.5s)
         quiet_period = 0.5
         poll_interval = 0.1
         start_time = time.time()

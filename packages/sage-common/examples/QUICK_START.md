@@ -276,7 +276,7 @@ ______________________________________________________________________
 - `L3-libs/README.md`
 - `L4-middleware/README.md`
 
-更多信息请查看 `docs-public/docs_src/dev-notes/` 中的开发文档。
+更多信息请查看项目根目录 `CHANGELOG.md` 中的版本级变更记录。
 
 ### 遇到问题？
 

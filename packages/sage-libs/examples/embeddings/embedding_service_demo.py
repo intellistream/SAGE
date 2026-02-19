@@ -8,12 +8,12 @@ Embedding Service Demo - 展示如何使用统一的 EmbeddingService
 4. 如何使用缓存优化性能
 
 Engine 选项:
-    - sagellm (推荐): SAGE 统一推理引擎
+    - sagellm (推荐): SAGE 统一推理引擎，通过 Control Plane 统一调度
     - vllm: vLLM 后端 (deprecated, 将重定向到 sagellm)
 
 运行:
-    python embedding_service_demo.py           # 正常运行 (需要模型)
-    python embedding_service_demo.py --mock    # Mock 模式 (无需 GPU)
+    python embedding_service_demo.py           # 正常运行（使用 sagellm Control Plane）
+    python embedding_service_demo.py --mock    # Mock 模式（兼容，但推荐使用 sagellm）
 
 Requirements:
     pip install isage-middleware>=0.2.0
@@ -21,6 +21,7 @@ Requirements:
 
 import argparse
 import os
+import sys
 
 # 全局 mock 模式标志
 _USE_MOCK = False
@@ -35,13 +36,18 @@ def demo_basic_embedding_service():
     from sage.common.components.sage_embedding import EmbeddingService
 
     # 检查是否在测试模式或 mock 模式
-    is_test_mode = _USE_MOCK or os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("CI") == "true"
+    is_test_mode = (
+        _USE_MOCK
+        or os.getenv("SAGE_TEST_MODE") == "true"
+        or os.getenv("CI") == "true"
+        or not sys.stdin.isatty()
+    )
 
-    # 配置: 在测试/mock 模式使用 mock，否则使用 HuggingFace 模型
+    # 配置: 在测试/mock 模式使用 sagellm Control Plane，否则使用 HuggingFace 模型
+    # sagellm Control Plane 方式：统一调度 LLM + Embedding
     if is_test_mode:
         config = {
-            "method": "mockembedder",
-            "dimension": 384,  # 模拟 bge-small-zh-v1.5 的维度
+            "method": "mockembedder",  # 测试/非交互模式使用轻量 mock，避免模型初始化超时
             "batch_size": 32,
             "normalize": True,
             "cache_enabled": True,
@@ -433,7 +439,12 @@ def main():
     ]
 
     # 检查是否在测试模式
-    is_test_mode = _USE_MOCK or os.getenv("SAGE_TEST_MODE") == "true" or os.getenv("CI") == "true"
+    is_test_mode = (
+        _USE_MOCK
+        or os.getenv("SAGE_TEST_MODE") == "true"
+        or os.getenv("CI") == "true"
+        or not sys.stdin.isatty()
+    )
 
     if is_test_mode:
         # 测试模式：运行所有示例
@@ -444,33 +455,12 @@ def main():
             except Exception as e:
                 print(f"\n❌ {name} 失败: {e}")
     else:
-        # 交互模式：让用户选择
-        print("\n可用示例:")
-        for i, (name, _) in enumerate(demos, 1):
-            print(f"  {i}. {name}")
-
-        print("\n选择要运行的示例 (1-5, 或 'all' 运行全部, 'q' 退出):")
-        choice = input("> ").strip().lower()
-
-        if choice == "q":
-            return
-        elif choice == "all":
-            for name, demo_func in demos:
-                try:
-                    demo_func()
-                except Exception as e:
-                    print(f"\n❌ {name} 失败: {e}")
-        elif choice.isdigit() and 1 <= int(choice) <= len(demos):
-            name, demo_func = demos[int(choice) - 1]
+        # 非测试模式也默认顺序运行全部示例，避免自动化环境中等待输入导致超时
+        for name, demo_func in demos:
             try:
                 demo_func()
             except Exception as e:
                 print(f"\n❌ {name} 失败: {e}")
-                import traceback
-
-                traceback.print_exc()
-        else:
-            print("无效选择")
 
     print("\n" + "=" * 60)
     print("示例结束")

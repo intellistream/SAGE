@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 # type: ignore
-# ^ 忽略整个文件的类型检查（Ray Actor 动态方法导致大量误报）
 """
 测试队列描述符的引用传递和并发读写能力
 
 验证：
 1. 引用传递（对象在不同进程/线程间的共享）
 2. 并发读写安全性
-3. Ray Actor之间的队列引用传递
-4. 不同队列类型的并发性能测试
+3. 不同队列类型的并发性能测试
 """
 
 import logging
@@ -16,9 +14,6 @@ import os
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any
-
-import pytest
 
 # 添加项目路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -26,13 +21,9 @@ sage_kernel_src = os.path.join(current_dir, "../../../../../src")
 sys.path.insert(0, os.path.abspath(sage_kernel_src))
 
 try:
-    from sage.kernel.utils.ray.ray_utils import (  # noqa: F401
-        ensure_ray_initialized,
-    )
     from sage.platform.queue import (
         BaseQueueDescriptor,  # noqa: F401
         PythonQueueDescriptor,
-        RayQueueDescriptor,
         resolve_descriptor,  # noqa: F401
     )
 
@@ -126,69 +117,6 @@ def worker_mixed_operations(queue_desc: BaseQueueDescriptor, worker_id: int, num
 
 # 注释：原本的 multiprocess_producer 和 multiprocess_consumer 函数已移除
 # 因为Python multiprocessing.Queue的队列描述符引用很难跨进程传递
-
-
-# ============ Ray Actor 相关测试 ============
-
-try:
-    import ray
-
-    @ray.remote
-    class QueueProducerActor:
-        """Ray Actor 生产者"""
-
-        def produce_items(self, queue_desc_dict: dict[str, Any], actor_id: int, num_items: int):
-            """生产物品到队列"""
-            try:
-                # 从字典重建队列描述符
-                from sage.platform.queue import resolve_descriptor
-
-                queue_desc = resolve_descriptor(queue_desc_dict)
-
-                for i in range(num_items):
-                    item = f"ray_actor_{actor_id}_{i}"
-                    queue_desc.put(item)
-
-                return f"actor_producer_{actor_id}_completed_{num_items}"
-            except Exception as e:
-                return f"actor_producer_{actor_id}_error: {e}"
-
-    @ray.remote
-    class QueueConsumerActor:
-        """Ray Actor 消费者"""
-
-        def consume_items(
-            self, queue_desc_dict: dict[str, Any], actor_id: int, expected_items: int
-        ):
-            """从队列消费物品"""
-            try:
-                # 从字典重建队列描述符
-                from sage.platform.queue import resolve_descriptor
-
-                queue_desc = resolve_descriptor(queue_desc_dict)
-
-                consumed_items = []
-                start_time = time.time()
-
-                while len(consumed_items) < expected_items:
-                    if time.time() - start_time > 30.0:  # 30秒超时
-                        break
-
-                    try:
-                        item = queue_desc.get(timeout=1.0)
-                        consumed_items.append(item)
-                    except Exception:
-                        continue
-
-                return consumed_items
-            except Exception:
-                return []
-
-    RAY_AVAILABLE = True
-
-except ImportError:
-    RAY_AVAILABLE = False
-    print("⚠️ Ray not available, skipping Ray tests")
 
 
 # ============ 测试类 ============
@@ -368,72 +296,6 @@ class TestPythonQueueConcurrency:
         print("✓ 并发压力测试通过")
 
 
-@pytest.mark.ray
-class TestRayQueueConcurrency:
-    """Ray队列并发测试 - 需要Ray环境"""
-
-    def test_ray_queue_actor_communication(self):
-        """测试Ray队列Actor通信"""
-        print("\n=== 测试Ray队列Actor通信 ===")
-
-        if not ray.is_initialized():
-            ensure_ray_initialized()
-
-        try:
-            # 创建Ray队列描述符
-            ray_desc = RayQueueDescriptor(queue_id="ray_actor_comm_test", maxsize=100)
-
-            num_producer_actors = 2
-            num_consumer_actors = 2
-            items_per_actor = 5
-
-            print(f"Ray Actor配置: {num_producer_actors}个生产者, {num_consumer_actors}个消费者")
-
-            # 创建生产者和消费者Actor
-            producer_actors = [QueueProducerActor.remote() for _ in range(num_producer_actors)]
-            consumer_actors = [QueueConsumerActor.remote() for _ in range(num_consumer_actors)]
-
-            # 获取队列字典用于Actor通信
-            queue_dict = ray_desc.to_dict()
-
-            # 启动生产者
-            producer_futures = []
-            for i, actor in enumerate(producer_actors):
-                future = actor.produce_items.remote(queue_dict, i, items_per_actor)
-                producer_futures.append(future)
-
-            # 等待生产者完成
-            producer_results = ray.get(producer_futures)
-            for result in producer_results:
-                print(f"Ray生产者Actor结果: {result}")
-
-            # 启动消费者
-            consumer_futures = []
-            expected_per_consumer = (num_producer_actors * items_per_actor) // num_consumer_actors
-            for i, actor in enumerate(consumer_actors):
-                future = actor.consume_items.remote(queue_dict, i, expected_per_consumer)
-                consumer_futures.append(future)
-
-            # 等待消费者完成
-            consumer_results = ray.get(consumer_futures)
-            total_consumed = sum(
-                len(items) for items in consumer_results if isinstance(items, list)
-            )
-
-            print(f"Ray Actor总共消费: {total_consumed}")
-            for i, result in enumerate(consumer_results):
-                if isinstance(result, list):
-                    print(f"消费者Actor {i}: 消费了{len(result)}个项目")
-
-            print("✓ Ray队列Actor通信测试通过")
-
-        except Exception as e:
-            print(f"⚠️ Ray Actor测试失败: {e}")
-            import traceback
-
-            traceback.print_exc()
-
-
 def run_all_tests():
     """运行所有测试"""
     print("开始运行引用传递和并发测试...")
@@ -455,9 +317,6 @@ def run_all_tests():
         test_suite.test_concurrent_stress_test()
 
         print("\n🎉 Python队列测试通过！")
-
-        # Ray测试需要单独运行（被pytest标记过滤）
-        print("\n注意: Ray队列测试需要使用 pytest -m ray 单独运行")
 
     except Exception as e:
         print(f"\n❌ 测试失败: {e}")

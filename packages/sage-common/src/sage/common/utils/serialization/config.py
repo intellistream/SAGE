@@ -36,8 +36,8 @@ ATTRIBUTE_BLACKLIST = {
 SKIP_VALUE = object()
 
 
-# Ray相关的专用排除列表
-RAY_TRANSFORMATION_EXCLUDE_ATTRS = [
+# 远程调用专用排除列表（原 Ray 排除列表，现运行时无关）
+TRANSFORMATION_EXCLUDE_ATTRS = [
     "logger",
     "_logger",  # 日志对象
     "env",  # 环境引用（避免循环引用）
@@ -50,7 +50,7 @@ RAY_TRANSFORMATION_EXCLUDE_ATTRS = [
     "_server_thread",  # 线程对象
 ]
 
-RAY_OPERATOR_EXCLUDE_ATTRS = [
+OPERATOR_EXCLUDE_ATTRS = [
     "logger",
     "_logger",
     "runtime_context",

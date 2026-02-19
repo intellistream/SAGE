@@ -14,7 +14,9 @@ import time
 
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
-from sage.kernel.api.remote_environment import RemoteEnvironment
+from sage.kernel.api.flownet_environment import (
+    FlownetEnvironment,  # migrated from FlownetEnvironment (Issue #1443)
+)
 from sage.kernel.runtime.communication.packet import StopSignal
 
 # 设置日志级别为ERROR减少输出
@@ -183,7 +185,7 @@ def run_simple_batch_test():
     print("🔢 Test 1: Simple Number Sequence Batch Processing")
     print("=" * 50)
 
-    env = RemoteEnvironment("simple_batch_test")
+    env = FlownetEnvironment("simple_batch_test")
 
     # 创建有限数据源
     source_stream = env.from_source(NumberSequenceSource, max_count=5, delay=0.5)
@@ -214,7 +216,7 @@ def run_file_processing_test():
     print("📄 Test 2: File Line Batch Processing")
     print("=" * 50)
 
-    env = RemoteEnvironment("file_batch_test")
+    env = FlownetEnvironment("file_batch_test")
 
     # 模拟文件数据
     file_data = [
@@ -253,7 +255,7 @@ def run_multi_source_batch_test():
     print("🔀 Test 3: Multi-Source Batch Processing")
     print("=" * 50)
 
-    env = RemoteEnvironment("multi_source_batch_test")
+    env = FlownetEnvironment("multi_source_batch_test")
 
     # 创建多个不同速度的数据源
     numbers_stream = env.from_source(NumberSequenceSource, max_count=3, delay=0.5)
@@ -283,7 +285,7 @@ def run_processing_chain_test():
     print("⛓️  Test 4: Complex Processing Chain Batch")
     print("=" * 50)
 
-    env = RemoteEnvironment("complex_batch_test")
+    env = FlownetEnvironment("complex_batch_test")
 
     source_stream = env.from_source(NumberSequenceSource, max_count=8, delay=0.3)
 
@@ -315,9 +317,9 @@ def run_processing_chain_test():
 
 def main():
     """主测试函数"""
-    print("🎯 SAGE Batch Processing Tests with RemoteEnvironment")
+    print("🎯 SAGE Batch Processing Tests with FlownetEnvironment")
     print("=" * 60)
-    print("🧪 Testing automatic batch termination using RemoteEnvironment with JobManager")
+    print("🧪 Testing automatic batch termination using FlownetEnvironment with JobManager")
     print("📈 Each test demonstrates different batch processing scenarios\n")
 
     # 启动JobManager服务
@@ -354,7 +356,7 @@ def main():
         print("✅ Test 3: Multi-source - PASSED")
         print("✅ Test 4: Complex chain - PASSED")
         print("\n💡 Key Features Demonstrated:")
-        print("   - RemoteEnvironment with JobManager")
+        print("   - FlownetEnvironment with JobManager")
         print("   - StopSignal automatic termination")
         print("   - Source-driven batch lifecycle")
         print("   - Multi-source coordination")

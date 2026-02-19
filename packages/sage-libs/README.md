@@ -257,7 +257,7 @@ result = agent.run("Hello")
 
 ## 📚 Documentation
 
-- **Architecture**: `docs-public/docs_src/dev-notes/l3-libs/`
+- **Architecture**: `../../CHANGELOG.md`
 - **API Reference**: `docs-public/docs_src/api-reference/sage-libs/`
 - **Tutorials**: `examples/tutorials/L3-libs/`
 

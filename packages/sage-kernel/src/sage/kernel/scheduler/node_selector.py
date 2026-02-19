@@ -4,32 +4,35 @@ NodeSelector - 资源感知的节点选择器
 集成到 Scheduler 中，根据集群资源状态和任务需求选择最优节点。
 
 核心功能：
-1. 实时监控集群资源状态（CPU、GPU、内存、自定义资源）
+1. 通过 ResourceProvider 获取集群资源快照（支持本地单节点和 Flownet 分布式）
 2. 根据任务需求匹配合适的节点
-3. 支持多种调度策略（负载均衡、资源匹配、亲和性等）
+3. 支持多种调度策略（balanced / pack / spread）
 4. 跟踪节点任务分配历史
 
-示例用法:
-    selector = NodeSelector()
+示例用法（本地单节点，默认）::
 
-    # 根据资源需求选择节点
+    selector = NodeSelector()
     node_id = selector.select_best_node(
         cpu_required=4,
         gpu_required=1,
         memory_required=8*1024**3
     )
+
+示例用法（Flownet 分布式）::
+
+    from sage.kernel.scheduler.resource_provider import FlownetRuntimeProvider
+    provider = FlownetRuntimeProvider(cluster_view)
+    selector = NodeSelector(provider=provider)
 """
+
+from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-try:
-    import ray
-
-    RAY_AVAILABLE = True
-except ImportError:
-    RAY_AVAILABLE = False
+if TYPE_CHECKING:
+    from sage.kernel.scheduler.resource_provider import ResourceProvider
 
 
 @dataclass
@@ -118,24 +121,38 @@ class NodeSelector:
     资源感知的节点选择器
 
     职责：
-    1. 监控集群资源状态
+    1. 通过 ``ResourceProvider`` 获取集群资源快照
     2. 根据任务需求选择最优节点
     3. 跟踪节点任务分配
-    4. 支持多种调度策略
+    4. 支持多种调度策略（balanced / pack / spread）
+
+    数据来源可通过 ``provider`` 参数在外部注入：
+    - 默认使用 ``LocalSnapshotProvider``（本地单节点，无需外部服务）
+    - 分布式部署时可传入 ``FlownetRuntimeProvider``
     """
 
-    def __init__(self, cache_ttl: float = 0.5, enable_tracking: bool = True):
+    def __init__(
+        self,
+        cache_ttl: float = 0.5,
+        enable_tracking: bool = True,
+        provider: ResourceProvider | None = None,
+    ):
         """
         初始化节点选择器
 
         Args:
-            cache_ttl: 资源信息缓存时间（秒）
-            enable_tracking: 是否启用任务分配跟踪
+            cache_ttl:        资源信息缓存时间（秒）；当 provider 自带缓存时此值
+                              仍作为 node_cache 刷新周期的上界。
+            enable_tracking:  是否启用任务分配跟踪
+            provider:         资源提供者；None 时自动使用 LocalSnapshotProvider。
         """
         self.cache_ttl = cache_ttl
         self.enable_tracking = enable_tracking
 
-        # 缓存
+        # 延迟初始化默认 provider，避免在导入时触发 psutil 探测
+        self._provider: ResourceProvider | None = provider
+
+        # 本地缓存（由 _update_node_cache 填充）
         self.node_cache: dict[str, NodeResources] = {}
         self.last_update: float = 0
 
@@ -143,92 +160,36 @@ class NodeSelector:
         self.node_task_count: dict[str, int] = {}  # node_id -> task_count
         self.task_node_map: dict[str, str] = {}  # task_name -> node_id
 
+    @property
+    def provider(self) -> ResourceProvider:
+        """懒加载默认 provider（LocalSnapshotProvider）。"""
+        if self._provider is None:
+            from sage.kernel.scheduler.resource_provider import LocalSnapshotProvider
+
+            self._provider = LocalSnapshotProvider(cache_ttl=self.cache_ttl)
+        return self._provider
+
+    def set_provider(self, provider: ResourceProvider) -> None:
+        """
+        替换资源提供者（用于在 Flownet runtime 初始化后动态切换）。
+
+        Args:
+            provider: 新的资源提供者实例
+        """
+        self._provider = provider
+        # 使缓存立即失效
+        self.node_cache = {}
+        self.last_update = 0
+
     def _update_node_cache(self) -> None:
-        """更新节点资源信息缓存"""
-        if not RAY_AVAILABLE:
+        """刷新节点资源缓存（受 cache_ttl 限制）。"""
+        now = time.time()
+        if now - self.last_update < self.cache_ttl and self.node_cache:
             return
 
-        current_time = time.time()
-        if current_time - self.last_update < self.cache_ttl:
-            return  # 缓存还有效
-
-        try:
-            # 获取节点列表和资源信息
-            nodes = ray.nodes()
-            available_resources = ray.available_resources()
-
-            new_cache = {}
-
-            for node in nodes:
-                if not node.get("Alive", False):
-                    continue
-
-                node_id = node["NodeID"]
-                resources = node.get("Resources", {})
-
-                # 提取资源信息
-                total_cpu = resources.get("CPU", 0.0)
-                total_gpu = resources.get("GPU", 0.0)
-                total_memory = resources.get("memory", 0)
-
-                # 估算可用资源（简化版）
-                # 注意：ray.available_resources() 是全局的，这里做粗略估算
-                available_cpu = available_resources.get("CPU", 0.0)
-                available_gpu = available_resources.get("GPU", 0.0)
-                available_memory = available_resources.get("memory", 0)
-
-                # 计算使用率
-                cpu_usage = 1.0 - (available_cpu / total_cpu) if total_cpu > 0 else 0.0
-                gpu_usage = 1.0 - (available_gpu / total_gpu) if total_gpu > 0 else 0.0
-                memory_usage = 1.0 - (available_memory / total_memory) if total_memory > 0 else 0.0
-
-                # 限制范围
-                cpu_usage = max(0.0, min(1.0, cpu_usage))
-                gpu_usage = max(0.0, min(1.0, gpu_usage))
-                memory_usage = max(0.0, min(1.0, memory_usage))
-
-                # 提取自定义资源
-                custom_resources = {}
-                for key, value in resources.items():
-                    if key not in [
-                        "CPU",
-                        "GPU",
-                        "memory",
-                        "object_store_memory",
-                        "node",
-                    ]:
-                        custom_resources[key] = value
-
-                # 获取任务数
-                task_count = self.node_task_count.get(node_id, 0)
-
-                # 创建节点资源对象
-                node_res = NodeResources(
-                    node_id=node_id,
-                    hostname=node.get("NodeManagerHostname", "unknown"),
-                    address=node.get("NodeManagerAddress", "unknown"),
-                    total_cpu=total_cpu,
-                    total_gpu=total_gpu,
-                    total_memory=total_memory,
-                    custom_resources=custom_resources,
-                    available_cpu=available_cpu,
-                    available_gpu=available_gpu,
-                    available_memory=available_memory,
-                    cpu_usage=cpu_usage,
-                    gpu_usage=gpu_usage,
-                    memory_usage=memory_usage,
-                    task_count=task_count,
-                    alive=True,
-                )
-
-                new_cache[node_id] = node_res
-
-            self.node_cache = new_cache
-            self.last_update = current_time
-
-        except Exception:
-            # Ray 未初始化或其他错误，静默忽略
-            pass
+        nodes = self.provider.get_nodes()
+        self.node_cache = {n.node_id: n for n in nodes}
+        self.last_update = now
 
     def get_all_nodes(self) -> list[NodeResources]:
         """

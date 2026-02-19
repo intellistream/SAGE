@@ -37,8 +37,8 @@ dependencies = [
     # 核心依赖 - 只包含 sage.kernel 模块导入时必需的最小依赖集
     # 原则：所有重型依赖（torch, fastapi, etc.）都放在 optional-dependencies
     # ============================================================================
-    # NOTE: sage-kernel reuses dependencies from sage-platform (ray, etc.)
-    # These are pulled in transitively via isage-platform dependency
+    # SAGE Platform layer - required for RPC queue registration and Flownet scheduler
+    "isage-platform>=0.2.0",
 ]
 
 license = { text = "MIT" }
@@ -50,35 +50,7 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "pytest-benchmark>=4.0.0",
     "ruff==0.14.6",
-    "mypy>=1.7.0",
 ]
-# Deep learning - for model execution and GPU computation
-ml = ["torch>=2.7.0,<3.0.0", "torchvision>=0.22.0,<1.0.0"]
-# Web server - for serving kernel as HTTP service
-server = [
-    "fastapi>=0.115.0,<1.0.0",
-    "uvicorn[standard]>=0.34.0,<1.0.0",
-    "python_multipart>=0.0.20,<0.1.0",
-]
-# Distributed - for cluster execution (usually pulled from sage-platform)
-distributed = [
-    "ray>=2.48.0,<3.0.0",
-    "grpcio>=1.74.0,<2.0.0",
-    "protobuf>=6.32.0,<7.0.0",
-    "msgpack>=1.1.0,<2.0.0",
-]
-# AWS - for cloud storage and services
-aws = ["aioboto3>=14.1.0,<15.0.0"]
-# CLI - for interactive kernel management
-cli = [
-    "typer>=0.15.0,<1.0.0",
-    "rich>=13.0.0,<14.0.0",
-    "click>=8.0.0,<9.0.0",
-    "questionary>=1.10.0,<2.0.0",
-    "prompt_toolkit>=3.0.50,<4.0.0",
-    "tabulate>=0.9.0,<1.0.0",
-]
-# Build - for C++ extensions
 build = ["Cython>=3.1.0,<4.0.0", "pybind11>=3.0.0,<4.0.0"]
 # Full installation with all optional dependencies
 all = ["isage-kernel[ml,server,distributed,aws,cli,build]"]
@@ -126,12 +98,9 @@ markers = [
     "core: marks tests as core functionality tests",
     "smoke: marks tests as smoke tests (quick validation)",
     "cli: marks tests as CLI tests",
-    "ray: marks tests requiring Ray framework (may be slow)",
     "distributed: marks tests requiring distributed setup",
 ]
 filterwarnings = [
-    "ignore::DeprecationWarning:ray._private.client_mode_hook",
-    "ignore:.*local mode is an experimental feature.*:DeprecationWarning",
     "ignore::DeprecationWarning:pkg_resources",
     "ignore:.*SWIG.*:DeprecationWarning",
     "ignore:.*SwigPyPacked.*:DeprecationWarning",
@@ -158,24 +127,7 @@ exclude_lines = [
 line-length = 100
 target-version = ["py310", "py311", "py312"]
 include = "\\.pyi?$"
-extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.mypy_cache\n  | \\.pytest_cache\n  | \\.ruff_cache\n  | \\.venv\n  | build\n  | dist\n)/\n"
-
-[tool.mypy]
-python_dynamic = ["version"]
-cache_dir = "../../.sage/cache/mypy"
-check_untyped_defs = true
-disallow_any_generics = true
-disallow_incomplete_defs = true
-disallow_untyped_defs = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_return_any = true
-strict_equality = true
-
-[[tool.mypy.overrides]]
-module = ["sage.*"]
-ignore_missing_imports = true
+extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.pytest_cache\n  | \\.ruff_cache\n  | \\.venv\n  | build\n  | dist\n)/\n"
 
 [tool.ruff]
 extend = "../../tools/ruff.toml"

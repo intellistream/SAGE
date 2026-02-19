@@ -7,11 +7,6 @@
 #   - Install hooks: pre-commit install --config tools/config/pre-commit-config.yaml
 #   - Run manually: pre-commit run --all-files --config tools/config/pre-commit-config.yaml
 #
-# Mypy Type Checking:
-#   - Runs automatically on changed Python files
-#   - Shows type errors as warnings (doesn't block commits/CI)
-#   - To run mypy explicitly: pre-commit run mypy --all-files --config tools/config/pre-commit-config.yaml
-
 default_language_version:
   python: python3.11
 
@@ -26,44 +21,44 @@ repos:
   - id: end-of-file-fixer
     exclude: '(\.svg$|ThirdParty/|thirdparty/)'
   - id: check-yaml
-    args: [--unsafe]      # Allow custom YAML tags
+    args: [--unsafe]     # Allow custom YAML tags
     exclude: ^(.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN)/)
   - id: check-json
-    exclude: '(ThirdParty/|thirdparty/)'
+    exclude: "(ThirdParty/|thirdparty/)"
   - id: check-toml
-    exclude: '(ThirdParty/|thirdparty/)'
+    exclude: "(ThirdParty/|thirdparty/)"
   - id: check-added-large-files
-    args: ['--maxkb=1000']
-    exclude: '(ThirdParty/|thirdparty/)'
+    args: ["--maxkb=1000"]
+    exclude: "(ThirdParty/|thirdparty/)"
   - id: check-merge-conflict
-    exclude: '(ThirdParty/|thirdparty/)'
+    exclude: "(ThirdParty/|thirdparty/)"
   - id: check-case-conflict
     exclude: ^(.*/benchmark_(libamm|db)/|.*/(libamm|sageLLM|neuromem|sageTSDB)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/)
   - id: mixed-line-ending
     args: [--fix=lf]
-    exclude: '(ThirdParty/|thirdparty/)'
+    exclude: "(ThirdParty/|thirdparty/)"
   - id: detect-private-key
-    exclude: '(ThirdParty/|thirdparty/)'
+    exclude: "(ThirdParty/|thirdparty/)"
 
-  # Python: Black formatter (DISABLED - using ruff format instead)
-  # Black and ruff format can conflict in edge cases, causing infinite reformatting
-  # Ruff format is now mature enough to replace Black completely
-# - repo: https://github.com/psf/black
-#   rev: 25.9.0
-#   hooks:
-#   - id: black
-#     language_version: python3.11
-#     args: [--line-length=100]
-#     exclude: ^(docs/|docs-public/|examples/data/|.*/(sageLLM|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
+    # Python: Black formatter (DISABLED - using ruff format instead)
+    # Black and ruff format can conflict in edge cases, causing infinite reformatting
+    # Ruff format is now mature enough to replace Black completely
+  # - repo: https://github.com/psf/black
+  #   rev: 25.9.0
+  #   hooks:
+  #   - id: black
+  #     language_version: python3.11
+  #     args: [--line-length=100]
+  #     exclude: ^(docs/|docs-public/|examples/data/|.*/(sageLLM|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
 
   # Python: isort import sorting
-# - repo: https://github.com/pycqa/isort
-#   rev: 7.0.0
-#   hooks:
-#   - id: isort
-#     args: [--profile=black, --line-length=100]
-#     exclude: ^(docs/|docs-public/|examples/data/|.*/(sageLLM|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
-#
+  # - repo: https://github.com/pycqa/isort
+  #   rev: 7.0.0
+  #   hooks:
+  #   - id: isort
+  #     args: [--profile=black, --line-length=100]
+  #     exclude: ^(docs/|docs-public/|examples/data/|.*/(sageLLM|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
+  #
   # Python: Ruff linter and formatter (replaces flake8, isort, pyupgrade)
 - repo: https://github.com/astral-sh/ruff-pre-commit
   rev: v0.14.6
@@ -77,7 +72,6 @@ repos:
     args: [--config, tools/config/ruff.toml]
     exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm|db)/|.*/(sageLLM|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
-# Python: mypy type checking (warning mode - shows errors but doesn't block commit)
 - repo: local
   hooks:
   - id: architecture-violation-check
@@ -87,25 +81,15 @@ repos:
     pass_filenames: false
     always_run: false
     stages: [pre-commit]
-    # Check for files in wrong locations (e.g., sageLLM in sage-common instead of sage-llm-core)
-  - id: libs-middleware-import-check
-    name: check sage-libs does not import sage.middleware (L3→L4 violation)
-    entry: tools/hooks/check_libs_middleware_import.sh
-    language: system
-    pass_filenames: false
-    always_run: false
-    files: ^packages/sage-libs/src/.*\.py$
-    stages: [pre-commit]
-    # Enforces architecture rule: L3 (sage-libs) must NOT import L4 (sage.middleware)
-    # See: docs-public/docs_src/dev-notes/cross-layer/MIDDLEWARE_COMPONENT_PROMOTION_POLICY.md
-  # - id: dependency-version-conflicts
-  #   name: check dependency version conflicts
-  #   entry: python3 tools/install/helpers/unify_dependencies.py --check
-  #   language: system
-  #   pass_filenames: false
-  #   always_run: false
-  #   files: ^packages/.*/pyproject\.toml$
-  #   # DEPRECATED: Script removed, dependency management moved to sage-tools
+        # Check for files in wrong locations (e.g., sageLLM in sage-common instead of sage-llm-core)
+      # - id: dependency-version-conflicts
+      #   name: check dependency version conflicts
+      #   entry: python3 tools/install/helpers/unify_dependencies.py --check
+      #   language: system
+      #   pass_filenames: false
+      #   always_run: false
+      #   files: ^packages/.*/pyproject\.toml$
+      #   # DEPRECATED: Script removed, dependency management moved to sage-tools
   - id: pep420-namespace-compliance
     name: PEP 420 namespace package compliance check
     entry: bash -c 'tools/scripts/validate_pep420_compliance.sh'
@@ -113,23 +97,17 @@ repos:
     pass_filenames: false
     always_run: false
     files: ^packages/.*/src/sage/__init__\.py$
-    # Block commit if src/sage/__init__.py is added/modified (violates PEP 420)
-  - id: mypy
-    name: mypy type checking (warnings only)
-    entry: tools/quality/mypy-wrapper.sh
+        # Block commit if src/sage/__init__.py is added/modified (violates PEP 420)
+  - id: cross-repo-dedup-check
+    name: cross-repo duplicate declaration check (SAGE vs sageFlownet)
+    entry: python3 tools/scripts/check_cross_repo_dedup.py
     language: system
-    types: [python]
-    require_serial: true
-    args:
-    - --cache-dir=.sage/cache/mypy
-    - --ignore-missing-imports
-    - --show-error-codes
-    - --explicit-package-bases
-    - --warn-unused-ignores
-    - --namespace-packages
-    exclude: ^(docs/|docs-public/|examples/|tests/|.*/tests/|setup.py|.*/setup.py|.*/benchmark_(libamm|db)/|.*/(sageLLM|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/src/sage/__init__.py|ThirdParty/|thirdparty/)
-    # This hook will always succeed (exit 0) to avoid blocking commits/CI
-    # Errors are shown but treated as warnings
+    pass_filenames: false
+    always_run: false
+    stages: [pre-commit, manual]
+    files: \.py$
+        # Enforces move-then-delete rule: migrated symbols must not be redefined in Flownet.
+        # See Issue #1439 and flownet-migration-boundary.md
   - id: markdown-files-location-check
     name: check markdown files are in proper locations
     entry: tools/hooks/check_docs_location.sh
@@ -144,14 +122,14 @@ repos:
     pass_filenames: false
     always_run: false
     files: ^docs-public/docs_src/dev-notes/.*\.md$
-  # - id: control-plane-only-guard
-  #   name: prevent embedded/local inference paths
-  #   entry: tools/hooks/check_control_plane_only.py
-  #   language: system
-  #   pass_filenames: false
-  #   always_run: false
-  #   files: \.py$
-  #   # DEPRECATED: Script removed, control plane checks moved to sage-tools
+      # - id: control-plane-only-guard
+      #   name: prevent embedded/local inference paths
+      #   entry: tools/hooks/check_control_plane_only.py
+      #   language: system
+      #   pass_filenames: false
+      #   always_run: false
+      #   files: \.py$
+      #   # DEPRECATED: Script removed, control plane checks moved to sage-tools
   - id: python-test-files-location-check
     name: check Python test files are in proper locations
     entry: bash -c
@@ -211,13 +189,6 @@ repos:
     pass_filenames: false
     always_run: false
     files: ^docs-public/docs_src/dev-notes/.*\.md$
-  - id: depspec-consistency
-    name: check dependencies match dependencies-spec.yaml
-    entry: bash -c 'sage-dev maintain depspec'
-    language: system
-    pass_filenames: false
-    always_run: false
-    files: ^(packages/.*/pyproject\.toml$|dependencies-spec\.yaml$)
   - id: devnotes-structure-check
     name: dev-notes directory structure validation
     entry: bash -c
@@ -250,6 +221,7 @@ repos:
         "testing"
         "archive"
         "research_work"
+        "hooks"
       )
 
       # Get all first-level directories under docs-public/docs_src/dev-notes/
@@ -305,9 +277,9 @@ repos:
     entry: bash tools/install/examination_tools/installation_consistency_check.sh
     language: system
     pass_filenames: false
-    # 仅在修改安装相关文件时运行
+        # 仅在修改安装相关文件时运行
     files: ^(quickstart\.sh|tools/install/.*\.sh|packages/.*/pyproject\.toml|packages/.*/setup\.py|\.github/workflows/.*\.yml)$
-    # 也在手动运行 pre-commit run --all-files 时执行
+        # 也在手动运行 pre-commit run --all-files 时执行
     stages: [pre-commit, manual]
   - id: root-directory-cleanup-check
     name: check for unwanted files/directories in project root
@@ -338,7 +310,6 @@ repos:
         "README.md"
         "CHANGELOG.md"
         "dependencies-spec.yaml"
-        "dependencies-spec.yaml"
         "tasks.md"
         "SAGE.code-workspace"
       )
@@ -348,7 +319,6 @@ repos:
         ".benchmarks"  # Deprecated; keep for legacy benchmark artifacts
         ".git"
         ".github"
-        ".mypy_cache"
         ".pytest_cache"
         ".ruff_cache"
         ".sage"
@@ -364,6 +334,7 @@ repos:
         "packages"
         "data"
         "tools"
+        "hooks"
       )
 
       violations=""
@@ -412,7 +383,7 @@ repos:
         echo "   - 临时文件应放在 .sage/ 目录下"
         echo "   - 如果是新增的合法文件/目录，请更新 tools/config/pre-commit-config.yaml 中的白名单"
         echo ""
-        echo "📖 参考: docs/dev-notes/l5-tools/CACHE_MANAGEMENT.md"
+        echo "📖 参考: docs-public/docs_src/dev-notes/l5-tools/CACHE_MANAGEMENT.md"
         exit 1
       fi
       exit 0
@@ -420,19 +391,19 @@ repos:
     pass_filenames: false
     always_run: true
     stages: [pre-commit, manual]
-  # Shell: shellcheck
-  # NOTE: shellcheck-py may fail in CI due to network issues when downloading shellcheck binary
-  # This is a known issue: https://github.com/shellcheck-py/shellcheck-py/issues/15
-  # Workaround: Use fail_fast: false in CI or install shellcheck separately
+    # Shell: shellcheck
+    # NOTE: shellcheck-py may fail in CI due to network issues when downloading shellcheck binary
+    # This is a known issue: https://github.com/shellcheck-py/shellcheck-py/issues/15
+    # Workaround: Use fail_fast: false in CI or install shellcheck separately
 - repo: https://github.com/shellcheck-py/shellcheck-py
   rev: v0.11.0.1
   hooks:
   - id: shellcheck
-    args: [-x, -e, SC1091, -S, error]      # -x: follow sources, -e SC1091: ignore source errors, -S error: only fail on errors
+    args: [-x, -e, SC1091, -S, error]     # -x: follow sources, -e SC1091: ignore source errors, -S error: only fail on errors
     files: \.(sh|bash)$
     exclude: ^(tools/conda/|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
-  # YAML formatting
+    # YAML formatting
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
   rev: v2.15.0
   hooks:
@@ -440,22 +411,22 @@ repos:
     args: [--autofix, --indent=2, --preserve-quotes]
     exclude: ^(\.github/|examples/config/|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
-  # Markdown formatting
+    # Markdown formatting
 - repo: https://github.com/executablebooks/mdformat
   rev: 1.0.0
   hooks:
   - id: mdformat
     additional_dependencies:
-    - mdformat-gfm        # GitHub Flavored Markdown
-    # Note: mdformat-black is disabled because it fails on code blocks with:
-    # - Template placeholders (e.g., {module_name})
-    # - Special symbols in comments (e.g., ✅ ❌)
-    # - Pseudo-code or incomplete Python snippets
-    # - mdformat-black        # Black formatter for code blocks
+    - mdformat-gfm       # GitHub Flavored Markdown
+        # Note: mdformat-black is disabled because it fails on code blocks with:
+        # - Template placeholders (e.g., {module_name})
+        # - Special symbols in comments (e.g., ✅ ❌)
+        # - Pseudo-code or incomplete Python snippets
+        # - mdformat-black        # Black formatter for code blocks
     args: [--wrap=100]
     exclude: ^(CHANGELOG.md|\.github/|docs/dev-notes/|docs-public/docs_src/api-reference/)
 
-  # Security: Check for secrets
+    # Security: Check for secrets
 - repo: https://github.com/Yelp/detect-secrets
   rev: v1.5.0
   hooks:
@@ -463,8 +434,8 @@ repos:
     args: [--baseline, tools/config/secrets.baseline]
     exclude: ^(tools/secrets\.baseline|\.env\.template|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/.*/src/.*\.md$|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
-  # SAGE Data Architecture Validation - REMOVED (sage-benchmark is now independent)
-  # See: https://github.com/intellistream/sage-benchmark
+    # SAGE Data Architecture Validation - REMOVED (sage-benchmark is now independent)
+    # See: https://github.com/intellistream/sage-benchmark
 - repo: local
   hooks:
   - id: copilot-instructions-sync-check
@@ -472,11 +443,10 @@ repos:
     entry: bash tools/hooks/check_copilot_instructions_sync.sh
     language: system
     pass_filenames: false
-    # Trigger on: doc files, installation scripts, CI/CD, config, ports, CLI, LLM/Gateway
+        # Trigger on: doc files, installation scripts, CI/CD, config, ports, CLI, LLM/Gateway
     files: ^(\.github/(copilot-instructions\.md|agents/my-agent\.agent\.md|workflows/.*\.yml)|quickstart\.sh|manage\.sh|Makefile|tools/(install/.*\.sh|pre-commit-config\.yaml|pytest\.ini|ruff\.toml)|packages/sage-common/src/sage/common/config/(ports|user_paths)\.py|packages/sage-cli/src/sage/cli/|packages/sage-gateway/src/sage/gateway/|packages/sage-common/src/sage/common/components/sage_(llm|embedding)/|packages/sage-[^/]+/pyproject\.toml|config/(config|cluster)\.yaml)
     stages: [pre-commit, manual]
     description: Warn if critical project files change without updating copilot instructions
-
 # To install pre-commit hooks:
 #   pre-commit install
 #

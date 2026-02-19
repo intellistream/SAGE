@@ -13,7 +13,6 @@ import pytest
     "mode,description",
     [
         ("dev", "开发模式 - 开发工具"),
-        ("all", "完整安装 - 所有功能"),
     ],
 )
 def test_install_mode(mode, description):

@@ -44,11 +44,11 @@ class ConfigShowCommand(BaseCommand):
                     "Work Directory": self.config.get("work_dir", "Not set"),
                 }
 
-                # Ray配置
-                if "ray" in self.config:
-                    ray_config = self.config["ray"]
-                    summary["Ray Address"] = ray_config.get("address", "Not set")
-                    summary["Ray Port"] = ray_config.get("port", "Not set")
+                # 运行时配置（支持 runtime / ray 两个键名）
+                runtime_config = self.config.get("runtime") or self.config.get("ray")
+                if runtime_config:
+                    summary["Runtime Address"] = runtime_config.get("address", "Not set")
+                    summary["Runtime Port"] = runtime_config.get("port", "Not set")
 
                 # Head节点配置
                 if "head" in self.config:

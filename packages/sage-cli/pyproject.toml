@@ -28,6 +28,7 @@ dependencies = [
     "httpx>=0.28.0,<1.0.0",
     "colorama>=0.4.6",
     "tabulate>=0.9.0,<1.0.0",
+    "python-multipart>=0.0.6",  # Required for FastAPI form data handling
 ]
 
 [project.optional-dependencies]
@@ -35,9 +36,7 @@ dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.0.0",
     "ruff==0.14.6",
-    "mypy>=1.7.0",
 ]
-all = []
 [project.scripts]
 sage = "sage.cli.main:app"
 
@@ -103,10 +102,3 @@ markers = [
     "unit: marks tests as unit tests",
     "cli: marks tests as CLI tests",
 ]
-
-[tool.mypy]
-python_version = "3.9"
-cache_dir = "../../.sage/cache/mypy"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = false

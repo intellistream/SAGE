@@ -1,6 +1,8 @@
 """
-简单验证 RemoteEnvironment autostop 参数支持
+验证 FlownetEnvironment autostop 参数支持
 不实际运行，只验证 API 是否正确
+
+Migrated from RemoteEnvironment → FlownetEnvironment (intellistream/SAGE#1443)
 """
 
 import inspect
@@ -20,23 +22,23 @@ src_paths = [
 for p in src_paths:
     sys.path.insert(0, str(p))
 
-from sage.kernel.api.remote_environment import RemoteEnvironment  # noqa: E402
+from sage.kernel.api.flownet_environment import FlownetEnvironment  # noqa: E402
 
 
-def test_remote_environment_autostop_signature():
-    """验证 RemoteEnvironment.submit() 是否支持 autostop 参数"""
+def test_flownet_environment_autostop_signature():
+    """验证 FlownetEnvironment.submit() 是否支持 autostop 参数"""
     print("=" * 80)
-    print("Test 1: RemoteEnvironment.submit() 方法签名验证")
+    print("Test 1: FlownetEnvironment.submit() 方法签名验证")
     print("=" * 80)
 
     # 获取 submit 方法的签名
-    sig = inspect.signature(RemoteEnvironment.submit)
+    sig = inspect.signature(FlownetEnvironment.submit)
     params = list(sig.parameters.keys())
 
     print(f"submit() 参数列表: {params}")
 
-    assert "autostop" in params, "RemoteEnvironment.submit() 不支持 autostop 参数"
-    print("✅ RemoteEnvironment.submit() 支持 autostop 参数")
+    assert "autostop" in params, "FlownetEnvironment.submit() 不支持 autostop 参数"
+    print("✅ FlownetEnvironment.submit() 支持 autostop 参数")
 
     # 获取默认值
     autostop_param = sig.parameters["autostop"]
@@ -115,31 +117,30 @@ def test_jobinfo_signature():
     print(f"   - 默认值: {autostop_param.default}")
 
 
-def test_wait_for_completion_exists():
-    """验证 RemoteEnvironment 是否有 _wait_for_completion 方法"""
+def test_flownet_environment_stop_method_exists():
+    """验证 FlownetEnvironment 是否有 stop 和 close 方法（取代旧的 _wait_for_completion）"""
     print("\n" + "=" * 80)
-    print("Test 5: RemoteEnvironment._wait_for_completion() 方法存在性验证")
+    print("Test 5: FlownetEnvironment.stop() / close() 方法存在性验证")
     print("=" * 80)
 
-    assert hasattr(RemoteEnvironment, "_wait_for_completion"), (
-        "RemoteEnvironment 没有 _wait_for_completion() 方法"
-    )
-    print("✅ RemoteEnvironment 有 _wait_for_completion() 方法")
+    assert hasattr(FlownetEnvironment, "stop"), "FlownetEnvironment 没有 stop() 方法"
+    assert hasattr(FlownetEnvironment, "close"), "FlownetEnvironment 没有 close() 方法"
+    print("✅ FlownetEnvironment 有 stop() 和 close() 方法")
 
 
 def main():
     print("\n" + "🔍" * 40)
-    print("RemoteEnvironment autostop 功能 API 验证")
+    print("FlownetEnvironment autostop 功能 API 验证")
     print("🔍" * 40 + "\n")
 
     results = []
 
     # 运行所有测试
-    results.append(("RemoteEnvironment.submit()", test_remote_environment_autostop_signature()))
+    results.append(("FlownetEnvironment.submit()", test_flownet_environment_autostop_signature()))
     results.append(("JobManagerClient.submit_job()", test_jobmanager_client_signature()))
     results.append(("JobManager.submit_job()", test_jobmanager_signature()))
     results.append(("JobInfo.__init__()", test_jobinfo_signature()))
-    results.append(("RemoteEnvironment._wait_for_completion()", test_wait_for_completion_exists()))
+    results.append(("FlownetEnvironment.stop()", test_flownet_environment_stop_method_exists()))
 
     # 总结
     print("\n" + "=" * 80)
@@ -158,7 +159,7 @@ def main():
     print("-" * 80)
 
     if passed == total:
-        print("\n🎉 所有测试通过！autostop 功能已成功添加到 RemoteEnvironment")
+        print("\n🎉 所有测试通过！autostop 功能已成功添加到 FlownetEnvironment")
     else:
         print(f"\n⚠️  有 {total - passed} 个测试失败，需要检查代码")
 

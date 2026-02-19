@@ -97,7 +97,7 @@ try:
         head_app,
         job_app,
         jobmanager_app,
-        logs_app,
+        runtime_app,
         version_app,
         worker_app,
     )
@@ -138,6 +138,12 @@ try:
         app.add_typer(config_app, name="config", help="⚙️ 配置管理 (show, set, reset)")
     if doctor_app:
         app.add_typer(doctor_app, name="doctor", help="🔍 系统诊断")
+    if runtime_app:
+        app.add_typer(
+            runtime_app,
+            name="runtime",
+            help="⚙️ Runtime - Flownet 运行时健康诊断 (status, health, info, version)",
+        )
     if extensions_app:
         app.add_typer(
             extensions_app,
@@ -149,12 +155,6 @@ try:
             docs_app,
             name="docs",
             help="📚 文档管理 - 预览、构建和部署文档 (serve, build, install-deps, info)",
-        )
-    if logs_app:
-        app.add_typer(
-            logs_app,
-            name="logs",
-            help="📝 日志管理 - 清理和查看日志文件 (clean, list, info)",
         )
 except ImportError as e:
     console.print(f"[yellow]警告: 无法导入 platform 命令组: {e}[/yellow]")

@@ -255,29 +255,18 @@ class SageOutputPaths:
         context_dir.mkdir(parents=True, exist_ok=True)
         return context_dir
 
-    def get_ray_temp_dir(self) -> Path:
-        """Get Ray temporary files directory."""
-        ray_dir = self.temp_dir / "ray"
-        ray_dir.mkdir(parents=True, exist_ok=True)
-        return ray_dir
-
     def setup_environment_variables(self):
-        """Set up environment variables for SAGE and other tools."""
+        """Set up environment variables for SAGE paths."""
         # Core SAGE paths
         os.environ["SAGE_OUTPUT_DIR"] = str(self.sage_dir)
         os.environ["SAGE_HOME"] = str(self.sage_dir)
         os.environ["SAGE_LOGS_DIR"] = str(self.logs_dir)
         os.environ["SAGE_TEMP_DIR"] = str(self.temp_dir)
 
-        # Ray-specific environment
-        ray_temp_dir = self.get_ray_temp_dir()
-        os.environ["RAY_TMPDIR"] = str(ray_temp_dir)
-
         return {
             "sage_dir": self.sage_dir,
             "logs_dir": self.logs_dir,
             "temp_dir": self.temp_dir,
-            "ray_temp_dir": ray_temp_dir,
         }
 
     def get_log_file(self, name: str, subdir: str | None = None) -> Path:
@@ -457,11 +446,6 @@ def get_coverage_dir(project_root: str | Path | None = None) -> Path:
 def get_benchmarks_dir(project_root: str | Path | None = None) -> Path:
     """Get the benchmarks directory."""
     return get_sage_paths(project_root).benchmarks_dir
-
-
-def get_ray_temp_dir(project_root: str | Path | None = None) -> Path:
-    """Get Ray temporary files directory."""
-    return get_sage_paths(project_root).get_ray_temp_dir()
 
 
 def setup_sage_environment(project_root: str | Path | None = None) -> dict:

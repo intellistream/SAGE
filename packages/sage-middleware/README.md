@@ -1,8 +1,15 @@
 # SAGE Middleware（中间件）
 
+> 用于构建带有 AI 能力的流式数据应用的中间件层
+
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](../../LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/isage-middleware.svg)](https://pypi.org/project/isage-middleware/)
+
 ## 📋 Overview
 
-用于构建带有 AI 能力的流式数据应用的中间件层，集成了多家大模型提供商、异步任务、鉴权以及高性能的数据处理组件。
+SAGE Middleware 是 SAGE 框架的 L4 中间件层，提供高性能的数据处理组件和 AI
+能力集成。它集成了多家大模型提供商、异步任务调度、安全鉴权以及核心数据处理组件（向量数据库、流处理引擎等）。
 
 ## 🧭 Governance / 团队协作制度
 
@@ -27,9 +34,25 @@
 
 ## 🚀 Installation
 
+### Basic Installation
+
 ```bash
 pip install isage-middleware
+```
 
+### Development Installation
+
+```bash
+git clone https://github.com/intellistream/SAGE.git
+cd SAGE/packages/sage-middleware
+pip install -e .
+```
+
+> 说明：中间件组件（sage_db/sage_flow/sage_tsdb 等）现已随源码直接提供或通过 pip 依赖分发，无需初始化任何子模块。
+
+### With Optional Dependencies
+
+```bash
 # 可选：VLLM 支持（需要 CUDA）
 pip install isage-common[vllm]
 
@@ -72,10 +95,47 @@ resp = client.chat_completion(
 print(resp)
 ```
 
-> 📖 **迁移指南**：如果您正在使用 `VLLMGenerator`，请参阅
-> [vLLM to sageLLM Migration Guide](../../docs-public/docs_src/dev-notes/migration/VLLM_TO_SAGELLM_MIGRATION.md)
+> 📖 **迁移指南**：如果您正在使用 `VLLMGenerator`，请参阅 [Project Changelog](../../CHANGELOG.md)
 
-## 配置示例
+## 📦 Package Structure
+
+```
+sage-middleware/
+├── src/
+│   └── sage/
+│       └── middleware/
+│           ├── __init__.py
+│           ├── operators/          # Dataflow operators
+│           │   ├── llm/           # LLM operators (sageLLM)
+│           │   ├── rag/           # RAG operators
+│           │   └── agentic/       # Agent operators
+│           ├── components/         # Core components
+│           │   ├── sage_db/       # Vector database (C++ extensions)
+│           │   ├── sage_flow/     # Stream processing (C++ extensions)
+│           │   ├── sage_tsdb/     # Time-series DB (C++ extensions)
+│           │   ├── sage_mem/      # Memory management
+│           │   └── sage_refiner/  # Context compression
+│           ├── api/                # API clients
+│           └── auth/               # Authentication
+├── tests/
+│   ├── unit/
+│   └── integration/
+├── docs/
+│   └── governance/                # Team collaboration
+├── README.md
+├── pyproject.toml
+└── setup.py
+```
+
+## 🔧 Configuration
+
+配置可以通过以下方式提供：
+
+- 环境变量
+- YAML/TOML 配置文件
+- 直接通过 API 参数
+
+### 配置示例
 
 ```yaml
 # config.yaml
@@ -89,100 +149,65 @@ middleware:
       base_url: "https://api.openai.com/v1"
 ```
 
-## 开发与本地安装
+## 📚 Documentation
+
+- **用户指南**: 参见 [SAGE-Pub](https://intellistream.github.io/SAGE-Pub/)
+- **API 参考**: 参见 [API 文档](https://intellistream.github.io/SAGE-Pub/api/)
+- **治理文档**: 参见 [docs/governance/](docs/governance/)
+- **迁移指南**: 参见 [Project Changelog](../../CHANGELOG.md)
+
+## 🧪 Testing
 
 ```bash
-git clone https://github.com/intellistream/SAGE.git
-cd SAGE/packages/sage-middleware
-pip install -e .
+# 运行单元测试
+pytest tests/unit -v
+
+# 运行集成测试
+pytest tests/integration -v
+
+# 运行所有测试并生成覆盖率报告
+pytest --cov=sage.middleware --cov-report=html
 ```
 
-> 说明：中间件组件（sage_db/sage_flow/sage_tsdb 等）现已随源码直接提供或通过 pip 依赖分发，无需初始化任何子模块。
+## 🤝 Contributing
 
-## 新增中间件组件的规范（重要）
+欢迎贡献！请参阅：
 
-当你添加新的中间件组件（例如 `sage_foo`）时，请务必在 `setup.py` 中接入其构建逻辑，这样在安装 `isage-middleware` 时会自动构建/准备该组件。
+- **贡献指南**: [CONTRIBUTING.md](../../CONTRIBUTING.md)
+- **开发者文档**: [DEVELOPER.md](../../DEVELOPER.md)
+- **PR 检查清单**: [docs/governance/PR_CHECKLIST.md](docs/governance/PR_CHECKLIST.md)
 
-建议遵循以下约定：
+### 新增中间件组件规范
 
-### 1. 目录结构
+当添加新的中间件组件时，请遵循以下要求：
 
-- `src/sage/middleware/components/sage_foo/`
-  - `__init__.py`（Python 包）
-  - （如包含 C/C++ 部分）`cmake/`、`build.sh`、`CMakeLists.txt`
-  - 其他源码/资源文件
-
-### 2. C++ 扩展与依赖要求
-
-如果组件包含 C/C++ 扩展，**必须**遵守以下依赖约束，以与现有 `sage_db`、`sage_flow` 保持一致：
-
-> **注意**: 以下代码示例中的 `SAGE_COMMON_DEPS_FILE` 等变量是 CMake 环境变量，非占位符。
-
-1. **共享依赖入口：**
-
-   - 在 `CMakeLists.txt` 中优先加载共享依赖脚本（通过环境变量）：
-     ```cmake
-     set(_sage_foo_shared_deps FALSE)
-     # Check if shared deps file is defined
-     if(DEFINED SAGE_COMMON_DEPS_FILE AND EXISTS "$ENV(SAGE_COMMON_DEPS_FILE)")
-         include("$ENV(SAGE_COMMON_DEPS_FILE)")
-         set(_sage_foo_shared_deps TRUE)
-     endif()
-     ```
-   - 共享脚本会提供 `pybind11::module`、统一的可见性编译选项、以及全部 gperftools 配置变量。
-
-1. **本地回退脚本：**
-
-   - 请在组件目录的 `cmake/` 下提供 `pybind11_dependency.cmake` 和（如需要）`gperftools.cmake`，用于在独立构建或共享脚本缺失时下载依赖。
-   - 在 `CMakeLists.txt` 中检测 `_sage_foo_shared_deps`，若为 `FALSE` 再加载本地脚本：
-     ```cmake
-     if(NOT _sage_foo_shared_deps)
-         include(cmake/pybind11_dependency.cmake)
-     endif()
-     ```
-
-1. **gperftools 约定：**
-
-   - 新增扩展应暴露 `ENABLE_GPERFTOOLS` 选项，并默认遵循 `SAGE_ENABLE_GPERFTOOLS` 环境变量。
-   - 只有在确认找到 `SAGE_GPERFTOOLS_LIBS`（或本地回退脚本成功解析）时才链接 gperftools；否则务必禁用该选项并给出清晰日志。
-
-1. **环境变量约定：**
-
-   - 共享脚本会设置 `SAGE_COMMON_COMPILE_OPTIONS`、`SAGE_COMMON_COMPILE_DEFINITIONS` 等变量，请在目标上引用，避免重复配置。
-   - 新扩展若需要自定义变量，务必提供合理的默认值，并允许通过环境变量覆写。
-
-1. **打包要求：**
-
-   - `pyproject.toml` 中需包含 `"sage.middleware.components.sage_foo" = ["cmake/*.cmake"]` 等条目，保证 CMake
-     脚本在发布包内。
-   - 如扩展存在 Python 侧绑定（`python/` 目录），确保 `pyproject.toml` 中的 `package-data` 同步更新。
-
-### 3. 构建脚本
-
-- 如果组件需要编译或额外准备工作，请提供标准的 `build.sh`，支持无交互执行：
-  - `bash build.sh --install-deps`
-- `build.sh` 应读取相关环境变量（如依赖文件路径、gperftools 开关等），并在调用 `cmake` 时透传（参考 `sage_db`、`sage_flow`）。
-
-### 4. 在 `setup.py` 中接入
-
-- 在自定义的 `build_ext` 流程中：
-  - 新增 `build_sage_foo()` 方法（参照现有 `build_sage_db()` / `build_sage_flow()`）。
-  - 使用统一的 `_shared_env()` 帮助函数为子进程注入共享依赖环境。
-  - 在 `run()` 中调用 `self.build_sage_foo()`，并保证失败不阻断安装（打印清晰日志即可）。
-
-### 5. 环境变量开关（可选）
-
-- 通过设置 `SAGE_SKIP_C_EXTENSIONS=1` 可以跳过所有扩展构建（调试纯 Python 逻辑时常用）。
-
-### 6. CI 与子模块提示
-
-- CI 会递归检出子模块并按 `setup.py` 的逻辑尝试构建。
-- 中间件组件不再通过 Git submodule 分发；请不要在 CI 或本地执行子模块初始化命令。
-
-## 贡献
-
-欢迎提交 PR！请先阅读仓库根目录的 [CONTRIBUTING.md](../../CONTRIBUTING.md)。
+1. **目录结构**: 在 `src/sage/middleware/components/` 下创建组件目录
+1. **C++ 扩展**: 如包含 C++ 扩展，必须遵守依赖约束（参见下文详细规范）
+1. **构建脚本**: 提供标准的 `build.sh`，支持 `--install-deps`
+1. **setup.py 集成**: 在 `setup.py` 中添加构建方法
+1. **测试**: 添加单元测试和集成测试
+1. **文档**: 更新 README 和相关文档
 
 ## 📄 License
 
-MIT License - see [LICENSE](../../LICENSE) for details.
+本项目采用 MIT License - 详见 [LICENSE](../../LICENSE) 文件
+
+## 🔗 Related Packages
+
+- **sage-kernel**: 核心计算引擎（L3）
+- **sage-common**: 通用工具（L1）
+- **sage-libs**: 可复用算法库（L3）
+- **sage-platform**: 平台服务（L2）
+- **isage-vdb**: 向量数据库（独立包）
+- **isage-neuromem**: 内存管理系统（独立包）
+- **isage-refiner**: 上下文压缩（独立包）
+
+## 📮 Support
+
+- **文档**: https://intellistream.github.io/SAGE-Pub/
+- **问题反馈**: https://github.com/intellistream/SAGE/issues
+- **讨论**: https://github.com/intellistream/SAGE/discussions
+
+______________________________________________________________________
+
+**Part of the SAGE Framework** | [主仓库](https://github.com/intellistream/SAGE)

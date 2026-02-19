@@ -176,8 +176,6 @@ class PackageREADMEChecker:
             "/sageFlow/",
             "/neuromem/",
             "/sageLLM/",  # sageLLM submodule
-            "docs/",  # Package-specific documentation (allowed by SAGE policy)
-            "examples/",  # Package examples with markdown guides (allowed by SAGE policy)
         ]
 
         # Known Git submodule paths (relative to package root)

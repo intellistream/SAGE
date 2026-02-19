@@ -345,7 +345,7 @@ class TestSchedulerDecisionDelay:
                 target_node="test_node",
                 delay=0.01,  # 10ms 延迟
                 immediate=False,
-                placement_strategy="fifo",
+                placement_strategy="default",
                 reason="Test delay",
             )
             return decision
@@ -388,7 +388,7 @@ class TestSchedulerDecisionDelay:
                 target_node="test_node",
                 delay=0.01,  # 10ms 延迟
                 immediate=False,
-                placement_strategy="fifo",
+                placement_strategy="default",
                 reason="Test service delay",
             )
             return decision

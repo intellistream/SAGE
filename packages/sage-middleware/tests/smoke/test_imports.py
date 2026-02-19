@@ -108,15 +108,15 @@ class TestComponentsImports:
 
     @pytest.mark.release
     @pytest.mark.develop
-    def test_import_sage_db(self):
-        """Test importing sage_db component."""
+    def test_import_sage_vdb(self):
+        """Test importing sage_vdb component."""
         try:
-            from sage.middleware.components import sage_db
+            from sage.middleware.components import sage_vdb
 
-            assert sage_db is not None
-            print(f"sage_db backend available: {hasattr(sage_db, 'backend')}")
+            assert sage_vdb is not None
+            print(f"sage_vdb backend available: {hasattr(sage_vdb, 'backend')}")
         except ImportError as e:
-            pytest.skip(f"sage_db not available (requires isage-vdb): {e}")
+            pytest.skip(f"sage_vdb not available (requires isage-vdb): {e}")
 
     @pytest.mark.release
     @pytest.mark.develop

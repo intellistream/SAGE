@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-RemoteEnvironment 简单示例
-演示如何使用 RemoteEnvironment 和调度器
+FlownetEnvironment 简单示例
+演示如何使用 FlownetEnvironment 和调度器
 
 # test_tags: category=environment, timeout=120, requires_daemon=jobmanager
 """
@@ -13,7 +13,9 @@ import time
 from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
-from sage.kernel.api.remote_environment import RemoteEnvironment
+from sage.kernel.api.flownet_environment import (
+    FlownetEnvironment,  # migrated from RemoteEnvironment (Issue #1443)
+)
 
 
 class SimpleSource(SourceFunction):
@@ -126,7 +128,7 @@ def example_default_scheduler():
     total_start = time.time()
 
     # 步骤1: 创建环境 - 使用 load_aware 调度器和 spread 策略
-    print("📦 [1/5] 创建 RemoteEnvironment (使用 load_aware 调度器)...")
+    print("📦 [1/5] 创建 FlownetEnvironment (使用 load_aware 调度器)...")
     step_start = time.time()
 
     # 使用 LoadAwareScheduler 配置分散策略
@@ -138,9 +140,7 @@ def example_default_scheduler():
         strategy="spread",  # 使用 SPREAD 策略分散到不同节点
     )
 
-    env = RemoteEnvironment(
-        name="distributed_scheduler_demo", scheduler=scheduler, host="sage-node-1"
-    )
+    env = FlownetEnvironment(name="distributed_scheduler_demo", scheduler=scheduler)
     # 设置 JobManager 的可访问主机名（worker 节点通过此地址连接回 JobManager）
     # 注意：JobManager 启动时使用 0.0.0.0 监听，但 worker 需要实际可访问的主机名
     # env.jobmanager_host = "sage-node-1"
@@ -246,7 +246,7 @@ def main():
     print(
         """
 ╔══════════════════════════════════════════════════════════════╗
-║        RemoteEnvironment 分布式调度示例                        ║
+║        FlownetEnvironment 分布式调度示例                       ║
 ║                                                              ║
 ║  演示如何使用 LoadAwareScheduler + SPREAD 策略                 ║
 ║  将任务分发到集群中的多个节点执行                               ║

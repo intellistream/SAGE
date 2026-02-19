@@ -223,17 +223,6 @@ class TestSageOutputPaths:
         assert test_env == paths.temp_dir / "my_test"
         assert test_env.exists()
 
-    def test_get_ray_temp_dir(self, tmp_path):
-        """测试获取Ray临时目录"""
-        project_root = tmp_path / "project"
-        project_root.mkdir()
-
-        paths = SageOutputPaths(project_root)
-
-        ray_dir = paths.get_ray_temp_dir()
-        assert ray_dir == paths.temp_dir / "ray"
-        assert ray_dir.exists()
-
     def test_setup_environment_variables(self, tmp_path, monkeypatch):
         """测试设置环境变量"""
         project_root = tmp_path / "project"
@@ -246,7 +235,6 @@ class TestSageOutputPaths:
         assert os.environ["SAGE_HOME"] == str(paths.sage_dir)
         assert os.environ["SAGE_LOGS_DIR"] == str(paths.logs_dir)
         assert os.environ["SAGE_TEMP_DIR"] == str(paths.temp_dir)
-        assert os.environ["RAY_TMPDIR"] == str(paths.temp_dir / "ray")
 
         assert env_vars["sage_dir"] == paths.sage_dir
         assert env_vars["logs_dir"] == paths.logs_dir

@@ -11,7 +11,7 @@ from typing import Any
 
 import numpy as np
 
-from sage.middleware.components.sage_db.python.multimodal_sage_db import (
+from sage.middleware.components.sage_vdb.python.multimodal_sage_db import (
     ModalityType,
     MultimodalSearchParams,
     create_text_image_db,

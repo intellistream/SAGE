@@ -29,17 +29,14 @@ install.log
 .sage/tmp/
 .sage/cache/
 .sage/build/
-.sage/htmlcov/
-.sage/benchmarks/
 /.cmake-build/
 /deps/sageFlow/installation/dist/
 /deps/sageFlow/installation/sageflow.egg-info/
 /deps/sageFlow/installation/build/
 /.idea/deployment.xml
 /.idea/misc.xml
-# 根目录构建产物（已统一到 .sage/build/）
 /build/
-/htmlcov/
+/build/
 /installation/sageflow.egg-info/
 /installation/build/
 /installation/dist/
@@ -226,12 +223,6 @@ examples/medical_diagnosis/data/test_results/
 **/*.embeddings
 
 /.vscode/
-
-# ============================================
-# Workspace 相关目录（独立仓库，不在主仓库中跟踪）
-# ============================================
-# docs-public 是旧的 submodule 名称，现在是独立的 SAGE-Pub 仓库
-docs-public/
 
 # ============================================
 # 一些测试文件

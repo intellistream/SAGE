@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 SAGE Cluster Manager CLI
-统一的Ray集群管理工具
+统一的SAGE分布式集群管理工具（Flownet运行时）
 """
 
 import os
@@ -13,7 +13,7 @@ from ...management.deployment_manager import DeploymentManager
 from .head import app as head_app
 from .worker import app as worker_app
 
-app = typer.Typer(name="cluster", help="🏗️ Ray集群统一管理")
+app = typer.Typer(name="cluster", help="🏗️ SAGE集群统一管理")
 
 # 添加子命令
 app.add_typer(head_app, name="head", help="🏠 Head节点管理")
@@ -27,10 +27,10 @@ def start_cluster(
         None, "--ssh-password", "-p", help="SSH密码（用于自动配置免密登录）"
     ),
     force: bool = typer.Option(
-        False, "--force", "-f", help="强制重启：如果Ray已运行，先停止再启动"
+        False, "--force", "-f", help="强制重启：如果集群已运行，先停止再启动"
     ),
 ):
-    """启动整个Ray集群（Head + 所有Workers）"""
+    """启动整个SAGE集群（Head + 所有Workers）"""
     config_manager = get_config_manager()
     workers = config_manager.get_workers_ssh_hosts()
     ssh_config = config_manager.get_ssh_config()
@@ -93,7 +93,7 @@ def start_cluster(
         else:
             typer.echo("[green]✅ 所有节点SSH免密登录正常[/green]")
 
-    typer.echo("🚀 启动Ray集群...")
+    typer.echo("🚀 启动SAGE集群...")
 
     # 1. 启动Head节点
     typer.echo("第1步: 启动Head节点")
@@ -102,7 +102,7 @@ def start_cluster(
 
         start_head(force=force)
     except typer.Exit as e:
-        # typer.Exit(0) 表示 Ray Head 已在运行，视为成功
+        # typer.Exit(0) 表示 Head 节点已在运行，视为成功
         if e.exit_code != 0:
             typer.echo(f"❌ Head节点启动失败 (exit code: {e.exit_code})")
             raise typer.Exit(1)
@@ -137,13 +137,13 @@ def start_cluster(
         typer.echo("💡 Head节点已启动，可尝试手动启动Worker节点")
         raise typer.Exit(1)
 
-    typer.echo("✅ Ray集群启动完成!")
+    typer.echo("✅ SAGE集群启动完成!")
 
 
 @app.command("stop")
 def stop_cluster():
-    """停止整个Ray集群（所有Workers + Head）"""
-    typer.echo("�� 停止Ray集群...")
+    """停止整个SAGE集群（所有Workers + Head）"""
+    typer.echo("🛑 停止SAGE集群...")
 
     # 1. 先停止所有Worker节点
     typer.echo("第1步: 停止所有Worker节点")
@@ -170,13 +170,13 @@ def stop_cluster():
     except Exception as e:
         typer.echo(f"⚠️  Head节点停止遇到问题: {e}")
 
-    typer.echo("✅ Ray集群停止完成!")
+    typer.echo("✅ SAGE集群停止完成!")
 
 
 @app.command("restart")
 def restart_cluster():
-    """重启整个Ray集群"""
-    typer.echo("🔄 重启Ray集群...")
+    """重启整个SAGE集群"""
+    typer.echo("🔄 重启SAGE集群...")
 
     # 先停止
     typer.echo("第1阶段: 停止集群")
@@ -192,13 +192,13 @@ def restart_cluster():
     typer.echo("第2阶段: 启动集群")
     start_cluster()
 
-    typer.echo("✅ Ray集群重启完成!")
+    typer.echo("✅ SAGE集群重启完成!")
 
 
 @app.command("status")
 def status_cluster():
-    """检查整个Ray集群状态"""
-    typer.echo("📊 检查Ray集群状态...")
+    """检查整个SAGE集群状态"""
+    typer.echo("📊 检查SAGE集群状态...")
 
     config_manager = get_config_manager()
     head_config = config_manager.get_head_config()
@@ -230,7 +230,7 @@ def status_cluster():
     if head_running:
         typer.echo("\n🌐 集群访问信息:")
         typer.echo(f"   Dashboard: http://{head_host}:{dashboard_port}")
-        typer.echo(f"   Ray集群地址: {head_host}:{head_config.get('head_port', 6379)}")
+        typer.echo(f"   集群地址: {head_host}:{head_config.get('head_port', 6379)}")
 
 
 @app.command("deploy")
@@ -281,7 +281,7 @@ def scale_cluster(
 @app.command("info")
 def cluster_info():
     """显示集群配置信息"""
-    typer.echo("📋 Ray集群配置信息")
+    typer.echo("📋 SAGE集群配置信息")
     typer.echo("=" * 50)
 
     config_manager = get_config_manager()
@@ -318,7 +318,9 @@ def cluster_info():
     typer.echo("\n🛠️ 远程环境:")
     typer.echo(f"   SAGE目录: {remote_config.get('sage_home', 'N/A')}")
     typer.echo(f"   Python路径: {remote_config.get('python_path', 'N/A')}")
-    typer.echo(f"   Ray命令: {remote_config.get('ray_command', 'N/A')}")
+    typer.echo(
+        f"   运行时命令: {remote_config.get('runtime_command', remote_config.get('ray_command', 'N/A'))}"
+    )
     typer.echo(f"   Conda环境: {remote_config.get('conda_env', 'N/A')}")
 
 

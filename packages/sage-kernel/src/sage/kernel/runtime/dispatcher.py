@@ -10,8 +10,6 @@ from sage.kernel.fault_tolerance.factory import (
 from sage.kernel.runtime.heartbeat_monitor import HeartbeatMonitor
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.utils.helpers import wait_for_all_stopped
-from sage.kernel.utils.ray.actor import ActorWrapper
-from sage.kernel.utils.ray.ray_utils import ensure_ray_initialized
 
 if TYPE_CHECKING:
     from sage.kernel.api.base_environment import BaseEnvironment
@@ -31,8 +29,8 @@ class Dispatcher:
         self.name: str = env.name
         self.remote = env.platform == "remote"
         # self.nodes: Dict[str, Union[ActorHandle, LocalDAGNode]] = {}
-        self.tasks: dict[str, LocalTask | ActorWrapper] = {}
-        self.services: dict[str, LocalServiceTask | ActorWrapper] = {}  # 存储服务实例
+        self.tasks: dict[str, LocalTask] = {}
+        self.services: dict[str, LocalServiceTask] = {}  # 存储服务实例
         self.is_running: bool = False
         # 记录主环境的初始节点列表（不包括 Service 内部节点）
         self.main_env_nodes: set[str] = set()
@@ -46,10 +44,6 @@ class Dispatcher:
             "heartbeat_timeout": 15.0,  # 超时阈值 (秒)
             "max_restart_attempts": 3,  # 最大重启次数
         }
-
-        # 对于 remote 环境，先确保 Ray 已初始化，这样 NodeSelector 才能获取节点信息
-        if env.platform == "remote":
-            ensure_ray_initialized()
 
         # 使用调度器和容错管理器（重构后架构）
         # 调度器：纯决策者（返回 PlacementDecision）
@@ -329,12 +323,15 @@ class Dispatcher:
         强制在主进程/driver context中完成Ray Actor的创建和初始化,
         避免在Ray Task执行期间懒初始化导致的死锁问题。
         """
+        self.logger.info("🔍 ENTERED _preinitialize_queue_descriptors method")
         self.logger.info("Pre-initializing all queue descriptors to avoid deadlocks...")
         import time
 
         start_time = time.time()
+        self.logger.info(f"⏰ Start time: {start_time}")
 
         initialized_qds = set()  # 使用集合记录已初始化的队列(通过id去重)
+        self.logger.info(f"📋 Total tasks to process: {len(self.tasks)}")
 
         # 遍历所有任务,初始化其上下文中的队列描述符
         for node_name, task in self.tasks.items():
@@ -369,11 +366,12 @@ class Dispatcher:
                 qd_id = id(qd)
                 if qd_id not in initialized_qds:
                     try:
+                        self.logger.info(f"⏳ Initializing {qd_name} for task {node_name}...")
                         # 访问queue_instance属性触发初始化
                         _ = qd.queue_instance
                         initialized_qds.add(qd_id)
-                        self.logger.debug(
-                            f"Initialized queue descriptor: {qd_name} for task {node_name}"
+                        self.logger.info(
+                            f"✅ Initialized queue descriptor: {qd_name} for task {node_name}"
                         )
                     except Exception as e:
                         self.logger.warning(
@@ -405,13 +403,6 @@ class Dispatcher:
             try:
                 if hasattr(service_task, "start_running"):
                     service_task.start_running()
-                elif hasattr(service_task, "_actor"):
-                    # ActorWrapper包装的服务 (_actor 是 ActorWrapper 的属性)
-                    import ray
-
-                    actor_ref = service_task._actor  # type: ignore[attr-defined]
-                    if hasattr(actor_ref, "start_running"):
-                        ray.get(actor_ref.start_running.remote())  # type: ignore
                 self.logger.debug(f"Started service task: {service_name}")
             except Exception as e:
                 self.logger.error(

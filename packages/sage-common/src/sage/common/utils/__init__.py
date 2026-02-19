@@ -20,6 +20,7 @@ except ImportError:
     __email__ = "shuhao_zhang@hust.edu.cn"
 
 # Export document processing utilities
+from sage.common.utils.context_vars import ContextSlot, run_in_executor_with_context
 from sage.common.utils.document_processing import (
     SUPPORTED_MARKDOWN_SUFFIXES,
     Section,
@@ -56,6 +57,9 @@ __all__ = [
     # Results Collector
     "ResultsCollector",
     "get_collector",
+    # Context vars
+    "ContextSlot",
+    "run_in_executor_with_context",
 ]
 
 # Export formatting utilities

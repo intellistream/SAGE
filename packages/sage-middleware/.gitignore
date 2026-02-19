@@ -118,7 +118,6 @@ dev_reports/
 **/coverage.xml
 **/htmlcov/
 **/.pytest_cache/
-**/.mypy_cache/
 **/*.tmp
 **/*.temp
 **/.tmp/

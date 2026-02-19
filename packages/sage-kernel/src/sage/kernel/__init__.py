@@ -37,14 +37,14 @@ except ImportError:
 
 # 导出 API 类
 try:
-    from sage.kernel.api import LocalEnvironment, RemoteEnvironment
+    from sage.kernel.api import FlownetEnvironment, LocalEnvironment
 except ImportError:
+    FlownetEnvironment = None  # type: ignore[assignment,misc]
     LocalEnvironment = None  # type: ignore[assignment,misc]
-    RemoteEnvironment = None  # type: ignore[assignment,misc]
     import warnings
 
     warnings.warn(
-        "LocalEnvironment and RemoteEnvironment are not available. Some features may be limited.",
+        "LocalEnvironment and FlownetEnvironment are not available. Some features may be limited.",
         ImportWarning,
         stacklevel=2,
     )
@@ -53,6 +53,21 @@ except ImportError:
 __layer__ = "L3"
 
 from . import api
+
+# ============================================================================
+# Public Facade API (SAGE L3 stable user-facing verbs)
+# Per migration boundary: intellistream/SAGE#1432
+# ============================================================================
+from . import facade as facade  # noqa: F401 – expose sage.kernel.facade subpackage
+
+# ============================================================================
+# Flow Declaration Layer (SAGE L3 DSL / Interface)
+# Per migration boundary: intellistream/SAGE#1430, #1431
+# ============================================================================
+from . import flow as flow  # noqa: F401 – expose sage.kernel.flow subpackage
+from .facade import call, create, run, submit  # stable SAGE facade verbst
+from .flow import FlowDeclaration, FlowDeclarationError, FlowGraphValidator
+from .flow.decorator import flow as flow_decorator  # canonical @flow entry point
 
 # ============================================================================
 # 架构关键：L3向L2注册实现（Factory Pattern）
@@ -83,8 +98,21 @@ __all__ = [
     "__version__",
     "__author__",
     "__email__",
+    # DataStream pipeline API (LocalEnvironment / FlownetEnvironment)
     "JobManagerClient",
+    "FlownetEnvironment",
     "LocalEnvironment",
-    "RemoteEnvironment",
     "api",
+    # Flow declaration layer (Issue #1431)
+    "flow",
+    "flow_decorator",
+    "FlowDeclaration",
+    "FlowDeclarationError",
+    "FlowGraphValidator",
+    # Public facade API (Issue #1432)
+    "facade",
+    "create",
+    "submit",
+    "run",
+    "call",
 ]

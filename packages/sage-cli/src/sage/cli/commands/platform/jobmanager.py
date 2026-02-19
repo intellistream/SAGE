@@ -48,7 +48,7 @@ class JobManagerController:
         self.sudo_manager = create_sudo_manager()
 
     def _get_ray_address(self) -> str | None:
-        """从 cluster.yaml 获取 Ray 集群地址"""
+        """从 cluster.yaml 获取集群地址"""
         try:
             config_manager = ConfigManager()
             config = config_manager.load_config()
@@ -310,14 +310,14 @@ class JobManagerController:
             str(self.port),
         ]
 
-        # 准备环境变量，设置 RAY_ADDRESS 以连接到 Ray 集群
+        # 准备环境变量，设置 RAY_ADDRESS 以连接到集群
         env = os.environ.copy()
         ray_address = self._get_ray_address()
         if ray_address:
             env["RAY_ADDRESS"] = ray_address
-            typer.echo(f"Setting RAY_ADDRESS={ray_address} for Ray cluster connection")
+            typer.echo(f"Setting RAY_ADDRESS={ray_address} for cluster connection")
         else:
-            typer.echo("⚠️  Could not determine Ray address from cluster config")
+            typer.echo("⚠️  Could not determine cluster address from config")
 
         try:
             # 启动JobManager进程

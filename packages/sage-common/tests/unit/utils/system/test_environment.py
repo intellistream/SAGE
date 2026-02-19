@@ -13,8 +13,6 @@ from sage.common.utils.system.environment import (
     get_system_resources,
     is_docker_environment,
     is_kubernetes_environment,
-    is_ray_available,
-    is_ray_cluster_active,
     is_slurm_environment,
     recommend_backend,
 )
@@ -23,32 +21,19 @@ from sage.common.utils.system.environment import (
 class TestDetectExecutionEnvironment:
     """Tests for detect_execution_environment()"""
 
-    @patch("sage.common.utils.system.environment.is_ray_cluster_active")
-    def test_detect_ray_environment(self, mock_ray_active):
-        """Test detecting Ray environment"""
-        mock_ray_active.return_value = True
-
-        result = detect_execution_environment()
-
-        assert result == "ray"
-
-    @patch("sage.common.utils.system.environment.is_ray_cluster_active")
     @patch("sage.common.utils.system.environment.is_kubernetes_environment")
-    def test_detect_kubernetes_environment(self, mock_k8s, mock_ray):
+    def test_detect_kubernetes_environment(self, mock_k8s):
         """Test detecting Kubernetes environment"""
-        mock_ray.return_value = False
         mock_k8s.return_value = True
 
         result = detect_execution_environment()
 
         assert result == "kubernetes"
 
-    @patch("sage.common.utils.system.environment.is_ray_cluster_active")
     @patch("sage.common.utils.system.environment.is_kubernetes_environment")
     @patch("sage.common.utils.system.environment.is_docker_environment")
-    def test_detect_docker_environment(self, mock_docker, mock_k8s, mock_ray):
+    def test_detect_docker_environment(self, mock_docker, mock_k8s):
         """Test detecting Docker environment"""
-        mock_ray.return_value = False
         mock_k8s.return_value = False
         mock_docker.return_value = True
 
@@ -56,13 +41,11 @@ class TestDetectExecutionEnvironment:
 
         assert result == "docker"
 
-    @patch("sage.common.utils.system.environment.is_ray_cluster_active")
     @patch("sage.common.utils.system.environment.is_kubernetes_environment")
     @patch("sage.common.utils.system.environment.is_docker_environment")
     @patch("sage.common.utils.system.environment.is_slurm_environment")
-    def test_detect_slurm_environment(self, mock_slurm, mock_docker, mock_k8s, mock_ray):
+    def test_detect_slurm_environment(self, mock_slurm, mock_docker, mock_k8s):
         """Test detecting SLURM environment"""
-        mock_ray.return_value = False
         mock_k8s.return_value = False
         mock_docker.return_value = False
         mock_slurm.return_value = True
@@ -71,13 +54,11 @@ class TestDetectExecutionEnvironment:
 
         assert result == "slurm"
 
-    @patch("sage.common.utils.system.environment.is_ray_cluster_active")
     @patch("sage.common.utils.system.environment.is_kubernetes_environment")
     @patch("sage.common.utils.system.environment.is_docker_environment")
     @patch("sage.common.utils.system.environment.is_slurm_environment")
-    def test_detect_local_environment(self, mock_slurm, mock_docker, mock_k8s, mock_ray):
+    def test_detect_local_environment(self, mock_slurm, mock_docker, mock_k8s):
         """Test detecting local environment"""
-        mock_ray.return_value = False
         mock_k8s.return_value = False
         mock_docker.return_value = False
         mock_slurm.return_value = False
@@ -85,55 +66,6 @@ class TestDetectExecutionEnvironment:
         result = detect_execution_environment()
 
         assert result == "local"
-
-
-class TestIsRayAvailable:
-    """Tests for is_ray_available()"""
-
-    @patch("importlib.import_module")
-    def test_ray_available(self, mock_import):
-        """Test when Ray is available"""
-        mock_import.return_value = MagicMock()
-
-        result = is_ray_available()
-
-        assert result is True
-        mock_import.assert_called_once_with("ray")
-
-    @patch("importlib.import_module")
-    def test_ray_not_available(self, mock_import):
-        """Test when Ray is not available"""
-        mock_import.side_effect = ImportError("No module named 'ray'")
-
-        result = is_ray_available()
-
-        assert result is False
-
-
-class TestIsRayClusterActive:
-    """Tests for is_ray_cluster_active()"""
-
-    @patch("sage.common.utils.system.environment.is_ray_available")
-    @patch("importlib.import_module")
-    def test_ray_cluster_active(self, mock_import, mock_available):
-        """Test when Ray cluster is active"""
-        mock_available.return_value = True
-        mock_ray = MagicMock()
-        mock_ray.is_initialized.return_value = True
-        mock_import.return_value = mock_ray
-
-        result = is_ray_cluster_active()
-
-        assert result is True
-
-    @patch("sage.common.utils.system.environment.is_ray_available")
-    def test_ray_not_available(self, mock_available):
-        """Test when Ray is not available"""
-        mock_available.return_value = False
-
-        result = is_ray_cluster_active()
-
-        assert result is False
 
 
 class TestIsKubernetesEnvironment:
@@ -281,9 +213,9 @@ class TestRecommendBackend:
     @patch("sage.common.utils.system.environment.detect_execution_environment")
     @patch("sage.common.utils.system.environment.get_system_resources")
     @patch("sage.common.utils.system.environment.detect_gpu_resources")
-    def test_recommend_ray_backend(self, mock_gpu, mock_resources, mock_env):
-        """Test recommending Ray backend"""
-        mock_env.return_value = "ray"
+    def test_recommend_flownet_backend(self, mock_gpu, mock_resources, mock_env):
+        """Test recommending Flownet backend (distributed)"""
+        mock_env.return_value = "kubernetes"
         mock_resources.return_value = {
             "cpu": {"count": 16},
             "memory": {"total": 64 * 1024**3},
@@ -295,7 +227,7 @@ class TestRecommendBackend:
 
         assert "environment" in result
         assert "primary_backend" in result
-        assert result["environment"] == "ray"
+        assert result["primary_backend"] == "flownet"
 
     @patch("sage.common.utils.system.environment.detect_execution_environment")
     @patch("sage.common.utils.system.environment.get_system_resources")

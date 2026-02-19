@@ -87,9 +87,9 @@ async def run_cuda_demo(model_path: str, stream: bool = False) -> None:
     if stream:
         print("\nStreaming response:", end="", flush=True)
         async for event in engine.stream(request):
-            # StreamEventDelta has 'chunk' field (not 'delta')
-            if hasattr(event, "chunk") and event.chunk:
-                print(event.chunk, end="", flush=True)
+            # StreamEventDelta has 'content' field (aligned with OpenAI convention)
+            if event.event == "delta" and hasattr(event, "content") and event.content:
+                print(event.content, end="", flush=True)
             elif hasattr(event, "metrics"):
                 print(
                     f"\n\nMetrics: TTFT={event.metrics.ttft_ms:.1f}ms, "

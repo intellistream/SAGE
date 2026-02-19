@@ -56,13 +56,13 @@ class DoctorCommand(BaseCommand):
             except ImportError:
                 self.formatter.print_warning(f"Extension {ext}: Not available")
 
-        # 检查Ray
+        # 检查运行时（sageFlownet）
         try:
-            import ray
+            import sage.flownet
 
-            self.formatter.print_success(f"Ray: v{ray.__version__}")
+            self.formatter.print_success(f"sageFlownet: v{sage.flownet.__version__}")
         except ImportError:
-            self.formatter.print_error("Ray not installed")
+            self.formatter.print_error("sageFlownet 未安装 (pip install isage-flow)")
 
 
 @app.command("doctor")
@@ -142,7 +142,7 @@ class ClusterStatusCommand(RemoteCommand):
 
     def execute(self):
         """执行集群状态检查"""
-        self.print_section_header("📊 Ray Cluster Status")
+        self.print_section_header("📊 SAGE Cluster Status")
 
         # 检查Head节点状态
         head_config = self.get_config_section("head")
@@ -170,15 +170,19 @@ class ClusterStatusCommand(RemoteCommand):
                 if self.ssh_manager.test_connection(host, port):
                     self.formatter.print_success(f"Worker {host}:{port}: Connected")
 
-                    # 检查Ray进程
+                    # 检查 Flownet 运行时进程
                     result = self.ssh_manager.execute_command(
-                        host, port, "ps aux | grep -v grep | grep ray", timeout=10
+                        host, port, "ps aux | grep -v grep | grep flownet", timeout=10
                     )
 
                     if result.returncode == 0 and result.stdout.strip():
-                        self.formatter.print_success(f"Worker {host}:{port}: Ray process running")
+                        self.formatter.print_success(
+                            f"Worker {host}:{port}: Runtime process running"
+                        )
                     else:
-                        self.formatter.print_warning(f"Worker {host}:{port}: Ray process not found")
+                        self.formatter.print_warning(
+                            f"Worker {host}:{port}: Runtime process not found"
+                        )
                 else:
                     self.formatter.print_error(f"Worker {host}:{port}: Connection failed")
 

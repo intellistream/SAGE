@@ -32,7 +32,7 @@ sage cluster start
 - `provider.head_ip` - Head node IP
 - `provider.worker_ips` - List of worker node IPs
 - `auth` - SSH authentication (key-based only)
-- `ray` - Ray settings (ports, resources)
+- `flownet` - Flownet runtime settings (ports, resources)
 - `remote` - Remote environment (conda, paths)
 
 ### Services

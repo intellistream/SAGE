@@ -112,13 +112,8 @@ class TestRuffIgnoreUpdater:
         """测试批量更新"""
         updater = RuffIgnoreUpdater(temp_project)
 
-        # 使用自定义文件列表
-        file_list = [
-            "pyproject.toml",
-            "packages/subpkg/pyproject.toml",
-        ]
-
-        stats = updater.update_all(["F841"], file_list=file_list)
+        # update_all 不再支持 file_list 参数，使用默认 glob 模式
+        stats = updater.update_all(["F841"])
 
         # 检查统计信息
         assert "updated" in stats
@@ -144,7 +139,7 @@ class TestRuffIgnoreUpdater:
     def test_add_b904_c901_helper(self, temp_project):
         """测试快捷方法"""
         updater = RuffIgnoreUpdater(temp_project)
-        stats = updater.add_b904_c901()
+        stats = updater.add_common_rules()
 
         assert isinstance(stats, dict)
         assert "updated" in stats
@@ -160,11 +155,11 @@ class TestRuffIgnoreUpdaterEdgeCases:
             root = Path(tmpdir)
             updater = RuffIgnoreUpdater(root)
 
-            # 使用不存在的文件列表
-            stats = updater.update_all(["F841"], file_list=["nonexistent.toml"])
+            # 直接更新规则（不提供file_list，使用默认模式）
+            stats = updater.update_all(["F841"])
 
-            # 应该都失败
-            assert stats["failed"] > 0 or stats["updated"] == 0
+            # 应该都失败或跳过（因为没有pyproject.toml文件）
+            assert stats["failed"] + stats["skipped"] > 0 or stats["updated"] == 0
 
     def test_update_multiple_rules(self, temp_project):
         """测试添加多个规则"""

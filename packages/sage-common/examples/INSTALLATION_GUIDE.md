@@ -26,7 +26,7 @@ cd SAGE
 ./quickstart.sh --dev --yes
 
 # 3. 运行 tutorials
-python tutorials/hello_world.py
+python tutorials/L1-common/hello_world.py
 python tutorials/L1-common/unified_inference_client_example.py
 ```
 
@@ -49,7 +49,7 @@ git sparse-checkout set tutorials
 pip install isage[standard]
 
 # 运行 tutorials
-python tutorials/hello_world.py
+python tutorials/L1-common/hello_world.py
 ```
 
 **适用场景**:
@@ -75,8 +75,7 @@ ______________________________________________________________________
 
 ## 💡 为什么 Tutorials 不打包到 PyPI？
 
-参考:
-[EXAMPLES_TESTING_PYPI_STRATEGY.md](../docs-public/docs_src/dev-notes/cross-layer/architecture/EXAMPLES_TESTING_PYPI_STRATEGY.md)
+参考: [CHANGELOG.md](../../../CHANGELOG.md)
 
 ### ❌ 打包的问题
 
@@ -112,12 +111,24 @@ pip install isage-libs
 python -m sage.libs.examples.rag_basic
 ```
 
-### isage-apps
+### Applications (sage-examples)
+
+应用示例已迁移到独立仓库：
 
 ```bash
-pip install isage-apps[video]
-python -m sage.apps.video.demo
+# 克隆 sage-examples 仓库
+git clone https://github.com/intellistream/sage-examples.git
+cd sage-examples
+
+# 安装依赖
+pip install -r requirements.txt
+
+# 运行应用示例
+python examples/run_video_intelligence.py
+python examples/run_medical_diagnosis.py
 ```
+
+查看更多: https://github.com/intellistream/sage-examples
 
 这些示例是 **可运行的代码片段**，专门设计用于 PyPI 安装的用户。
 
@@ -217,7 +228,7 @@ A: Tutorials 不是 Python 包，不能被 import。它们是独立的脚本文�
 
 ```bash
 # ✅ 正确
-python tutorials/hello_world.py
+python tutorials/L1-common/hello_world.py
 
 # ❌ 错误
 python -c "import tutorials"
@@ -229,7 +240,7 @@ A: 使用 sparse-checkout（见上文方式 2），或直接从 GitHub 下载单
 
 ```bash
 # 下载单个文件
-wget https://raw.githubusercontent.com/intellistream/SAGE/main-dev/tutorials/hello_world.py
+wget https://raw.githubusercontent.com/intellistream/SAGE/main-dev/tutorials/L1-common/hello_world.py
 python hello_world.py
 ```
 

@@ -37,35 +37,6 @@ for pkg_name in DEPENDENCY_PACKAGES:
 os.environ.setdefault("SAGE_TEST_MODE", "1")
 os.environ.setdefault("SAGE_LOG_LEVEL", "INFO")
 
-# 确保Ray在测试环境中正确初始化（如果需要且有足够内存）
-try:
-    # ray may be optional in test environments; import locally after path setup
-    import ray
-
-    from sage.common.config.output_paths import get_sage_paths
-
-    if not ray.is_initialized():
-        # 获取SAGE路径和设置环境
-        sage_paths = get_sage_paths()
-        sage_paths.setup_environment_variables()
-
-        # 获取Ray临时目录
-        ray_temp_dir = sage_paths.get_ray_temp_dir()
-
-        # 尝试更宽松的Ray配置 - 使用最小允许内存
-        ray.init(
-            ignore_reinit_error=True,
-            local_mode=True,
-            object_store_memory=80000000,  # 80MB (最小允许值)
-            num_cpus=1,
-            _temp_dir=str(ray_temp_dir),  # 使用SAGE的temp目录
-        )
-        print(f"Ray initialized for tests with temp dir: {ray_temp_dir}")
-except (ImportError, ValueError, RuntimeError) as e:
-    # Ray不是必需的，或者内存不足时跳过
-    print(f"⚠️ Ray初始化跳过: {e}")
-    pass
-
 
 @pytest.fixture
 def sage_test_env_config():
@@ -115,11 +86,5 @@ def setup_test_environment():
 
     yield
 
-    # 清理
-    try:
-        import ray
-
-        if ray.is_initialized():
-            ray.shutdown()
-    except ImportError:
-        pass
+    # 清理（无需 Ray shutdown）
+    pass

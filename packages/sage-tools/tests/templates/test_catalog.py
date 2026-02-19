@@ -20,10 +20,10 @@ def test_multimodal_template_pipeline_plan_uses_real_components():
 
     assert (
         source_class
-        == "sage.benchmark.benchmark_rag.implementations.qa_multimodal_fusion.MultimodalQuestionSource"
+        == "sage.benchmark_rag.implementations.qa_multimodal_fusion.MultimodalQuestionSource"
     )
     assert (
-        "sage.benchmark.benchmark_rag.implementations.qa_multimodal_fusion.MultimodalFusionRetriever"
+        "sage.benchmark_rag.implementations.qa_multimodal_fusion.MultimodalFusionRetriever"
         in stage_classes
     )
     assert "sage.middleware.operators.rag.generator.OpenAIGenerator" in stage_classes

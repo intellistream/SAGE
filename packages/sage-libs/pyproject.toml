@@ -53,46 +53,6 @@ dev = [
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
     "ruff==0.14.6",
-    "mypy>=1.7.0",
-]
-# Algorithm implementations (independent repos)
-anns = ["isage-anns>=0.1.0"]
-amms = ["isage-amms>=0.1.0"]
-# L3 domain implementations (independent repos)
-finetune = ["isage-finetune>=0.1.0"]
-agentic = ["isage-agentic>=0.1.0"]
-rag = ["isage-rag>=0.1.0"]
-eval = ["isage-eval>=0.1.0"]
-privacy = ["isage-privacy>=0.1.0"]
-safety = ["isage-safety>=0.1.0"]
-# Heavy optional dependencies (moved from core)
-vdb = ["chromadb>=1.0.20", "pymilvus[model]>=2.4.0"]
-streaming = ["kafka-python>=2.0.0", "redis>=4.0.0"]
-notebook = ["jupyter>=1.0.0", "notebook>=6.0.0"]
-metrics = [
-    "datasets>=2.0.0",
-    "evaluate>=0.4.0",
-    "rouge>=1.0.0",
-    "rouge-score>=0.1.0",
-    "bleu>=0.3.0",
-]
-loaders = ["PyPDF2>=3.0.0", "python-docx>=0.8.11"]
-ocr = ["easyocr>=1.7.0"]
-llm = [
-    "isagellm>=0.1.0",
-    "transformers>=4.52.0,<4.54.0",
-    "tokenizers>=0.21.0,<0.24.0",
-    "torch>=2.7.0,<3.0.0",
-    "sentence-transformers>=3.1.0,<4.0.0",
-]
-training = [
-    "peft>=0.18.0,<1.0.0",
-    "accelerate>=1.9.0,<2.0.0",
-    "tensorboard>=2.14.0",
-    "trl>=0.20.0,<0.21.0",
-]
-all = [
-    "isage-libs[dev,anns,amms,finetune,agentic,rag,metrics,privacy,safety,vdb,streaming,notebook,metrics,loaders,ocr,llm,training]",
 ]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
@@ -137,13 +97,6 @@ include = '\.pyi?$'
 [tool.isort]
 profile = "black"
 line_length = 100
-
-[tool.mypy]
-python_dynamic = ["version"]
-cache_dir = "../../.sage/cache/mypy"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
 
 # ============================================================================
 # scikit-build-core 动态版本配置

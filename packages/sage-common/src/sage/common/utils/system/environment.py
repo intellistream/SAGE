@@ -2,8 +2,8 @@
 Environment Detection Utilities
 
 System-level environment detection and configuration utilities.
-These functions help determine the appropriate backend, environment type,
-and system capabilities for SAGE applications.
+Ray support has been removed. Runtime recommendations are based on local,
+container/orchestrated, and distributed Flownet-style execution targets.
 """
 
 import importlib
@@ -18,87 +18,32 @@ def detect_execution_environment() -> str:
     检测当前执行环境类型
 
     Returns:
-        str: 环境类型 ('local', 'ray', 'kubernetes', 'docker', 'slurm')
+        str: 环境类型 ('local', 'kubernetes', 'docker', 'slurm')
     """
-    # 检查Ray环境
-    if is_ray_available() and is_ray_cluster_active():
-        return "ray"
-
-    # 检查Kubernetes环境
     if is_kubernetes_environment():
         return "kubernetes"
 
-    # 检查Docker环境
     if is_docker_environment():
         return "docker"
 
-    # 检查SLURM环境
     if is_slurm_environment():
         return "slurm"
 
-    # 默认为本地环境
     return "local"
 
 
-def is_ray_available() -> bool:
+def get_runtime_engine_info() -> dict[str, Any]:
     """
-    检查Ray是否可用
+    获取当前运行时引擎信息
 
     Returns:
-        bool: Ray是否可用
+        Dict: 运行时引擎信息
     """
-    try:
-        importlib.import_module("ray")
-        return True
-    except ImportError:
-        return False
-
-
-def is_ray_cluster_active() -> bool:
-    """
-    检查Ray集群是否处于活跃状态
-
-    Returns:
-        bool: Ray集群是否活跃
-    """
-    if not is_ray_available():
-        return False
-
-    try:
-        ray = importlib.import_module("ray")
-        return ray.is_initialized()
-    except Exception:
-        return False
-
-
-def get_ray_cluster_info() -> dict[str, Any]:
-    """
-    获取Ray集群信息
-
-    Returns:
-        Dict: Ray集群信息
-    """
-    if not is_ray_available():
-        return {"available": False, "error": "Ray not installed"}
-
-    try:
-        ray = importlib.import_module("ray")
-
-        if not ray.is_initialized():
-            return {"available": True, "initialized": False}
-
-        cluster_resources = ray.cluster_resources()
-        nodes = ray.nodes()
-
-        return {
-            "available": True,
-            "initialized": True,
-            "cluster_resources": cluster_resources,
-            "node_count": len(nodes),
-            "nodes": nodes,
-        }
-    except Exception as e:
-        return {"available": True, "error": f"Error getting Ray info: {e}"}
+    return {
+        "engine": "flownet",
+        "engine_version": "unknown",
+        "initialized": True,
+    }
 
 
 def is_kubernetes_environment() -> bool:
@@ -108,7 +53,6 @@ def is_kubernetes_environment() -> bool:
     Returns:
         bool: 是否在Kubernetes中
     """
-    # 检查环境变量
     k8s_indicators = [
         "KUBERNETES_SERVICE_HOST",
         "KUBERNETES_SERVICE_PORT",
@@ -119,7 +63,6 @@ def is_kubernetes_environment() -> bool:
         if os.environ.get(indicator):
             return True
 
-    # 检查服务账户文件
     if os.path.exists("/var/run/secrets/kubernetes.io/serviceaccount"):
         return True
 
@@ -133,11 +76,9 @@ def is_docker_environment() -> bool:
     Returns:
         bool: 是否在Docker中
     """
-    # 检查.dockerenv文件
     if os.path.exists("/.dockerenv"):
         return True
 
-    # 检查cgroup信息
     try:
         with open("/proc/1/cgroup") as f:
             content = f.read()
@@ -176,7 +117,6 @@ def get_system_resources() -> dict[str, Any]:
     try:
         psutil = importlib.import_module("psutil")
 
-        # CPU信息
         cpu_info = {
             "count": psutil.cpu_count(),
             "physical_count": psutil.cpu_count(logical=False),
@@ -184,7 +124,6 @@ def get_system_resources() -> dict[str, Any]:
             "percent": psutil.cpu_percent(interval=1),
         }
 
-        # 内存信息
         memory = psutil.virtual_memory()
         memory_info = {
             "total": memory.total,
@@ -194,7 +133,6 @@ def get_system_resources() -> dict[str, Any]:
             "free": memory.free,
         }
 
-        # 磁盘信息
         disk = psutil.disk_usage("/")
         disk_info = {
             "total": disk.total,
@@ -225,7 +163,6 @@ def detect_gpu_resources() -> dict[str, Any]:
     """
     gpu_info = {"available": False, "count": 0, "devices": []}
 
-    # 检查NVIDIA GPU
     try:
         result = subprocess.run(
             [
@@ -257,7 +194,6 @@ def detect_gpu_resources() -> dict[str, Any]:
     except (subprocess.SubprocessError, FileNotFoundError, ValueError):
         pass
 
-    # 检查AMD GPU (rocm-smi)
     if not gpu_info["available"]:
         try:
             result = subprocess.run(["rocm-smi"], capture_output=True, text=True, timeout=10)
@@ -318,44 +254,26 @@ def recommend_backend() -> dict[str, Any]:
 
     recommendation = {
         "environment": env_type,
-        "primary_backend": "local",
-        "secondary_backends": [],
-        "communication_layer": "memory",
-        "reasoning": [],
+        "primary_backend": "flownet",
+        "secondary_backends": ["local"],
+        "communication_layer": "rpc_queue",
+        "reasoning": ["Flownet runtime is the default distributed execution backend."],
     }
 
-    # 基于环境类型的推荐
-    if env_type == "ray":
-        recommendation["primary_backend"] = "ray"
-        recommendation["communication_layer"] = "ray_queue"
-        recommendation["reasoning"].append("Ray cluster detected, using distributed backend")
-
-    elif env_type == "kubernetes":
-        recommendation["primary_backend"] = "ray"
-        recommendation["secondary_backends"].append("local")
+    if env_type == "kubernetes":
         recommendation["communication_layer"] = "network"
         recommendation["reasoning"].append(
-            "Kubernetes environment, Ray recommended for scalability"
+            "Kubernetes environment detected, network transport preferred."
         )
 
     elif env_type == "docker":
-        recommendation["secondary_backends"].append("ray")
-        recommendation["reasoning"].append("Docker environment, local backend preferred")
-
-    # 基于资源的推荐
-    if system_resources.get("cpu", {}).get("count", 0) > 8:
-        if "ray" not in recommendation["secondary_backends"]:
-            recommendation["secondary_backends"].append("ray")
-        recommendation["reasoning"].append(
-            "High CPU count, Ray backend beneficial for parallelization"
-        )
+        recommendation["reasoning"].append("Docker environment detected.")
 
     if gpu_resources.get("available", False):
         recommendation["gpu_support"] = True
         recommendation["communication_layer"] = "gpu_direct"
         recommendation["reasoning"].append("GPU available, GPU-direct communication recommended")
 
-    # 内存建议
     memory_gb = system_resources.get("memory", {}).get("total", 0) / (1024**3)
     if memory_gb > 32:
         recommendation["memory_strategy"] = "mmap"
@@ -379,7 +297,7 @@ def get_environment_capabilities() -> dict[str, Any]:
         "system_resources": get_system_resources(),
         "gpu_resources": detect_gpu_resources(),
         "network_interfaces": get_network_interfaces(),
-        "ray_info": get_ray_cluster_info(),
+        "runtime_engine": get_runtime_engine_info(),
         "backend_recommendation": recommend_backend(),
         "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         "platform": sys.platform,
@@ -391,7 +309,7 @@ def validate_environment_for_backend(backend_type: str) -> dict[str, Any]:
     验证环境是否支持指定的后端类型
 
     Args:
-        backend_type: 后端类型 ('local', 'ray', 'distributed')
+        backend_type: 后端类型 ('local', 'flownet', 'distributed')
 
     Returns:
         Dict: 验证结果
@@ -406,29 +324,14 @@ def validate_environment_for_backend(backend_type: str) -> dict[str, Any]:
     if backend_type == "local":
         validation["supported"] = True
 
-    elif backend_type == "ray":
-        if not is_ray_available():
-            validation["issues"].append("Ray not installed")
-            validation["recommendations"].append("Install Ray: pip install ray")
-        else:
-            validation["supported"] = True
-            if not is_ray_cluster_active():
-                validation["recommendations"].append(
-                    "Initialize Ray cluster for better performance"
-                )
-
-    elif backend_type == "distributed":
-        if not is_ray_available():
-            validation["issues"].append("Ray required for distributed backend")
-            validation["recommendations"].append("Install Ray: pip install ray")
-
+    elif backend_type in {"flownet", "distributed"}:
         network_info = get_network_interfaces()
-        if not network_info or len(network_info) < 2:
-            validation["issues"].append("Limited network interfaces for distributed setup")
-
-        if validation["issues"]:
-            validation["supported"] = False
-        else:
-            validation["supported"] = True
+        if not network_info:
+            validation["issues"].append("No network interfaces detected")
+        validation["supported"] = len(validation["issues"]) == 0
+        if validation["supported"]:
+            validation["recommendations"].append(
+                "Use RPC queue descriptors and node runtime management for distributed execution."
+            )
 
     return validation

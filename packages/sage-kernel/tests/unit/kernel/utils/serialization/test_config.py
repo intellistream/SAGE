@@ -5,7 +5,7 @@ Tests for sage.common.utils.serialization.config module
 单元测试序列化配置模块的功能，包括：
 - 黑名单配置常量
 - 排除属性列表
-- Ray相关排除配置
+- Transformation/Operator 排除配置
 """
 
 import threading
@@ -16,9 +16,9 @@ import pytest
 from sage.common.utils.serialization.config import (
     ATTRIBUTE_BLACKLIST,
     BLACKLIST,
-    RAY_OPERATOR_EXCLUDE_ATTRS,
-    RAY_TRANSFORMATION_EXCLUDE_ATTRS,
+    OPERATOR_EXCLUDE_ATTRS,
     SKIP_VALUE,
+    TRANSFORMATION_EXCLUDE_ATTRS,
 )
 
 
@@ -133,104 +133,104 @@ class TestSkipValue:
 
 
 @pytest.mark.unit
-class TestRayTransformationExcludeAttrs:
-    """Ray转换排除属性测试"""
+class TestTransformationExcludeAttrs:
+    """转换排除属性测试"""
 
-    def test_ray_transformation_exclude_attrs_is_list(self):
-        """测试Ray转换排除属性是列表"""
-        assert isinstance(RAY_TRANSFORMATION_EXCLUDE_ATTRS, list)
-        assert len(RAY_TRANSFORMATION_EXCLUDE_ATTRS) > 0
+    def test_transformation_exclude_attrs_is_list(self):
+        """测试转换排除属性是列表"""
+        assert isinstance(TRANSFORMATION_EXCLUDE_ATTRS, list)
+        assert len(TRANSFORMATION_EXCLUDE_ATTRS) > 0
 
-    def test_ray_transformation_includes_common_attrs(self):
-        """测试Ray转换排除包含通用属性"""
-        assert "logger" in RAY_TRANSFORMATION_EXCLUDE_ATTRS
-        assert "_logger" in RAY_TRANSFORMATION_EXCLUDE_ATTRS
-        assert "env" in RAY_TRANSFORMATION_EXCLUDE_ATTRS
-        assert "runtime_context" in RAY_TRANSFORMATION_EXCLUDE_ATTRS
+    def test_transformation_includes_common_attrs(self):
+        """测试转换排除包含通用属性"""
+        assert "logger" in TRANSFORMATION_EXCLUDE_ATTRS
+        assert "_logger" in TRANSFORMATION_EXCLUDE_ATTRS
+        assert "env" in TRANSFORMATION_EXCLUDE_ATTRS
+        assert "runtime_context" in TRANSFORMATION_EXCLUDE_ATTRS
 
-    def test_ray_transformation_includes_factory_attrs(self):
-        """测试Ray转换排除包含工厂属性"""
-        assert "_dag_node_factory" in RAY_TRANSFORMATION_EXCLUDE_ATTRS
-        assert "_operator_factory" in RAY_TRANSFORMATION_EXCLUDE_ATTRS
-        assert "_function_factory" in RAY_TRANSFORMATION_EXCLUDE_ATTRS
+    def test_transformation_includes_factory_attrs(self):
+        """测试转换排除包含工厂属性"""
+        assert "_dag_node_factory" in TRANSFORMATION_EXCLUDE_ATTRS
+        assert "_operator_factory" in TRANSFORMATION_EXCLUDE_ATTRS
+        assert "_function_factory" in TRANSFORMATION_EXCLUDE_ATTRS
 
-    def test_ray_transformation_includes_socket_attrs(self):
-        """测试Ray转换排除包含socket属性"""
-        assert "server_socket" in RAY_TRANSFORMATION_EXCLUDE_ATTRS
-        assert "server_thread" in RAY_TRANSFORMATION_EXCLUDE_ATTRS
-        assert "_server_thread" in RAY_TRANSFORMATION_EXCLUDE_ATTRS
+    def test_transformation_includes_socket_attrs(self):
+        """测试转换排除包含socket属性"""
+        assert "server_socket" in TRANSFORMATION_EXCLUDE_ATTRS
+        assert "server_thread" in TRANSFORMATION_EXCLUDE_ATTRS
+        assert "_server_thread" in TRANSFORMATION_EXCLUDE_ATTRS
 
-    def test_ray_transformation_attr_names_are_strings(self):
-        """测试Ray转换排除属性名都是字符串"""
-        for attr in RAY_TRANSFORMATION_EXCLUDE_ATTRS:
+    def test_transformation_attr_names_are_strings(self):
+        """测试转换排除属性名都是字符串"""
+        for attr in TRANSFORMATION_EXCLUDE_ATTRS:
             assert isinstance(attr, str), f"Attribute {attr} is not a string"
             assert len(attr) > 0, "Attribute name cannot be empty"
 
 
 @pytest.mark.unit
-class TestRayOperatorExcludeAttrs:
-    """Ray算子排除属性测试"""
+class TestOperatorExcludeAttrs:
+    """算子排除属性测试"""
 
-    def test_ray_operator_exclude_attrs_is_list(self):
-        """测试Ray算子排除属性是列表"""
-        assert isinstance(RAY_OPERATOR_EXCLUDE_ATTRS, list)
-        assert len(RAY_OPERATOR_EXCLUDE_ATTRS) > 0
+    def test_operator_exclude_attrs_is_list(self):
+        """测试算子排除属性是列表"""
+        assert isinstance(OPERATOR_EXCLUDE_ATTRS, list)
+        assert len(OPERATOR_EXCLUDE_ATTRS) > 0
 
-    def test_ray_operator_includes_logger_attrs(self):
-        """测试Ray算子排除包含日志属性"""
-        assert "logger" in RAY_OPERATOR_EXCLUDE_ATTRS
-        assert "_logger" in RAY_OPERATOR_EXCLUDE_ATTRS
+    def test_operator_includes_logger_attrs(self):
+        """测试算子排除包含日志属性"""
+        assert "logger" in OPERATOR_EXCLUDE_ATTRS
+        assert "_logger" in OPERATOR_EXCLUDE_ATTRS
 
-    def test_ray_operator_includes_context_attrs(self):
-        """测试Ray算子排除包含上下文属性"""
-        assert "runtime_context" in RAY_OPERATOR_EXCLUDE_ATTRS
-        assert "emit_context" in RAY_OPERATOR_EXCLUDE_ATTRS
+    def test_operator_includes_context_attrs(self):
+        """测试算子排除包含上下文属性"""
+        assert "runtime_context" in OPERATOR_EXCLUDE_ATTRS
+        assert "emit_context" in OPERATOR_EXCLUDE_ATTRS
 
-    def test_ray_operator_includes_socket_attrs(self):
-        """测试Ray算子排除包含socket属性"""
-        assert "server_socket" in RAY_OPERATOR_EXCLUDE_ATTRS
-        assert "client_socket" in RAY_OPERATOR_EXCLUDE_ATTRS
-        assert "server_thread" in RAY_OPERATOR_EXCLUDE_ATTRS
-        assert "_server_thread" in RAY_OPERATOR_EXCLUDE_ATTRS
+    def test_operator_includes_socket_attrs(self):
+        """测试算子排除包含socket属性"""
+        assert "server_socket" in OPERATOR_EXCLUDE_ATTRS
+        assert "client_socket" in OPERATOR_EXCLUDE_ATTRS
+        assert "server_thread" in OPERATOR_EXCLUDE_ATTRS
+        assert "_server_thread" in OPERATOR_EXCLUDE_ATTRS
 
-    def test_ray_operator_attr_names_are_strings(self):
-        """测试Ray算子排除属性名都是字符串"""
-        for attr in RAY_OPERATOR_EXCLUDE_ATTRS:
+    def test_operator_attr_names_are_strings(self):
+        """测试算子排除属性名都是字符串"""
+        for attr in OPERATOR_EXCLUDE_ATTRS:
             assert isinstance(attr, str), f"Attribute {attr} is not a string"
             assert len(attr) > 0, "Attribute name cannot be empty"
 
-    def test_ray_operator_excludes_weakref_comment(self):
-        """测试Ray算子排除列表关于__weakref__的注释"""
+    def test_operator_excludes_weakref_comment(self):
+        """测试算子排除列表关于__weakref__的注释"""
         # 检查注释中提到__weakref__不在列表中的原因
         # 这是一个文档测试，确保代码和注释保持一致
-        assert "__weakref__" not in RAY_OPERATOR_EXCLUDE_ATTRS
+        assert "__weakref__" not in OPERATOR_EXCLUDE_ATTRS
 
 
 @pytest.mark.unit
 class TestExcludeListsComparison:
     """排除列表比较测试"""
 
-    def test_attribute_blacklist_vs_ray_lists(self):
-        """测试通用属性黑名单与Ray专用列表的关系"""
-        # Ray专用列表应该包含一些通用黑名单的属性
+    def test_attribute_blacklist_vs_exclude_lists(self):
+        """测试通用属性黑名单与专用列表的关系"""
+        # 专用列表应该包含一些通用黑名单的属性
         common_attrs = {"logger", "_logger", "server_socket", "server_thread"}
 
         # 检查通用黑名单
         assert common_attrs.issubset(ATTRIBUTE_BLACKLIST)
 
-        # 检查Ray转换列表
-        assert common_attrs.issubset(set(RAY_TRANSFORMATION_EXCLUDE_ATTRS))
+        # 检查转换列表
+        assert common_attrs.issubset(set(TRANSFORMATION_EXCLUDE_ATTRS))
 
-        # 检查Ray算子列表（除了server_thread可能不同）
-        ray_operator_set = set(RAY_OPERATOR_EXCLUDE_ATTRS)
-        assert "logger" in ray_operator_set
-        assert "_logger" in ray_operator_set
-        assert "server_socket" in ray_operator_set
+        # 检查算子列表（除了server_thread可能不同）
+        operator_set = set(OPERATOR_EXCLUDE_ATTRS)
+        assert "logger" in operator_set
+        assert "_logger" in operator_set
+        assert "server_socket" in operator_set
 
-    def test_ray_lists_differences(self):
-        """测试Ray转换和算子列表的差异"""
-        transformation_set = set(RAY_TRANSFORMATION_EXCLUDE_ATTRS)
-        operator_set = set(RAY_OPERATOR_EXCLUDE_ATTRS)
+    def test_exclude_lists_differences(self):
+        """测试转换和算子列表的差异"""
+        transformation_set = set(TRANSFORMATION_EXCLUDE_ATTRS)
+        operator_set = set(OPERATOR_EXCLUDE_ATTRS)
 
         # 转换列表应该包含工厂属性，算子列表可能不包含
         factory_attrs = {"_dag_node_factory", "_operator_factory", "_function_factory"}
@@ -239,16 +239,16 @@ class TestExcludeListsComparison:
         # 算子列表应该包含发射上下文，转换列表可能不包含
         if "emit_context" in operator_set:
             # 如果算子列表包含emit_context，验证这个设计选择
-            assert "emit_context" in RAY_OPERATOR_EXCLUDE_ATTRS
+            assert "emit_context" in OPERATOR_EXCLUDE_ATTRS
 
     def test_no_duplicate_attrs_in_lists(self):
         """测试列表中没有重复属性"""
-        # Ray转换列表不应有重复
-        transformation_list = RAY_TRANSFORMATION_EXCLUDE_ATTRS
+        # 转换列表不应有重复
+        transformation_list = TRANSFORMATION_EXCLUDE_ATTRS
         assert len(transformation_list) == len(set(transformation_list))
 
-        # Ray算子列表不应有重复
-        operator_list = RAY_OPERATOR_EXCLUDE_ATTRS
+        # 算子列表不应有重复
+        operator_list = OPERATOR_EXCLUDE_ATTRS
         assert len(operator_list) == len(set(operator_list))
 
 
@@ -336,7 +336,7 @@ class TestConfigurationUsageScenarios:
         # 测试转换对象过滤
         transform_filtered = []
         for attr_name in dir(transformation):
-            if not attr_name.startswith("__") and attr_name not in RAY_TRANSFORMATION_EXCLUDE_ATTRS:
+            if not attr_name.startswith("__") and attr_name not in TRANSFORMATION_EXCLUDE_ATTRS:
                 transform_filtered.append(attr_name)
 
         assert "transformation_data" in transform_filtered
@@ -346,7 +346,7 @@ class TestConfigurationUsageScenarios:
         # 测试算子对象过滤
         operator_filtered = []
         for attr_name in dir(operator):
-            if not attr_name.startswith("__") and attr_name not in RAY_OPERATOR_EXCLUDE_ATTRS:
+            if not attr_name.startswith("__") and attr_name not in OPERATOR_EXCLUDE_ATTRS:
                 operator_filtered.append(attr_name)
 
         assert "operator_data" in operator_filtered
@@ -483,26 +483,26 @@ class TestSerializationConfigIntegration:
 
         transform_obj = RayTransformationObject()
 
-        # 模拟Ray转换对象过滤
-        def filter_ray_transformation(obj):
+        # 模拟转换对象过滤
+        def filter_transformation(obj):
             filtered = {}
             for attr_name in dir(obj):
                 if (
                     not attr_name.startswith("__")
                     and not callable(getattr(obj, attr_name))
-                    and attr_name not in RAY_TRANSFORMATION_EXCLUDE_ATTRS
+                    and attr_name not in TRANSFORMATION_EXCLUDE_ATTRS
                 ):
                     filtered[attr_name] = getattr(obj, attr_name)
             return filtered
 
-        filtered = filter_ray_transformation(transform_obj)
+        filtered = filter_transformation(transform_obj)
 
         # 验证业务属性被保留
         assert "transform_id" in filtered
         assert "input_data" in filtered
         assert "output_schema" in filtered
 
-        # 验证Ray特定属性被过滤
+        # 验证应排除的属性被过滤
         assert "logger" not in filtered
         assert "_dag_node_factory" not in filtered
         assert "_operator_factory" not in filtered

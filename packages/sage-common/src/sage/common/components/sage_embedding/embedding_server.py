@@ -78,6 +78,7 @@ except Exception as e:
 import argparse
 import logging
 import time
+from pathlib import Path
 from typing import Any
 
 import torch
@@ -138,16 +139,61 @@ class EmbeddingServer:
             logger.info(f"HF_ENDPOINT: {os.environ.get('HF_ENDPOINT', 'not set')}")
 
             # 检查本地缓存是否存在
-            cache_dir = os.path.expanduser("~/.cache/huggingface/hub")
-            model_cache = os.path.join(cache_dir, f"models--{model_name.replace('/', '--')}")
+            cache_dir = Path("~/.cache/huggingface/hub").expanduser()
+            model_cache = cache_dir / f"models--{model_name.replace('/', '--')}"
 
-            # 如果本地缓存存在，优先使用本地文件（避免限流）
-            local_files_only = os.path.exists(model_cache)
+            def _resolve_snapshot_dir(cache_root: Path) -> Path | None:
+                snapshots_dir = cache_root / "snapshots"
+                if not snapshots_dir.exists():
+                    return None
+                candidates = [p for p in snapshots_dir.iterdir() if p.is_dir()]
+                if not candidates:
+                    return None
+                return max(candidates, key=lambda p: p.stat().st_mtime)
+
+            def _cache_is_complete(snapshot_dir: Path | None) -> bool:
+                if snapshot_dir is None:
+                    return False
+                has_config = (snapshot_dir / "config.json").exists()
+                has_weights = any(
+                    (snapshot_dir / name).exists()
+                    for name in [
+                        "pytorch_model.bin",
+                        "pytorch_model.bin.index.json",
+                        "model.safetensors",
+                        "model.safetensors.index.json",
+                    ]
+                )
+                has_tokenizer = any(
+                    (snapshot_dir / name).exists()
+                    for name in [
+                        "tokenizer.json",
+                        "tokenizer.model",
+                        "tokenizer_config.json",
+                        "vocab.txt",
+                        "merges.txt",
+                        "sentencepiece.bpe.model",
+                    ]
+                )
+                return has_config and has_weights and has_tokenizer
+
+            snapshot_dir = _resolve_snapshot_dir(model_cache)
+            local_files_only = _cache_is_complete(snapshot_dir)
             if local_files_only:
                 logger.info(f"Found local cache at {model_cache}")
                 logger.info("Loading from local cache only (avoiding network requests)")
             else:
-                logger.info("Local cache not found, will download from mirror")
+                if snapshot_dir is None:
+                    logger.info("Local cache not found, will download from mirror")
+                else:
+                    logger.info(
+                        "Local cache is incomplete, will download missing files from mirror"
+                    )
+                if os.environ.get("HF_HUB_OFFLINE") == "1":
+                    raise RuntimeError(
+                        "HF_HUB_OFFLINE=1 but local cache is incomplete. "
+                        "Please download the model first or disable offline mode."
+                    )
 
             # 直接加载（优先使用本地已有的格式，避免下载 safetensors）
             # use_safetensors=False 会强制使用 pytorch_model.bin
