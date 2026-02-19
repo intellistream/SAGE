@@ -20,7 +20,7 @@ os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
 
 # 配置 Python 日志系统
 logging.basicConfig(level=logging.ERROR)
-for logger_name in ["sage", "JobManager", "ray", "asyncio", "urllib3"]:
+for logger_name in ["sage", "sage.flownet", "JobManager", "asyncio", "urllib3"]:
     logging.getLogger(logger_name).setLevel(logging.ERROR)
 
 # 禁用所有INFO级别的日志
@@ -154,7 +154,7 @@ def run_file_processing_test():
         "SAGE Framework",
         "Distributed Stream Processing",
         "Batch Processing Support",
-        "Ray-based Architecture",
+        "Flownet-based Architecture",
         "Python Implementation",
     ]
 
@@ -237,7 +237,7 @@ def run_processing_chain_test():
 
     print("🚀 Starting complex processing chain...")
     print("📊 Chain: source → +100 → filter_even → /2 → format → sink")
-    print("🌐 Running on distributed Ray cluster")
+    print("🌐 Running on distributed Flownet cluster")
     print("⏹️  Automatic termination with batch lifecycle management\n")
 
     # 提交并运行

@@ -29,7 +29,7 @@ from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
 from sage.kernel.api.flownet_environment import (
-    FlownetEnvironment,  # migrated from FlownetEnvironment (Issue #1443)
+    FlownetEnvironment,
 )
 from sage.kernel.runtime.communication.packet import StopSignal
 from sage.kernel.scheduler.api import BaseScheduler
@@ -471,7 +471,7 @@ def print_usage_guide():
     print("   或者手动启动:")
     print("   $ python -m sage.kernel.runtime.job_manager --host 127.0.0.1 --port 19001")
 
-print("\n2️⃣  启动 Flownet 集群 (可选，JobManager会自动初始化):")
+    print("\n2️⃣  启动 Flownet 集群 (可选，JobManager会自动初始化):")
     print("   $ sage worker start  # 启动工作节点")
     print("   $ sage worker start --address=<head_address>  # 加入现有集群")
 

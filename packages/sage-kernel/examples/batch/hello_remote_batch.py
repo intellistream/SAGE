@@ -15,7 +15,7 @@ import time
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
 from sage.kernel.api.flownet_environment import (
-    FlownetEnvironment,  # migrated from FlownetEnvironment (Issue #1443)
+    FlownetEnvironment,
 )
 from sage.kernel.runtime.communication.packet import StopSignal
 
@@ -223,7 +223,7 @@ def run_file_processing_test():
         "SAGE Framework",
         "Distributed Stream Processing",
         "Batch Processing Support",
-        "Ray-based Architecture",
+        "Flownet-based Architecture",
         "Python Implementation",
     ]
 
@@ -306,7 +306,7 @@ def run_processing_chain_test():
 
     print("🚀 Starting complex processing chain...")
     print("📊 Chain: source → +100 → filter_even → /2 → format → sink")
-    print("🌐 Running on distributed Ray cluster")
+    print("🌐 Running on distributed Flownet cluster")
     print("⏹️  Automatic termination with batch lifecycle management\n")
 
     # 提交并运行

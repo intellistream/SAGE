@@ -3,10 +3,10 @@
 Remote Environment Parallelism Validation Example
 
 This example demonstrates and validates parallelism hints functionality
-using FlownetEnvironment (Ray-based distributed execution). It shows how
+using FlownetEnvironment (Flownet-based distributed execution). It shows how
 parallelism settings work in a distributed environment and verifies that
 the ExecutionGraph creates the correct number of parallel nodes across
-Ray workers.
+Flownet workers.
 
 @test:timeout=90
 """
@@ -19,7 +19,7 @@ from sage.common.core.functions.base_function import BaseFunction
 from sage.common.core.functions.batch_function import BatchFunction
 from sage.common.core.functions.comap_function import BaseCoMapFunction
 from sage.kernel.api.flownet_environment import (
-    FlownetEnvironment,  # migrated from FlownetEnvironment (Issue #1443)
+    FlownetEnvironment,
 )
 
 
@@ -64,7 +64,7 @@ class DistributedProcessor(BaseFunction):
 
 
 class DistributedFilter(BaseFunction):
-    """A filter that shows distributed execution across Ray workers"""
+    """A filter that shows distributed execution across Flownet workers"""
 
     def __init__(self):
         super().__init__()
@@ -142,8 +142,8 @@ def validate_remote_single_stream_parallelism():
     print("REMOTE ENVIRONMENT - SINGLE STREAM PARALLELISM VALIDATION")
     print("=" * 70)
 
-    # Initialize Ray cluster for distributed processing
-    # Note: Ray configuration is currently handled at the JobManager level,
+    # Initialize Flownet runtime for distributed processing
+    # Note: runtime configuration is currently handled at the JobManager level,
     # not directly through FlownetEnvironment constructor. This is a potential
     # improvement area for SAGE architecture.
     try:
@@ -182,7 +182,7 @@ def validate_remote_single_stream_parallelism():
     # Analyze pipeline
     print("\n📋 DISTRIBUTED PIPELINE ANALYSIS:")
     print(f"Total transformations: {len(env.pipeline)}")
-    print(f"Ray workers available: {env.platform} (distributed execution)")
+    print(f"Flownet workers available: {env.platform} (distributed execution)")
     for i, transformation in enumerate(env.pipeline):
         print(
             f"  {i + 1:2d}. {transformation.function_class.__name__:25s} | "
@@ -243,18 +243,18 @@ def validate_remote_multi_stream_parallelism():
     return env
 
 
-def validate_ray_distributed_execution():
-    """Validate that Ray properly distributes parallel operations"""
+def validate_flownet_distributed_execution():
+    """Validate that Flownet properly distributes parallel operations"""
     print("\n" + "=" * 70)
-    print("RAY DISTRIBUTED EXECUTION VALIDATION")
+    print("FLOWNET DISTRIBUTED EXECUTION VALIDATION")
     print("=" * 70)
 
     try:
-        env = FlownetEnvironment(name="ray_distribution_test")
+        env = FlownetEnvironment(name="flownet_distribution_test")
         print("✅ FlownetEnvironment initialized")
     except Exception as e:
         print(f"⚠️  FlownetEnvironment initialization warning: {e}")
-        env = FlownetEnvironment(name="ray_distribution_test")
+        env = FlownetEnvironment(name="flownet_distribution_test")
 
     # Create a pipeline designed to show distributed execution
     large_dataset = list(range(1, 51))  # 1 to 50 - enough data for distribution
@@ -288,13 +288,13 @@ def validate_ray_distributed_execution():
 def main():
     """Main function to run all remote validation tests"""
     print("🚀 SAGE Remote Environment Parallelism Validation")
-    print("This example validates parallelism hints in FlownetEnvironment (Ray)")
+    print("This example validates parallelism hints in FlownetEnvironment (Flownet)")
 
     try:
         # Run all validation tests
         env1 = validate_remote_single_stream_parallelism()
         env2 = validate_remote_multi_stream_parallelism()
-        env3 = validate_ray_distributed_execution()
+        env3 = validate_flownet_distributed_execution()
 
         print("\n" + "=" * 70)
         print("REMOTE VALIDATION SUMMARY")

@@ -4,9 +4,9 @@
 
 ## 📂 示例列表
 
-### FlownetEnvironment
+### FlownetEnvironment 特性
 
-- **remote_env.py** - FlownetEnvironment 基础使用示例（原 RemoteEnvironment，迁移至 #1443）
+- **remote_env.py** - FlownetEnvironment 基础使用示例
   - 演示如何创建和使用 FlownetEnvironment
   - 展示基于 sageFlownet 的分布式执行的基本概念
 

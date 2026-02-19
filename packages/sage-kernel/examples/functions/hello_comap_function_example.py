@@ -20,7 +20,7 @@ os.environ.setdefault("SAGE_LOG_LEVEL", "ERROR")
 
 # 配置 Python 日志系统
 logging.basicConfig(level=logging.ERROR)
-for logger_name in ["sage", "JobManager", "ray", "asyncio", "urllib3"]:
+for logger_name in ["sage", "sage.flownet", "JobManager", "asyncio", "urllib3"]:
     logging.getLogger(logger_name).setLevel(logging.ERROR)
 
 # 禁用所有INFO级别的日志

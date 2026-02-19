@@ -20,7 +20,7 @@ from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
 from sage.kernel.api.flownet_environment import (
-    FlownetEnvironment,  # migrated from RemoteEnvironment (Issue #1443)
+    FlownetEnvironment,
 )
 from sage.kernel.api.local_environment import LocalEnvironment
 from sage.kernel.scheduler.api import BaseScheduler
