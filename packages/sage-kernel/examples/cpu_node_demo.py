@@ -356,12 +356,6 @@ def demo_cluster_inspection():
     print("  ✓ 集群总体状态\n")
 
     try:
-        import ray
-
-        if not ray.is_initialized():
-            print("⚠️  Ray 未初始化，跳过集群检查")
-            return
-
         # 创建节点选择器
         node_selector = NodeSelector()
 
@@ -407,8 +401,7 @@ def demo_cluster_inspection():
         print("\n✅ 示例4完成!")
         print("=" * 70)
 
-    except ImportError:
-        print("⚠️  Ray 未安装，无法进行集群检查")
+
     except Exception as e:
         print(f"⚠️  集群检查失败: {e}")
 
@@ -478,18 +471,17 @@ def print_usage_guide():
     print("   或者手动启动:")
     print("   $ python -m sage.kernel.runtime.job_manager --host 127.0.0.1 --port 19001")
 
-    print("\n2️⃣  启动Ray集群 (可选，JobManager会自动初始化):")
-    print("   $ ray start --head  # 启动头节点")
-    print("   $ ray start --address=<head_address>  # 添加CPU工作节点")
+print("\n2️⃣  启动 Flownet 集群 (可选，JobManager会自动初始化):")
+    print("   $ sage worker start  # 启动工作节点")
+    print("   $ sage worker start --address=<head_address>  # 加入现有集群")
 
-    print("\n3️⃣  配置CPU工作节点:")
+    print("\n3️⃣  配置CPU工作节点 (无GPU配置):")
     print("   # 在工作节点机器上")
-    print("   $ ray start --address=<head_address> --num-cpus=8 --num-gpus=0")
+    print("   $ sage worker start --num-cpus=8 --no-gpu")
     print("   # 指定只有CPU资源，不分配GPU")
 
     print("\n4️⃣  检查集群状态:")
     print("   $ sage jobmanager status")
-    print("   $ ray status")
 
     print("\n5️⃣  运行CPU任务:")
     print("   $ python cpu_node_demo.py")
@@ -583,7 +575,7 @@ def main():
         traceback.print_exc()
         print("\n💡 提示:")
         print("  1. 确保JobManager已启动: sage jobmanager start")
-        print("  2. 检查Ray是否运行: ray status")
+        print("  2. 检查Flownet运行时状态: sage jobmanager status")
         print("  3. 查看日志: .sage/logs/jobmanager/")
 
 

@@ -62,12 +62,7 @@ class DoctorCommand(BaseCommand):
 
             self.formatter.print_success(f"sageFlownet: v{sage.flownet.__version__}")
         except ImportError:
-            try:
-                import ray
-
-                self.formatter.print_warning(f"Ray (legacy): v{ray.__version__}")
-            except ImportError:
-                self.formatter.print_error("sageFlownet 未安装 (pip install isage-flow)")
+            self.formatter.print_error("sageFlownet 未安装 (pip install isage-flow)")
 
 
 @app.command("doctor")
@@ -175,9 +170,9 @@ class ClusterStatusCommand(RemoteCommand):
                 if self.ssh_manager.test_connection(host, port):
                     self.formatter.print_success(f"Worker {host}:{port}: Connected")
 
-                    # 检查Ray进程
+                    # 检查 Flownet 运行时进程
                     result = self.ssh_manager.execute_command(
-                        host, port, "ps aux | grep -v grep | grep ray", timeout=10
+                        host, port, "ps aux | grep -v grep | grep flownet", timeout=10
                     )
 
                     if result.returncode == 0 and result.stdout.strip():
