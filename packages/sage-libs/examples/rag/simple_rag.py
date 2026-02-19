@@ -3,7 +3,7 @@
 简化版RAG应用 - 测试完整流程
 用于验证问题源→检索→生成→输出的完整数据流
 
-支持 RemoteEnvironment + LocalSinkScheduler：
+支持 FlownetEnvironment + LocalSinkScheduler：
 - 计算任务在远程节点执行
 - Sink 节点绑定到本地（客户端），输出可见
 """
@@ -19,8 +19,10 @@ from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
 from sage.common.utils.logging.custom_logger import CustomLogger
+from sage.kernel.api.flownet_environment import (
+    FlownetEnvironment,  # migrated from RemoteEnvironment (Issue #1443)
+)
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.kernel.api.remote_environment import RemoteEnvironment
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
 
@@ -172,7 +174,7 @@ class LocalSinkScheduler(BaseScheduler):
     - 其他节点 → 使用 Ray 默认负载均衡
 
     使用场景：
-    - RemoteEnvironment 远程执行计算
+    - FlownetEnvironment 分布式执行计算
     - 但希望 Sink 输出在本地可见
 
     注意：需要在 Ray 集群环境中运行，会获取当前节点的真实 Ray node ID
@@ -250,9 +252,8 @@ def pipeline_run():
         # 运行: sage jobmanager start --host 0.0.0.0 --port 19001
         scheduler = LocalSinkScheduler()
         print(f"📍 使用 LocalSinkScheduler，Sink 将在本地节点 ({scheduler.local_hostname}) 执行")
-        env = RemoteEnvironment(
+        env = FlownetEnvironment(
             "rag_simple_demo",
-            host="sage-node-1",
             scheduler=scheduler,
         )
     else:

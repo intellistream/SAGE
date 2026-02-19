@@ -110,7 +110,7 @@ class BaseTcpClient(ABC):
         )
         self.logger.error(f"   2. 主机地址是否正确？ (当前: {self.host}:{self.port})")
         self.logger.error("   3. 防火墙是否阻止了连接？")
-        self.logger.error("💡 提示：如果是第一次使用RemoteEnvironment，请先启动JobManager服务")
+        self.logger.error("💡 提示：如果是第一次尝试远程执行，请先启动JobManager服务")
         self.logger.error(
             "📚 更多信息：https://intellistream.github.io/SAGE-Pub/kernel/jobmanager/"
         )

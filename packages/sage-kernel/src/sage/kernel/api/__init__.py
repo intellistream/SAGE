@@ -5,7 +5,7 @@ Layer: L3 (Kernel - Public API)
 Dependencies: sage.platform (L2), sage.common (L1)
 
 这个模块提供了 SAGE 的核心 API，包括：
-- 环境配置（LocalEnvironment, RemoteEnvironment）
+- 环境配置（LocalEnvironment, FlownetEnvironment）
 - 数据流操作（DataStream）
 - 函数定义（从 sage.common.core.functions 导入）
 - 算子抽象（MapOperator, FilterOperator等）
@@ -28,8 +28,8 @@ Architecture:
 """
 
 # 导入主要 API 类
+from .flownet_environment import FlownetEnvironment
 from .local_environment import LocalEnvironment
-from .remote_environment import RemoteEnvironment
 
 # 版本信息
 try:
@@ -43,6 +43,6 @@ __all__ = [
     "__version__",
     "__author__",
     "__email__",
+    "FlownetEnvironment",
     "LocalEnvironment",
-    "RemoteEnvironment",
 ]

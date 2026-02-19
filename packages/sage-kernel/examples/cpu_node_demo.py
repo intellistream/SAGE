@@ -28,7 +28,9 @@ from typing import Any
 from sage.common.core.functions.map_function import MapFunction
 from sage.common.core.functions.sink_function import SinkFunction
 from sage.common.core.functions.source_function import SourceFunction
-from sage.kernel.api.remote_environment import RemoteEnvironment
+from sage.kernel.api.flownet_environment import (
+    FlownetEnvironment,  # migrated from FlownetEnvironment (Issue #1443)
+)
 from sage.kernel.runtime.communication.packet import StopSignal
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
@@ -226,8 +228,8 @@ def demo_basic_cpu_node():
     print("  ✓ 节点能够正常执行并返回结果")
     print("  ✓ 任务执行过程中具备基本的监控和日志记录能力\n")
 
-    # 创建RemoteEnvironment（默认会使用CPU节点）
-    env = RemoteEnvironment(name="cpu_node_basic_demo")
+    # 创建FlownetEnvironment（默认会使用CPU节点）
+    env = FlownetEnvironment(name="cpu_node_basic_demo")
 
     # 构建CPU任务流
     (
@@ -266,7 +268,7 @@ def demo_cpu_scheduler():
 
     # 创建使用CPU专用调度器的环境
     cpu_scheduler = CPUOnlyScheduler()
-    env = RemoteEnvironment(
+    env = FlownetEnvironment(
         name="cpu_scheduler_demo",
         scheduler=cpu_scheduler,
     )
@@ -312,7 +314,7 @@ def demo_cpu_node_monitoring():
     print("  ✓ 详细的日志记录")
     print("  ✓ JobManager健康检查\n")
 
-    env = RemoteEnvironment(name="cpu_monitoring_demo")
+    env = FlownetEnvironment(name="cpu_monitoring_demo")
 
     # 构建任务流
     (
@@ -430,7 +432,7 @@ def demo_resource_requirements():
     print("  ✓ 智能节点选择\n")
 
     # 创建环境
-    env = RemoteEnvironment(name="cpu_resource_demo")
+    env = FlownetEnvironment(name="cpu_resource_demo")
 
     # CPUComputeProcessor 已声明: cpu_required=2, memory_required="2GB", gpu_required=0
     print("💡 CPUComputeProcessor 资源需求:")
@@ -556,7 +558,7 @@ def main():
 
         print("\n💡 关键要点:")
         print("  • CPU节点通过NodeSelector自动选择（gpu_required=0）")
-        print("  • RemoteEnvironment自动与JobManager协作")
+        print("  • FlownetEnvironment自动与JobManager协作")
         print("  • 支持自定义调度策略（CPUOnlyScheduler）")
         print("  • 内置监控和日志系统")
         print("  • 可在无GPU环境中运行")
@@ -566,7 +568,7 @@ def main():
         print("\n🔗 相关文件:")
         print("  • JobManager: sage/kernel/runtime/job_manager.py")
         print("  • NodeSelector: sage/kernel/scheduler/node_selector.py")
-        print("  • RemoteEnvironment: sage/kernel/api/remote_environment.py")
+        print("  • FlownetEnvironment: sage/kernel/api/remote_environment.py")
         print("  • Scheduler: sage/kernel/scheduler/impl/resource_aware_scheduler.py")
         print("  • 日志目录: .sage/logs/jobmanager/")
 

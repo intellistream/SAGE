@@ -121,8 +121,8 @@ class JobManager:  # Job Manager
         self.setup_env_logging(env)
 
         # 向环境注入JobManager的网络地址信息
-        # 注意：如果 env 已经设置了 jobmanager_host（例如在 RemoteEnvironment 中指定了集群可访问的主机名），
-        # 则保留用户设置的值，不要用 server.host（可能是 0.0.0.0）覆盖
+        # 注意：如果 env 已经设置了 jobmanager_host，则保留用户设置的值，
+        # 不要用 server.host（可能是 0.0.0.0）覆盖
         if self.server:
             if env.jobmanager_host is None:
                 env.jobmanager_host = self.server.host

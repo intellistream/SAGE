@@ -37,14 +37,14 @@ except ImportError:
 
 # 导出 API 类
 try:
-    from sage.kernel.api import LocalEnvironment, RemoteEnvironment
+    from sage.kernel.api import FlownetEnvironment, LocalEnvironment
 except ImportError:
+    FlownetEnvironment = None  # type: ignore[assignment,misc]
     LocalEnvironment = None  # type: ignore[assignment,misc]
-    RemoteEnvironment = None  # type: ignore[assignment,misc]
     import warnings
 
     warnings.warn(
-        "LocalEnvironment and RemoteEnvironment are not available. Some features may be limited.",
+        "LocalEnvironment and FlownetEnvironment are not available. Some features may be limited.",
         ImportWarning,
         stacklevel=2,
     )
@@ -98,10 +98,10 @@ __all__ = [
     "__version__",
     "__author__",
     "__email__",
-    # DataStream pipeline API (LocalEnvironment / RemoteEnvironment pattern)
+    # DataStream pipeline API (LocalEnvironment / FlownetEnvironment)
     "JobManagerClient",
+    "FlownetEnvironment",
     "LocalEnvironment",
-    "RemoteEnvironment",
     "api",
     # Flow declaration layer (Issue #1431)
     "flow",

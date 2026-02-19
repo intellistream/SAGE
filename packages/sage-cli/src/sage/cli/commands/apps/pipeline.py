@@ -393,16 +393,14 @@ def _create_environment(
     env_config = _expand_params(env_settings.get("config") or {})
 
     env_type = (pipeline_meta.get("type") or "local").lower()
-    if env_type == "remote":
-        from sage.kernel.api.remote_environment import RemoteEnvironment  # import lazily
+    if env_type in ("remote", "flownet"):
+        from sage.kernel.api.flownet_environment import FlownetEnvironment  # import lazily
 
-        resolved_host = host or env_settings.get("host") or "127.0.0.1"
-        resolved_port = port or env_settings.get("port") or 19001
-        return RemoteEnvironment(
+        placement = env_settings.get("placement_policy") or None
+        return FlownetEnvironment(
             name=pipeline_name,
             config=env_config,
-            host=resolved_host,
-            port=int(resolved_port),
+            placement_policy=placement,
         )
 
     return LocalEnvironment(name=pipeline_name, config=env_config)

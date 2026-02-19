@@ -49,6 +49,7 @@ from sage.kernel.flow.exception_handler import (
     flow_exception_handler,
     register_exception_handler_hook,
 )
+from sage.kernel.flow.pipeline_compiler import CompiledActorGraph, PipelineCompiler
 
 __all__ = [
     # Flow DSL
@@ -67,4 +68,7 @@ __all__ = [
     "ExceptionDecision",
     "FlowException",
     "FlowDefinitionError",
+    # Pipeline compiler (Issue #1442)
+    "PipelineCompiler",
+    "CompiledActorGraph",
 ]
