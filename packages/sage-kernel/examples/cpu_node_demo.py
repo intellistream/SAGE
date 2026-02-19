@@ -401,7 +401,6 @@ def demo_cluster_inspection():
         print("\n✅ 示例4完成!")
         print("=" * 70)
 
-
     except Exception as e:
         print(f"⚠️  集群检查失败: {e}")
 

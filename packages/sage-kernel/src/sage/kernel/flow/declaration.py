@@ -20,7 +20,7 @@ Migration context (intellistream/SAGE#1430, #1431):
   - SAGE now owns the **declaration surface**; Flownet continues to own execution semantics.
   - Flownet's FlowDef wraps / delegates to these abstractions at compile time.
 
-No Ray-style concepts are present here.
+No legacy runtime-oriented concepts are present here.
 """
 
 from __future__ import annotations

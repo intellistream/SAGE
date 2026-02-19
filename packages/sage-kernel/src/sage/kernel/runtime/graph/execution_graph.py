@@ -174,7 +174,7 @@ class ExecutionGraph:
                     ServiceTaskFactory,
                 )
 
-                # 获取 extra_python_paths 用于 Ray runtime_env
+                # 获取 extra_python_paths 用于远程运行时环境
                 extra_paths = getattr(env, "extra_python_paths", None)
                 extra_python_paths = (
                     extra_paths

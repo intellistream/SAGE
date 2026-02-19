@@ -274,16 +274,6 @@ install_sage() {
             if install_core_packages "minimal"; then
                 log_phase_end "最小安装模式" "success" "MAIN"
                 echo ""
-                echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                echo -e "${INFO} 💡 最小安装完成！如需额外功能，可手动安装："
-                echo -e "${DIM}   ML/深度学习:    pip install isage-middleware[ml]${NC}"
-                echo -e "${DIM}   向量数据库:    pip install isage-middleware[vdb]${NC}"
-                echo -e "${DIM}   流处理:        pip install isage-middleware[streaming]${NC}"
-                echo -e "${DIM}   提示词压缩:    pip install isage-middleware[compression]${NC}"
-                echo -e "${DIM}   任务队列:      pip install isage-middleware[queue]${NC}"
-                echo -e "${DIM}   开发工具:      pip install isage-tools[dev]${NC}"
-                echo -e "${DIM}   所有可选:      pip install isage-middleware[all]${NC}"
-                echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             else
                 log_phase_end "最小安装模式" "failure" "MAIN"
                 return 1
@@ -304,14 +294,6 @@ install_sage() {
             if install_dev_packages; then
                 log_phase_end "开发安装模式" "success" "MAIN"
                 echo ""
-                echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                echo -e "${INFO} 💡 开发安装完成！如需额外功能，可手动安装："
-                echo -e "${DIM}   ML/深度学习:    pip install isage-middleware[ml]${NC}"
-                echo -e "${DIM}   向量数据库:    pip install isage-middleware[vdb]${NC}"
-                echo -e "${DIM}   流处理:        pip install isage-middleware[streaming]${NC}"
-                echo -e "${DIM}   提示词压缩:    pip install isage-middleware[compression]${NC}"
-                echo -e "${DIM}   所有可选:      pip install isage-middleware[all]${NC}"
-                echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             else
                 log_phase_end "开发安装模式" "failure" "MAIN"
                 return 1

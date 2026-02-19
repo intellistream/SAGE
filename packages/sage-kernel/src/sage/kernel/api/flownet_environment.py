@@ -135,15 +135,15 @@ class FlownetEnvironment(BaseEnvironment):
     def stop(self) -> None:
         """Stop an active streaming execution.
 
-        Safe to call even if the pipeline is not running; a warning is logged
-        instead of raising an exception.
+        Safe to call even if the pipeline is not running; an informational
+        message is logged instead of raising an exception.
         """
         if self._streaming_handle is not None:
             self.logger.info(f"[FlownetEnvironment:{self.name}] Stopping streaming pipeline…")
             self._streaming_handle.stop()
             self._streaming_handle = None
         else:
-            self.logger.warning(
+            self.logger.info(
                 f"[FlownetEnvironment:{self.name}] stop() called but no active "
                 "streaming handle found — nothing to stop."
             )

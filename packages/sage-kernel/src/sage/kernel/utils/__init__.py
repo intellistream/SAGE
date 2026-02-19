@@ -1,7 +1,7 @@
 """
 SAGE - Streaming-Augmented Generative Execution
 
-Kernel utilities module containing helper functions and Ray utilities.
+Kernel utilities module containing helper functions and runtime utilities.
 """
 
 # 直接从本包的_version模块加载版本信息

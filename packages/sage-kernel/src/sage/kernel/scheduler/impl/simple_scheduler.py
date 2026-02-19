@@ -70,7 +70,7 @@ class FIFOScheduler(BaseScheduler):
         1. 不考虑优先级
         2. 不考虑负载
         3. 立即调度
-        4. 使用 Ray 默认负载均衡
+        4. 使用运行时默认负载均衡
 
         Args:
             task_node: 任务节点（包含 transformation 和 parallelism 信息）

@@ -24,7 +24,7 @@ class TaskFactory:
         self.is_spout = transformation.is_spout
 
         # Extra Python paths reserved for distributed runtime bootstrapping.
-        # Ray has been removed from kernel runtime; paths are kept for future transport bootstrap.
+        # Legacy runtime path has been removed from kernel; paths are kept for future transport bootstrap.
         self.extra_python_paths: list[str] = (
             extra_python_paths
             if isinstance(extra_python_paths, list)
@@ -38,7 +38,7 @@ class TaskFactory:
     ):
         if self.remote:
             logger.info(
-                "[TaskFactory] remote=True requested; using kernel-native task runtime (Ray removed)."
+                "[TaskFactory] remote=True requested; using kernel-native task runtime (legacy backend removed)."
             )
         node = LocalTask(ctx=runtime_context, operator_factory=self.operator_factory)  # type: ignore
         return node

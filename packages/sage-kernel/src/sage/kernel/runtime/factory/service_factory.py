@@ -70,7 +70,7 @@ class ServiceFactory:
         return f"<ServiceFactory {service_name}: {service_class_name}>"
 
     def __getstate__(self):
-        """为 pickle/Ray 序列化准备状态"""
+        """为 pickle/分布式序列化准备状态"""
         return {
             "service_name": getattr(self, "service_name", None),
             "service_class": getattr(self, "service_class", None),
@@ -79,7 +79,7 @@ class ServiceFactory:
         }
 
     def __setstate__(self, state):
-        """从 pickle/Ray 反序列化恢复状态"""
+        """从 pickle/分布式反序列化恢复状态"""
         self.service_name = state.get("service_name")
         self.service_class = state.get("service_class")
         self.service_args = state.get("service_args", ())

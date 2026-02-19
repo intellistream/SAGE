@@ -486,7 +486,7 @@ else:
         independent_packages="$independent_packages 'isage-agentic>=0.1.0.0' 'isage-eval>=0.1.0.0' 'isage-rag>=0.1.0.0' 'isage-finetune>=0.1.0.0' 'isage-anns>=0.1.1' 'isage-agentic-tooluse>=0.1.0.1'"
         # ML 依赖 (transformers, sentence-transformers, etc.)
         independent_packages="$independent_packages 'transformers>=4.52.0,<4.54.0' 'tokenizers>=0.21.0,<0.24.0' 'sentence-transformers>=3.1.0,<4.0.0' 'accelerate>=1.9.0,<2.0.0' 'huggingface-hub>=0.34.0,<1.0.0' 'peft>=0.18.0,<1.0.0' 'scipy>=1.15.0,<2.0.0' 'faiss-cpu>=1.7.0,<2.0.0'"
-        # Flownet 运行时 (替代 Ray 的分布式运行时)
+        # Flownet 运行时 (替代 legacy 分布式运行时)
         independent_packages="$independent_packages 'isage-flownet>=0.1.0'"
         # sageLLM 推理引擎 (isage meta-package 的核心依赖)
         independent_packages="$independent_packages 'isagellm>=0.5.1.2'"

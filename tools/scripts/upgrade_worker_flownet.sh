@@ -1,6 +1,6 @@
 #!/bin/bash
 # 升级 Worker 节点的 isage-flownet 版本到与 Head 节点一致
-# 替代原 upgrade_worker_ray.sh (Ray 已迁移至 isage-flownet)
+# 替代原 upgrade_worker_ray.sh (legacy runtime 已迁移至 isage-flownet)
 
 set -e
 

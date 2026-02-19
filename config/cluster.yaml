@@ -12,7 +12,7 @@ head:
   log_dir: "/var/tmp/sage_head_logs"
   conda_env: "sage"              # Conda 环境名称 (base 或 sage)
   python_path: ""                # 留空自动检测
-  runtime_command: ""            # 留空自动检测（sageFlownet/Ray 运行时命令）
+  runtime_command: ""            # 留空自动检测（sageFlownet 运行时命令）
   num_cpus: 8                    # 容器实际分配的 CPU 核心数 (覆盖自动检测)
   num_gpus: 0                    # GPU 数量
 
@@ -65,7 +65,7 @@ ssh:
 remote:
   sage_home: "/home/sage"
   python_path: ""                # 留空自动检测
-  runtime_command: ""            # 留空自动检测（sageFlownet/Ray 运行时命令，向后兼容 ray_command 键）
+  runtime_command: ""            # 留空自动检测（sageFlownet 运行时命令，向后兼容 ray_command 键）
   conda_env: "sage"              # Worker 节点的 conda 环境名 (base 或 sage)
 
 # Daemon 配置

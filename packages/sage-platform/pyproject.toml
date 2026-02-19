@@ -22,7 +22,7 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    # Distributed runtime - replaces Ray for scheduling/execution
+    # Distributed runtime backend for scheduling/execution
     "isage-flownet>=0.1.0",
     # SSH/Remote execution - required for node management
     "paramiko>=3.5.0,<4.0.0",

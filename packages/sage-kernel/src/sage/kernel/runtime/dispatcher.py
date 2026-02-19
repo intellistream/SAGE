@@ -189,7 +189,7 @@ class Dispatcher:
             task.stop()
             task.cleanup()
 
-            # 对于 Ray Actor，需要显式 kill 以释放资源
+            # 对于远程 actor，需要显式 kill 以释放资源
             if self.remote and hasattr(task, "kill_actor"):
                 kill_success = task.kill_actor(no_restart=True)
                 self.logger.debug(
@@ -284,14 +284,14 @@ class Dispatcher:
         self.logger.info("Cleaning up services after batch completion")
 
         if self.remote:
-            # 清理 Ray 服务 (使用生命周期管理器)
-            # 明确禁止 Ray Actor 重启，确保完全清理
+            # 清理远程服务 (使用生命周期管理器)
+            # 明确禁止远程 Actor 重启，确保完全清理
             try:
                 self.lifecycle_manager.cleanup_all(
                     tasks={}, services=self.services, cleanup_timeout=5.0, no_restart=True
                 )
             except Exception as e:
-                self.logger.error(f"Error cleaning up Ray services: {e}")
+                self.logger.error(f"Error cleaning up remote services: {e}")
         else:
             # 清理本地服务
             for service_name, service_task in list(self.services.items()):
@@ -321,7 +321,7 @@ class Dispatcher:
 
         这个方法遍历所有任务的上下文,访问队列描述符的queue_instance属性,
         强制在主进程/driver context中完成Ray Actor的创建和初始化,
-        避免在Ray Task执行期间懒初始化导致的死锁问题。
+        避免在远程任务执行期间懒初始化导致的死锁问题。
         """
         self.logger.info("🔍 ENTERED _preinitialize_queue_descriptors method")
         self.logger.info("Pre-initializing all queue descriptors to avoid deadlocks...")
@@ -478,7 +478,7 @@ class Dispatcher:
             )
             return None
 
-    # Dispatcher will submit the job to LocalEngine or Ray Server.
+    # Dispatcher will submit the job to local or remote runtime backends.
     def submit(self):
         """
         编译图结构，创建节点并建立连接
@@ -644,7 +644,7 @@ class Dispatcher:
 
         # 连接关系已经在execution graph层通过task context设置好了，无需在此处设置
 
-        # 预初始化所有队列描述符(防止在Ray Task内部懒初始化导致死锁)
+        # 预初始化所有队列描述符(防止在远程任务内部懒初始化导致死锁)
         self._preinitialize_queue_descriptors()
 
         try:
@@ -706,9 +706,9 @@ class Dispatcher:
             )
 
             if self.remote:
-                # 使用生命周期管理器清理所有Ray资源
-                # 明确禁止 Ray Actor 重启，确保完全清理
-                self.logger.info("Using lifecycle_manager to cleanup Ray actors...")
+                # 使用生命周期管理器清理所有远程运行时资源
+                # 明确禁止远程 Actor 重启，确保完全清理
+                self.logger.info("Using lifecycle_manager to cleanup remote actors...")
                 results = self.lifecycle_manager.cleanup_all(
                     tasks=self.tasks, services=self.services, cleanup_timeout=5.0, no_restart=True
                 )

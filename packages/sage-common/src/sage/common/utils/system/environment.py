@@ -2,7 +2,7 @@
 Environment Detection Utilities
 
 System-level environment detection and configuration utilities.
-Ray support has been removed. Runtime recommendations are based on local,
+Legacy runtime support has been removed. Runtime recommendations are based on local,
 container/orchestrated, and distributed Flownet-style execution targets.
 """
 

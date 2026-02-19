@@ -25,7 +25,7 @@ ATTRIBUTE_BLACKLIST = {
     "client_socket",  # socket对象
     "__weakref__",  # 弱引用
     "runtime_context",  # 运行时上下文
-    # 'memory_collection', # 内存集合（通常是Ray Actor句柄）
+    # 'memory_collection', # 内存集合（通常是远程 actor 句柄）
     "env",  # 环境引用（避免循环引用）
     # '_dag_node_factory',  # 工厂对象
     # '_operator_factory',  # 工厂对象
@@ -36,7 +36,7 @@ ATTRIBUTE_BLACKLIST = {
 SKIP_VALUE = object()
 
 
-# 远程调用专用排除列表（原 Ray 排除列表，现运行时无关）
+# 远程调用专用排除列表（原分布式运行时排除列表，现运行时无关）
 TRANSFORMATION_EXCLUDE_ATTRS = [
     "logger",
     "_logger",  # 日志对象

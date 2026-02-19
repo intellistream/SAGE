@@ -99,7 +99,7 @@ class LifecycleManagerImpl:
             tasks: 任务字典 {task_id: task_wrapper}
             services: 服务字典 {service_id: service_wrapper}
             cleanup_timeout: 清理超时时间（秒）
-            no_restart: 是否禁止 Ray Actor 重启（默认True）
+            no_restart: 是否禁止远程 Actor 重启（默认True）
 
         Returns:
             结果字典 {id: (cleanup_success, kill_success)}

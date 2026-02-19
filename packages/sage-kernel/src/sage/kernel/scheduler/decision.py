@@ -6,7 +6,7 @@ Dispatcher 根据决策调用 PlacementExecutor 执行放置。
 
 架构原则（Issue #1437）：
 - PlacementDecision 使用 ResourceSpec 类型化资源规格（不再是 dict[str, Any]）
-- 不含任何后端运行时特定类型（无 Ray/Flownet 内部类型）
+- 不含任何后端运行时特定类型（无运行时内部类型）
 - 提供 to_schema() 方法输出标准化 PlacementSchema 供 Flownet 消费
 """
 

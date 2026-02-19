@@ -1,7 +1,7 @@
 """
 对象清理器 - 用于远程调用的对象预处理（cloudpickle / dill 兼容）
 
-不依赖 Ray，适用于任何分布式运行时（Flownet、gRPC、TCP 等）。
+不依赖特定运行时，适用于 Flownet、gRPC、TCP 等分布式场景。
 """
 
 from typing import Any

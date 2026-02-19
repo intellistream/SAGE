@@ -22,7 +22,7 @@ class ServiceTaskFactory:
 
         Args:
             service_factory: 服务工厂实例
-            remote: 是否请求远程服务任务（当前仅作为提示，Ray 已移除）
+            remote: 是否请求远程服务任务（当前仅作为提示，legacy backend 已移除）
             extra_python_paths: 额外 Python 路径（预留给后续分布式运行时）
         """
         self.service_factory = service_factory
@@ -48,7 +48,7 @@ class ServiceTaskFactory:
         """
         if self.remote:
             logger.info(
-                "[ServiceTaskFactory] remote=True requested; using kernel-native service runtime (Ray removed)."
+                "[ServiceTaskFactory] remote=True requested; using kernel-native service runtime (legacy backend removed)."
             )
 
         from sage.kernel.runtime.service.local_service_task import LocalServiceTask

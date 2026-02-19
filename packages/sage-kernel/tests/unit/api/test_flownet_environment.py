@@ -213,14 +213,16 @@ class TestFlownetEnvironmentSubmit:
 
 @pytest.mark.unit
 class TestFlownetEnvironmentLifecycle:
-    def test_stop_no_handle_logs_warning(self, capsys):
+    def test_stop_no_handle_logs_info(self):
         from sage.kernel.api.flownet_environment import FlownetEnvironment
 
         env = FlownetEnvironment()
+        env.logger.info = MagicMock()
+        env.logger.warning = MagicMock()
         env.stop()  # should not raise
-        captured = capsys.readouterr()
-        # The CustomLogger writes warnings to stderr; verify the message.
-        assert "nothing to stop" in (captured.err + captured.out).lower()
+        env.logger.warning.assert_not_called()
+        env.logger.info.assert_called_once()
+        assert "nothing to stop" in env.logger.info.call_args[0][0].lower()
 
     def test_stop_calls_handle_stop(self):
         from sage.kernel.api.flownet_environment import FlownetEnvironment

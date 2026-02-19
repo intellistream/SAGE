@@ -18,7 +18,7 @@ Placement 执行层 - 统一的任务/服务放置接口
 关键点：
 - PlacementExecutor 是纯执行层，不包含调度策略
 - 接收 PlacementDecision，根据决策执行放置
-- 物理执行由 kernel-native task/service factory 负责（Ray 已移除）
+- 物理执行由 kernel-native task/service factory 负责（legacy backend 已移除）
 - 处理资源需求和放置统计
 """
 
@@ -93,7 +93,7 @@ class PlacementExecutor:
 
         task: LocalTask
         if is_remote:
-            # 远程任务：委托 task factory，实际执行不再依赖 Ray
+            # 远程任务：委托 task factory，实际执行不再依赖 legacy backend
             task = self._place_remote_task(task_node, ctx, decision)
             self.placement_stats["remote_tasks"] += 1
         else:

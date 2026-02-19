@@ -223,7 +223,7 @@ class TaskContext(BaseRuntimeContext):
     def send_stop_signal_back(self, node_name: str):
         """
         通过网络向JobManager发送节点停止信号
-        支持本地和远程(Ray Actor)环境
+        支持本地和远程 worker 环境
         """
         try:
             # 检查是否为本地环境 - 如果jobmanager_host是localhost相关，尝试直接调用
@@ -243,7 +243,7 @@ class TaskContext(BaseRuntimeContext):
                         return
                 else:
                     self.logger.debug(
-                        "Local JobManager ref is not available (likely in Ray remote worker), using network client"
+                        "Local JobManager ref is not available (likely in remote worker), using network client"
                     )
 
             # 导入JobManagerClient来发送网络请求
@@ -401,11 +401,11 @@ class TaskContext(BaseRuntimeContext):
             # 在析构函数中不记录错误，避免在程序退出时产生问题
             pass
 
-    # ================== Ray 序列化支持 ==================
+    # ================== 远程序列化支持 ==================
 
     def __getstate__(self):
         """
-        自定义序列化方法，用于 Ray 分布式传输
+        自定义序列化方法，用于分布式传输
         排除不可序列化的对象（logger, threading.Event, weakref 等）
         """
         state = self.__dict__.copy()
@@ -431,7 +431,7 @@ class TaskContext(BaseRuntimeContext):
 
     def __setstate__(self, state):
         """
-        自定义反序列化方法，在 Ray worker 中重建对象
+        自定义反序列化方法，在远程 worker 中重建对象
         重新初始化不可序列化的对象
         """
         self.__dict__.update(state)

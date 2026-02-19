@@ -6,7 +6,7 @@ SAGE L3 (Kernel) 层定义的资源规格和放置决策的声明式 Schema。
 架构原则（Issue #1437）：
 - SAGE 拥有调度声明语义（ResourceSpec + PlacementSchema）
 - Flownet 运行时消费此 Schema 并执行具体放置
-- Schema 本身不包含任何运行时特定类型（无 Ray/Flownet 内部类型泄漏）
+- Schema 本身不包含任何运行时特定类型（无运行时内部类型泄漏）
 - 调度器输出仅包含 schema 类型，不含后端相关类型
 
 使用示例::
@@ -192,7 +192,7 @@ class PlacementSchema:
     """放置决策 Schema
 
     SAGE 调度器输出的标准化放置决策契约。
-    - 不含任何后端运行时类型（无 Ray/Flownet 内部对象）
+    - 不含任何后端运行时类型（无运行时内部对象）
     - Flownet PlacementSchemaAdapter 消费此类型并映射到运行时原语
 
     字段说明：

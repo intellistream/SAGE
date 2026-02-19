@@ -16,7 +16,7 @@ class ExecutionMode(Enum):
     """任务执行模式"""
 
     LOCAL = "local"  # 本地执行
-    REMOTE = "remote"  # 远程执行（Ray）
+    REMOTE = "remote"  # 远程执行（Flownet/runtime backend）
     HYBRID = "hybrid"  # 混合模式
 
 

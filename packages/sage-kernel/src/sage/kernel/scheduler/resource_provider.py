@@ -121,7 +121,7 @@ def _get_local_snapshot(node_id: str, hostname: str, address: str) -> NodeResour
     if torch is not None:
         if torch.cuda.is_available():  # type: ignore[attr-defined]
             total_gpu = float(torch.cuda.device_count())  # type: ignore[attr-defined]
-            # 简单估算：假设所有 GPU 均可用（无法在无 Ray/NVML 的情况下精确计算已分配数量）
+            # 简单估算：假设所有 GPU 均可用（无法在无 NVML/调度分配数据时精确计算已分配数量）
             available_gpu = total_gpu
             gpu_usage = 0.0
 

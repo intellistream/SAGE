@@ -319,7 +319,7 @@ main() {
 
     if ! $DRY_RUN; then
         echo ""
-        echo -e "${YELLOW}💡 Tip: Restart Ray cluster to apply changes:${NC}"
+        echo -e "${YELLOW}💡 Tip: Restart Flownet cluster to apply changes:${NC}"
         echo -e "   sage cluster restart"
     fi
 }

@@ -6,7 +6,7 @@ This package provides core platform services that sit between the foundation
 layer (sage-common) and the execution engine (sage-kernel).
 
 Components:
-- queue: Message queue abstractions (Python, Ray, RPC)
+- queue: Message queue abstractions (Python, Flownet, RPC)
 - storage: Key-Value storage backends
 - service: Base service classes
 

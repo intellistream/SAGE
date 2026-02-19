@@ -1,10 +1,10 @@
 """
 HeartbeatMonitor V2 - 简化版心跳监控器
 
-采用 Pull 模式直接从 Ray Task 获取心跳，无需 HeartbeatCollector 中介
+采用 Pull 模式直接从任务实例获取心跳，无需 HeartbeatCollector 中介
 
 核心改进:
-1. 直接调用 ray_task.get_heartbeat_stats() 获取心跳信息
+1. 直接调用 task.get_heartbeat_stats() 获取心跳信息
 2. 调用失败直接触发 handle_failure (任务已崩溃)
 3. 连续多次心跳信息异常也触发重启
 4. 更简洁的架构，减少组件依赖
@@ -24,7 +24,7 @@ class HeartbeatMonitor:
     """
 
     职责:
-    1. 定期直接调用 Ray Task 的 get_heartbeat_stats() 获取心跳
+    1. 定期直接调用任务实例的 get_heartbeat_stats() 获取心跳
     2. 如果调用失败（任务崩溃/不可达）→ 立即触发 handle_failure
     3. 如果心跳信息异常（如连续多次为空或不正常）→ 触发 handle_failure
 
@@ -53,7 +53,7 @@ class HeartbeatMonitor:
             dispatcher: Dispatcher 实例 (用于调用 handle_failure 和获取 task 引用)
             check_interval: 检查间隔 (秒)
             max_missed_checks: 最大允许错过的检查次数 (默认3次)
-            call_timeout: 调用 Ray task 方法的超时时间 (秒)
+            call_timeout: 调用 task 方法的超时时间 (秒)
         """
         self.dispatcher = dispatcher
         self.check_interval = check_interval
@@ -140,7 +140,7 @@ class HeartbeatMonitor:
 
     def _pull_heartbeat(self, task_id: str, task: "BaseTask") -> dict[str, Any] | None:
         """
-        从 Ray Task 拉取心跳信息
+        从任务实例拉取心跳信息
 
         Args:
             task_id: 任务 ID
@@ -150,7 +150,7 @@ class HeartbeatMonitor:
             心跳信息字典，如果调用失败返回 None
         """
         try:
-            # 调用 Ray Task 的 get_heartbeat_stats() 方法
+            # 调用 task 的 get_heartbeat_stats() 方法
             heartbeat = task.get_heartbeat_stats()  # type: ignore[union-attr]
             self.logger.debug(f"💓 Pulled heartbeat from {task_id}: {heartbeat}")
             return heartbeat  # type: ignore[return-value]
