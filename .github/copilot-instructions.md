@@ -678,6 +678,8 @@ python -m pip install pre-commit
 pre-commit install  # Install Git hooks
 ```
 
+**Pre-push Hooks (CRITICAL)**: 在本仓库执行 `git push` 前，必须意识到可能触发 `pre-push` hooks（自动版本号更新、自动发布到 PyPI/TestPyPI 等）。除非明确要发布，否则不要盲目 push。
+
 **Conda 环境注意**: 在 conda 环境中必须使用 `python -m pip`，不要直接使用 `pip`（可能指向 `~/.local/bin/pip`，导致“已安装但 pip list 看不到”的错觉）。
 
 ## Conda ToS Bypass - Unified Utils
