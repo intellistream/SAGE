@@ -26,6 +26,7 @@ The SAGE agent assists with:
 
 3. **Development Workflow**
    - Install dependencies via pyproject.toml (NEVER manual pip install)
+   - In conda envs, always use `python -m pip` (never trust bare `pip` path)
    - Run tests, linting, and quality checks correctly
    - Navigate documentation-first approach
    - Handle C++ extensions and build artifacts
@@ -109,9 +110,11 @@ If the agent encounters:
 1. **Documentation-First:** Always check docs-public/docs_src/dev-notes/ before guessing
 2. **Architecture-Aware:** Respect L1-L5 layer boundaries and Control Plane requirements
 3. **No Fallbacks:** Fail fast with clear errors instead of silent degradation
-4. **Unified Config:** Use SagePorts, pyproject.toml, and XDG paths consistently
-5. **Test-Driven:** Run tests and quality checks after changes
-6. **Concise Communication:** Brief answers for simple queries, detailed for complex work
+4. **Install Policy:** Local SAGE packages use editable install; independent SAGE dependencies must be installed by `quickstart.sh` from PyPI explicitly
+5. **Unified Config:** Use SagePorts, pyproject.toml, and XDG paths consistently
+6. **Environment Safety:** In conda, run `python -m pip list/show/install` to avoid pip/python mismatch
+7. **Test-Driven:** Run tests and quality checks after changes
+8. **Concise Communication:** Brief answers for simple queries, detailed for complex work
 
 ## Example Interactions
 

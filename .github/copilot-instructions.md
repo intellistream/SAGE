@@ -434,6 +434,16 @@ Notes:
 - `sage-apps` 已迁移到 sage-examples 仓库，不再是可安装的包。
 - Legacy `sage-gateway` has been superseded; do not add new code under that namespace.
 
+**Quickstart 安装策略（必须遵守）**:
+- 仅 SAGE 主仓库本地包使用 editable 安装（`-e` + `--no-deps`）
+- 所有 SAGE 运行所需的独立仓库依赖必须由 `quickstart.sh` 通过 PyPI 显式安装（不可依赖 extras）
+- 当前 `quickstart.sh` 显式安装的核心独立依赖包括：
+  - `isagellm`, `isage-flownet`
+  - `isage-vdb`, `isage-tsdb`, `isage-flow`, `isage-neuromem`, `isage-refiner`
+  - `isage-agentic`, `isage-eval`, `isage-rag`
+  - `isage-dev-tools`（仅 `--dev/--full` 模式）
+- 组织内其余 PyPI 包（如 benchmark/examples/studio/tooluse-* 等）不属于 SAGE 核心运行时依赖，按需单独安装
+
 **⚠️ SAGE 核心仓库不再包含 LLM 推理相关代码**。如需 LLM 功能，请安装 `pip install isagellm`。
 
 ### 🚨 sageLLM 独立仓库 - CRITICAL
@@ -664,9 +674,11 @@ All middleware/engine components are **pip-installed** (e.g., `isage-vdb`, `isag
 
 **Pre-commit Hooks**: `./quickstart.sh --dev` automatically installs pre-commit hooks. If missing, run:
 ```bash
-pip install pre-commit
+python -m pip install pre-commit
 pre-commit install  # Install Git hooks
 ```
+
+**Conda 环境注意**: 在 conda 环境中必须使用 `python -m pip`，不要直接使用 `pip`（可能指向 `~/.local/bin/pip`，导致“已安装但 pip list 看不到”的错觉）。
 
 ## Conda ToS Bypass - Unified Utils
 
@@ -858,6 +870,7 @@ model_dir = paths.models_dir           # ~/.local/share/sage/models/
 **C++ build fails**: Install deps: `build-essential cmake pkg-config libopenblas-dev liblapack-dev`
 **Tests fail CI not local**: Run `sage-dev project test --coverage` from repo root
 **Import errors**: Must use `--dev` install, run from repo root
+**pip list 看不到包**: 先执行 `which python && which pip`；若 pip 不在当前 conda env，改用 `python -m pip list` / `python -m pip show`
 **Pre-commit fails**: Run `sage-dev quality` to auto-fix
 **Old artifacts**: `make clean` or `rm -rf .sage/build/ build/ dist/ *.egg-info/`
 **Bash exclamation mark**: NEVER use `!` in terminal commands (causes `bash: !': event not found`).

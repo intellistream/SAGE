@@ -25,6 +25,7 @@ isage-flow: ">=0.1.1"
 isage-flownet: ">=0.1.0"
 isage-refiner: ">=0.1.0"
 isage-neuromem: ">=0.2.1.1"
+isagellm: ">=0.5.1.3"
 isage-anns: ">=0.1.0"
 isage-amms: ">=0.1.0"
 

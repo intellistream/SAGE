@@ -145,13 +145,11 @@ install_core_packages() {
     case "$install_mode" in
         "minimal")
             echo -e "${GRAY}最小安装：核心运行时包${NC}"
-            echo -e "${DIM}包含: L1-L5 核心包，无开发工具，无可选依赖 (~80 包)${NC}"
-            echo -e "${DIM}💡 如需 ML/VDB 等功能，稍后运行: pip install isage-middleware[ml,vdb,...]${NC}"
+            echo -e "${DIM}包含: L1-L5 核心包 + 所有独立 PyPI 依赖 (isage-vdb, isagellm, etc.)${NC}"
             ;;
         "dev")
             echo -e "${GREEN}开发安装：核心 + 开发工具${NC}"
-            echo -e "${DIM}包含: 核心包 + pytest, ruff, mypy, pre-commit (~120 包)${NC}"
-            echo -e "${DIM}💡 如需 ML/VDB 等功能，稍后运行: pip install isage-middleware[ml,vdb,...]${NC}"
+            echo -e "${DIM}包含: 核心包 + 所有独立 PyPI 依赖 + pytest, ruff, mypy, pre-commit${NC}"
             ;;
         "full")
             echo -e "${YELLOW}完整安装：核心 + 开发工具 + 所有可选依赖${NC}"
@@ -479,6 +477,9 @@ else:
 
         # 与 sage-middleware/pyproject.toml 核心依赖保持一致
         # 包含: C++ 扩展包 + L3 独立算法库 + ML 依赖 + Flownet 运行时
+        # === 独立 PyPI 包清单 ===
+        # 与 sage-middleware/pyproject.toml 和 sage/pyproject.toml 核心依赖保持一致
+        # C++ 扩展包
         local independent_packages="'isage-vdb>=0.1.5' 'isage-tsdb>=0.1.5' 'isage-flow>=0.1.1' 'isage-refiner>=0.1.0' 'isage-neuromem>=0.2.1.1'"
         # L3 独立算法库
         independent_packages="$independent_packages 'isage-agentic>=0.1.0.0' 'isage-eval>=0.1.0.0' 'isage-rag>=0.1.0.0'"
@@ -486,6 +487,12 @@ else:
         independent_packages="$independent_packages 'transformers>=4.52.0,<4.54.0' 'tokenizers>=0.21.0,<0.24.0' 'sentence-transformers>=3.1.0,<4.0.0' 'accelerate>=1.9.0,<2.0.0' 'huggingface-hub>=0.34.0,<1.0.0' 'peft>=0.18.0,<1.0.0' 'scipy>=1.15.0,<2.0.0' 'faiss-cpu>=1.7.0,<2.0.0'"
         # Flownet 运行时 (替代 Ray 的分布式运行时)
         independent_packages="$independent_packages 'isage-flownet>=0.1.0'"
+        # sageLLM 推理引擎 (isage meta-package 的核心依赖)
+        independent_packages="$independent_packages 'isagellm>=0.5.1.3'"
+        # 开发工具后端（sage-tools 的核心依赖）
+        if [ "$install_mode" = "dev" ] || [ "$install_mode" = "full" ]; then
+            independent_packages="$independent_packages 'isage-dev-tools>=0.1.0'"
+        fi
 
         # 注意：独立包是 PyPI 包，不能使用 -e (install_flags)
         log_debug "PIP命令: $PIP_CMD install $independent_packages $pip_args" "INSTALL"
@@ -650,10 +657,17 @@ dep_versions = defaultdict(list)
 
 # 独立发布但仍需安装的 isage-* 扩展包（已从源码仓库移除）
 allowed_isage_packages = {
-    'isage-tsdb',      # 时间序列数据库
-    'isage-flow',      # 流式语义状态引擎
-    'isage-refiner',   # 长上下文压缩
-    'isage-neuromem',  # 记忆系统
+    'isage-vdb',         # 向量数据库
+    'isage-tsdb',        # 时间序列数据库
+    'isage-flow',        # 流式语义状态引擎
+    'isage-refiner',     # 长上下文压缩
+    'isage-neuromem',    # 记忆系统
+    'isage-agentic',     # L3 独立算法库
+    'isage-eval',        # L3 独立算法库
+    'isage-rag',         # L3 独立算法库
+    'isage-flownet',     # 分布式运行时
+    'isagellm',          # LLM 推理引擎
+    'isage-dev-tools',   # dev/full 模式工具依赖
 }
 
 package_dirs = ['packages/sage-common', 'packages/sage-platform', 'packages/sage-kernel', 'packages/sage-libs', 'packages/sage-middleware']
