@@ -45,6 +45,14 @@ from sage.common.core.exceptions import (
     ResourceAllocationError,
     SchedulingError,
 )
+from sage.common.core.flow_exceptions import (
+    ExceptionAction,
+    ExceptionContext,
+    ExceptionDecision,
+    ExceptionEvent,
+    FlowDefinitionError,
+    FlowException,
+)
 
 # Import function interfaces
 from sage.common.core.functions import (
@@ -84,13 +92,20 @@ __all__ = [
     "extract_query",
     "extract_results",
     "create_query_result",
-    # Exceptions
+    # Exceptions (general)
     "KernelError",
     "SchedulingError",
     "FaultToleranceError",
     "ResourceAllocationError",
     "RecoveryError",
     "CheckpointError",
+    # Flow exception contracts (Issue #1434)
+    "ExceptionAction",
+    "ExceptionContext",
+    "ExceptionDecision",
+    "ExceptionEvent",
+    "FlowException",
+    "FlowDefinitionError",
     # Constants
     "DEFAULT_CHECKPOINT_INTERVAL",
     "DEFAULT_CLEANUP_TIMEOUT",
