@@ -398,20 +398,6 @@ else:
                     echo "$current_hash" > "$external_deps_marker"
                     log_info "已保存外部依赖安装标记" "INSTALL"
                 fi
-
-                # 强制升级关键包到正确版本（解决依赖解析问题）
-                echo -e "${DIM}     验证并升级关键包版本...${NC}"
-                log_info "强制安装 transformers 和 peft 到兼容版本" "INSTALL"
-
-                # transformers 4.52.0 与 peft 0.18.0 兼容
-                # 同时需要 tokenizers<0.22 来匹配 transformers 4.52.0
-                if log_command "INSTALL" "Deps" "$PIP_CMD install 'transformers==4.52.0' 'tokenizers>=0.21,<0.22' 'peft>=0.18.0,<1.0.0' $deps_pip_args"; then
-                    log_info "关键包版本升级成功" "INSTALL"
-                    echo -e "${CHECK} 关键包版本验证完成"
-                else
-                    log_warn "关键包升级失败，继续安装..." "INSTALL"
-                    echo -e "${YELLOW}⚠️  关键包升级失败，可能导致运行时错误${NC}"
-                fi
             else
                 log_error "外部依赖安装失败" "INSTALL"
                 echo -e "${RED}❌ 外部依赖安装失败${NC}"
@@ -487,13 +473,19 @@ else:
         echo -e "${DIM}步骤 4/5: 安装上层包 (L4-L5)...${NC}"
 
         # 显式安装独立 PyPI 包依赖 (因为下面使用了 --no-deps)
-        # 这些包是 sage-middleware 的依赖，但因为 --no-deps 选项会被跳过
+        # 这些包是 sage-middleware 的核心依赖，但因为 --no-deps 选项会被跳过
         echo -e "${DIM}  正在安装独立 PyPI 包依赖 (isage-vdb, isage-flow, etc.)...${NC}"
         log_info "开始安装独立 PyPI 包依赖" "INSTALL"
 
-        # 使用与 pyproject.toml 一致的版本约束
-        # 使用单引号包裹每个包名，防止 shell 将 > 解析为重定向
+        # 与 sage-middleware/pyproject.toml 核心依赖保持一致
+        # 包含: C++ 扩展包 + L3 独立算法库 + ML 依赖 + Flownet 运行时
         local independent_packages="'isage-vdb>=0.1.5' 'isage-tsdb>=0.1.5' 'isage-flow>=0.1.1' 'isage-refiner>=0.1.0' 'isage-neuromem>=0.2.1.1'"
+        # L3 独立算法库
+        independent_packages="$independent_packages 'isage-agentic>=0.1.0.0' 'isage-eval>=0.1.0.0' 'isage-rag>=0.1.0.0'"
+        # ML 依赖 (transformers, sentence-transformers, etc.)
+        independent_packages="$independent_packages 'transformers>=4.52.0,<4.54.0' 'tokenizers>=0.21.0,<0.24.0' 'sentence-transformers>=3.1.0,<4.0.0' 'accelerate>=1.9.0,<2.0.0' 'huggingface-hub>=0.34.0,<1.0.0' 'peft>=0.18.0,<1.0.0' 'scipy>=1.15.0,<2.0.0' 'faiss-cpu>=1.7.0,<2.0.0'"
+        # Flownet 运行时 (替代 Ray 的分布式运行时)
+        independent_packages="$independent_packages 'isage-flownet>=0.1.0'"
 
         # 注意：独立包是 PyPI 包，不能使用 -e (install_flags)
         log_debug "PIP命令: $PIP_CMD install $independent_packages $pip_args" "INSTALL"
@@ -705,14 +697,15 @@ for pkg_dir in package_dirs:
 # 去重并选择最严格的版本约束
 external_deps = []
 for pkg_name, versions in sorted(dep_versions.items()):
-    if len(versions) == 1:
-        external_deps.append(versions[0])
+    unique_versions = sorted(set(versions))
+
+    if len(unique_versions) == 1:
+        external_deps.append(unique_versions[0])
     else:
         # 多个版本约束时，选择最新的（通常是最严格的）
-        best_dep = max(versions, key=lambda v: ('>=' in v, v))
+        best_dep = max(unique_versions, key=lambda v: ('>=' in v, v))
         external_deps.append(best_dep)
-        if len(versions) > 1:
-            print(f'[DEDUP] {pkg_name}: {len(versions)} 个版本 -> {best_dep}', file=sys.stderr)
+        print(f'[DEDUP] {pkg_name}: {len(unique_versions)} 个版本 -> {best_dep}', file=sys.stderr)
 
 with open('$external_deps_file', 'w') as f:
     for dep in external_deps:
