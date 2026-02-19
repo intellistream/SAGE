@@ -44,14 +44,7 @@ def check():
 
         console.print(f"✅ sageFlownet: v{sage.flownet.__version__}")
     except ImportError:
-        try:
-            import ray
-
-            console.print(
-                f"⚠️  Ray (将废除原运行时，过渡期兼容): v{ray.__version__} | sageFlownet 尚未安装，建议: pip install isage-flow"
-            )
-        except ImportError:
-            console.print("❌ sageFlownet 未安装 (pip install isage-flow)")
+        console.print("❌ sageFlownet 未安装 (pip install isage-flow)")
 
     console.print("\n💡 如需安装扩展，运行: [bold]sage extensions install[/bold]")
 

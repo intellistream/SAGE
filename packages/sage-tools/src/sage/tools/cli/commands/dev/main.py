@@ -870,8 +870,11 @@ def status(
 
             # 检查服务问题
             svc_data = status_data["checks"].get("services", {}).get("data", {})
-            if not svc_data.get("ray", {}).get("running", False):
-                issues.append("ℹ️  Ray 集群未运行 (可选)")
+            flownet_info = svc_data.get("flownet", {})
+            if not flownet_info.get("available", False):
+                issues.append("ℹ️  sageFlownet 未安装 (可选，分布式执行需要)")
+            elif not flownet_info.get("running", False):
+                issues.append("ℹ️  Flownet 运行时未启动 (可选，按需初始化)")
 
             # 检查失败的项目
             failed_checks = [

@@ -166,7 +166,9 @@ class ExampleAnalyzer:
         ):
             return "quick"
         # 检查网络请求等中等时间指标
-        elif any(keyword in content for keyword in ["requests.", "http.", "download", "ray.init"]):
+        elif any(
+            keyword in content for keyword in ["requests.", "http.", "download", "FlownetRuntime"]
+        ):
             return "medium"
         # 文件大小作为参考
         elif len(content) < 3000:  # 小于3KB的文件通常是快速示例
