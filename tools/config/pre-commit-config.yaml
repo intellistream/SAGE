@@ -98,6 +98,16 @@ repos:
     always_run: false
     files: ^packages/.*/src/sage/__init__\.py$
         # Block commit if src/sage/__init__.py is added/modified (violates PEP 420)
+  - id: cross-repo-dedup-check
+    name: cross-repo duplicate declaration check (SAGE vs sageFlownet)
+    entry: python3 tools/scripts/check_cross_repo_dedup.py
+    language: system
+    pass_filenames: false
+    always_run: false
+    stages: [pre-commit, manual]
+    files: \.py$
+        # Enforces move-then-delete rule: migrated symbols must not be redefined in Flownet.
+        # See Issue #1439 and flownet-migration-boundary.md
   - id: markdown-files-location-check
     name: check markdown files are in proper locations
     entry: tools/hooks/check_docs_location.sh
@@ -439,6 +449,15 @@ repos:
     files: ^(\.github/(copilot-instructions\.md|agents/my-agent\.agent\.md|workflows/.*\.yml)|quickstart\.sh|manage\.sh|Makefile|tools/(install/.*\.sh|pre-commit-config\.yaml|pytest\.ini|ruff\.toml)|packages/sage-common/src/sage/common/config/(ports|user_paths)\.py|packages/sage-cli/src/sage/cli/|packages/sage-gateway/src/sage/gateway/|packages/sage-common/src/sage/common/components/sage_(llm|embedding)/|packages/sage-[^/]+/pyproject\.toml|config/(config|cluster)\.yaml)
     stages: [pre-commit, manual]
     description: Warn if critical project files change without updating copilot instructions
+  - id: cli-ray-terminology-check
+    name: check sage-cli user-visible strings for Ray terminology (Issue #1438)
+    entry: bash tools/hooks/check_cli_ray_terminology.sh
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: ^packages/sage-cli/src/sage/cli/.*\.py$
+    stages: [pre-commit, manual]
+    description: Block commits if sage-cli CLI help text, echo messages or command docstrings contain Ray terminology instead of Flownet/SAGE
 # To install pre-commit hooks:
 #   pre-commit install
 #

@@ -55,6 +55,21 @@ __layer__ = "L3"
 from . import api
 
 # ============================================================================
+# Public Facade API (SAGE L3 stable user-facing verbs)
+# Per migration boundary: intellistream/SAGE#1432
+# ============================================================================
+from . import facade as facade  # noqa: F401 – expose sage.kernel.facade subpackage
+
+# ============================================================================
+# Flow Declaration Layer (SAGE L3 DSL / Interface)
+# Per migration boundary: intellistream/SAGE#1430, #1431
+# ============================================================================
+from . import flow as flow  # noqa: F401 – expose sage.kernel.flow subpackage
+from .facade import call, create, run, submit  # stable SAGE facade verbst
+from .flow import FlowDeclaration, FlowDeclarationError, FlowGraphValidator
+from .flow.decorator import flow as flow_decorator  # canonical @flow entry point
+
+# ============================================================================
 # 架构关键：L3向L2注册实现（Factory Pattern）
 # ============================================================================
 # 在初始化时注册RPCQueue实现到sage-platform的工厂
@@ -83,8 +98,21 @@ __all__ = [
     "__version__",
     "__author__",
     "__email__",
+    # DataStream pipeline API (LocalEnvironment / RemoteEnvironment pattern)
     "JobManagerClient",
     "LocalEnvironment",
     "RemoteEnvironment",
     "api",
+    # Flow declaration layer (Issue #1431)
+    "flow",
+    "flow_decorator",
+    "FlowDeclaration",
+    "FlowDeclarationError",
+    "FlowGraphValidator",
+    # Public facade API (Issue #1432)
+    "facade",
+    "create",
+    "submit",
+    "run",
+    "call",
 ]
