@@ -123,10 +123,121 @@ schedule_post_push_publish() {
     disown
 }
 
+# --- Monorepo Handler (no root pyproject.toml) ---
+handle_monorepo() {
+    local packages_dir="$1"
+    local changed_pkgs=()
+    local pkg_names=()
+    local pkg_versions=()
+
+    # Scan each package for version changes in recent commits
+    for pkg_dir in "$packages_dir"/*/; do
+        [ -d "$pkg_dir" ] || continue
+        local pkg_name
+        pkg_name=$(basename "$pkg_dir")
+
+        # Find _version.py files in this package
+        local ver_file
+        ver_file=$(find "$pkg_dir" -maxdepth 4 -name '_version.py' \
+            -not -path '*/node_modules/*' -not -path '*/dist/*' \
+            -not -path '*/.egg-info/*' -not -path '*/build/*' 2>/dev/null | head -1)
+        [ -z "$ver_file" ] && continue
+
+        # Check if version changed in recent 5 commits
+        local rel_path="${ver_file#./}"
+        local version_updated=false
+        for i in {1..5}; do
+            if git diff HEAD~$i HEAD -- "$rel_path" 2>/dev/null | grep -q '^[+-]__version__ = '; then
+                version_updated=true
+                break
+            fi
+        done
+        [ "$version_updated" = false ] && continue
+
+        local pypi_name version
+        pypi_name=$(grep -oP '^name = "\K[^"]+' "${pkg_dir}pyproject.toml" 2>/dev/null || echo "unknown")
+        version=$(grep -oP '__version__ = "\K[^"]+' "$ver_file" 2>/dev/null || echo "unknown")
+        [ "$pypi_name" = "unknown" ] || [ "$version" = "unknown" ] && continue
+
+        changed_pkgs+=("$pkg_dir")
+        pkg_names+=("$pypi_name")
+        pkg_versions+=("$version")
+    done
+
+    if [ "${#changed_pkgs[@]}" -eq 0 ]; then
+        echo -e "${DIM}[${REPO_NAME}] No package version changes detected in recent commits${NC}"
+        return
+    fi
+
+    echo -e "${GREEN}✓ [${REPO_NAME}] Version changes detected in:${NC}"
+    for i in "${!pkg_names[@]}"; do
+        echo -e "  ${CYAN}${pkg_names[$i]}${NC} ${BLUE}${pkg_versions[$i]}${NC}"
+    done
+
+    if ! command -v sage-pypi-publisher &> /dev/null; then
+        echo -e "${YELLOW}⚠ sage-pypi-publisher not found, skipping auto-publish${NC}"
+        echo -e "${DIM}  Install: pip install isage-pypi-publisher${NC}"
+        return
+    fi
+
+    echo -e "${BLUE}📦 Publish above packages to PyPI after push? [Y/n/c]:${NC}"
+    safe_read response "y"
+
+    if [[ "$response" =~ ^[Cc]$ ]]; then
+        echo -e "${YELLOW}Push cancelled${NC}"
+        exit 1
+    elif [[ "$response" =~ ^[Nn]$ ]]; then
+        echo -e "${DIM}Skipping PyPI${NC}"
+        return
+    fi
+
+    # Schedule background publish for each changed package
+    for i in "${!changed_pkgs[@]}"; do
+        local pkg_dir="${changed_pkgs[$i]}"
+        local pypi_name="${pkg_names[$i]}"
+        local version="${pkg_versions[$i]}"
+        local log="/tmp/${REPO_NAME}-${pypi_name}-publish-$$.log"
+
+        echo -e "${GREEN}📦 Scheduled: ${pypi_name} ${version}${NC}"
+
+        (
+            GIT_PID="$PPID"
+            while kill -0 "$GIT_PID" 2>/dev/null; do sleep 1; done
+            sleep 1
+
+            cd "$pkg_dir" || exit 1
+            {
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                echo "📦 Publishing ${pypi_name} ${version}..."
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                rm -rf dist/ build/ *.egg-info 2>/dev/null || true
+                if sage-pypi-publisher build . --upload --no-dry-run; then
+                    echo "✓ Published ${pypi_name} ${version}"
+                    echo "  https://pypi.org/project/${pypi_name}/${version}/"
+                else
+                    echo "✗ Failed to publish ${pypi_name} ${version}"
+                    echo "  Re-run: cd ${pkg_dir} && sage-pypi-publisher build . --upload --no-dry-run"
+                fi
+            } >> "$log" 2>&1
+
+            if grep -q "✓ Published" "$log" 2>/dev/null; then
+                echo -e "\n${GREEN}✓ PyPI: ${pypi_name} ${version} published${NC}"
+            else
+                echo -e "\n${RED}✗ PyPI: ${pypi_name} failed. See: ${log}${NC}"
+            fi
+        ) &
+        disown
+    done
+    echo -e "${DIM}  Logs: /tmp/${REPO_NAME}-*-publish-$$.log${NC}"
+}
+
 # --- Main Logic ---
 
-# Extract package name from pyproject.toml
+# Monorepo: no root pyproject.toml but has packages/ dir
 if [ ! -f pyproject.toml ]; then
+    if [ -d packages ]; then
+        handle_monorepo "packages"
+    fi
     exit 0
 fi
 
