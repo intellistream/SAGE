@@ -19,7 +19,7 @@ Architecture:
 __layer__ = "L2"
 
 # Public API
-from sage.platform import queue, service, storage, utils
+from sage.platform import queue, runtime, service, storage, utils
 from sage.platform._version import __version__
 from sage.platform.utils import (
     LazyLoggerProxy,
@@ -32,6 +32,7 @@ from sage.platform.utils import (
 __all__ = [
     "__version__",
     "queue",
+    "runtime",
     "service",
     "storage",
     "utils",
