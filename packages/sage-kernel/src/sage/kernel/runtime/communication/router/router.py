@@ -6,16 +6,6 @@ from typing import TYPE_CHECKING, Any, Dict
 
 from sage.kernel.runtime.communication.packet import Packet
 
-# 添加 Ray 相关导入以检测 Actor
-try:
-    import ray
-    from ray.actor import ActorHandle
-
-    RAY_AVAILABLE = True
-except ImportError:
-    RAY_AVAILABLE = False
-    ActorHandle = None  # type: ignore[assignment,misc]
-
 if TYPE_CHECKING:
     from sage.kernel.runtime.communication.packet import StopSignal
     from sage.kernel.runtime.communication.router.connection import Connection

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 SAGE Worker Manager CLI
-Ray Worker节点管理相关命令
+Worker节点管理相关命令
 """
 
 import os
@@ -14,7 +14,7 @@ import typer
 from ...management.config_manager import get_config_manager
 from ...management.deployment_manager import DeploymentManager
 
-app = typer.Typer(name="worker", help="Ray Worker节点管理")
+app = typer.Typer(name="worker", help="Worker节点管理")
 
 
 def execute_remote_command(host: str, port: int, command: str, timeout: int = 60) -> bool:
@@ -140,8 +140,8 @@ echo "[INFO] RAY_CMD: $RAY_CMD"
 
 @app.command("start")
 def start_workers():
-    """启动所有Ray Worker节点"""
-    typer.echo("🚀 启动Ray Worker节点...")
+    """启动所有Worker节点"""
+    typer.echo("🚀 启动Worker节点...")
 
     config_manager = get_config_manager()
     head_config = config_manager.get_head_config()
@@ -335,9 +335,9 @@ fi"""
 
 
 @app.command("stop")
-def stop_workers(force: bool = typer.Option(False, "--force", "-f", help="强制停止所有Ray进程")):
-    """停止所有Ray Worker节点"""
-    typer.echo("🛑 停止Ray Worker节点...")
+def stop_workers(force: bool = typer.Option(False, "--force", "-f", help="强制停止所有运行时进程")):
+    """停止所有Worker节点"""
+    typer.echo("🛑 停止Worker节点...")
 
     config_manager = get_config_manager()
     worker_config = config_manager.get_worker_config()
@@ -445,8 +445,8 @@ echo "[SUCCESS] Ray Worker已停止 ($(date '+%Y-%m-%d %H:%M:%S'))" | tee -a "$L
 
 @app.command("status")
 def status_workers():
-    """检查所有Ray Worker节点状态"""
-    typer.echo("📊 检查Ray Worker节点状态...")
+    """检查所有Worker节点状态"""
+    typer.echo("📊 检查Worker节点状态...")
 
     config_manager = get_config_manager()
     head_config = config_manager.get_head_config()
@@ -535,8 +535,8 @@ echo "==============================================="'''
 
 @app.command("restart")
 def restart_workers():
-    """重启所有Ray Worker节点"""
-    typer.echo("🔄 重启Ray Worker节点...")
+    """重启所有Worker节点"""
+    typer.echo("🔄 重启Worker节点...")
 
     # 先停止
     typer.echo("第1步: 停止所有Worker节点")
@@ -580,7 +580,9 @@ def show_config():
     typer.echo(f"Worker日志目录: {worker_config.get('log_dir', 'N/A')}")
     typer.echo(f"远程SAGE目录: {remote_config.get('sage_home', 'N/A')}")
     typer.echo(f"远程Python路径: {remote_config.get('python_path', 'N/A')}")
-    typer.echo(f"远程Ray命令: {remote_config.get('ray_command', 'N/A')}")
+    typer.echo(
+        f"远程运行时命令: {remote_config.get('runtime_command', remote_config.get('ray_command', 'N/A'))}"
+    )
 
 
 @app.command("deploy")

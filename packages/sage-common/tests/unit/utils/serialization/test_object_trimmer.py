@@ -1,18 +1,18 @@
 """
-Tests for Ray object trimmer functionality.
+Tests for object trimmer functionality.
 
-Tests the trim_object_for_ray function and RayObjectTrimmer class.
+Tests the trim_object_for_remote function and ObjectTrimmer class.
 """
 
 from unittest.mock import Mock
 
 
-class TestTrimObjectForRay:
-    """Test trim_object_for_ray function"""
+class TestTrimObjectForRemote:
+    """Test trim_object_for_remote function"""
 
     def test_trim_simple_object(self):
         """Test trimming simple object"""
-        from sage.common.utils.serialization.ray_trimmer import trim_object_for_ray
+        from sage.common.utils.serialization.object_trimmer import trim_object_for_remote
 
         class SimpleObj:
             def __init__(self):
@@ -20,14 +20,14 @@ class TestTrimObjectForRay:
                 self.name = "test"
 
         obj = SimpleObj()
-        result = trim_object_for_ray(obj)
+        result = trim_object_for_remote(obj)
 
         assert hasattr(result, "value")
         assert hasattr(result, "name")
 
     def test_trim_with_exclude(self):
         """Test trimming with exclude list"""
-        from sage.common.utils.serialization.ray_trimmer import trim_object_for_ray
+        from sage.common.utils.serialization.object_trimmer import trim_object_for_remote
 
         class ObjWithPrivate:
             def __init__(self):
@@ -36,7 +36,7 @@ class TestTrimObjectForRay:
                 self.logger = "should_exclude"
 
         obj = ObjWithPrivate()
-        result = trim_object_for_ray(obj, exclude=["logger", "_private"])
+        result = trim_object_for_remote(obj, exclude=["logger", "_private"])
 
         assert hasattr(result, "public")
         # Excluded attributes should not be present
@@ -44,7 +44,7 @@ class TestTrimObjectForRay:
 
     def test_trim_with_include(self):
         """Test trimming with include list"""
-        from sage.common.utils.serialization.ray_trimmer import trim_object_for_ray
+        from sage.common.utils.serialization.object_trimmer import trim_object_for_remote
 
         class ObjWithMany:
             def __init__(self):
@@ -53,7 +53,7 @@ class TestTrimObjectForRay:
                 self.c = 3
 
         obj = ObjWithMany()
-        result = trim_object_for_ray(obj, include=["a", "c"])
+        result = trim_object_for_remote(obj, include=["a", "c"])
 
         assert hasattr(result, "a")
         assert hasattr(result, "c")
@@ -62,7 +62,7 @@ class TestTrimObjectForRay:
 
     def test_trim_nested_objects(self):
         """Test trimming nested objects"""
-        from sage.common.utils.serialization.ray_trimmer import trim_object_for_ray
+        from sage.common.utils.serialization.object_trimmer import trim_object_for_remote
 
         class Inner:
             def __init__(self):
@@ -74,42 +74,41 @@ class TestTrimObjectForRay:
                 self.name = "outer"
 
         obj = Outer()
-        result = trim_object_for_ray(obj)
+        result = trim_object_for_remote(obj)
 
         assert hasattr(result, "name")
         assert hasattr(result, "inner")
 
     def test_trim_basic_types_unchanged(self):
         """Test that basic types pass through unchanged"""
-        from sage.common.utils.serialization.ray_trimmer import trim_object_for_ray
+        from sage.common.utils.serialization.object_trimmer import trim_object_for_remote
 
-        assert trim_object_for_ray(42) == 42
-        assert trim_object_for_ray("test") == "test"
-        assert trim_object_for_ray([1, 2, 3]) == [1, 2, 3]
-        assert trim_object_for_ray({"a": 1}) == {"a": 1}
+        assert trim_object_for_remote(42) == 42
+        assert trim_object_for_remote("test") == "test"
+        assert trim_object_for_remote([1, 2, 3]) == [1, 2, 3]
+        assert trim_object_for_remote({"a": 1}) == {"a": 1}
 
 
-class TestRayObjectTrimmer:
-    """Test RayObjectTrimmer class"""
+class TestObjectTrimmer:
+    """Test ObjectTrimmer class"""
 
     def test_trim_for_remote_call_basic(self):
         """Test basic trimming for remote call"""
-        from sage.common.utils.serialization.ray_trimmer import RayObjectTrimmer
+        from sage.common.utils.serialization.object_trimmer import ObjectTrimmer
 
         class SimpleObj:
             def __init__(self):
                 self.value = 42
 
         obj = SimpleObj()
-        trimmer = RayObjectTrimmer()
-        result = trimmer.trim_for_remote_call(obj)
+        result = ObjectTrimmer.trim_for_remote_call(obj)
 
         assert hasattr(result, "value")
         assert result.value == 42
 
     def test_trim_for_remote_call_with_exclude(self):
         """Test remote call trimming with exclusions"""
-        from sage.common.utils.serialization.ray_trimmer import RayObjectTrimmer
+        from sage.common.utils.serialization.object_trimmer import ObjectTrimmer
 
         class ObjWithLogger:
             def __init__(self):
@@ -118,15 +117,14 @@ class TestRayObjectTrimmer:
                 self._cache = {}
 
         obj = ObjWithLogger()
-        trimmer = RayObjectTrimmer()
-        result = trimmer.trim_for_remote_call(obj, exclude=["logger", "_cache"])
+        result = ObjectTrimmer.trim_for_remote_call(obj, exclude=["logger", "_cache"])
 
         assert hasattr(result, "data")
         assert not hasattr(result, "logger") or result.logger != obj.logger
 
     def test_trim_for_remote_call_shallow(self):
         """Test shallow trimming (deep_clean=False)"""
-        from sage.common.utils.serialization.ray_trimmer import RayObjectTrimmer
+        from sage.common.utils.serialization.object_trimmer import ObjectTrimmer
 
         class Nested:
             def __init__(self):
@@ -138,14 +136,13 @@ class TestRayObjectTrimmer:
                 self.nested = Nested()
 
         obj = Outer()
-        trimmer = RayObjectTrimmer()
-        result = trimmer.trim_for_remote_call(obj, deep_clean=False)
+        result = ObjectTrimmer.trim_for_remote_call(obj, deep_clean=False)
 
         assert hasattr(result, "value")
 
     def test_trim_for_remote_call_deep(self):
         """Test deep trimming (deep_clean=True)"""
-        from sage.common.utils.serialization.ray_trimmer import RayObjectTrimmer
+        from sage.common.utils.serialization.object_trimmer import ObjectTrimmer
 
         class Inner:
             def __init__(self):
@@ -157,56 +154,51 @@ class TestRayObjectTrimmer:
                 self.inner = Inner()
 
         obj = Outer()
-        trimmer = RayObjectTrimmer()
-        result = trimmer.trim_for_remote_call(obj, deep_clean=True)
+        result = ObjectTrimmer.trim_for_remote_call(obj, deep_clean=True)
 
         assert hasattr(result, "outer_data")
         assert hasattr(result, "inner")
 
     def test_trim_handles_lists(self):
         """Test trimming objects containing lists"""
-        from sage.common.utils.serialization.ray_trimmer import RayObjectTrimmer
+        from sage.common.utils.serialization.object_trimmer import ObjectTrimmer
 
         class ObjWithList:
             def __init__(self):
                 self.items = [1, 2, 3, 4, 5]
 
         obj = ObjWithList()
-        trimmer = RayObjectTrimmer()
-        result = trimmer.trim_for_remote_call(obj)
+        result = ObjectTrimmer.trim_for_remote_call(obj)
 
         assert hasattr(result, "items")
         assert len(result.items) == 5
 
     def test_trim_handles_dicts(self):
         """Test trimming objects containing dicts"""
-        from sage.common.utils.serialization.ray_trimmer import RayObjectTrimmer
+        from sage.common.utils.serialization.object_trimmer import ObjectTrimmer
 
         class ObjWithDict:
             def __init__(self):
                 self.config = {"key1": "value1", "key2": "value2"}
 
         obj = ObjWithDict()
-        trimmer = RayObjectTrimmer()
-        result = trimmer.trim_for_remote_call(obj)
+        result = ObjectTrimmer.trim_for_remote_call(obj)
 
         assert hasattr(result, "config")
         assert isinstance(result.config, dict)
 
     def test_trim_preserves_basic_types(self):
         """Test that basic types are preserved"""
-        from sage.common.utils.serialization.ray_trimmer import RayObjectTrimmer
+        from sage.common.utils.serialization.object_trimmer import ObjectTrimmer
 
-        trimmer = RayObjectTrimmer()
-
-        assert trimmer.trim_for_remote_call(42) == 42
-        assert trimmer.trim_for_remote_call("text") == "text"
-        assert trimmer.trim_for_remote_call(3.14) == 3.14
-        assert trimmer.trim_for_remote_call(True) is True
+        assert ObjectTrimmer.trim_for_remote_call(42) == 42
+        assert ObjectTrimmer.trim_for_remote_call("text") == "text"
+        assert ObjectTrimmer.trim_for_remote_call(3.14) == 3.14
+        assert ObjectTrimmer.trim_for_remote_call(True) is True
 
     def test_trim_with_state_exclude_annotation(self):
         """Test trimming with __state_exclude__ class annotation"""
-        from sage.common.utils.serialization.ray_trimmer import RayObjectTrimmer
+        from sage.common.utils.serialization.object_trimmer import ObjectTrimmer
 
         class ObjWithAnnotation:
             __state_exclude__ = ["_internal"]
@@ -216,8 +208,7 @@ class TestRayObjectTrimmer:
                 self._internal = "hidden"
 
         obj = ObjWithAnnotation()
-        trimmer = RayObjectTrimmer()
-        result = trimmer.trim_for_remote_call(obj)
+        result = ObjectTrimmer.trim_for_remote_call(obj)
 
         assert hasattr(result, "public")
         # _internal should be excluded per __state_exclude__
@@ -225,7 +216,7 @@ class TestRayObjectTrimmer:
 
     def test_trim_complex_nested_structure(self):
         """Test trimming complex nested structures"""
-        from sage.common.utils.serialization.ray_trimmer import RayObjectTrimmer
+        from sage.common.utils.serialization.object_trimmer import ObjectTrimmer
 
         class Level3:
             def __init__(self):
@@ -242,8 +233,7 @@ class TestRayObjectTrimmer:
                 self.level2 = Level2()
 
         obj = Level1()
-        trimmer = RayObjectTrimmer()
-        result = trimmer.trim_for_remote_call(obj, deep_clean=True)
+        result = ObjectTrimmer.trim_for_remote_call(obj, deep_clean=True)
 
         assert hasattr(result, "value")
         assert result.value == "level1"

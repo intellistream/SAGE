@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from sage.common.utils.serialization.dill import serialize_object, trim_object_for_ray
+from sage.common.utils.serialization.dill import ObjectTrimmer, serialize_object
 from sage.kernel.api.base_environment import BaseEnvironment
 from sage.kernel.runtime.jobmanager_client import JobManagerClient
 
@@ -94,9 +94,9 @@ class RemoteEnvironment(BaseEnvironment):
                 f"Submitting environment '{self.name}' to remote JobManager (autostop={autostop})"
             )
             logger.info("Daemon host: %s, port: %d", self.daemon_host, self.daemon_port)
-            # 第一步：使用 trim_object_for_ray 清理环境，排除不可序列化的内容
+            # 第一步：清理环境对象，排除不可序列化的内容
             logger.debug("Trimming environment for serialization")
-            trimmed_env = trim_object_for_ray(self)
+            trimmed_env = ObjectTrimmer.trim_for_remote_call(self)
 
             # 第二步：使用 dill_serializer 打包
             logger.debug("Serializing environment with dill")
@@ -254,9 +254,9 @@ class RemoteEnvironment(BaseEnvironment):
 
     def close(self) -> dict[str, Any]:
         """
-        关闭远程环境并释放所有资源（包括 Ray Actors）
+        关闭远程环境并释放所有资源
 
-        注意：此方法会删除 job 并清理所有 Ray Actors。
+        注意：此方法会删除 job 并清理所有运行时任务。
         如果只想暂停而不释放资源，请使用 stop() 方法。
 
         Returns:
@@ -268,8 +268,8 @@ class RemoteEnvironment(BaseEnvironment):
 
         try:
             logger.info(f"Closing remote environment {self.env_uuid}")
-            # 使用 delete_job 而不是 pause_job，以确保 Ray Actors 被 kill
-            # delete_job 会调用 dispatcher.cleanup() → lifecycle_manager.cleanup_all() → ray.kill()
+            # 使用 delete_job 确保所有运行时任务被清理
+            # delete_job 会调用 dispatcher.cleanup() → lifecycle_manager.cleanup_all()
             response = self.client.delete_job(self.env_uuid, force=True)
 
             # 清理本地资源

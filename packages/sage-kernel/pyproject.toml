@@ -37,7 +37,7 @@ dependencies = [
     # 核心依赖 - 只包含 sage.kernel 模块导入时必需的最小依赖集
     # 原则：所有重型依赖（torch, fastapi, etc.）都放在 optional-dependencies
     # ============================================================================
-    # SAGE Platform layer - required for RPC queue registration and ray scheduler
+    # SAGE Platform layer - required for RPC queue registration and Flownet scheduler
     "isage-platform>=0.2.0",
 ]
 
@@ -98,12 +98,9 @@ markers = [
     "core: marks tests as core functionality tests",
     "smoke: marks tests as smoke tests (quick validation)",
     "cli: marks tests as CLI tests",
-    "ray: marks tests requiring Ray framework (may be slow)",
     "distributed: marks tests requiring distributed setup",
 ]
 filterwarnings = [
-    "ignore::DeprecationWarning:ray._private.client_mode_hook",
-    "ignore:.*local mode is an experimental feature.*:DeprecationWarning",
     "ignore::DeprecationWarning:pkg_resources",
     "ignore:.*SWIG.*:DeprecationWarning",
     "ignore:.*SwigPyPacked.*:DeprecationWarning",

@@ -113,17 +113,17 @@ Each SAGE layer has carefully scoped core dependencies:
 #### L2. sage-platform (Cluster Services)
 
 **Core**:
-- `ray[client]>=2.48.0,<3.0.0` ⭐ **Distributed scheduling (mandatory)**
+- `isage-flownet>=0.1.0` ⭐ **Distributed runtime/scheduling (mandatory)**
 - `paramiko>=3.5.0,<4.0.0` - SSH remote execution
 - `fabric>=3.2.0,<4.0.0` - Cluster management
 
-**Why ray is core**: Distributed execution is fundamental to SAGE's dataflow engine.
+**Why flownet is core**: Distributed execution is fundamental to SAGE's dataflow engine.
 
 #### L3a. sage-kernel (Dataflow Engine)
 
 **Core**: (Inherits from sage-platform via dependency)
 
-**Why**: Receives ray transitively through sage-platform.
+**Why**: Receives flownet runtime capability transitively through sage-platform.
 
 #### L3b. sage-libs (Algorithm Interfaces)
 
@@ -188,7 +188,7 @@ When extras were removed, functionality migrated to independent packages:
 
 ```bash
 pip install isage-common
-pip install isage-platform       # Includes ray
+pip install isage-platform       # Includes Flownet-aligned runtime integration
 pip install isage-kernel isage-libs isage-middleware
 ````
 

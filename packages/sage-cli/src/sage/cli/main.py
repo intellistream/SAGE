@@ -97,6 +97,7 @@ try:
         head_app,
         job_app,
         jobmanager_app,
+        runtime_app,
         version_app,
         worker_app,
     )
@@ -137,6 +138,12 @@ try:
         app.add_typer(config_app, name="config", help="⚙️ 配置管理 (show, set, reset)")
     if doctor_app:
         app.add_typer(doctor_app, name="doctor", help="🔍 系统诊断")
+    if runtime_app:
+        app.add_typer(
+            runtime_app,
+            name="runtime",
+            help="⚙️ Runtime - Flownet 运行时健康诊断 (status, health, info, version)",
+        )
     if extensions_app:
         app.add_typer(
             extensions_app,

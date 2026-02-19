@@ -6,7 +6,6 @@ Unified queue descriptor interface supporting multiple backends.
 
 This module provides queue descriptors that abstract different queue implementations:
 - PythonQueueDescriptor: Standard Python queue.Queue
-- RayQueueDescriptor: Ray distributed queue
 - RPCQueueDescriptor: Remote procedure call queue (requires L3 registration)
 
 Architecture:
@@ -17,7 +16,6 @@ Architecture:
 # 导出队列描述符类
 from .base_queue_descriptor import BaseQueueDescriptor
 from .python_queue_descriptor import PythonQueueDescriptor
-from .ray_queue_descriptor import RayQueueDescriptor
 from .rpc_queue_descriptor import RPCQueueDescriptor, register_rpc_queue_factory
 
 
@@ -34,8 +32,6 @@ def resolve_descriptor(data):
         queue_type = data.get("queue_type")
         if queue_type == "python":
             return PythonQueueDescriptor.from_dict(data)
-        elif queue_type == "ray_queue":
-            return RayQueueDescriptor.from_dict(data)
         elif queue_type == "rpc_queue":
             return RPCQueueDescriptor.from_dict(data)
         else:
@@ -47,7 +43,6 @@ def resolve_descriptor(data):
 __all__ = [
     "BaseQueueDescriptor",
     "PythonQueueDescriptor",
-    "RayQueueDescriptor",
     "RPCQueueDescriptor",
     "register_rpc_queue_factory",
     "resolve_descriptor",

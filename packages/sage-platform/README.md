@@ -23,7 +23,7 @@
 
 - `docs/governance/TODO.md`
 
-- **队列抽象**：Python、Ray 和 RPC 队列的统一接口
+- **队列抽象**：Python 和 RPC 队列的统一接口（Flownet 运行时对齐）
 
 - **存储抽象**：可插拔的键值存储后端
 
@@ -35,7 +35,7 @@
 
 ## ✨ Features
 
-- **多态队列**：Python Queue、Ray Queue 和 RPC Queue 的单一 API
+- **多态队列**：Python Queue 和 RPC Queue 的单一 API
 - **可插拔存储**：内存、Redis 和自定义存储后端
 - **服务框架**：构建平台服务的基类
 - **类型安全**：完整的类型提示和运行时验证
@@ -122,12 +122,11 @@ sage-platform/
 from sage.platform.queue import (
     BaseQueueDescriptor,
     PythonQueueDescriptor,
-    RayQueueDescriptor,
     RPCQueueDescriptor,
 )
 
-# 创建 Ray 队列
-queue_desc = RayQueueDescriptor(maxsize=1000, queue_id="my_queue")
+# 创建 RPC 队列
+queue_desc = RPCQueueDescriptor(queue_id="my_queue")
 queue = queue_desc.queue_instance
 
 # 使用队列操作
@@ -195,9 +194,8 @@ sage-platform/
 │           ├── __init__.py
 │           ├── queue/              # 队列抽象
 │           │   ├── base.py
-│           │   ├── python_queue.py
-│           │   ├── ray_queue.py
-│           │   └── rpc_queue.py
+│           │   ├── python_queue_descriptor.py
+│           │   └── rpc_queue_descriptor.py
 │           ├── storage/            # 存储后端
 │           │   └── kv_backend.py
 │           └── service/            # 服务基类
@@ -225,9 +223,6 @@ pip install -e .
 ### 安装可选依赖
 
 ```bash
-# 安装 Ray 支持（分布式队列）
-pip install isage-platform[ray]
-
 # 安装 Redis 支持（分布式存储）
 pip install isage-platform[redis]
 
@@ -240,10 +235,10 @@ pip install isage-platform[all]
 ### 使用队列
 
 ```python
-from sage.platform.queue import RayQueueDescriptor
+from sage.platform.queue import RPCQueueDescriptor
 
 # 创建分布式队列
-queue_desc = RayQueueDescriptor(maxsize=1000, queue_id="my_distributed_queue")
+queue_desc = RPCQueueDescriptor(queue_id="my_distributed_queue")
 
 # 生产者
 queue_desc.put({"task": "process_data", "data": [1, 2, 3]})
@@ -322,7 +317,7 @@ print(result)  # {"status": "success", "result": [2, 4, 6]}
 # platform_config.yaml
 platform:
   queue:
-    backend: ray  # 或 python, rpc
+    backend: rpc  # 或 python
     maxsize: 1000
 
   storage:
@@ -353,7 +348,7 @@ L5: sage-cli            ← 命令行接口
 ## 设计原则
 
 1. **通用基础设施**：平台服务不是 SAGE 特定的
-1. **后端无关**：支持多种实现（Python、Ray、Redis 等）
+1. **后端无关**：支持多种实现（Python、RPC、Redis 等）
 1. **最小依赖**：仅依赖 `sage-common`
 1. **可扩展性**：易于添加新后端
 

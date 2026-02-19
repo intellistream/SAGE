@@ -22,7 +22,7 @@ deploying applications, and developing with SAGE.
 
 **SAGE CLI** is the unified command-line interface for SAGE platform, providing commands for:
 
-- **Cluster Management**: Start/stop Ray clusters, manage head/worker nodes
+- **Cluster Management**: Start/stop Flownet-based runtime clusters, manage head/worker nodes
 - **LLM Services**: Launch and manage LLM inference services
 - **Development**: Tools for testing, quality checks, and project management
 - **Monitoring**: System diagnostics and status checks
@@ -30,7 +30,7 @@ deploying applications, and developing with SAGE.
 ## ✨ Features
 
 - **Unified Interface**: Single `sage` command for all platform operations
-- **Cluster Orchestration**: Full Ray cluster lifecycle management
+- **Cluster Orchestration**: Full Flownet runtime lifecycle management
 - **LLM Integration**: Start LLM services with automatic model loading
 - **Interactive Chat**: Built-in chat interface for testing
 - **Development Tools**: Via separate `sage-dev` command from sage-tools package
@@ -54,7 +54,7 @@ SAGE CLI organizes commands into two main categories:
 
 Manage SAGE infrastructure and system components:
 
-- `sage cluster` - Ray cluster management
+- `sage cluster` - Flownet runtime cluster management
 - `sage head` - Head node management
 - `sage worker` - Worker node management
 - `sage job` - Job management

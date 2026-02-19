@@ -98,6 +98,16 @@ repos:
     always_run: false
     files: ^packages/.*/src/sage/__init__\.py$
         # Block commit if src/sage/__init__.py is added/modified (violates PEP 420)
+  - id: cross-repo-dedup-check
+    name: cross-repo duplicate declaration check (SAGE vs sageFlownet)
+    entry: python3 tools/scripts/check_cross_repo_dedup.py
+    language: system
+    pass_filenames: false
+    always_run: false
+    stages: [pre-commit, manual]
+    files: \.py$
+        # Enforces move-then-delete rule: migrated symbols must not be redefined in Flownet.
+        # See Issue #1439 and flownet-migration-boundary.md
   - id: markdown-files-location-check
     name: check markdown files are in proper locations
     entry: tools/hooks/check_docs_location.sh

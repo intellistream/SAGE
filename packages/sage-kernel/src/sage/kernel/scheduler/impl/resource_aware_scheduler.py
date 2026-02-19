@@ -29,6 +29,7 @@ from typing import TYPE_CHECKING, Any
 
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
+from sage.kernel.scheduler.schema import PlacementStrategy, ResourceSpec, parse_memory
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.graph.graph_node import TaskNode
@@ -51,6 +52,12 @@ class LoadAwareScheduler(BaseScheduler):
     - 控制并发数避免过载
     - 返回节点分配决策
     """
+
+    _STRATEGY_MAP: dict[str, PlacementStrategy] = {
+        "balanced": PlacementStrategy.DEFAULT,
+        "pack": PlacementStrategy.PACK,
+        "spread": PlacementStrategy.SPREAD,
+    }
 
     def __init__(
         self,
@@ -126,7 +133,7 @@ class LoadAwareScheduler(BaseScheduler):
             if hasattr(task_node.transformation, "memory_required"):
                 memory_str = getattr(task_node.transformation, "memory_required", None)
                 if memory_str:
-                    memory_required = self._parse_memory(memory_str)
+                    memory_required = parse_memory(memory_str)
 
             # 自定义资源
             if hasattr(task_node.transformation, "custom_resources"):
@@ -151,16 +158,13 @@ class LoadAwareScheduler(BaseScheduler):
             if target_node:
                 self.node_selector.track_task_placement(task_node.name, target_node)
 
-        # === 步骤 4: 构建资源需求字典 ===
-        resource_requirements = {}
-        if cpu_required > 0:
-            resource_requirements["cpu"] = cpu_required
-        if gpu_required > 0:
-            resource_requirements["gpu"] = gpu_required
-        if memory_required > 0:
-            resource_requirements["memory"] = memory_required
-        if custom_resources:
-            resource_requirements.update(custom_resources)
+        # === 步骤 4: 构建 ResourceSpec (类型化 schema) ===
+        spec = ResourceSpec(
+            cpu=float(cpu_required) if cpu_required > 0 else None,
+            gpu=float(gpu_required) if gpu_required > 0 else None,
+            memory_bytes=memory_required if memory_required > 0 else None,
+            custom_resources=custom_resources if custom_resources else {},
+        )
 
         # === 步骤 5: 更新状态 ===
         self.active_tasks += 1
@@ -184,42 +188,19 @@ class LoadAwareScheduler(BaseScheduler):
         else:
             node_info = "default"
 
+        placement_strategy = self._STRATEGY_MAP.get(self.strategy, PlacementStrategy.DEFAULT)
         decision = PlacementDecision(
             target_node=target_node,
-            resource_requirements=(resource_requirements if resource_requirements else None),
+            resource=spec,
             delay=delay,
             immediate=(delay == 0),
-            placement_strategy=self.strategy,
+            placement_strategy=placement_strategy,
             reason=f"LoadAware: task={task_node.name}, node={node_info}, "
             + f"req=[CPU:{cpu_required}, GPU:{gpu_required}], active={self.active_tasks}",
         )
 
         self.decision_history.append(decision)
         return decision
-
-    def _parse_memory(self, memory) -> int:
-        """
-        解析内存字符串为字节数
-
-        Args:
-            memory: 内存大小（字符串如 "8GB" 或整数字节数）
-
-        Returns:
-            内存字节数
-        """
-        if isinstance(memory, int):
-            return memory
-
-        if isinstance(memory, str):
-            memory = memory.upper()
-            if "GB" in memory:
-                return int(float(memory.replace("GB", "")) * 1024**3)
-            elif "MB" in memory:
-                return int(float(memory.replace("MB", "")) * 1024**2)
-            elif "KB" in memory:
-                return int(float(memory.replace("KB", "")) * 1024)
-
-        return 0
 
     def make_service_decision(self, service_node: "ServiceNode") -> PlacementDecision:
         """
@@ -256,36 +237,32 @@ class LoadAwareScheduler(BaseScheduler):
                 # 内存需求
                 memory_str = getattr(service_class, "memory_required", None)
                 if memory_str:
-                    memory_required = self._parse_memory(memory_str)
+                    memory_required = parse_memory(memory_str)
 
                 # 自定义资源
                 custom_resources = getattr(service_class, "custom_resources", custom_resources)
 
         # === 步骤 2: 使用 NodeSelector 选择节点（优先使用 spread 策略）===
         # 服务通常需要长期运行，使用 spread 策略避免单点故障
-        service_strategy = "spread"
         target_node = self.node_selector.select_best_node(
             cpu_required=cpu_required,
             gpu_required=gpu_required,
             memory_required=memory_required,
             custom_resources=custom_resources if custom_resources else None,
-            strategy=service_strategy,
+            strategy="spread",
         )
 
         # 跟踪服务分配
         if target_node:
             self.node_selector.track_task_placement(service_node.service_name, target_node)
 
-        # === 步骤 3: 构建资源需求字典 ===
-        resource_requirements = {}
-        if cpu_required > 0:
-            resource_requirements["cpu"] = cpu_required
-        if gpu_required > 0:
-            resource_requirements["gpu"] = gpu_required
-        if memory_required > 0:
-            resource_requirements["memory"] = memory_required
-        if custom_resources:
-            resource_requirements.update(custom_resources)
+        # === 步骤 3: 构建 ResourceSpec (类型化 schema) ===
+        service_spec = ResourceSpec(
+            cpu=float(cpu_required) if cpu_required > 0 else None,
+            gpu=float(gpu_required) if gpu_required > 0 else None,
+            memory_bytes=memory_required if memory_required > 0 else None,
+            custom_resources=custom_resources if custom_resources else {},
+        )
 
         # === 步骤 4: 更新状态 ===
         self.scheduled_count += 1
@@ -305,12 +282,12 @@ class LoadAwareScheduler(BaseScheduler):
 
         decision = PlacementDecision(
             target_node=target_node,
-            resource_requirements=(resource_requirements if resource_requirements else None),
+            resource=service_spec,
             delay=0.0,  # 服务立即调度
             immediate=True,
-            placement_strategy=service_strategy,
+            placement_strategy=PlacementStrategy.SPREAD,
             reason=f"LoadAware Service: {service_node.service_name}, node={node_info}, "
-            + f"req=[CPU:{cpu_required}, GPU:{gpu_required}], strategy={service_strategy}",
+            + f"req=[CPU:{cpu_required}, GPU:{gpu_required}], strategy=spread",
         )
 
         self.decision_history.append(decision)

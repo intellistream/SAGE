@@ -13,9 +13,7 @@ HeartbeatMonitor V2 - 简化版心跳监控器
 import logging
 import threading
 import time
-from typing import TYPE_CHECKING, Any, Union
-
-from sage.kernel.utils.ray.actor import ActorWrapper
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.dispatcher import Dispatcher
@@ -129,7 +127,7 @@ class HeartbeatMonitor:
         """检查监控是否运行中"""
         return self._running
 
-    def _get_active_tasks(self) -> dict[str, Union["BaseTask", ActorWrapper]]:
+    def _get_active_tasks(self) -> dict[str, "BaseTask"]:
         """
         从 Dispatcher 获取所有活跃任务的引用
 
@@ -140,9 +138,7 @@ class HeartbeatMonitor:
             self.logger.error(f"❌ Failed to get active tasks from Dispatcher: {e}")
             return {}
 
-    def _pull_heartbeat(
-        self, task_id: str, task: Union["BaseTask", ActorWrapper]
-    ) -> dict[str, Any] | None:
+    def _pull_heartbeat(self, task_id: str, task: "BaseTask") -> dict[str, Any] | None:
         """
         从 Ray Task 拉取心跳信息
 
@@ -160,13 +156,11 @@ class HeartbeatMonitor:
             return heartbeat  # type: ignore[return-value]
 
         except Exception as e:
-            # 捕获所有异常（包括 Ray 相关异常）
+            # 捕获所有异常（包括超时等异常）
             if "GetTimeoutError" in str(type(e).__name__):
                 self.logger.warning(
                     f"⚠️  Timeout pulling heartbeat from {task_id} (timeout={self.call_timeout}s)"
                 )
-            elif "RayActorError" in str(type(e).__name__):
-                self.logger.error(f"❌ RayActorError when pulling heartbeat from {task_id}: {e}")
             else:
                 self.logger.error(
                     f"❌ Unexpected error pulling heartbeat from {task_id}: {e}",

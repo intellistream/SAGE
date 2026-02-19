@@ -38,13 +38,20 @@ def check():
         except ImportError:
             console.print(f"⚠️ 扩展缺失: {ext_name}")
 
-    # 检查Ray
+    # 检查 Flownet 运行时
     try:
-        import ray
+        import sage.flownet
 
-        console.print(f"✅ Ray: v{ray.__version__}")
+        console.print(f"✅ sageFlownet: v{sage.flownet.__version__}")
     except ImportError:
-        console.print("❌ Ray 未安装")
+        try:
+            import ray
+
+            console.print(
+                f"⚠️  Ray (将废除原运行时，过渡期兼容): v{ray.__version__} | sageFlownet 尚未安装，建议: pip install isage-flow"
+            )
+        except ImportError:
+            console.print("❌ sageFlownet 未安装 (pip install isage-flow)")
 
     console.print("\n💡 如需安装扩展，运行: [bold]sage extensions install[/bold]")
 

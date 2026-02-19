@@ -7,7 +7,7 @@ Dependencies: sage.platform (L2), sage.common (L1)
 运行时组件：
 - JobManager: 作业管理器，协调任务执行
 - Dispatcher: 任务分发器
-- Task: 任务抽象（LocalTask, RayTask）
+- Task: 任务抽象（LocalTask）
 - Graph: 执行图（ExecutionGraph, GraphNode）
 - Context: 执行上下文（TaskContext, ServiceContext）
 - Communication: 通信层（Packet, Router, RPC）
@@ -16,7 +16,7 @@ Dependencies: sage.platform (L2), sage.common (L1)
 
 Architecture:
 - 提供流式数据处理的核心执行引擎
-- 支持本地和分布式（Ray）两种执行模式
+- 支持本地和分布式（Flownet-native）两种执行模式
 - 管理任务生命周期和数据流转
 - 提供容错和监控能力
 

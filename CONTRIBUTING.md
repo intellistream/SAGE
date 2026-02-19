@@ -388,6 +388,66 @@ python3 -c "import sage; assert sage.__file__ is None"  # 应该成功
 
 **CI 检查**：所有 PR 会自动运行 PEP 420 合规性检查（`.github/workflows/ci-pep420-compliance.yml`）
 
+### 🚨 Flownet 跨仓库迁移：Move-Then-Delete 规则
+
+**SAGE 与 sageFlownet 之间的代码迁移必须遵循 "先移动、立即删除" 原则。**
+
+迁移边界权威文档： `docs_src/concepts/architecture/design-decisions/flownet-migration-boundary.md`（sage-docs
+仓库）
+
+#### ❌ 禁止操作
+
+```python
+# ❌ 错误：在 Flownet 中保留 try-except fallback stub
+try:
+    from sage.kernel.scheduler.schema import ResourceSpec
+except ImportError:
+    class ResourceSpec:  # 禁止：这是重复定义
+        cpu: float = 0.0
+        ...
+```
+
+```python
+# ❌ 错误：在 Flownet 中重新定义已迁移到 SAGE 的类
+class PlacementSchema:  # 禁止：SAGE L3 是单一来源
+    resource: ResourceSpec = ...
+```
+
+#### ✅ 正确做法
+
+```python
+# ✅ 正确：直接从 SAGE 规范位置导入，快速失败
+from sage.kernel.scheduler.schema import ResourceSpec, PlacementSchema, PlacementStrategy
+```
+
+#### 已迁移的规范符号（不得在 Flownet 中重定义）
+
+| 符号                                                                                                                 | SAGE 规范位置                      |
+| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `ExceptionAction`, `ExceptionContext`, `ExceptionDecision`, `ExceptionEvent`, `FlowException`, `FlowDefinitionError` | `sage.common.core.flow_exceptions` |
+| `ResourceSpec`, `PlacementSchema`, `PlacementStrategy`                                                               | `sage.kernel.scheduler.schema`     |
+| `ContextSlot`                                                                                                        | `sage.common.utils.context`        |
+
+#### PR 提交要求
+
+每个涉及跨仓库迁移的 PR 必须在描述中**明确声明**：
+
+1. **迁移了什么**：符号名称 + 源文件路径
+1. **保留了什么**：Flownet 保留的运行时实现（及原因）
+1. **删除了什么**：旧代码 / stub 已从源仓库移除
+
+#### CI 检查
+
+```bash
+# 本地运行 cross-repo dedup 检查
+python3 tools/scripts/check_cross_repo_dedup.py --verbose
+
+# 集成到 pre-commit（自动在提交时运行）
+pre-commit run cross-repo-dedup-check --all-files
+```
+
+**违规后果**：CI 将失败，需要移除 Flownet 中的 stub 类或 try-except fallback，改为直接导入 SAGE 规范版本。
+
 - 添加适当的文档字符串
 - 避免循环内重复 I/O；优先使用批量操作
 - 日志使用 `logging` 而非 print（测试内部除外）

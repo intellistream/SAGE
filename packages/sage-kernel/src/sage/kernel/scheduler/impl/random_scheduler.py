@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any
 
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
+from sage.kernel.scheduler.schema import PlacementStrategy, ResourceSpec
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.graph.graph_node import TaskNode
@@ -62,10 +63,10 @@ class RandomScheduler(BaseScheduler):
 
         decision = PlacementDecision(
             target_node=target_node,
-            resource_requirements=None,
+            resource=ResourceSpec(),
             delay=0.0,
             immediate=True,
-            placement_strategy="random",
+            placement_strategy=PlacementStrategy.DEFAULT,
             reason=reason,
         )
 
@@ -86,10 +87,10 @@ class RandomScheduler(BaseScheduler):
 
         decision = PlacementDecision(
             target_node=target_node,
-            resource_requirements=None,
+            resource=ResourceSpec(),
             delay=0.0,
             immediate=True,
-            placement_strategy="random",
+            placement_strategy=PlacementStrategy.DEFAULT,
             reason=f"Random service placement: {service_node.service_name}",
         )
 

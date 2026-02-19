@@ -183,7 +183,6 @@ class BaseQueueDescriptor(ABC):
 
         See Also:
             - PythonQueueDescriptor.clone(): 共享队列实例的正确实现
-            - RayQueueDescriptor.clone(): 共享队列代理的正确实现
             - RPCQueueDescriptor.clone(): 共享RPC连接的正确实现
         """
         # 创建同类型的新实例

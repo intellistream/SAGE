@@ -51,7 +51,7 @@ Scheduler API - 调度器核心 API 定义
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.graph.graph_node import TaskNode
@@ -59,7 +59,6 @@ if TYPE_CHECKING:
     from sage.kernel.runtime.service.local_service_task import LocalServiceTask
     from sage.kernel.runtime.task.local_task import LocalTask
     from sage.kernel.scheduler.decision import PlacementDecision
-    from sage.kernel.utils.ray.actor import ActorWrapper
 
 
 class BaseScheduler(ABC):
@@ -146,9 +145,7 @@ class BaseScheduler(ABC):
             reason=f"Service placement: {service_node.service_name}"
         )
 
-    def schedule_task(
-        self, task_node: "TaskNode", runtime_ctx=None
-    ) -> Union["LocalTask", "ActorWrapper"]:
+    def schedule_task(self, task_node: "TaskNode", runtime_ctx=None) -> "LocalTask":
         """
         调度任务（兼容性方法）
 
@@ -165,7 +162,7 @@ class BaseScheduler(ABC):
             runtime_ctx: 运行时上下文（如果为 None，使用 task_node.ctx）
 
         Returns:
-            创建的任务实例（LocalTask 或 ActorWrapper）
+            创建的任务实例
         """
         # 调用核心决策方法
         decision = self.make_decision(task_node)
@@ -182,9 +179,7 @@ class BaseScheduler(ABC):
 
         return task
 
-    def schedule_service(
-        self, service_node: "ServiceNode", runtime_ctx=None
-    ) -> Union["LocalServiceTask", "ActorWrapper"]:
+    def schedule_service(self, service_node: "ServiceNode", runtime_ctx=None) -> "LocalServiceTask":
         """
         调度服务（兼容性方法）
 
@@ -196,7 +191,7 @@ class BaseScheduler(ABC):
             runtime_ctx: 运行时上下文（如果为 None，使用 service_node.ctx）
 
         Returns:
-            创建的服务任务实例（LocalServiceTask 或 ActorWrapper）
+            创建的服务任务实例
         """
         # 调用服务决策方法
         decision = self.make_service_decision(service_node)

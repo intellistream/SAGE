@@ -20,6 +20,7 @@ from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
 from sage.kernel.scheduler.impl import FIFOScheduler, LoadAwareScheduler
 from sage.kernel.scheduler.placement import PlacementExecutor
+from sage.kernel.scheduler.schema import PlacementStrategy, ResourceSpec, parse_memory
 
 # ============================================================================
 # PlacementDecision 测试
@@ -34,30 +35,31 @@ class TestPlacementDecision:
         decision = PlacementDecision()
 
         assert decision.target_node is None
-        assert decision.resource_requirements is None
+        assert decision.resource.is_empty()
         assert decision.delay == 0.0
         assert decision.immediate is True
-        assert decision.placement_strategy == "default"
+        assert decision.placement_strategy == PlacementStrategy.DEFAULT
         assert decision.reason == ""
 
     def test_full_initialization(self):
         """测试完整初始化"""
-        # 使用有效的 Ray node_id 格式（十六进制字符串）
-        valid_node_id = "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcd"
+        valid_node_id = "node-a1b2c3d4"
         decision = PlacementDecision(
             target_node=valid_node_id,
-            resource_requirements={"cpu": 4, "gpu": 1, "memory": "8GB"},
+            resource=ResourceSpec(cpu=4, gpu=1, memory_bytes=parse_memory("8GB")),
             delay=0.5,
             immediate=False,
-            placement_strategy="balanced",
+            placement_strategy=PlacementStrategy.DEFAULT,
             reason="Test decision",
         )
 
         assert decision.target_node == valid_node_id
-        assert decision.resource_requirements == {"cpu": 4, "gpu": 1, "memory": "8GB"}
+        assert decision.resource.cpu == 4
+        assert decision.resource.gpu == 1
+        assert decision.resource.memory_bytes == parse_memory("8GB")
         assert decision.delay == 0.5
         assert decision.immediate is False
-        assert decision.placement_strategy == "balanced"
+        assert decision.placement_strategy == PlacementStrategy.DEFAULT
         assert decision.reason == "Test decision"
 
     def test_immediate_default(self):
@@ -65,10 +67,10 @@ class TestPlacementDecision:
         decision = PlacementDecision.immediate_default(reason="Quick test")
 
         assert decision.target_node is None
-        assert decision.resource_requirements is None
+        assert decision.resource.is_empty()
         assert decision.delay == 0.0
         assert decision.immediate is True
-        assert decision.placement_strategy == "default"
+        assert decision.placement_strategy == PlacementStrategy.DEFAULT
         assert decision.reason == "Quick test"
 
     def test_with_resources(self):
@@ -77,17 +79,14 @@ class TestPlacementDecision:
             cpu=4, gpu=1, memory=8589934592, reason="Resource test"
         )
 
-        assert decision.resource_requirements == {
-            "cpu": 4,
-            "gpu": 1,
-            "memory": 8589934592,
-        }
+        assert decision.resource.cpu == 4
+        assert decision.resource.gpu == 1
+        assert decision.resource.memory_bytes == 8589934592
         assert decision.reason == "Resource test"
 
     def test_with_node(self):
         """测试 with_node 快捷方法"""
-        # 使用有效的 Ray node_id 格式
-        valid_node_id = "b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef"
+        valid_node_id = "node-b2c3d4e5"
         decision = PlacementDecision.with_node(node_id=valid_node_id, reason="Node test")
 
         assert decision.target_node == valid_node_id
@@ -96,21 +95,21 @@ class TestPlacementDecision:
     def test_to_dict(self):
         """测试转换为字典"""
         decision = PlacementDecision(
-            target_node="node-1", resource_requirements={"cpu": 2}, reason="Dict test"
+            target_node="node-1", resource=ResourceSpec(cpu=2), reason="Dict test"
         )
 
         result = decision.to_dict()
 
         assert isinstance(result, dict)
         assert result["target_node"] == "node-1"
-        assert result["resource_requirements"] == {"cpu": 2}
+        assert result["resource"]["cpu"] == 2
         assert result["reason"] == "Dict test"
 
     def test_from_dict(self):
         """测试从字典创建"""
         data = {
             "target_node": "node-1",
-            "resource_requirements": {"cpu": 2},
+            "resource": {"cpu": 2},
             "delay": 0.5,
             "immediate": False,
             "placement_strategy": "pack",
@@ -120,22 +119,21 @@ class TestPlacementDecision:
         decision = PlacementDecision.from_dict(data)
 
         assert decision.target_node == "node-1"
-        assert decision.resource_requirements == {"cpu": 2}
+        assert decision.resource.cpu == 2
         assert decision.delay == 0.5
         assert decision.immediate is False
-        assert decision.placement_strategy == "pack"
+        assert decision.placement_strategy == PlacementStrategy.PACK
 
     def test_repr(self):
         """测试字符串表示"""
         decision = PlacementDecision(
-            target_node="node-1", resource_requirements={"cpu": 4}, reason="Repr test"
+            target_node="node-1", resource=ResourceSpec(cpu=4), reason="Repr test"
         )
 
         repr_str = repr(decision)
 
         assert "PlacementDecision" in repr_str
         assert "node-1" in repr_str
-        assert "cpu" in repr_str
 
 
 # ============================================================================
@@ -191,7 +189,7 @@ class TestFIFOScheduler:
         # 验证决策
         assert isinstance(decision, PlacementDecision)
         assert decision.target_node is None  # FIFO 使用默认
-        assert decision.resource_requirements is None
+        assert decision.resource.is_empty()
         assert decision.immediate is True
         assert "FIFO" in decision.reason
 
@@ -334,10 +332,10 @@ class TestLoadAwareScheduler:
         decision = scheduler.make_decision(task_node)
 
         # 验证资源需求
-        assert decision.resource_requirements is not None
-        assert decision.resource_requirements["cpu"] == 4
-        assert decision.resource_requirements["gpu"] == 1
-        assert "memory" in decision.resource_requirements
+        assert not decision.resource.is_empty()
+        assert decision.resource.cpu == 4
+        assert decision.resource.gpu == 1
+        assert decision.resource.memory_bytes is not None
 
     @patch("sage.kernel.scheduler.node_selector.NodeSelector")
     def test_make_decision_with_node_selector(self, mock_node_selector_class):
@@ -439,14 +437,13 @@ class TestLoadAwareScheduler:
 
     def test_memory_parsing(self):
         """测试内存解析"""
-        scheduler = LoadAwareScheduler()
+        from sage.kernel.scheduler.schema import parse_memory
 
         # 测试各种格式
-        assert scheduler._parse_memory("8GB") == 8 * 1024**3
-        assert scheduler._parse_memory("512MB") == 512 * 1024**2
-        assert scheduler._parse_memory("1024KB") == 1024 * 1024
-        assert scheduler._parse_memory(1024) == 1024
-        assert scheduler._parse_memory("invalid") == 0
+        assert parse_memory("8GB") == 8 * 1024**3
+        assert parse_memory("512MB") == 512 * 1024**2
+        assert parse_memory("1024KB") == 1024 * 1024
+        assert parse_memory(1024) == 1024
 
     def test_get_metrics(self):
         """测试获取指标"""
@@ -515,11 +512,9 @@ class TestPlacementExecutor:
         assert executor.placement_stats["local_tasks"] == 1
         task_node.task_factory.create_task.assert_called_once()
 
-    @patch("ray.util.scheduling_strategies.NodeAffinitySchedulingStrategy")
-    @patch("sage.kernel.utils.ray.actor.ActorWrapper")
-    @patch("sage.kernel.runtime.task.ray_task.RayTask")
-    def test_place_remote_task_default(self, mock_ray_task, mock_wrapper, mock_strategy):
-        """测试放置远程任务（默认配置）"""
+    @pytest.mark.unit
+    def test_place_remote_task_default(self):
+        """测试放置远程任务（Flownet-native，Ray已移除）"""
         executor = PlacementExecutor()
 
         # Mock task node
@@ -531,29 +526,23 @@ class TestPlacementExecutor:
         task_node.task_factory.operator_factory = Mock()
         task_node.task_factory.extra_python_paths = None
 
-        # Mock Ray Actor with proper options chain
-        mock_options = Mock()
-        mock_options.remote = Mock(return_value=Mock())
-        mock_ray_task.options = Mock(return_value=mock_options)
-        mock_wrapped = Mock()
-        mock_wrapper.return_value = mock_wrapped
+        mock_task = Mock()
+        task_node.task_factory.create_task.return_value = mock_task
 
         # Mock decision (default)
         decision = PlacementDecision.immediate_default()
 
-        # 放置任务
+        # 放置任务（Ray removed: returns LocalTask via Flownet-native path）
         result = executor.place_task(task_node, decision)
 
         # 验证
-        assert result == mock_wrapped
+        assert result == mock_task
         assert executor.placement_stats["remote_tasks"] == 1
-        mock_ray_task.options.assert_called_once()
+        task_node.task_factory.create_task.assert_called_once()
 
-    @patch("ray.util.scheduling_strategies.NodeAffinitySchedulingStrategy")
-    @patch("sage.kernel.utils.ray.actor.ActorWrapper")
-    @patch("sage.kernel.runtime.task.ray_task.RayTask")
-    def test_place_remote_task_with_node(self, mock_ray_task, mock_wrapper, mock_strategy):
-        """测试放置远程任务（指定节点）"""
+    @pytest.mark.unit
+    def test_place_remote_task_with_node(self):
+        """测试放置远程任务（指定节点，Flownet-native）"""
         executor = PlacementExecutor()
 
         # Mock task node
@@ -565,86 +554,34 @@ class TestPlacementExecutor:
         task_node.task_factory.operator_factory = Mock()
         task_node.task_factory.extra_python_paths = None
 
-        # Mock Ray Actor with proper options chain
-        mock_options = Mock()
-        mock_options.remote = Mock(return_value=Mock())
-        mock_ray_task.options = Mock(return_value=mock_options)
-        mock_wrapped = Mock()
-        mock_wrapper.return_value = mock_wrapped
+        mock_task = Mock()
+        task_node.task_factory.create_task.return_value = mock_task
 
-        # Mock scheduling strategy to return a valid object
-        mock_strategy.return_value = "mocked_scheduling_strategy"
+        # Mock decision (with node)
+        valid_node_id = "node-a1b2c3d4"
+        decision = PlacementDecision(target_node=valid_node_id, resource=ResourceSpec(cpu=4, gpu=1))
 
-        # Mock decision (with node) - 使用有效的 Ray node_id 格式
-        valid_node_id = "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcd"
-        decision = PlacementDecision(
-            target_node=valid_node_id, resource_requirements={"cpu": 4, "gpu": 1}
-        )
+        # 放置任务（Ray removed: node affinity via Flownet-native path）
+        result = executor.place_task(task_node, decision)
 
-        # 放置任务
-        executor.place_task(task_node, decision)
-
-        # 验证调用参数
-        call_kwargs = mock_ray_task.options.call_args[1]
-        assert "scheduling_strategy" in call_kwargs
-        assert call_kwargs["num_cpus"] == 4
-        assert call_kwargs["num_gpus"] == 1
-
-    def test_build_ray_options_default(self):
-        """测试构建 Ray 选项（默认）"""
-        executor = PlacementExecutor()
-        decision = PlacementDecision.immediate_default()
-
-        options = executor._build_ray_options(decision)
-
-        assert "lifetime" in options
-        assert options["lifetime"] == "detached"
-        assert "scheduling_strategy" not in options  # 默认不指定节点
-
-    @patch("ray.util.scheduling_strategies.NodeAffinitySchedulingStrategy")
-    def test_build_ray_options_with_node(self, mock_strategy):
-        """测试构建 Ray 选项（指定节点）"""
-        executor = PlacementExecutor()
-        # 使用有效的 Ray node_id 格式
-        valid_node_id = "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcd"
-        decision = PlacementDecision(target_node=valid_node_id)
-
-        options = executor._build_ray_options(decision)
-
-        assert "scheduling_strategy" in options
-        mock_strategy.assert_called_once_with(node_id=valid_node_id, soft=False)
-
-    def test_build_ray_options_with_resources(self):
-        """测试构建 Ray 选项（资源需求）"""
-        executor = PlacementExecutor()
-        decision = PlacementDecision(
-            resource_requirements={
-                "cpu": 4,
-                "gpu": 1,
-                "memory": 8589934592,
-                "custom_resource": 2,
-            }
-        )
-
-        options = executor._build_ray_options(decision)
-
-        assert options["num_cpus"] == 4
-        assert options["num_gpus"] == 1
-        assert options["memory"] == 8589934592
-        assert "resources" in options
-        assert options["resources"]["custom_resource"] == 2
+        # 验证
+        assert result == mock_task
+        assert executor.placement_stats["remote_tasks"] == 1
+        task_node.task_factory.create_task.assert_called_once()
 
     def test_parse_memory(self):
         """测试内存解析"""
-        executor = PlacementExecutor()
+        import pytest
 
-        assert executor._parse_memory(1024) == 1024
-        assert executor._parse_memory("8GB") == 8 * 1024**3
-        assert executor._parse_memory("512MB") == 512 * 1024**2
-        assert executor._parse_memory("1024KB") == 1024 * 1024
-        # 注意：解析失败时返回 1GB（默认值），不是 0
-        result = executor._parse_memory("invalid")
-        assert result > 0  # 只要不崩溃就行
+        from sage.kernel.scheduler.schema import parse_memory
+
+        assert parse_memory(1024) == 1024
+        assert parse_memory("8GB") == 8 * 1024**3
+        assert parse_memory("512MB") == 512 * 1024**2
+        assert parse_memory("1024KB") == 1024 * 1024
+        # 无效字符串应引发 ValueError（快速失败原则）
+        with pytest.raises(ValueError):
+            parse_memory("invalid")
 
     def test_get_stats(self):
         """测试获取统计信息"""
@@ -732,7 +669,7 @@ class TestSchedulerIntegration:
 
         # 1. 调度决策
         decision = scheduler.make_decision(task_node)
-        assert decision.resource_requirements is not None
+        assert not decision.resource.is_empty()
 
         # 2. 执行放置
         task = executor.place_task(task_node, decision)

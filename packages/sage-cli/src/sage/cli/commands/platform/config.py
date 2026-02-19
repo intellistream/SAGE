@@ -29,10 +29,10 @@ def config_info():
         print(f"日志级别: {config.get('log_level', '未设置')}")
         print(f"工作目录: {config.get('work_dir', '未设置')}")
 
-        if "ray" in config:
-            ray_config = config["ray"]
-            print(f"Ray地址: {ray_config.get('address', '未设置')}")
-            print(f"Ray端口: {ray_config.get('port', '未设置')}")
+        if "ray" in config or "runtime" in config:
+            runtime_config = config.get("runtime", config.get("ray", {}))
+            print(f"运行时地址: {runtime_config.get('address', '未设置')}")
+            print(f"运行时端口: {runtime_config.get('port', '未设置')}")
 
     except Exception as e:
         print(f"❌ 读取配置失败: {e}")

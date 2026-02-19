@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class ServiceTaskFactory:
-    """服务任务工厂，负责创建服务任务（本地或Ray Actor），类似TaskFactory"""
+    """服务任务工厂，负责创建服务任务。"""
 
     def __init__(
         self,
@@ -22,15 +22,14 @@ class ServiceTaskFactory:
 
         Args:
             service_factory: 服务工厂实例
-            remote: 是否创建远程服务任务
-            extra_python_paths: 额外的 Python 路径，用于 Ray runtime_env
+            remote: 是否请求远程服务任务（当前仅作为提示，Ray 已移除）
+            extra_python_paths: 额外 Python 路径（预留给后续分布式运行时）
         """
         self.service_factory = service_factory
         self.service_name = service_factory.service_name
         self.remote = remote
 
-        # Extra Python paths for Ray runtime_env
-        # Must be passed explicitly since env attribute is excluded during serialization
+        # Extra Python paths reserved for future distributed runtime bootstrap.
         self.extra_python_paths: list[str] = (
             extra_python_paths
             if isinstance(extra_python_paths, list)
@@ -45,37 +44,16 @@ class ServiceTaskFactory:
             ctx: 服务运行时上下文
 
         Returns:
-            服务任务实例（LocalServiceTask或ActorWrapper包装的RayServiceTask）
+            服务任务实例
         """
         if self.remote:
-            # 创建Ray服务任务
-            from sage.kernel.runtime.service.ray_service_task import RayServiceTask
-            from sage.kernel.utils.ray.actor import ActorWrapper
-
-            ray_options = {"lifetime": "detached"}
-
-            # Build runtime_env for Ray worker
-            if self.extra_python_paths:
-                # Use PYTHONPATH environment variable so Ray workers can find custom modules
-                runtime_env = {"env_vars": {"PYTHONPATH": ":".join(self.extra_python_paths)}}
-                ray_options["runtime_env"] = runtime_env
-                logger.info(
-                    f"[ServiceTaskFactory] Creating RayServiceTask with runtime_env: {runtime_env}"
-                )
-
-            # 直接创建Ray Actor，传入ServiceFactory和ctx
-            ray_service_task = RayServiceTask.options(**ray_options).remote(  # type: ignore[attr-defined]
-                self.service_factory, ctx
+            logger.info(
+                "[ServiceTaskFactory] remote=True requested; using kernel-native service runtime (Ray removed)."
             )
 
-            # 使用ActorWrapper包装
-            service_task = ActorWrapper(ray_service_task)
+        from sage.kernel.runtime.service.local_service_task import LocalServiceTask
 
-        else:
-            # 创建本地服务任务
-            from sage.kernel.runtime.service.local_service_task import LocalServiceTask
-
-            service_task = LocalServiceTask(self.service_factory, ctx)  # type: ignore
+        service_task = LocalServiceTask(self.service_factory, ctx)  # type: ignore
 
         return service_task
 

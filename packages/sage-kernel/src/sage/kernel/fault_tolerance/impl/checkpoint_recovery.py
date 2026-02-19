@@ -99,10 +99,7 @@ class CheckpointBasedRecovery(BaseFaultHandler):
         """判断是否为远程任务"""
         if not hasattr(self, "dispatcher") or not self.dispatcher:
             return False
-        task = self.dispatcher.tasks.get(task_id)
-        from sage.kernel.utils.ray.actor import ActorWrapper
-
-        return isinstance(task, ActorWrapper)
+        return False
 
     def recover(self, task_id: TaskID) -> bool:
         """

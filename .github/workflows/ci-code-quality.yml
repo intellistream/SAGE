@@ -77,3 +77,12 @@ jobs:
           SKIP: shellcheck  # Skip shellcheck-py to avoid network issues, use system shellcheck instead
         run: |
           pre-commit run --all-files --config tools/config/pre-commit-config.yaml
+
+      - name: Check CLI Ray terminology (Issue #1438)
+        run: |
+          bash tools/hooks/check_cli_ray_terminology.sh --all-files
+      - name: Cross-repo dedup check - SAGE vs sageFlownet (Issue #1439)
+        run: |
+          python3 tools/scripts/check_cross_repo_dedup.py --verbose
+        # Non-fatal when sageFlownet is not checked out (script returns 0 in that case)
+        continue-on-error: false

@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
+from sage.kernel.scheduler.schema import PlacementStrategy, ResourceSpec
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.graph.graph_node import TaskNode
@@ -126,12 +127,14 @@ class PriorityScheduler(BaseScheduler):
         else:
             node_info = "default"
 
+        placement_strategy = PlacementStrategy.SPREAD if priority >= 7 else PlacementStrategy.PACK
         decision = PlacementDecision(
             target_node=target_node,
-            resource_requirements=None,
+            resource=ResourceSpec(),
             delay=delay,
             immediate=(delay == 0),
-            placement_strategy="priority",
+            placement_strategy=placement_strategy,
+            priority=priority,
             reason=f"Priority: {priority}/10, task={task_node.name}, node={node_info}",
         )
         self.decision_history.append(decision)
@@ -148,10 +151,11 @@ class PriorityScheduler(BaseScheduler):
 
         decision = PlacementDecision(
             target_node=target_node,
-            resource_requirements=None,
+            resource=ResourceSpec(),
             delay=0.0,
             immediate=True,
-            placement_strategy="priority",
+            placement_strategy=PlacementStrategy.SPREAD,
+            priority=service_priority,
             reason=f"Priority service: {service_node.service_name}, priority={service_priority}",
         )
         self.decision_history.append(decision)

@@ -57,15 +57,44 @@ Dependencies: sage.platform (L2), sage.common (L1)
 
 from sage.kernel.scheduler.api import BaseScheduler
 from sage.kernel.scheduler.decision import PlacementDecision
+from sage.kernel.scheduler.node_selector import NodeResources, NodeSelector
 from sage.kernel.scheduler.placement import PlacementExecutor
+from sage.kernel.scheduler.resource_provider import (
+    FlownetRuntimeProvider,
+    LocalSnapshotProvider,
+    ResourceProvider,
+)
+from sage.kernel.scheduler.schema import (
+    PlacementSchema,
+    PlacementStrategy,
+    ResourceSpec,
+    format_memory,
+    parse_memory,
+)
 
 # 核心组件：
 # - BaseScheduler: 调度器抽象基类
-# - PlacementDecision: 调度决策数据结构
+# - PlacementDecision: 调度决策数据结构（使用 ResourceSpec 强类型，Issue #1437）
 # - PlacementExecutor: 放置执行器
+# - NodeSelector / NodeResources: 资源感知节点选择
+# - ResourceProvider / LocalSnapshotProvider / FlownetRuntimeProvider: 资源数据源
+# - ResourceSpec: 资源规格声明 Schema（Issue #1437）
+# - PlacementStrategy: 放置策略枚举（Issue #1437）
+# - PlacementSchema: 放置决策标准化契约，供 Flownet 消费（Issue #1437）
 
 __all__ = [
     "BaseScheduler",
     "PlacementDecision",
     "PlacementExecutor",
+    "NodeSelector",
+    "NodeResources",
+    "ResourceProvider",
+    "LocalSnapshotProvider",
+    "FlownetRuntimeProvider",
+    # Issue #1437: 调度声明 Schema
+    "ResourceSpec",
+    "PlacementStrategy",
+    "PlacementSchema",
+    "parse_memory",
+    "format_memory",
 ]

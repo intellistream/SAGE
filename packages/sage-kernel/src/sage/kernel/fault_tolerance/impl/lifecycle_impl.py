@@ -34,7 +34,7 @@ class LifecycleManagerImpl:
     """
     Actor 生命周期管理器实现
 
-    负责管理 Ray Actor 和本地 Task 的生命周期。
+    负责管理 Task 和 Service 的生命周期。
     """
 
     def __init__(self):
@@ -53,7 +53,7 @@ class LifecycleManagerImpl:
         Args:
             actor_wrapper: ActorWrapper 实例
             cleanup_timeout: 清理超时时间（秒）
-            no_restart: 是否禁止 Ray Actor 重启
+            no_restart: 兼容参数（当前无外部 actor 重启语义）
 
         Returns:
             (cleanup_success, kill_success) 元组
@@ -65,29 +65,18 @@ class LifecycleManagerImpl:
             # 1. 尝试正常清理
             if hasattr(actor_wrapper, "cleanup"):
                 try:
-                    if actor_wrapper.is_ray_actor():
-                        # Ray Actor: 异步调用 cleanup
-                        cleanup_ref = actor_wrapper.call_async("cleanup")
-
-                        # 等待清理完成（带超时）
-                        import ray
-
-                        ray.get(cleanup_ref, timeout=cleanup_timeout)
-                        cleanup_success = True
-                    else:
-                        # 本地对象: 直接调用 cleanup
-                        actor_wrapper.cleanup()
-                        cleanup_success = True
+                    actor_wrapper.cleanup()
+                    cleanup_success = True
 
                 except Exception as e:
                     if self.logger:
                         self.logger.warning(f"Cleanup failed: {e}")
 
             # 2. 终止 Actor
-            if actor_wrapper.is_ray_actor():
-                kill_success = actor_wrapper.kill_actor(no_restart=no_restart)
+            kill_method = getattr(actor_wrapper, "kill_actor", None)
+            if callable(kill_method):
+                kill_success = bool(kill_method(no_restart=no_restart))
             else:
-                # 本地对象，标记为成功
                 kill_success = True
 
         except Exception as e:

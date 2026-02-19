@@ -18,11 +18,11 @@ Placement 执行层 - 统一的任务/服务放置接口
 关键点：
 - PlacementExecutor 是纯执行层，不包含调度策略
 - 接收 PlacementDecision，根据决策执行放置
-- 使用 Ray API 将任务放置到指定物理节点
-- 处理资源需求和放置策略
+- 物理执行由 kernel-native task/service factory 负责（Ray 已移除）
+- 处理资源需求和放置统计
 """
 
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from sage.kernel.runtime.graph.graph_node import TaskNode
@@ -30,7 +30,6 @@ if TYPE_CHECKING:
     from sage.kernel.runtime.service.local_service_task import LocalServiceTask
     from sage.kernel.runtime.task.local_task import LocalTask
     from sage.kernel.scheduler.decision import PlacementDecision
-    from sage.kernel.utils.ray.actor import ActorWrapper
 
 
 class PlacementExecutor:
@@ -41,11 +40,8 @@ class PlacementExecutor:
     1. 接收 PlacementDecision（来自 Scheduler）
     2. 根据决策执行物理放置：
        - 本地任务：创建 LocalTask
-       - 远程任务：创建 RayTask 并指定物理节点
-    3. 将高层决策转换为底层 Ray API 调用：
-       - target_node → NodeAffinitySchedulingStrategy
-       - resource_requirements → num_cpus, num_gpus, memory
-       - placement_strategy → Ray scheduling strategy
+       - 分布式任务：通过 FlownetRuntime 执行远程广播
+    3. 将高层决策转换为底层任务调用
     4. 记录放置统计信息
 
     关键变更：
@@ -70,7 +66,7 @@ class PlacementExecutor:
 
     def place_task(
         self, task_node: "TaskNode", decision: "PlacementDecision", runtime_ctx=None
-    ) -> Union["LocalTask", "ActorWrapper"]:
+    ) -> "LocalTask":
         """
         根据调度决策执行物理放置
 
@@ -78,7 +74,7 @@ class PlacementExecutor:
         1. 确定运行时上下文
         2. 根据 task_node.remote 决定创建本地或远程任务
            - 本地任务：直接创建 LocalTask
-           - 远程任务：根据决策构建 Ray options，创建 RayTask
+           - 远程任务：交给 task factory 的 kernel-native runtime 创建
         3. 更新放置统计信息
 
         Args:
@@ -87,7 +83,7 @@ class PlacementExecutor:
             runtime_ctx: 运行时上下文（可选）
 
         Returns:
-            创建的任务实例（LocalTask 或 ActorWrapper 包装的 RayTask）
+            创建的任务实例
         """
         # 1. 确定上下文
         ctx = runtime_ctx if runtime_ctx is not None else task_node.ctx
@@ -95,9 +91,9 @@ class PlacementExecutor:
         # 2. 创建任务
         is_remote = task_node.task_factory.remote
 
-        task: LocalTask | ActorWrapper
+        task: LocalTask
         if is_remote:
-            # 远程任务：使用决策创建 Ray Actor
+            # 远程任务：委托 task factory，实际执行不再依赖 Ray
             task = self._place_remote_task(task_node, ctx, decision)
             self.placement_stats["remote_tasks"] += 1
         else:
@@ -116,14 +112,14 @@ class PlacementExecutor:
                 "task_name": task_node.name,
                 "remote": is_remote,
                 "target_node": decision.target_node,
-                "resource_requirements": decision.resource_requirements,
+                "resource": decision.resource.to_dict(),
                 "decision": decision,
             }
         )
 
         return task
 
-    def _place_local_task(self, task_node: "TaskNode", ctx) -> Union["LocalTask", "ActorWrapper"]:
+    def _place_local_task(self, task_node: "TaskNode", ctx) -> "LocalTask":
         """
         放置本地任务（直接创建 LocalTask）
 
@@ -132,7 +128,7 @@ class PlacementExecutor:
             ctx: 运行时上下文
 
         Returns:
-            LocalTask 实例（本地模式）或 ActorWrapper（远程模式）
+            LocalTask 实例
         """
         # 使用 TaskFactory 创建本地任务
         task = task_node.task_factory.create_task(task_node.name, ctx)
@@ -140,12 +136,9 @@ class PlacementExecutor:
 
     def _place_remote_task(
         self, task_node: "TaskNode", ctx, decision: "PlacementDecision"
-    ) -> "ActorWrapper":
+    ) -> "LocalTask":
         """
-        放置远程任务（创建 Ray Actor 并指定节点）
-
-        这是 PlacementExecutor 的核心功能：
-        将高层调度决策转换为底层 Ray API 调用
+        放置远程任务（kernel-native runtime）
 
         Args:
             task_node: 任务节点
@@ -153,122 +146,16 @@ class PlacementExecutor:
             decision: 调度决策
 
         Returns:
-            ActorWrapper 包装的 RayTask
+            LocalTask 实例
         """
-        # 构建 Ray Actor 选项（根据决策）
-        ray_options = self._build_ray_options(decision)
-
-        # 添加 runtime_env 支持： TaskFactory 获取 extra_python_paths
-        extra_paths = getattr(task_node.task_factory, "extra_python_paths", None)
-        extra_python_paths = (
-            extra_paths if isinstance(extra_paths, list) else ([extra_paths] if extra_paths else [])
-        )
-        if extra_python_paths:
-            runtime_env = {"env_vars": {"PYTHONPATH": ":".join(extra_python_paths)}}
-            ray_options["runtime_env"] = runtime_env
-
-        # 创建 Ray Actor
-        from sage.kernel.runtime.task.ray_task import RayTask
-        from sage.kernel.utils.ray.actor import ActorWrapper
-
-        # Get operator_factory with explicit typing
-        operator_factory = task_node.task_factory.operator_factory  # type: ignore[has-type]
-        task_actor = RayTask.options(**ray_options).remote(  # type: ignore[attr-defined]
-            ctx, operator_factory
-        )
-
-        # 包装为 ActorWrapper
-        task = ActorWrapper(task_actor)
-
-        return task
-
-    def _build_ray_options(self, decision: "PlacementDecision") -> dict[str, Any]:
-        """
-        将调度决策转换为 Ray Actor 创建选项
-
-        这是关键转换层：高层决策 → 底层 Ray API
-
-        Args:
-            decision: 调度决策
-
-        Returns:
-            Ray options 字典
-        """
-        options: dict[str, Any] = {"lifetime": "detached"}
-
-        # === 指定目标节点 ===
-        if decision.target_node:
-            try:
-                from ray.util.scheduling_strategies import (
-                    NodeAffinitySchedulingStrategy,
-                )
-
-                options["scheduling_strategy"] = NodeAffinitySchedulingStrategy(
-                    node_id=decision.target_node,
-                    soft=False,  # 硬要求：必须放到指定节点
-                )
-            except ImportError:
-                # Ray 版本不支持 NodeAffinitySchedulingStrategy
-                pass
-
-        # === 指定资源需求 ===
-        if decision.resource_requirements:
-            resources = decision.resource_requirements
-
-            # CPU
-            if "cpu" in resources:
-                options["num_cpus"] = resources["cpu"]
-
-            # GPU
-            if "gpu" in resources:
-                options["num_gpus"] = resources["gpu"]
-
-            # 内存
-            if "memory" in resources:
-                memory_bytes = self._parse_memory(resources["memory"])
-                options["memory"] = memory_bytes
-
-            # 自定义资源
-            custom_resources = {}
-            for key, value in resources.items():
-                if key not in ["cpu", "gpu", "memory"]:
-                    custom_resources[key] = value
-
-            if custom_resources:
-                options["resources"] = custom_resources
-
-        return options
-
-    def _parse_memory(self, memory) -> int:
-        """
-        解析内存字符串为字节数
-
-        Args:
-            memory: 内存大小（字符串如 "8GB" 或整数字节数）
-
-        Returns:
-            内存字节数
-        """
-        if isinstance(memory, int):
-            return memory
-
-        if isinstance(memory, str):
-            memory = memory.upper()
-            if "GB" in memory:
-                return int(float(memory.replace("GB", "")) * 1024**3)
-            elif "MB" in memory:
-                return int(float(memory.replace("MB", "")) * 1024**2)
-            elif "KB" in memory:
-                return int(float(memory.replace("KB", "")) * 1024)
-
-        return 1024**3  # 默认 1GB
+        return task_node.task_factory.create_task(task_node.name, ctx)
 
     def place_service(
         self,
         service_node: "ServiceNode",
         decision: "PlacementDecision",
         runtime_ctx=None,
-    ) -> Union["LocalServiceTask", "ActorWrapper"]:
+    ) -> "LocalServiceTask":
         """
         根据调度决策放置服务
 
@@ -278,7 +165,7 @@ class PlacementExecutor:
             runtime_ctx: 运行时上下文（可选）
 
         Returns:
-            创建的服务实例（LocalServiceTask 或 ActorWrapper 包装的 RayServiceTask）
+            创建的服务实例
         """
         # 1. 确定上下文
         ctx = runtime_ctx if runtime_ctx is not None else service_node.ctx

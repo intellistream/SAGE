@@ -2,8 +2,6 @@ import logging
 from typing import TYPE_CHECKING
 
 from sage.kernel.runtime.task.local_task import LocalTask
-from sage.kernel.runtime.task.ray_task import RayTask
-from sage.kernel.utils.ray.actor import ActorWrapper
 
 if TYPE_CHECKING:
     from sage.kernel.api.transformation.base_transformation import BaseTransformation
@@ -25,8 +23,8 @@ class TaskFactory:
         self.remote: bool = transformation.remote
         self.is_spout = transformation.is_spout
 
-        # Extra Python paths for Ray runtime_env
-        # Must be passed explicitly since env attribute is excluded during serialization
+        # Extra Python paths reserved for distributed runtime bootstrapping.
+        # Ray has been removed from kernel runtime; paths are kept for future transport bootstrap.
         self.extra_python_paths: list[str] = (
             extra_python_paths
             if isinstance(extra_python_paths, list)
@@ -39,26 +37,10 @@ class TaskFactory:
         runtime_context: "TaskContext | None" = None,
     ):
         if self.remote:
-            # Build runtime_env for Ray worker
-            runtime_env = {}
-            if self.extra_python_paths:
-                # Use PYTHONPATH environment variable so Ray workers can find custom modules
-                runtime_env["env_vars"] = {"PYTHONPATH": ":".join(self.extra_python_paths)}
-                logger.info(f"[TaskFactory] Creating RayTask with runtime_env: {runtime_env}")
-
-            # Pass runtime_env when creating Ray Actor
-            if runtime_env:
-                node = RayTask.options(
-                    lifetime="detached",
-                    runtime_env=runtime_env,
-                ).remote(runtime_context, self.operator_factory)
-            else:
-                node = RayTask.options(lifetime="detached").remote(
-                    runtime_context, self.operator_factory
-                )
-            node = ActorWrapper(node)
-        else:
-            node = LocalTask(ctx=runtime_context, operator_factory=self.operator_factory)  # type: ignore
+            logger.info(
+                "[TaskFactory] remote=True requested; using kernel-native task runtime (Ray removed)."
+            )
+        node = LocalTask(ctx=runtime_context, operator_factory=self.operator_factory)  # type: ignore
         return node
 
     def __repr__(self) -> str:
