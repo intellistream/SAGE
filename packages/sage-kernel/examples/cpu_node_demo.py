@@ -568,7 +568,7 @@ def main():
         print("\n🔗 相关文件:")
         print("  • JobManager: sage/kernel/runtime/job_manager.py")
         print("  • NodeSelector: sage/kernel/scheduler/node_selector.py")
-        print("  • FlownetEnvironment: sage/kernel/api/remote_environment.py")
+        print("  • FlownetEnvironment: sage/kernel/api/flownet_environment.py")
         print("  • Scheduler: sage/kernel/scheduler/impl/resource_aware_scheduler.py")
         print("  • 日志目录: .sage/logs/jobmanager/")
 
