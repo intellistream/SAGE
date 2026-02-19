@@ -16,7 +16,10 @@
 		},
 		{
 			"path": "../sage-pypi-publisher"
-		}
+		},
+        {
+            "path": "../sageFlownet"
+        }
 	],
 	"settings": {
 		"python.defaultInterpreterPath": "${workspaceFolder:SAGE}/.venv/bin/python",
