@@ -1,5 +1,217 @@
 # SAGE Copilot Instructions
 
+## 🚨 CRITICAL Runtime Direction: sageFlownet Replaces Ray
+
+- `sageFlownet` is the SAGE ecosystem runtime component used to replace `Ray` for distributed runtime/scheduling capabilities.
+- For new runtime, scheduling, and distributed execution work, prefer Flownet-based abstractions and dependencies.
+- Do NOT add new `ray` imports or `ray` dependency entries.
+- During migration, when code is moved from `sageFlownet` into SAGE, remove duplicated source from `sageFlownet` and update all call sites.
+
+## 🚨 Flownet → SAGE Migration Baseline (Authoritative)
+
+This section is the **single source of truth** for cross-repo migration planning and execution.
+
+**📄 Authoritative Document (canonical reference for all migration PRs)**:
+`docs_src/concepts/architecture/design-decisions/flownet-migration-boundary.md` (in `sage-docs` repo)
+GitHub Issue: [intellistream/SAGE#1430](https://github.com/intellistream/SAGE/issues/1430)
+
+### 1) Migration Boundary Rules (Must Follow)
+
+- SAGE only absorbs **declaration/API/protocol abstraction** layers.
+- Flownet keeps **runtime core implementation** (execution loop, transport, cluster/runtime orchestration).
+- No compatibility shim/re-export layer during migration. **Move and delete duplicates immediately**.
+- Any migration PR must explicitly state: **what moved**, **what stayed**, and **why**.
+
+### 2) Migration Matrix (What moves vs what stays)
+
+| Capability Domain | Artifact Type | Target Ownership |
+|---|---|---|
+| Declarative DSL (`flow`, graph declaration, composition API semantics) | Declaration + API surface | SAGE L3 (`sage-kernel` interface/DSL layer) |
+| Shared base types (payload/event envelope primitives usable cross-layer) | Data types (stable schema) | SAGE L1 (`sage-common`) |
+| Flow-specific reference types (flow program refs, stateless op refs metadata contract) | Data types + validation | SAGE L3 |
+| Exception model (classification, decision semantics: propagate/abort/fallback) | API + type contract | SAGE L1/L3 (L1 generic envelope, L3 flow semantics) |
+| Context propagation utilities (context slot, context-preserving execution helpers) | Utility API | SAGE L1 |
+| Runtime protocol contract (submit/call/result/cancel/stop/node info interfaces) | Protocol/ABC only | SAGE L2 (`sage-platform`) |
+| Runtime protocol implementation (packet routing, dispatcher wiring, remote call manager integration) | Runtime implementation | Flownet runtime core |
+| Scheduler declaration schema (resource/placement expression) | Schema contract | SAGE L3 (producer) + Flownet runtime core (consumer) |
+
+### 3) Non-Migration List (Must Stay in Flownet Runtime Core)
+
+- Runtime execution loop and request advancing engine
+- Actor runtime lifecycle/dispatch implementation
+- Transport stack implementations (TCP/UDS/SHM, transport selector/hub)
+- Cluster gossip/membership/node control internals
+- Runtime state backend implementations and runtime kernel wiring
+
+Reason: these parts are execution-path critical and tightly coupled with runtime performance/consistency.
+
+### 4) Updated Detailed Issues (Execution Contract)
+
+#### Issue 1 (P0): Define Migration Boundary and Layer Ownership
+
+- **Purpose**: Lock the architectural boundary before code movement.
+- **In Scope**: DSL, shared types, exception model, context utilities, runtime protocol contracts.
+- **Out of Scope**: Runtime internals, transport implementation, cluster control implementation.
+- **Deliverables**:
+  - Migration matrix (domain → owner layer)
+  - Non-migration list with rationale
+  - PR template checklist for boundary compliance
+- **DoD**:
+  - Boundary doc is published in repo docs/instructions
+  - At least one migration PR references this baseline
+
+#### Issue 2 (P0): Move Flow Declaration Layer into SAGE
+
+- **Purpose**: Make SAGE the single owner of application declaration semantics.
+- **In Scope**: Flow declaration entry points, compile-time declaration abstractions (FlowDef/FlowMethod-style APIs), graph declaration validation.
+- **Out of Scope**: Runtime scheduler/engine execution code.
+- **Deliverables**:
+  - New declaration module under `sage-kernel` (L3 interface/DSL layer)
+  - Updated imports/callers to SAGE declaration APIs
+  - Removal of old SAGE-internal legacy declaration path
+- **DoD**:
+  - Declaration layer unit tests pass without runtime-core dependency
+  - No new Ray-style public concepts in declaration API
+
+#### Issue 3 (P0): Unify Public Facade API in SAGE
+
+- **Purpose**: Users should only consume SAGE-facing APIs (`create/submit/run/call`).
+- **In Scope**: Stable facade signatures, lifecycle semantics, compatibility expectations for current users.
+- **Out of Scope**: Flownet internal method naming/structure.
+- **Deliverables**:
+  - Facade API spec
+  - SAGE facade implementation calling runtime protocol
+  - Deprecation/removal of direct Ray-oriented exposed semantics
+- **DoD**:
+  - Public docs/examples use only SAGE facade APIs
+  - Facade contract tests pass across local/distributed modes
+
+#### Issue 4 (P0): Establish Runtime Protocol Interface (SAGE ↔ Flownet)
+
+- **Purpose**: Decouple SAGE kernel from Flownet internals while keeping Flownet as default backend.
+- **In Scope**: Protocol/ABC for submit/call/result/cancel/stop/node metadata.
+- **Out of Scope**: Transport/gossip/loop internal implementation.
+- **Deliverables**:
+  - Protocol types and handles in SAGE platform layer
+  - Flownet adapter implementation
+  - Kernel dispatcher/scheduler consuming only protocol interface
+- **DoD**:
+  - No direct Flownet-internal imports from SAGE kernel dispatch path
+  - Adapter integration tests validate end-to-end execution
+
+#### Issue 5 (P1): Migrate Exception and Error Handling API
+
+- **Purpose**: Standardize error declaration semantics at application level.
+- **In Scope**: Exception types, classification, handler registration API, retry/degrade policy declarations.
+- **Out of Scope**: Runtime-local low-level traceback formatting internals.
+- **Deliverables**:
+  - Unified error category model in SAGE
+  - Flow-level exception handler API in SAGE declaration layer
+  - Flownet runtime callback adapter for execution-time handling
+- **DoD**:
+  - Example pipeline demonstrates propagate/abort/fallback policy behavior via SAGE API
+  - Error contracts are backend-agnostic
+
+#### Issue 6 (P1): Consolidate Context Propagation API in SAGE Common
+
+- **Purpose**: Eliminate cross-repo duplicate context-slot implementations.
+- **In Scope**: context slot primitive, context-preserving executor helper, exports from `sage-common`.
+- **Out of Scope**: Runtime-specific execution scheduling policies.
+- **Deliverables**:
+  - SAGE common unified context APIs
+  - Flownet and kernel callsite migration to new imports
+  - Deletion of duplicate/obsolete wrappers
+- **DoD**:
+  - Single source of truth for context propagation utilities
+  - No duplicate implementation across repos
+
+#### Issue 7 (P1): Migrate Actor/Remote Reference Declaration Interfaces
+
+- **Purpose**: Keep external actor/ref semantics stable under SAGE ownership.
+- **In Scope**: interface-level ref contracts (`call/sync/async/cancel` signatures and typing).
+- **Out of Scope**: actual remote execution handles and dispatch internals.
+- **Deliverables**:
+  - Reference protocol interfaces in SAGE
+  - Flownet adapter mapping to runtime handles
+  - Replacement of old Ray-oriented public type annotations
+- **DoD**:
+  - Public typing/docs point to SAGE contracts only
+  - Adapter tests verify semantic parity
+
+#### Issue 8 (P1): Migrate Scheduling Declaration and Resource Expression
+
+- **Purpose**: Keep scheduling policy declaration in SAGE, runtime execution in Flownet.
+- **In Scope**: resource spec schema (`cpu/gpu/memory/affinity`), placement decision schema.
+- **Out of Scope**: concrete placement algorithm internals in runtime.
+- **Deliverables**:
+  - Schema definitions in SAGE
+  - Kernel scheduler producing schema-only outputs
+  - Flownet executor consuming schema
+- **DoD**:
+  - No runtime-specific types leaked into scheduler declaration outputs
+  - Schema validation tests pass
+
+#### Issue 9 (P1): Align SAGE CLI/API with Flownet Semantics
+
+- **Purpose**: Remove Ray terms and ensure user operational chain matches Flownet runtime.
+- **In Scope**: CLI help, config schema, runtime status/health commands, docs examples.
+- **Out of Scope**: introducing additional compatibility modes.
+- **Deliverables**:
+  - Updated `sage cluster/job/runtime` command surfaces
+  - Removed Ray-related options/wording
+  - Added Flownet runtime health/status checks
+- **DoD**:
+  - CLI docs contain no Ray terminology
+  - Runtime diagnostics commands are test-covered
+
+#### Issue 10 (P1): Cross-Repo Dedup Enforcement (Move-Then-Delete)
+
+- **Purpose**: Prevent API drift caused by duplicate declarations.
+- **In Scope**: delete moved definitions from source repo, update imports/callsites, CI duplication detection.
+- **Out of Scope**: preserving legacy shadow modules.
+- **Deliverables**:
+  - Dedup cleanup commits aligned with migration matrix
+  - CI script/hook for duplicate declaration detection
+- **DoD**:
+  - Duplicate declaration checks block CI on violations
+  - No dual-definition hotspots remain for migrated domains
+
+#### Issue 11 (P2): Restructure Testing by 3 Layers
+
+- **Purpose**: Verify architecture boundaries and adapter correctness without Ray-oriented test structure.
+- **In Scope**:
+  - Declaration layer unit tests
+  - Facade/API contract tests
+  - SAGE→Flownet adapter integration tests
+- **Out of Scope**: broad benchmark/perf tuning in same change-set.
+- **Deliverables**:
+  - New test taxonomy and test locations
+  - Updated CI jobs mapping to 3-layer test model
+- **DoD**:
+  - Each layer has independent pass/fail signal
+  - Boundary regression is caught by contract tests
+
+#### Issue 12 (P2): Documentation and Migration Guide Consolidation
+
+- **Purpose**: Present one current model; remove legacy dual-track docs.
+- **In Scope**: old→new API mapping, canonical examples, obsolete section cleanup.
+- **Out of Scope**: maintaining legacy docs indefinitely.
+- **Deliverables**:
+  - Migration guide with API mapping tables
+  - Rewritten examples for pipeline/actor usage
+  - Removal of stale scripts/chapters
+- **DoD**:
+  - New users can follow only current docs to run workflows
+  - No conflicting old/new guidance remains
+
+### 5) Recommended Execution Waves (Dependency-Aware)
+
+- **Wave A (Architecture Lock-in)**: 1 → 2 → 4 → 3
+- **Wave B (Capability Migration)**: 6 → 5 → 7 → 8 → 9
+- **Wave C (Convergence)**: 10 → 11 → 12
+
+Execution rule: Do not start later-wave coding before earlier-wave acceptance criteria are met.
+
 ## Overview
 
 **SAGE** is a Python 3.10+ framework for building AI/LLM data processing pipelines with declarative
@@ -631,7 +843,7 @@ model_dir = paths.models_dir           # ~/.local/share/sage/models/
 | Path | Purpose |
 |------|---------|
 | `config/config.yaml` | Main configuration (LLM, gateway, studio) |
-| `config/cluster.yaml` | Cluster configuration (nodes, SSH, Ray) |
+| `config/cluster.yaml` | Cluster configuration (nodes, SSH, Flownet runtime) |
 | `~/.local/share/sage/` | Persistent data (models, sessions, vector_db) |
 | `~/.local/state/sage/` | Runtime state (logs) |
 | `~/.cache/sage/` | Cached data (can be deleted) |
