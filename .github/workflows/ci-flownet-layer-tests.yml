@@ -4,7 +4,7 @@ name: "Flownet Migration: Layer-Stratified Tests"
 # each layer produces a separate pass/fail signal.
 #
 # Layer taxonomy is documented in:
-#   sage-docs/docs_src/developers/test-taxonomy.md
+#   packages/sage-kernel/docs/test-taxonomy.md
 #
 # Trigger paths: any change to the kernel or platform migration modules,
 # or to the test files that implement the three layers.
@@ -16,9 +16,9 @@ on:
       - 'packages/sage-kernel/src/sage/kernel/flow/**'
       - 'packages/sage-kernel/src/sage/kernel/facade/**'
       - 'packages/sage-platform/src/sage/platform/runtime/**'
-      - 'packages/sage-kernel/tests/unit/flow/**'
-      - 'packages/sage-kernel/tests/unit/runtime/context/**'
-      - 'packages/sage-kernel/tests/integration/flow/**'
+      - 'packages/sage-kernel/tests/declaration/**'
+      - 'packages/sage-kernel/tests/contract/**'
+      - 'packages/sage-kernel/tests/adapter/**'
       - 'packages/sage-common/src/sage/common/core/flow_exceptions.py'
       - 'packages/sage-common/src/sage/common/utils/context_vars.py'
       - '.github/workflows/ci-flownet-layer-tests.yml'
@@ -29,9 +29,9 @@ on:
       - 'packages/sage-kernel/src/sage/kernel/flow/**'
       - 'packages/sage-kernel/src/sage/kernel/facade/**'
       - 'packages/sage-platform/src/sage/platform/runtime/**'
-      - 'packages/sage-kernel/tests/unit/flow/**'
-      - 'packages/sage-kernel/tests/unit/runtime/context/**'
-      - 'packages/sage-kernel/tests/integration/flow/**'
+      - 'packages/sage-kernel/tests/declaration/**'
+      - 'packages/sage-kernel/tests/contract/**'
+      - 'packages/sage-kernel/tests/adapter/**'
       - 'packages/sage-common/src/sage/common/core/flow_exceptions.py'
       - 'packages/sage-common/src/sage/common/utils/context_vars.py'
       - '.github/workflows/ci-flownet-layer-tests.yml'
@@ -106,8 +106,8 @@ jobs:
           echo "📋 Layer 1 — Declaration + Context Propagation unit tests (no runtime dependency)"
           python -m pytest \
             packages/sage-common/tests/unit/utils/test_context_vars.py \
-            packages/sage-kernel/tests/unit/flow/test_flow_declaration.py \
-            packages/sage-kernel/tests/unit/flow/test_context_propagation.py \
+            packages/sage-kernel/tests/declaration/test_flow_declaration.py \
+            packages/sage-kernel/tests/declaration/test_context_propagation.py \
             -v \
             --timeout 60 \
             --tb=short \
@@ -160,8 +160,8 @@ jobs:
         run: |
           echo "🔗 Layer 2 — Facade/API contract tests (no runtime dependency)"
           python -m pytest \
-            packages/sage-kernel/tests/unit/flow/test_facade_api.py \
-            packages/sage-kernel/tests/unit/flow/test_flow_exceptions.py \
+            packages/sage-kernel/tests/contract/test_facade_api.py \
+            packages/sage-kernel/tests/contract/test_flow_exceptions.py \
             -v \
             --timeout 60 \
             --tb=short \
@@ -219,7 +219,7 @@ jobs:
           echo "🔌 Layer 3 — Adapter integration tests"
           echo "   Note: live-runtime tests are skipped (sageFlownet not installed)"
           python -m pytest \
-            packages/sage-kernel/tests/integration/flow/ \
+            packages/sage-kernel/tests/adapter/ \
             -v \
             --timeout 60 \
             --tb=short \
