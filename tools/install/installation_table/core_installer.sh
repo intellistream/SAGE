@@ -49,7 +49,8 @@ else
 fi
 
 # 设置pip命令
-PIP_CMD="${PIP_CMD:-pip3}"
+PYTHON_CMD="${PYTHON_CMD:-python3}"
+PIP_CMD="${PIP_CMD:-$PYTHON_CMD -m pip}"
 
 # ============================================================================
 # 版本比较辅助函数
@@ -96,7 +97,7 @@ install_core_packages() {
         # 在CI中将包安装到用户site（~/.local），便于跨job缓存与导入
         pip_args="$pip_args --user"
         # 某些系统前缀可能仍需此选项
-        if python3 -c "import sys; print(1 if '/usr' in sys.prefix else 0)" 2>/dev/null | grep -q "1"; then
+        if $PYTHON_CMD -c "import sys; print(1 if '/usr' in sys.prefix else 0)" 2>/dev/null | grep -q "1"; then
             pip_args="$pip_args --break-system-packages"
             echo -e "${DIM}CI环境: 添加 --break-system-packages${NC}"
         fi
@@ -212,7 +213,7 @@ install_core_packages() {
         # 在CI中将包安装到用户site（~/.local），便于跨job缓存与导入
         pip_args="$pip_args --user"
         # 某些系统前缀可能仍需此选项
-        if python3 -c "import sys; print(1 if '/usr' in sys.prefix else 0)" 2>/dev/null; then
+        if $PYTHON_CMD -c "import sys; print(1 if '/usr' in sys.prefix else 0)" 2>/dev/null; then
             pip_args="$pip_args --break-system-packages"
             echo -e "${DIM}CI环境: 添加 --break-system-packages${NC}"
         fi

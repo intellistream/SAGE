@@ -10,6 +10,10 @@ set -e
 SAGE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOOLS_DIR="$SAGE_ROOT/tools/install"
 
+# 统一 Python/pip 命令，避免 pip 指向用户级路径导致安装到错误环境
+export PYTHON_CMD="${PYTHON_CMD:-python3}"
+export PIP_CMD="${PIP_CMD:-$PYTHON_CMD -m pip}"
+
 # 自动设置 HuggingFace 镜像（国内网络加速）
 # 如果用户已设置 HF_ENDPOINT 则不覆盖
 if [ -z "${HF_ENDPOINT}" ]; then

@@ -2,58 +2,61 @@
   "folders": [
     {
       "name": "SAGE",
-      "path": ".",
+      "path": "."
     },
     {
       "name": "sage-examples",
-      "path": "../sage-examples",
+      "path": "../sage-examples"
     },
     {
       "name": "sage-tutorials",
-      "path": "../sage-tutorials",
+      "path": "../sage-tutorials"
     },
     {
       "name": "sagellm",
-      "path": "../sagellm",
+      "path": "../sagellm"
     },
     {
       "name": "sage-benchmark",
-      "path": "../sage-benchmark",
+      "path": "../sage-benchmark"
     },
     {
       "name": "sage-dev-tools",
-      "path": "../sage-dev-tools",
+      "path": "../sage-dev-tools"
     },
     {
       "name": "sage-agentic",
-      "path": "../sage-agentic",
+      "path": "../sage-agentic"
     },
     {
       "name": "sage-agentic-tooluse",
-      "path": "../sage-agentic-tooluse",
+      "path": "../sage-agentic-tooluse"
     },
     {
       "name": "sage-anns",
-      "path": "../sage-anns",
+      "path": "../sage-anns"
     },
     {
       "name": "sage-eval",
-      "path": "../sage-eval",
+      "path": "../sage-eval"
     },
     {
       "name": "sage-finetune",
-      "path": "../sage-finetune",
+      "path": "../sage-finetune"
     },
     {
       "name": "sage-studio",
-      "path": "../sage-studio",
+      "path": "../sage-studio"
     },
     {
-      "path": "../sage-docs",
+      "path": "../sage-docs"
     },
     {
-      "path": "../sageFlownet",
+      "path": "../sageFlownet"
     },
+    {
+      "path": "../sage-pypi-publisher"
+    }
   ],
   "settings": {
     "python.defaultInterpreterPath": "${workspaceFolder:SAGE}/.venv/bin/python",
