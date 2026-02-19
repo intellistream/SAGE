@@ -489,7 +489,7 @@ else:
         # Flownet 运行时 (替代 Ray 的分布式运行时)
         independent_packages="$independent_packages 'isage-flownet>=0.1.0'"
         # sageLLM 推理引擎 (isage meta-package 的核心依赖)
-        independent_packages="$independent_packages 'isagellm>=0.5.1.3'"
+        independent_packages="$independent_packages 'isagellm>=0.5.1.2'"
         # 开发工具后端（sage-tools 的核心依赖）
         if [ "$install_mode" = "dev" ] || [ "$install_mode" = "full" ]; then
             independent_packages="$independent_packages 'isage-dev-tools>=0.1.0'"
