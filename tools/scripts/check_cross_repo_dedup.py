@@ -17,7 +17,7 @@ declarations between SAGE and sageFlownet:
   Flow declaration API | sage.kernel.flow / .api         | (Flownet keeps impl)
 
 Usage:
-    python tools/scripts/check_cross_repo_dedup.py [--flownet-path PATH] [--fix]
+    python tools/scripts/check_cross_repo_dedup.py [--flownet-path PATH] [--require-flownet]
 
 Exit codes:
     0  Clean - no duplicate declarations found
@@ -217,6 +217,14 @@ def main() -> int:
         action="store_true",
         help="Show verbose output even when passing.",
     )
+    parser.add_argument(
+        "--require-flownet",
+        action="store_true",
+        help=(
+            "Fail with exit code 2 when sageFlownet cannot be found. "
+            "Use this in CI to make dedup check a hard gate."
+        ),
+    )
     args = parser.parse_args()
 
     # Auto-detect sageFlownet root
@@ -238,12 +246,18 @@ def main() -> int:
                 break
 
         if flownet_root is None:
-            print(
-                "⚠️  sageFlownet not found. Skipping cross-repo dedup check.\n"
-                "   Set --flownet-path or clone sageFlownet alongside SAGE.",
-                file=sys.stderr,
+            message = (
+                "⚠️  sageFlownet not found. Set --flownet-path or clone sageFlownet alongside SAGE."
             )
-            return 0  # Non-fatal in CI when Flownet is not checked out
+            if args.require_flownet:
+                print(f"❌  {message}", file=sys.stderr)
+                print(
+                    "    Dedup check is configured as required (CI hard gate).",
+                    file=sys.stderr,
+                )
+                return 2
+            print(f"⚠️  {message}\n   Skipping cross-repo dedup check.", file=sys.stderr)
+            return 0
 
     violations = scan_flownet(flownet_root)
 
