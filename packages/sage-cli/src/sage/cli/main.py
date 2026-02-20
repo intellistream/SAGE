@@ -229,11 +229,51 @@ except ImportError as e:
 
 
 # ============================================================================
+# Plugin Loading - 加载外部插件注册的子命令（如 sage-studio）
+# ============================================================================
+
+
+def _load_cli_plugins() -> None:
+    """从已安装的包中加载 sage CLI 插件（通过 sage.cli.plugins entry points）"""
+    try:
+        from importlib.metadata import entry_points
+
+        for ep in entry_points(group="sage.cli.plugins"):
+            try:
+                register_fn = ep.load()
+                register_fn(app)
+            except Exception:
+                pass  # 插件加载失败不阻断主 CLI
+    except Exception:
+        pass
+
+
+_load_cli_plugins()
+
+
+# ============================================================================
 # Dev Commands - 已独立为 sage-dev 命令
 # ============================================================================
 
 # 注意: 开发命令已经从 sage-cli 中移除，现在由 sage-tools 包通过 sage-dev 命令提供
 # 如需使用开发工具，请使用: sage-dev --help
+
+
+# ============================================================================
+# Plugin Commands - 通过 entry_points 动态加载插件命令
+# ============================================================================
+
+try:
+    from importlib.metadata import entry_points
+
+    for ep in entry_points(group="sage.cli.plugins"):
+        try:
+            register_fn = ep.load()
+            register_fn(app)
+        except Exception as e:
+            console.print(f"[yellow]警告: 加载插件 '{ep.name}' 失败: {e}[/yellow]")
+except Exception as e:
+    console.print(f"[yellow]警告: 无法加载 CLI 插件: {e}[/yellow]")
 
 
 # ============================================================================
