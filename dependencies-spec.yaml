@@ -4,7 +4,7 @@
 
 # Core ML stack
 torch: ">=2.7.0,<3.0.0"
-transformers: ">=4.52.0,<4.54.0"
+transformers: ">=4.53.2,<4.54.0"
 tokenizers: ">=0.21.0,<0.24.0"
 sentence-transformers: ">=3.1.0,<4.0.0"
 vllm: ">=0.9.2,<0.10"
