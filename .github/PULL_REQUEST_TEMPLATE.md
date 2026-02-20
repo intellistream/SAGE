@@ -32,6 +32,7 @@ Brief description of what this PR does.
 ### 边界验证（Why It's Correct）
 
 - [ ] 已对照[迁移矩阵](https://github.com/intellistream/SAGE/issues/1430)验证，迁移制品属于**声明/API/协议抽象层**
+- [ ] 若涉及运行时编程接口，已遵守双层公开 API：Facade 为默认层，`LocalEnvironment`/`FlownetEnvironment` 为 Advanced 层（不得标注为 legacy/deprecated）
 - [ ] 迁移制品**不包含**任何运行时核心实现（执行循环、传输层、Actor 分发等）
 - [ ] Flownet 源位置旧代码**已删除**，无 shim 层、重导出层或兼容 wrapper
 - [ ] 所有调用方的 import 路径已更新

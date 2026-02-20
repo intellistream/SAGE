@@ -104,10 +104,10 @@ class FlownetEnvironment(BaseEnvironment):
         None or _StreamingFlowHandle
         """
         # Lazy import — keeps FlownetEnvironment free of sage.flownet coupling.
+        from sage.kernel.api.runtime_backend import get_flownet_runtime_backend
         from sage.kernel.flow.pipeline_compiler import PipelineCompiler
-        from sage.platform.runtime.adapters.flownet_adapter import get_flownet_adapter
 
-        adapter = get_flownet_adapter()
+        adapter = get_flownet_runtime_backend()
         compiler = PipelineCompiler()
 
         self.logger.info(
@@ -164,9 +164,9 @@ class FlownetEnvironment(BaseEnvironment):
             Returns an empty list when the adapter is unavailable.
         """
         try:
-            from sage.platform.runtime.adapters.flownet_adapter import get_flownet_adapter
+            from sage.kernel.api.runtime_backend import get_flownet_runtime_backend
 
-            adapter = get_flownet_adapter()
+            adapter = get_flownet_runtime_backend()
             return adapter.list_nodes()
         except Exception as exc:  # noqa: BLE001
             self.logger.warning(f"[FlownetEnvironment:{self.name}] health_check failed: {exc}")

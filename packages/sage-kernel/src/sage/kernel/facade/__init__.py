@@ -26,9 +26,10 @@ Design rules
   Flownet internals directly.
 - Signatures are stable contracts; internal routing to Flownet is an
   implementation detail encapsulated in the L2 adapter layer.
-- Legacy ``LocalEnvironment.submit()`` / ``env.submit()`` path remains in
-  ``sage.kernel.api`` for DataStream pipelines; *this* module serves the
-  flow-program/actor pattern introduced by Issues #1431 and #1432.
+- Public advanced ``LocalEnvironment.submit()`` / ``env.submit()`` path remains
+    in ``sage.kernel.api`` for DataStream pipelines; *this* module serves the
+    default facade tier for the flow-program/actor pattern introduced by
+    Issues #1431 and #1432.
 
 Migration guide
 ---------------
@@ -100,11 +101,9 @@ def _get_runtime_backend() -> Any:
         ImportError: If sageFlownet is not installed.
     """
     try:
-        from sage.platform.runtime.adapters.flownet_adapter import (  # lazy
-            get_flownet_adapter,
-        )
+        from sage.kernel.api.runtime_backend import get_flownet_runtime_backend
 
-        return get_flownet_adapter()
+        return get_flownet_runtime_backend()
     except ImportError as exc:
         raise ImportError(
             "SAGE facade operations require the sageFlownet runtime backend.\n"

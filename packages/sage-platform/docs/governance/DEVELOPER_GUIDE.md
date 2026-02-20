@@ -68,6 +68,16 @@ ______________________________________________________________________
 - 再实现具体逻辑
 - 再补测试与示例
 
+### 3.4 Runtime API Layering（强制）
+
+- 运行时公开 API 采用双层模型：
+	- Facade 默认层：`create/submit/run/call`
+	- Advanced 专家层：`LocalEnvironment`/`FlownetEnvironment`
+- `LocalEnvironment` 与 `FlownetEnvironment` 是公开高级 API，不得标注为 legacy/deprecated。
+- 语义一致性（submit/call/cancel/error/resource handoff）必须由契约测试保障。
+
+详细规范见：`RUNTIME_API_LAYERING.md`
+
 ______________________________________________________________________
 
 ## 4. 新模块/新能力接入步骤（可执行）
