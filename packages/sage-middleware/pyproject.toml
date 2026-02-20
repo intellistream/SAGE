@@ -91,6 +91,7 @@ dev = [
     "ruff==0.14.6",
     "mypy>=1.7.0",
     "pybind11>=2.10.0",
+    "isage-pypi-publisher>=0.2.0",
 ]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"

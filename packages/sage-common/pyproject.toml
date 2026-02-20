@@ -76,14 +76,15 @@ dependencies = [
 ]
 
 # ----------------------------------------------------------------------------
-# 可选依赖组 - 按功能模块分组的可选依赖
-# 用户可根据需要安装：pip install isage-common[embedding]
+# 可选依赖组 - 开发和测试工具
+# 用户可根据需要安装：pip install isage-common[dev]
 # ----------------------------------------------------------------------------
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.0.0",
     "ruff==0.14.6",
+    "isage-pypi-publisher>=0.2.0",
 ]
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"

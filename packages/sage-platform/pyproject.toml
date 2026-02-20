@@ -22,8 +22,8 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    # Distributed runtime backend for scheduling/execution
-    "isage-flownet>=0.1.0",
+    # Distributed computing - required for cluster management
+    "ray[client]>=2.48.0,<3.0.0",
     # SSH/Remote execution - required for node management
     "paramiko>=3.5.0,<4.0.0",
     "fabric>=3.2.0,<4.0.0",
@@ -37,6 +37,7 @@ dev = [
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
     "ruff==0.14.6",
+    "isage-pypi-publisher>=0.2.0",
 ]
 [project.urls]
 Homepage = "https://github.com/sage-ai/sage"
