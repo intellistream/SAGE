@@ -100,7 +100,7 @@ schedule_post_push_publish() {
 
             rm -rf dist/ build/ *.egg-info 2>/dev/null || true
 
-            if sage-pypi-publisher build . --upload --no-dry-run; then
+            if sage-pypi-publisher build . --upload --no-dry-run --mode public; then
                 echo ""
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 echo "✓ Successfully uploaded ${package} ${version} to PyPI"
@@ -109,7 +109,7 @@ schedule_post_push_publish() {
             else
                 echo ""
                 echo "✗ Failed to upload to PyPI (exit code: $?)"
-                echo "  Re-run manually: sage-pypi-publisher build . --upload --no-dry-run"
+                echo "  Re-run manually: sage-pypi-publisher build . --upload --no-dry-run --mode public"
             fi
         } >> "$PUBLISH_LOG" 2>&1
 
@@ -211,12 +211,12 @@ handle_monorepo() {
                 echo "📦 Publishing ${pypi_name} ${version}..."
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 rm -rf dist/ build/ *.egg-info 2>/dev/null || true
-                if sage-pypi-publisher build . --upload --no-dry-run; then
+                if sage-pypi-publisher build . --upload --no-dry-run --mode public; then
                     echo "✓ Published ${pypi_name} ${version}"
                     echo "  https://pypi.org/project/${pypi_name}/${version}/"
                 else
                     echo "✗ Failed to publish ${pypi_name} ${version}"
-                    echo "  Re-run: cd ${pkg_dir} && sage-pypi-publisher build . --upload --no-dry-run"
+                    echo "  Re-run: cd ${pkg_dir} && sage-pypi-publisher build . --upload --no-dry-run --mode public"
                 fi
             } >> "$log" 2>&1
 

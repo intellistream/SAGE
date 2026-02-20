@@ -260,23 +260,6 @@ _load_cli_plugins()
 
 
 # ============================================================================
-# Plugin Commands - 通过 entry_points 动态加载插件命令
-# ============================================================================
-
-try:
-    from importlib.metadata import entry_points
-
-    for ep in entry_points(group="sage.cli.plugins"):
-        try:
-            register_fn = ep.load()
-            register_fn(app)
-        except Exception as e:
-            console.print(f"[yellow]警告: 加载插件 '{ep.name}' 失败: {e}[/yellow]")
-except Exception as e:
-    console.print(f"[yellow]警告: 无法加载 CLI 插件: {e}[/yellow]")
-
-
-# ============================================================================
 # Main Callback
 # ============================================================================
 
