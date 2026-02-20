@@ -31,6 +31,7 @@ dependencies = [
     "isage-kernel>=0.1.0",
     "isage-libs>=0.1.0",
     "isage-middleware>=0.1.0",
+    "isage-flownet>=0.1.0",  # Flownet runtime (replaces Ray for distributed scheduling)
 ]
 
 license = "MIT"
