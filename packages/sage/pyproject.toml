@@ -25,10 +25,10 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "isage-common>=0.1.0",
+    "isage-common>=0.2.4.13",
     "isagellm>=0.5.1.2",
     "isage-platform>=0.1.0",
-    "isage-kernel>=0.1.0",
+    "isage-kernel>=0.2.4.14",
     "isage-libs>=0.1.0",
     "isage-middleware>=0.1.0",
     "isage-flownet>=0.1.0",  # Flownet runtime (replaces Ray for distributed scheduling)
