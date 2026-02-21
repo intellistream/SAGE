@@ -16,11 +16,11 @@ import sys
 import time
 from typing import TYPE_CHECKING, Any
 
-import httpx
 import typer
 from rich.console import Console
 from rich.table import Table
 
+from sage.cli.utils.http_probe import http_get_json, http_get_ok
 from sage.cli.utils.pid_state import read_running_pid
 from sage.cli.utils.runtime_helpers import module_available
 from sage.common.config import ensure_hf_mirror_configured
@@ -56,36 +56,20 @@ def _get_gateway_pid() -> int | None:
 
 def _check_gateway_health(port: int, timeout: float = 2.0) -> bool:
     """Check if Gateway is healthy."""
-    try:
-        url = f"http://localhost:{port}/health"
-        response = httpx.get(url, timeout=timeout)
-        return response.status_code == 200
-    except Exception:
-        return False
+    url = f"http://localhost:{port}/health"
+    return http_get_ok(url, timeout=timeout)
 
 
 def _fetch_gateway_status(port: int, timeout: float = 5.0) -> dict[str, Any] | None:
     """Fetch Gateway status from the management API."""
-    try:
-        url = f"http://localhost:{port}/v1/management/status"
-        response = httpx.get(url, timeout=timeout)
-        if response.status_code == 200:
-            return response.json()
-    except Exception:
-        pass
-    return None
+    url = f"http://localhost:{port}/v1/management/status"
+    return http_get_json(url, timeout=timeout)
 
 
 def _fetch_registered_backends(port: int, timeout: float = 5.0) -> dict[str, Any] | None:
     """Fetch registered backends from the management API."""
-    try:
-        url = f"http://localhost:{port}/v1/management/backends"
-        response = httpx.get(url, timeout=timeout)
-        if response.status_code == 200:
-            return response.json()
-    except Exception:
-        pass
-    return None
+    url = f"http://localhost:{port}/v1/management/backends"
+    return http_get_json(url, timeout=timeout)
 
 
 @app.command("start")
