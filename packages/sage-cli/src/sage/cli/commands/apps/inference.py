@@ -31,6 +31,7 @@ from click.core import ParameterSource
 from rich.console import Console
 from rich.table import Table
 
+from sage.cli.utils.pid_state import read_running_pid, write_pid
 from sage.cli.utils.runtime_helpers import load_structured_config, module_available
 from sage.common.config import ensure_hf_mirror_configured
 from sage.common.config.ports import SagePorts
@@ -65,33 +66,15 @@ def _is_port_in_use(port: int) -> bool:
 
 def _get_running_pid() -> int | None:
     """Get the PID of the running server from PID file."""
-    if not PID_FILE.exists():
-        return None
-
-    try:
-        pid = int(PID_FILE.read_text().strip())
-        # Check if process is still running
-        if psutil.pid_exists(pid):
-            try:
-                proc = psutil.Process(pid)
-                # Verify it's our process by checking command line
-                cmdline = " ".join(proc.cmdline())
-                if "sagellm_gateway" in cmdline:
-                    return pid
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                pass
-        # PID file exists but process is not running, clean up
-        PID_FILE.unlink()
-    except (ValueError, OSError):
-        pass
-
-    return None
+    return read_running_pid(
+        PID_FILE,
+        matcher=lambda proc: "sagellm_gateway" in " ".join(proc.cmdline()),
+    )
 
 
 def _save_pid(pid: int) -> None:
     """Save the server PID to file."""
-    PID_FILE.parent.mkdir(parents=True, exist_ok=True)
-    PID_FILE.write_text(str(pid))
+    write_pid(PID_FILE, pid)
 
 
 def _save_config(config: dict[str, Any]) -> None:

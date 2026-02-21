@@ -21,6 +21,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from sage.cli.utils.pid_state import read_running_pid
 from sage.cli.utils.runtime_helpers import module_available
 from sage.common.config import ensure_hf_mirror_configured
 from sage.common.config.ports import SagePorts
@@ -47,17 +48,10 @@ def _ensure_dirs() -> None:
 
 def _get_gateway_pid() -> int | None:
     """Get the PID of the running Gateway process."""
-    if not PID_FILE.exists():
-        return None
-    try:
-        pid = int(PID_FILE.read_text().strip())
-        # Check if process is still running
-        os.kill(pid, 0)
-        return pid
-    except (ValueError, OSError):
-        # Process not running, clean up stale PID file
-        PID_FILE.unlink(missing_ok=True)
-        return None
+    return read_running_pid(
+        PID_FILE,
+        matcher=lambda proc: "sagellm_gateway" in " ".join(proc.cmdline()),
+    )
 
 
 def _check_gateway_health(port: int, timeout: float = 2.0) -> bool:
