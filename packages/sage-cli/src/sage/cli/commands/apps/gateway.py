@@ -14,7 +14,6 @@ import signal
 import subprocess
 import sys
 import time
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -22,8 +21,10 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from sage.cli.utils.runtime_helpers import module_available
 from sage.common.config import ensure_hf_mirror_configured
 from sage.common.config.ports import SagePorts
+from sage.common.config.user_paths import get_user_paths
 
 if TYPE_CHECKING:
     pass
@@ -32,16 +33,16 @@ console = Console()
 app = typer.Typer(help="🌐 Gateway - 统一 API 网关管理")
 
 # State directory for Gateway
-SAGE_DIR = Path.home() / ".sage"
-GATEWAY_DIR = SAGE_DIR / "gateway"
+USER_PATHS = get_user_paths()
+GATEWAY_DIR = USER_PATHS.state_dir / "gateway"
 PID_FILE = GATEWAY_DIR / "gateway.pid"
-LOG_FILE = GATEWAY_DIR / "gateway.log"
+LOG_FILE = USER_PATHS.logs_dir / "gateway.log"
 
 
 def _ensure_dirs() -> None:
     """Ensure required directories exist."""
-    SAGE_DIR.mkdir(parents=True, exist_ok=True)
     GATEWAY_DIR.mkdir(parents=True, exist_ok=True)
+    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 
 def _get_gateway_pid() -> int | None:
@@ -132,7 +133,7 @@ def start(
     - 会话管理和 RAG 能力
 
     示例：
-        sage gateway start                    # 后台启动 (端口 8000)
+        sage gateway start                    # 后台启动 (端口 8889)
         sage gateway start -p 9000            # 指定端口
         sage gateway start --foreground       # 前台运行
         sage gateway start --no-control-plane # 禁用 Control Plane
@@ -158,6 +159,11 @@ def start(
         raise typer.Exit(1)
 
     console.print(f"[blue]🚀 启动 SAGE Gateway (端口 {port})...[/blue]")
+
+    if not module_available("sagellm_gateway"):
+        console.print("[red]❌ 缺少 sagellm_gateway 模块[/red]")
+        console.print("   请安装: pip install isagellm-gateway")
+        raise typer.Exit(1)
 
     # Build command (requires isagellm-gateway package, module name is sagellm_gateway)
     cmd = [

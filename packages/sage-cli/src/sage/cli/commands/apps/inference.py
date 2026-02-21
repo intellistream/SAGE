@@ -22,15 +22,16 @@ import json
 import subprocess
 import sys
 import time
-from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
 import psutil
 import typer
+from click.core import ParameterSource
 from rich.console import Console
 from rich.table import Table
 
+from sage.cli.utils.runtime_helpers import load_structured_config, module_available
 from sage.common.config import ensure_hf_mirror_configured
 from sage.common.config.ports import SagePorts
 from sage.common.config.user_paths import get_user_paths
@@ -60,22 +61,6 @@ def _is_port_in_use(port: int) -> bool:
     from sage.common.utils.system.network import is_port_occupied
 
     return is_port_occupied("localhost", port)
-
-
-def _load_external_config(config_path: Path) -> dict[str, Any]:
-    """Load configuration from YAML/JSON file."""
-    if config_path.suffix in (".yaml", ".yml"):
-        import yaml  # type: ignore[import-untyped]
-
-        data = yaml.safe_load(config_path.read_text())
-    else:
-        data = json.loads(config_path.read_text())
-
-    if data is None:
-        return {}
-    if not isinstance(data, dict):
-        raise ValueError("配置文件根节点必须是对象")
-    return data
 
 
 def _get_running_pid() -> int | None:
@@ -146,6 +131,7 @@ def _test_api_health(port: int, timeout: float = 2.0) -> dict[str, Any] | None:
 
 @app.command("start")
 def start_server(
+    ctx: typer.Context,
     port: int = typer.Option(
         SagePorts.GATEWAY_DEFAULT,
         "--port",
@@ -197,7 +183,7 @@ def start_server(
     console.print("[blue]🚀 启动统一推理服务...[/blue]")
     ensure_hf_mirror_configured()
 
-    if find_spec("sagellm_gateway") is None:
+    if not module_available("sagellm_gateway"):
         console.print("[red]❌ 缺少 sagellm_gateway 模块[/red]")
         console.print("   请安装: pip install isagellm-gateway")
         raise typer.Exit(1)
@@ -209,18 +195,12 @@ def start_server(
         console.print("   使用 'sage inference stop' 停止服务")
         raise typer.Exit(1)
 
-    # Check port availability
-    if _is_port_in_use(port):
-        console.print(f"[red]❌ 端口 {port} 已被占用[/red]")
-        console.print("   请使用其他端口或停止占用该端口的服务")
-        raise typer.Exit(1)
-
     file_config: dict[str, Any] = {}
 
     # Load configuration from file if specified
     if config_file and config_file.exists():
         try:
-            file_config = _load_external_config(config_file)
+            file_config = load_structured_config(config_file)
             console.print(f"[green]✓[/green] 加载配置文件: {config_file}")
         except Exception as e:
             console.print(f"[red]❌ 无法加载配置文件: {e}[/red]")
@@ -230,11 +210,29 @@ def start_server(
         raise typer.Exit(1)
 
     # Merge configuration (CLI args > file config > defaults)
+    host_source = ctx.get_parameter_source("host")
+    port_source = ctx.get_parameter_source("port")
+    log_level_source = ctx.get_parameter_source("log_level")
+
     final_config: dict[str, str | int] = {
-        "host": str(file_config.get("host", host)),
-        "port": int(file_config.get("port", port)),
-        "log_level": str(file_config.get("log_level", log_level)),
+        "host": str(file_config.get("host", "0.0.0.0")),
+        "port": int(file_config.get("port", SagePorts.GATEWAY_DEFAULT)),
+        "log_level": str(file_config.get("log_level", "info")),
     }
+
+    if host_source == ParameterSource.COMMANDLINE or not file_config:
+        final_config["host"] = host
+    if port_source == ParameterSource.COMMANDLINE or not file_config:
+        final_config["port"] = port
+    if log_level_source == ParameterSource.COMMANDLINE or not file_config:
+        final_config["log_level"] = log_level
+
+    # Check port availability with merged effective config
+    effective_port = int(final_config["port"])
+    if _is_port_in_use(effective_port):
+        console.print(f"[red]❌ 端口 {effective_port} 已被占用[/red]")
+        console.print("   请使用其他端口或停止占用该端口的服务")
+        raise typer.Exit(1)
 
     # Build command to run the server (requires sagellm_gateway package)
     cmd: list[str] = [
@@ -244,7 +242,7 @@ def start_server(
         "--host",
         str(final_config["host"]),
         "--port",
-        str(final_config["port"]),
+        str(effective_port),
         "--log-level",
         str(final_config["log_level"]),
     ]

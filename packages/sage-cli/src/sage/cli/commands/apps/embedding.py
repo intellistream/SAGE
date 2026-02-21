@@ -6,7 +6,6 @@ Embedding CLI 命令
 
 import subprocess
 import sys
-from importlib.util import find_spec
 
 import typer
 from rich import box
@@ -14,6 +13,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from sage.cli.utils.runtime_helpers import module_available
 from sage.common.components.sage_embedding import (
     check_model_availability,
     get_embedding_model,
@@ -282,7 +282,7 @@ def start_server(
           -H "Content-Type: application/json" \\
           -d '{"input": "Hello world", "model": "BAAI/bge-m3"}'
     """
-    if find_spec("sage.common.components.sage_embedding.embedding_server") is None:
+    if not module_available("sage.common.components.sage_embedding.embedding_server"):
         console.print("[red]❌ 未找到 embedding_server 模块[/red]")
         console.print("   请确认 isage-common 安装正常")
         raise typer.Exit(1)

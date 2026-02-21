@@ -154,7 +154,7 @@ class TestStartCommand:
         assert result.exit_code == 1
         assert "端口 8000 已被占用" in result.stdout
 
-    @patch("sage.cli.commands.apps.inference.find_spec")
+    @patch("sage.cli.commands.apps.inference.module_available")
     @patch("sage.cli.commands.apps.inference.ensure_hf_mirror_configured")
     @patch("sage.cli.commands.apps.inference._get_running_pid")
     @patch("sage.cli.commands.apps.inference._is_port_in_use")
@@ -163,18 +163,18 @@ class TestStartCommand:
         mock_port_check: MagicMock,
         mock_get_pid: MagicMock,
         _mock_hf: MagicMock,
-        mock_find_spec: MagicMock,
+        mock_module_available: MagicMock,
     ) -> None:
         """Test start fails fast when gateway module is not installed."""
         mock_get_pid.return_value = None
         mock_port_check.return_value = False
-        mock_find_spec.return_value = None
+        mock_module_available.return_value = False
 
         result = runner.invoke(app, ["start"])
         assert result.exit_code == 1
         assert "缺少 sagellm_gateway 模块" in result.stdout
 
-    @patch("sage.cli.commands.apps.inference.find_spec")
+    @patch("sage.cli.commands.apps.inference.module_available")
     @patch("sage.cli.commands.apps.inference.ensure_hf_mirror_configured")
     @patch("sage.cli.commands.apps.inference._get_running_pid")
     @patch("sage.cli.commands.apps.inference._is_port_in_use")
@@ -183,12 +183,12 @@ class TestStartCommand:
         mock_port_check: MagicMock,
         mock_get_pid: MagicMock,
         _mock_hf: MagicMock,
-        mock_find_spec: MagicMock,
+        mock_module_available: MagicMock,
     ) -> None:
         """Test start fails when --config file path does not exist."""
         mock_get_pid.return_value = None
         mock_port_check.return_value = False
-        mock_find_spec.return_value = object()
+        mock_module_available.return_value = True
 
         result = runner.invoke(app, ["start", "--config", "not-found.yaml"])
         assert result.exit_code == 1
