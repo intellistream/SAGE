@@ -4,9 +4,9 @@ Embedding CLI 命令
 提供命令行工具来管理和测试 embedding 方法。
 """
 
-import os
 import subprocess
 import sys
+from importlib.util import find_spec
 
 import typer
 from rich import box
@@ -19,6 +19,7 @@ from sage.common.components.sage_embedding import (
     get_embedding_model,
     list_embedding_models,
 )
+from sage.common.config.ports import SagePorts
 
 console = Console()
 app = typer.Typer(name="embedding", help="🎯 Embedding 方法管理")
@@ -118,7 +119,7 @@ def check_method(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="详细输出"),
 ):
     """检查特定 embedding 方法的可用性"""
-    kwargs = {}
+    kwargs: dict[str, object] = {}
     if model:
         kwargs["model"] = model
 
@@ -178,7 +179,7 @@ def test_method(
     console.print(f"[cyan]测试文本:[/cyan] {text}\n")
 
     # 构建参数
-    kwargs = {}
+    kwargs: dict[str, object] = {}
     if model:
         kwargs["model"] = model
     if api_key:
@@ -224,10 +225,10 @@ def start_server(
         help="HuggingFace 模型名称",
     ),
     port: int = typer.Option(
-        8090,
+        SagePorts.EMBEDDING_DEFAULT,
         "--port",
         "-p",
-        help="服务器端口",
+        help=f"服务器端口 (默认 {SagePorts.EMBEDDING_DEFAULT})",
     ),
     host: str = typer.Option(
         "0.0.0.0",
@@ -281,22 +282,16 @@ def start_server(
           -H "Content-Type: application/json" \\
           -d '{"input": "Hello world", "model": "BAAI/bge-m3"}'
     """
-    # 构建启动命令
-    server_script = os.path.join(
-        os.path.dirname(sys.modules["sage.common"].__file__),
-        "components",
-        "sage_embedding",
-        "embedding_server.py",
-    )
-
-    if not os.path.exists(server_script):
-        console.print(f"[red]❌ 错误: 找不到服务器脚本: {server_script}[/red]")
+    if find_spec("sage.common.components.sage_embedding.embedding_server") is None:
+        console.print("[red]❌ 未找到 embedding_server 模块[/red]")
+        console.print("   请确认 isage-common 安装正常")
         raise typer.Exit(1)
 
-    # 构建命令参数
+    # 构建启动命令（模块方式，兼容打包环境）
     cmd = [
         sys.executable,
-        server_script,
+        "-m",
+        "sage.common.components.sage_embedding.embedding_server",
         "--model",
         model,
         "--port",

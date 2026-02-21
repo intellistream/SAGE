@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Unified Inference service management commands for SAGE.
 
-This module provides CLI commands to manage the unified inference service,
-which combines LLM and Embedding capabilities in a single OpenAI-compatible API.
+This module manages the single OpenAI-compatible inference gateway runtime
+provided by ``sagellm_gateway``.
 
 Commands:
     - start: Start the unified inference server
@@ -11,7 +11,7 @@ Commands:
     - config: Manage configuration
 
 Example:
-    sage inference start --llm-model Qwen/Qwen2.5-7B-Instruct --embedding-model BAAI/bge-m3
+    sage inference start
     sage inference stop
     sage inference status
 """
@@ -22,6 +22,7 @@ import json
 import subprocess
 import sys
 import time
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
@@ -30,13 +31,19 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from sage.common.config import ensure_hf_mirror_configured
+from sage.common.config.ports import SagePorts
+from sage.common.config.user_paths import get_user_paths
+
 console = Console()
-app = typer.Typer(help="🔮 统一推理服务管理 - LLM 和 Embedding 混合调度")
+app = typer.Typer(help="🔮 统一推理服务管理 - Gateway 统一入口")
 
 # PID file location
-PID_FILE = Path.home() / ".sage" / "inference_server.pid"
-CONFIG_FILE = Path.home() / ".sage" / "inference_server.json"
-LOG_FILE = Path.home() / ".sage" / "logs" / "inference_server.log"
+USER_PATHS = get_user_paths()
+INFERENCE_STATE_DIR = USER_PATHS.state_dir / "inference"
+PID_FILE = INFERENCE_STATE_DIR / "inference_server.pid"
+CONFIG_FILE = INFERENCE_STATE_DIR / "inference_server.json"
+LOG_FILE = USER_PATHS.logs_dir / "inference_server.log"
 
 
 # =============================================================================
@@ -55,6 +62,22 @@ def _is_port_in_use(port: int) -> bool:
     return is_port_occupied("localhost", port)
 
 
+def _load_external_config(config_path: Path) -> dict[str, Any]:
+    """Load configuration from YAML/JSON file."""
+    if config_path.suffix in (".yaml", ".yml"):
+        import yaml  # type: ignore[import-untyped]
+
+        data = yaml.safe_load(config_path.read_text())
+    else:
+        data = json.loads(config_path.read_text())
+
+    if data is None:
+        return {}
+    if not isinstance(data, dict):
+        raise ValueError("配置文件根节点必须是对象")
+    return data
+
+
 def _get_running_pid() -> int | None:
     """Get the PID of the running server from PID file."""
     if not PID_FILE.exists():
@@ -68,7 +91,7 @@ def _get_running_pid() -> int | None:
                 proc = psutil.Process(pid)
                 # Verify it's our process by checking command line
                 cmdline = " ".join(proc.cmdline())
-                if "unified_api_server" in cmdline or "sage" in cmdline.lower():
+                if "sagellm_gateway" in cmdline:
                     return pid
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass
@@ -123,45 +146,17 @@ def _test_api_health(port: int, timeout: float = 2.0) -> dict[str, Any] | None:
 
 @app.command("start")
 def start_server(
-    llm_model: str | None = typer.Option(
-        None,
-        "--llm-model",
-        "-l",
-        help="LLM 模型名称",
-    ),
-    embedding_model: str | None = typer.Option(
-        None,
-        "--embedding-model",
-        "-e",
-        help="Embedding 模型名称",
-    ),
-    llm_backend: str | None = typer.Option(
-        None,
-        "--llm-backend",
-        help="LLM 后端 URL (例如 http://localhost:8001)",
-    ),
-    embedding_backend: str | None = typer.Option(
-        None,
-        "--embedding-backend",
-        help="Embedding 后端 URL (例如 http://localhost:8090)",
-    ),
     port: int = typer.Option(
-        8000,
+        SagePorts.GATEWAY_DEFAULT,
         "--port",
         "-p",
-        help="服务监听端口",
+        help=f"服务监听端口 (默认 {SagePorts.GATEWAY_DEFAULT})",
     ),
     host: str = typer.Option(
         "0.0.0.0",
         "--host",
         "-h",
         help="服务监听地址",
-    ),
-    scheduling_policy: str = typer.Option(
-        "adaptive",
-        "--scheduling-policy",
-        "-s",
-        help="调度策略 (fifo, priority, slo_aware, adaptive, hybrid)",
     ),
     background: bool = typer.Option(
         False,
@@ -184,17 +179,11 @@ def start_server(
     """启动统一推理服务。
 
     该服务提供 OpenAI 兼容的 API，同时支持 LLM 和 Embedding 请求。
-    内部通过混合调度器智能分配请求到不同的后端实例。
+    该命令启动 sagellm_gateway，并由 Control Plane 统一管理后端。
 
     示例：
-        # 启动基本服务（使用环境变量配置的默认后端）
+        # 启动基本服务
         sage inference start
-
-        # 指定后端 URL
-        sage inference start --llm-backend http://localhost:8001 --embedding-backend http://localhost:8090
-
-        # 使用混合调度策略
-        sage inference start --scheduling-policy hybrid
 
         # 后台运行
         sage inference start --background
@@ -202,13 +191,16 @@ def start_server(
         # 使用配置文件
         sage inference start --config inference-config.yaml
 
-    环境变量：
-        SAGE_LLM_PORT=8001              # 默认 LLM 后端端口
-        SAGE_EMBEDDING_PORT=8090        # 默认 Embedding 后端端口
-        SAGE_CHAT_MODEL=model_name      # 默认 LLM 模型
-        SAGE_EMBEDDING_MODEL=model_name # 默认 Embedding 模型
+    说明：
+        具体引擎由 gateway/control-plane 管理，通过 `sage llm engine` 操作。
     """
     console.print("[blue]🚀 启动统一推理服务...[/blue]")
+    ensure_hf_mirror_configured()
+
+    if find_spec("sagellm_gateway") is None:
+        console.print("[red]❌ 缺少 sagellm_gateway 模块[/red]")
+        console.print("   请安装: pip install isagellm-gateway")
+        raise typer.Exit(1)
 
     # Check if already running
     existing_pid = _get_running_pid()
@@ -223,57 +215,39 @@ def start_server(
         console.print("   请使用其他端口或停止占用该端口的服务")
         raise typer.Exit(1)
 
-    # Load configuration from file if specified
     file_config: dict[str, Any] = {}
+
+    # Load configuration from file if specified
     if config_file and config_file.exists():
         try:
-            if config_file.suffix in (".yaml", ".yml"):
-                import yaml  # type: ignore[import-untyped]
-
-                file_config = yaml.safe_load(config_file.read_text())
-            else:
-                file_config = json.loads(config_file.read_text())
+            file_config = _load_external_config(config_file)
             console.print(f"[green]✓[/green] 加载配置文件: {config_file}")
         except Exception as e:
             console.print(f"[red]❌ 无法加载配置文件: {e}[/red]")
             raise typer.Exit(1)
+    elif config_file and not config_file.exists():
+        console.print(f"[red]❌ 配置文件不存在: {config_file}[/red]")
+        raise typer.Exit(1)
 
-    # Merge configuration (CLI args > file config > env vars > defaults)
-    final_config = {
-        "host": host,
-        "port": port,
-        "llm_model": llm_model or file_config.get("llm", {}).get("model"),
-        "llm_backend": llm_backend or file_config.get("llm", {}).get("backend"),
-        "embedding_model": embedding_model or file_config.get("embedding", {}).get("model"),
-        "embedding_backend": embedding_backend or file_config.get("embedding", {}).get("backend"),
-        "scheduling_policy": scheduling_policy
-        or file_config.get("scheduling", {}).get("policy", "adaptive"),
-        "log_level": log_level,
+    # Merge configuration (CLI args > file config > defaults)
+    final_config: dict[str, str | int] = {
+        "host": str(file_config.get("host", host)),
+        "port": int(file_config.get("port", port)),
+        "log_level": str(file_config.get("log_level", log_level)),
     }
 
-    # Build command to run the server (requires isagellm package)
-    cmd = [
+    # Build command to run the server (requires sagellm_gateway package)
+    cmd: list[str] = [
         sys.executable,
         "-m",
-        "isagellm.unified_api_server",
+        "sagellm_gateway",
         "--host",
-        final_config["host"],
+        str(final_config["host"]),
         "--port",
         str(final_config["port"]),
-        "--scheduling-policy",
-        final_config["scheduling_policy"],
         "--log-level",
-        final_config["log_level"],
+        str(final_config["log_level"]),
     ]
-
-    if final_config.get("llm_model"):
-        cmd.extend(["--llm-model", final_config["llm_model"]])
-    if final_config.get("llm_backend"):
-        cmd.extend(["--llm-backend", final_config["llm_backend"]])
-    if final_config.get("embedding_model"):
-        cmd.extend(["--embedding-model", final_config["embedding_model"]])
-    if final_config.get("embedding_backend"):
-        cmd.extend(["--embedding-backend", final_config["embedding_backend"]])
 
     console.print(f"[dim]命令: {' '.join(cmd[:6])}...[/dim]")
 
@@ -316,7 +290,7 @@ def start_server(
 
             _save_config(final_config)
 
-            process: subprocess.Popen[bytes] | None = None
+            process = None
             try:
                 # Run in foreground
                 process = subprocess.Popen(cmd)
@@ -380,7 +354,7 @@ def stop_server(
             for proc in psutil.process_iter(["pid", "cmdline"]):
                 try:
                     cmdline = " ".join(proc.info.get("cmdline") or [])
-                    if "unified_api_server" in cmdline and str(port) in cmdline:
+                    if "sagellm_gateway" in cmdline and str(port) in cmdline:
                         pid = proc.pid
                         break
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -429,10 +403,10 @@ def stop_server(
 @app.command("status")
 def server_status(
     port: int = typer.Option(
-        8000,
+        SagePorts.GATEWAY_DEFAULT,
         "--port",
         "-p",
-        help="服务端口",
+        help=f"服务端口 (默认 {SagePorts.GATEWAY_DEFAULT})",
     ),
     json_output: bool = typer.Option(
         False,
@@ -516,16 +490,6 @@ def server_status(
         if config:
             console.print()
             console.print("[bold]配置:[/bold]")
-            if config.get("llm_model"):
-                console.print(f"   LLM 模型: {config['llm_model']}")
-            if config.get("llm_backend"):
-                console.print(f"   LLM 后端: {config['llm_backend']}")
-            if config.get("embedding_model"):
-                console.print(f"   Embedding 模型: {config['embedding_model']}")
-            if config.get("embedding_backend"):
-                console.print(f"   Embedding 后端: {config['embedding_backend']}")
-            if config.get("scheduling_policy"):
-                console.print(f"   调度策略: {config['scheduling_policy']}")
 
         console.print()
         console.print("[dim]API 端点:[/dim]")
@@ -582,11 +546,6 @@ def show_config(
         table.add_column("值", style="green")
 
         table.add_row("服务地址", f"{config.get('host', 'N/A')}:{config.get('port', 'N/A')}")
-        table.add_row("LLM 模型", config.get("llm_model") or "(默认)")
-        table.add_row("LLM 后端", config.get("llm_backend") or "(默认)")
-        table.add_row("Embedding 模型", config.get("embedding_model") or "(默认)")
-        table.add_row("Embedding 后端", config.get("embedding_backend") or "(默认)")
-        table.add_row("调度策略", config.get("scheduling_policy", "adaptive"))
         table.add_row("日志级别", config.get("log_level", "info"))
 
         console.print(table)

@@ -25,6 +25,7 @@ from sage.cli.commands.apps.inference import (
     _test_api_health,
     app,
 )
+from sage.common.config.ports import SagePorts
 
 runner = CliRunner()
 
@@ -66,7 +67,7 @@ class TestHelperFunctions:
         test_config = {
             "host": "127.0.0.1",
             "port": 9000,
-            "llm_model": "test-model",
+            "log_level": "info",
         }
 
         # Use temporary path
@@ -129,10 +130,9 @@ class TestStartCommand:
         assert result.exit_code == 0
         stdout = strip_ansi(result.stdout)
         assert "启动统一推理服务" in stdout
-        assert "--llm-model" in stdout
-        assert "--embedding-model" in stdout
+        assert "--config" in stdout
         assert "--port" in stdout
-        assert "--scheduling-policy" in stdout
+        assert "--log-level" in stdout
 
     @patch("sage.cli.commands.apps.inference._get_running_pid")
     def test_start_already_running(self, mock_get_pid: MagicMock) -> None:
@@ -153,6 +153,46 @@ class TestStartCommand:
         result = runner.invoke(app, ["start", "--port", "8000"])
         assert result.exit_code == 1
         assert "端口 8000 已被占用" in result.stdout
+
+    @patch("sage.cli.commands.apps.inference.find_spec")
+    @patch("sage.cli.commands.apps.inference.ensure_hf_mirror_configured")
+    @patch("sage.cli.commands.apps.inference._get_running_pid")
+    @patch("sage.cli.commands.apps.inference._is_port_in_use")
+    def test_start_missing_gateway_module(
+        self,
+        mock_port_check: MagicMock,
+        mock_get_pid: MagicMock,
+        _mock_hf: MagicMock,
+        mock_find_spec: MagicMock,
+    ) -> None:
+        """Test start fails fast when gateway module is not installed."""
+        mock_get_pid.return_value = None
+        mock_port_check.return_value = False
+        mock_find_spec.return_value = None
+
+        result = runner.invoke(app, ["start"])
+        assert result.exit_code == 1
+        assert "缺少 sagellm_gateway 模块" in result.stdout
+
+    @patch("sage.cli.commands.apps.inference.find_spec")
+    @patch("sage.cli.commands.apps.inference.ensure_hf_mirror_configured")
+    @patch("sage.cli.commands.apps.inference._get_running_pid")
+    @patch("sage.cli.commands.apps.inference._is_port_in_use")
+    def test_start_missing_config_file(
+        self,
+        mock_port_check: MagicMock,
+        mock_get_pid: MagicMock,
+        _mock_hf: MagicMock,
+        mock_find_spec: MagicMock,
+    ) -> None:
+        """Test start fails when --config file path does not exist."""
+        mock_get_pid.return_value = None
+        mock_port_check.return_value = False
+        mock_find_spec.return_value = object()
+
+        result = runner.invoke(app, ["start", "--config", "not-found.yaml"])
+        assert result.exit_code == 1
+        assert "配置文件不存在" in result.stdout
 
 
 class TestStopCommand:
@@ -227,7 +267,7 @@ class TestStatusCommand:
         # Should be valid JSON
         data = json.loads(result.stdout)
         assert "running" in data
-        assert "port" in data
+        assert data["port"] == 8000
 
 
 class TestConfigCommand:
@@ -254,14 +294,14 @@ class TestConfigCommand:
         """Test config with JSON output."""
         mock_load_config.return_value = {
             "host": "0.0.0.0",
-            "port": 8000,
-            "llm_model": "test-model",
+            "port": SagePorts.GATEWAY_DEFAULT,
+            "log_level": "info",
         }
 
         result = runner.invoke(app, ["config", "--output", "json"])
         assert result.exit_code == 0
         data = json.loads(result.stdout)
-        assert data["port"] == 8000
+        assert data["port"] == SagePorts.GATEWAY_DEFAULT
 
 
 class TestLogsCommand:
