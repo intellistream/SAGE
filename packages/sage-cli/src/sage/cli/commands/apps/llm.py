@@ -10,6 +10,8 @@ Recommended engine: sagellm (default). vllm engine is deprecated.
 
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError, version
+
 import httpx
 import typer
 from rich.console import Console
@@ -75,6 +77,25 @@ def _get_registry(engine: str):
     from sage.common.model_registry import sagellm_registry as registry
 
     return registry
+
+
+def _resolve_package_version(module_name: str, dist_names: list[str]) -> str:
+    """Resolve package version from module attribute or distribution metadata."""
+    try:
+        module = __import__(module_name)
+        module_version = getattr(module, "__version__", None)
+        if isinstance(module_version, str) and module_version.strip():
+            return module_version
+    except Exception:
+        pass
+
+    for dist_name in dist_names:
+        try:
+            return version(dist_name)
+        except PackageNotFoundError:
+            continue
+
+    return "unknown"
 
 
 @app.command("status")
@@ -176,24 +197,31 @@ def serve(
 def info():
     """Show isagellm installation info."""
     try:
-        import sagellm
+        import sagellm  # noqa: F401
 
-        console.print(f"[green]✓[/green] isagellm version: {sagellm.__version__}")
+        sagellm_version = _resolve_package_version("sagellm", ["isagellm", "sagellm"])
+        console.print(f"[green]✓[/green] isagellm version: {sagellm_version}")
     except ImportError:
         console.print("[red]✗[/red] isagellm not installed")
         return
 
     try:
-        import sagellm_control
+        import sagellm_control  # noqa: F401
 
-        console.print(f"[green]✓[/green] sagellm-control-plane: {sagellm_control.__version__}")
+        control_version = _resolve_package_version(
+            "sagellm_control", ["sagellm-control-plane", "sagellm_control"]
+        )
+        console.print(f"[green]✓[/green] sagellm-control-plane: {control_version}")
     except ImportError:
         console.print("[yellow]![/yellow] sagellm-control-plane not installed")
 
     try:
-        import sagellm_gateway
+        import sagellm_gateway  # noqa: F401
 
-        console.print(f"[green]✓[/green] sagellm-gateway: {sagellm_gateway.__version__}")
+        gateway_version = _resolve_package_version(
+            "sagellm_gateway", ["sagellm-gateway", "sagellm_gateway"]
+        )
+        console.print(f"[green]✓[/green] sagellm-gateway: {gateway_version}")
     except ImportError:
         console.print("[yellow]![/yellow] sagellm-gateway not installed (optional)")
 

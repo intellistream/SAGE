@@ -32,7 +32,7 @@ dependencies = [
     "isage-libs>=0.1.0",
     "isage-middleware>=0.1.0",
     "isage-flownet>=0.1.0",  # Flownet runtime (replaces Ray for distributed scheduling)
-    "isage-cli>=0.2.4.13",    # SAGE CLI (sage command)
+    "isage-cli>=0.2.4.15",    # SAGE CLI (sage command)
 ]
 
 license = "MIT"
