@@ -33,6 +33,7 @@ from rich.table import Table
 
 from sage.cli.utils.pid_state import read_running_pid, write_pid
 from sage.cli.utils.runtime_helpers import load_structured_config, module_available
+from sage.cli.utils.state_json import load_json_state, save_json_state
 from sage.common.config import ensure_hf_mirror_configured
 from sage.common.config.ports import SagePorts
 from sage.common.config.user_paths import get_user_paths
@@ -79,18 +80,12 @@ def _save_pid(pid: int) -> None:
 
 def _save_config(config: dict[str, Any]) -> None:
     """Save the server configuration to file."""
-    CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    CONFIG_FILE.write_text(json.dumps(config, indent=2))
+    save_json_state(CONFIG_FILE, config)
 
 
 def _load_config() -> dict[str, Any] | None:
     """Load the server configuration from file."""
-    if not CONFIG_FILE.exists():
-        return None
-    try:
-        return json.loads(CONFIG_FILE.read_text())
-    except (json.JSONDecodeError, OSError):
-        return None
+    return load_json_state(CONFIG_FILE)
 
 
 def _test_api_health(port: int, timeout: float = 2.0) -> dict[str, Any] | None:
