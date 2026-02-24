@@ -195,18 +195,30 @@ class EmbeddingServer:
                         "Please download the model first or disable offline mode."
                     )
 
-            # 直接加载（优先使用本地已有的格式，避免下载 safetensors）
-            # use_safetensors=False 会强制使用 pytorch_model.bin
+            # 根据本地缓存中实际存在的权重格式决定加载方式
+            # 避免在只有 safetensors 格式时强制使用 pytorch_model.bin 导致崩溃
+            has_bin = snapshot_dir is not None and any(
+                (snapshot_dir / name).exists()
+                for name in ["pytorch_model.bin", "pytorch_model.bin.index.json"]
+            )
+            has_sf = snapshot_dir is not None and any(
+                (snapshot_dir / name).exists()
+                for name in ["model.safetensors", "model.safetensors.index.json"]
+            )
+            # 仅在只有 .bin 格式时才显式禁用 safetensors，其余情况让框架自动选择
+            use_safetensors: bool | None = False if (has_bin and not has_sf) else None
+
             # local_files_only=True 时完全离线加载（避免 HuggingFace 限流）
             self.tokenizer = AutoTokenizer.from_pretrained(
                 model_name, trust_remote_code=True, local_files_only=local_files_only
             )
-            self.model = AutoModel.from_pretrained(
-                model_name,
-                trust_remote_code=True,
-                use_safetensors=False,
-                local_files_only=local_files_only,
-            )
+            model_kwargs: dict = {
+                "trust_remote_code": True,
+                "local_files_only": local_files_only,
+            }
+            if use_safetensors is not None:
+                model_kwargs["use_safetensors"] = use_safetensors
+            self.model = AutoModel.from_pretrained(model_name, **model_kwargs)
             logger.info("Model loaded successfully")
 
             # 移动模型到指定设备
