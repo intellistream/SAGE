@@ -8,6 +8,7 @@
 
 ## Critical repo conventions
 - No manual dependency drift: declare Python deps in the relevant `packages/*/pyproject.toml` (don’t rely on ad-hoc pip-only fixes in code review).
+- Do not create new local virtual environments (`venv`/`.venv`) in repo workflows; use the existing configured Python environment.
 - Fail-fast policy: avoid silent fallback patterns that hide missing config/import/runtime errors.
 - Do not add compatibility shims/re-export layers during migrations; update call sites directly.
 - Centralize service ports via `sage.common.config.ports.SagePorts` (no hard-coded port literals).
