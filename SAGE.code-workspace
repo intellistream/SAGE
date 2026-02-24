@@ -49,20 +49,91 @@
       "path": "../sage-studio"
     },
     {
+      "name": "SAGE-Docs",
       "path": "../sage-docs"
     },
     {
+      "name": "sageFlownet",
       "path": "../sageFlownet"
     },
     {
+      "name": "sage-pypi-publisher",
       "path": "../sage-pypi-publisher"
     },
     {
+      "name": "sage-team-info",
       "path": "../sage-team-info"
+    },
+    {
+      "name": "sage-agentic-tooluse-benchmark",
+      "path": "../sage-agentic-tooluse-benchmark"
+    },
+    {
+      "name": "sage-github-manager",
+      "path": "../sage-github-manager"
+    },
+    {
+      "name": "sageData",
+      "path": "../sageData"
+    },
+    {
+      "name": "sageTSDB",
+      "path": "../sageTSDB"
+    },
+    {
+      "name": "sage-libs-intent",
+      "path": "../sage-libs-intent"
+    },
+    {
+      "name": "sage-memory-benchmark",
+      "path": "../sage-memory-benchmark"
+    },
+    {
+      "name": "sage-rag-benchmark",
+      "path": "../sage-rag-benchmark"
+    },
+    {
+      "name": "sage-refiner-benchmark",
+      "path": "../sage-refiner-benchmark"
+    },
+    {
+      "name": "sageRefiner",
+      "path": "../sageRefiner"
+    },
+    {
+      "name": "sageVDB",
+      "path": "../sageVDB"
+    },
+    {
+      "name": "sage-agentic-tooluse-sias",
+      "path": "../sage-agentic-tooluse-sias"
+    },
+    {
+      "name": "sageFlow",
+      "path": "../sageFlow"
+    },
+    {
+      "name": "sage-amms",
+      "path": "../sage-amms"
+    },
+    {
+      "name": "sage-edge",
+      "path": "../sage-edge"
+    },
+    {
+      "name": "sage-privacy",
+      "path": "../sage-privacy"
+    },
+    {
+      "name": "sage-rag",
+      "path": "../sage-rag"
+    },
+    {
+      "name": "sage-safety",
+      "path": "../sage-safety"
     }
   ],
   "settings": {
-    "python.defaultInterpreterPath": "${workspaceFolder:SAGE}/.venv/bin/python",
     "python.analysis.extraPaths": [
       "${workspaceFolder:SAGE}/packages/sage-common/src",
       "${workspaceFolder:SAGE}/packages/sage-platform/src",
@@ -105,6 +176,7 @@
     "ruff.configuration": "${workspaceFolder:SAGE}/tools/ruff.toml",
     "git.enableSmartCommit": true,
     "git.confirmSync": false,
+    "python-envs.workspaceSearchPaths": [],
   },
   "extensions": {
     "recommendations": [
