@@ -10,6 +10,7 @@ Recommended engine: sagellm (default). vllm engine is deprecated.
 
 from __future__ import annotations
 
+import os
 from importlib.metadata import PackageNotFoundError, version
 
 import httpx
@@ -29,10 +30,12 @@ except ImportError:  # pragma: no cover
     EngineState = None  # type: ignore
 
 try:
-    from sagellm_gateway import GatewayConfig, GatewayServer
+    from sagellm_gateway import create_app as _gateway_create_app
+
+    _SAGELLM_GATEWAY_AVAILABLE = True
 except ImportError:  # pragma: no cover
-    GatewayServer = None  # type: ignore
-    GatewayConfig = None  # type: ignore
+    _gateway_create_app = None  # type: ignore
+    _SAGELLM_GATEWAY_AVAILABLE = False
 
 # Import config subcommands
 from sage.cli.commands.platform.llm_config import app as config_app
@@ -46,6 +49,9 @@ console = Console()
 
 # Add config subcommand group
 app.add_typer(config_app, name="config")
+
+# Default LLM model — lightweight CPU-friendly default; override with --model
+DEFAULT_LLM_MODEL: str = os.getenv("SAGELLM_DEFAULT_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
 
 
 def _check_sagellm_available() -> bool:
@@ -160,34 +166,49 @@ def list_models(
 
 @app.command("serve")
 def serve(
-    model: str = typer.Argument(..., help="Model name or path"),
+    model: str | None = typer.Option(
+        None, "--model", "-m", help=f"Model name or path (default: {DEFAULT_LLM_MODEL})"
+    ),
     host: str = typer.Option("0.0.0.0", "--host", "-h", help="Server host"),
     port: int = typer.Option(8000, "--port", "-p", help="Server port"),
     mock: bool = typer.Option(False, "--mock", help="Run in mock mode (no GPU)"),
 ):
-    """Start LLM server (via isagellm gateway)."""
+    """Start LLM server (via isagellm gateway).
+
+    \b
+    Examples:
+        sage llm serve                                       # start with default model
+        sage llm serve --model Qwen/Qwen2.5-0.5B-Instruct   # lightweight default
+        sage llm serve --model Qwen/Qwen2.5-7B-Instruct     # larger model
+        sage llm serve --model sshleifer/tiny-gpt2 --port 8888
+    """
     if not _check_sagellm_available():
         raise typer.Exit(1)
 
-    if GatewayServer is None:
+    if not _SAGELLM_GATEWAY_AVAILABLE:
         console.print(
-            "[red]Error:[/red] isagellm[gateway] not installed. "
-            "Please run: pip install 'isagellm[gateway]'"
+            "[red]Error:[/red] sagellm-gateway not available. "
+            "Please run: pip install --upgrade isagellm"
         )
         raise typer.Exit(1)
 
-    console.print(f"[cyan]Starting LLM server for model:[/cyan] {model}")
+    resolved_model = model or DEFAULT_LLM_MODEL
+    console.print(f"[cyan]Starting LLM server for model:[/cyan] [bold]{resolved_model}[/bold]")
     console.print(f"  Host: {host}:{port}")
     console.print(f"  Mock mode: {mock}")
+    if not model:
+        console.print("  [dim](override with: sage llm serve --model <your-model>)[/dim]")
+
+    # Pass model to the gateway via env var so sagellm engine picks it up.
+    os.environ.setdefault("SAGELLM_ENGINE_MODEL", resolved_model)
 
     try:
-        config = GatewayConfig(
-            host=host,
-            port=port,
-            mock_mode=mock,
-        )
-        server = GatewayServer(config)
-        server.run()
+        import uvicorn
+
+        if mock:
+            os.environ["SAGELLM_MOCK_MODE"] = "1"
+        gateway_app = _gateway_create_app()
+        uvicorn.run(gateway_app, host=host, port=port, log_level="info")
     except Exception as e:
         console.print(f"[red]Error starting server:[/red] {e}")
         raise typer.Exit(1)
