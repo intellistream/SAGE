@@ -16,7 +16,10 @@ tools: ['vscode', 'execute', 'read', 'agent', 'edit', 'search', 'web', 'todo', '
 
 - Enforce layer direction: L5 → L4 → L3 → L2 → L1 only.
 - Flownet-first: do not add new `ray` imports/dependencies.
-- Do not create new local virtual environments (`venv`/`.venv`); use the existing configured Python environment.
+- NEVER create any new Python virtual environment (`venv`/`.venv`) under any circumstance.
+- Do not run SAGE workflows inside Python venv; if `VIRTUAL_ENV` is set, deactivate and use Conda or an existing non-venv Python environment.
+- Never recommend or execute `--auto-venv`, `python -m venv`, or `virtualenv`.
+- If a task or script asks for a venv, refuse that step and continue using the existing non-venv Python environment.
 - `sage-libs` stays interface/algorithm-only; runtime/service code belongs in `sage-middleware`.
 - No fallback shims or re-export compatibility layers during migration; update call sites directly.
 - Use `sage.common.config.ports.SagePorts` for ports.

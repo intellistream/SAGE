@@ -8,7 +8,10 @@
 
 ## Critical repo conventions
 - No manual dependency drift: declare Python deps in the relevant `packages/*/pyproject.toml` (don’t rely on ad-hoc pip-only fixes in code review).
-- Do not create new local virtual environments (`venv`/`.venv`) in repo workflows; use the existing configured Python environment.
+- NEVER create any new Python virtual environment (`venv`/`.venv`) in this repo under any circumstance.
+- Do not use an active Python venv for SAGE install/run/test flows; if `VIRTUAL_ENV` is set, exit and switch to Conda or a pre-configured non-venv Python environment.
+- Never suggest or invoke `--auto-venv`, `python -m venv`, or `virtualenv` in SAGE workflows.
+- If a task, script, or prompt requests creating a venv, do not do it; use an existing non-venv Python environment instead.
 - Fail-fast policy: avoid silent fallback patterns that hide missing config/import/runtime errors.
 - Do not add compatibility shims/re-export layers during migrations; update call sites directly.
 - Centralize service ports via `sage.common.config.ports.SagePorts` (no hard-coded port literals).

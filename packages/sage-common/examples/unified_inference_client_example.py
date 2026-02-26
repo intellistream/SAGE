@@ -5,58 +5,97 @@ Prerequisites:
     pip install --upgrade isagellm
 
 Note:
-    UnifiedInferenceClient was added to sagellm in version 0.5.3.x (dev).
-    If ``from sagellm import UnifiedInferenceClient`` fails on your installed
-    version, the example automatically falls back to the direct submodule
-    import ``from sagellm.client import UnifiedInferenceClient``.
+    UnifiedInferenceClient requires sagellm >= 0.5.3 and Python >= 3.10.
+    Run ``pip install --upgrade isagellm`` if any pre-flight check fails.
 """
 
 from __future__ import annotations
 
+import sys
 
-def _import_client():
-    """Try multiple import paths for backwards compatibility.
+# ── Minimum requirements ──────────────────────────────────────────────────────
+_MIN_PYTHON = (3, 10)
+_MIN_SAGELLM = (0, 5, 3)
+_REQUIRED_METHODS = ("complete", "chat", "health")
 
-    Returns the class, or None if sagellm is not installed / too old.
-    """
-    # Preferred: public API via sagellm umbrella __init__
+
+def _version_tuple(version_str: str) -> tuple[int, ...]:
+    """Parse 'X.Y.Z[.W]' into a comparable int tuple, ignoring trailing parts."""
     try:
-        from sagellm import UnifiedInferenceClient
+        return tuple(int(x) for x in version_str.split(".")[:3])
+    except ValueError:
+        return (0,)
 
-        return UnifiedInferenceClient
-    except (ImportError, AttributeError):
-        pass
 
-    # Fallback: direct submodule import (works even when the installed
-    # sagellm __init__.py predates the lazy-import registration).
+def _preflight_checks() -> type:
+    """Run all pre-flight checks and return UnifiedInferenceClient, or abort."""
+
+    # 1. Python version
+    if sys.version_info < _MIN_PYTHON:
+        raise SystemExit(
+            f"ERROR: Python {_MIN_PYTHON[0]}.{_MIN_PYTHON[1]}+ is required "
+            f"(you have {sys.version.split()[0]}).\n"
+            "Please upgrade your Python environment."
+        )
+
+    # 2. sagellm installed
     try:
-        from sagellm.client import UnifiedInferenceClient
+        import sagellm  # noqa: PLC0415
+    except ImportError:
+        raise SystemExit(
+            "ERROR: sagellm (isagellm) is not installed.\n"
+            "Install it with:\n"
+            "    pip install isagellm"
+        )
 
-        return UnifiedInferenceClient
-    except (ImportError, AttributeError):
-        pass
+    # 3. sagellm version
+    installed_ver = getattr(sagellm, "__version__", "0.0.0")
+    if _version_tuple(installed_ver) < _MIN_SAGELLM:
+        raise SystemExit(
+            f"ERROR: sagellm {installed_ver} is too old "
+            f"(need >= {'.'.join(str(x) for x in _MIN_SAGELLM)}).\n"
+            "Upgrade with:\n"
+            "    pip install --upgrade isagellm"
+        )
 
-    return None
+    # 4. UnifiedInferenceClient exported from the public API
+    try:
+        from sagellm import UnifiedInferenceClient  # noqa: PLC0415
+    except ImportError as exc:
+        raise SystemExit(
+            f"ERROR: UnifiedInferenceClient is not available in sagellm {installed_ver}.\n"
+            f"Detail: {exc}\n"
+            "Upgrade with:\n"
+            "    pip install --upgrade isagellm"
+        )
+
+    # 5. Required methods present on the class
+    missing = [
+        m for m in _REQUIRED_METHODS if not callable(getattr(UnifiedInferenceClient, m, None))
+    ]
+    if missing:
+        raise SystemExit(
+            f"ERROR: UnifiedInferenceClient in sagellm {installed_ver} is missing "
+            f"required method(s): {', '.join(missing)}.\n"
+            "Upgrade with:\n"
+            "    pip install --upgrade isagellm"
+        )
+
+    return UnifiedInferenceClient
 
 
 def main():
     """Demo unified inference client usage."""
-    UnifiedInferenceClient = _import_client()
-    if UnifiedInferenceClient is None:
-        print(
-            "UnifiedInferenceClient not found.\n"
-            "Please install or upgrade sagellm:\n"
-            "    pip install --upgrade isagellm\n"
-            "Or install from source:\n"
-            "    pip install -e /path/to/sagellm"
-        )
-        return
+    UnifiedInferenceClient = _preflight_checks()
 
-    # Create client (offline_mode=True — no running server required for demo)
-    client = UnifiedInferenceClient(
-        base_url="http://localhost:8000",
-        offline_mode=True,
-    )
+    # 6. Instantiation check (offline_mode=True — no server required for demo)
+    try:
+        client = UnifiedInferenceClient(
+            base_url="http://localhost:8000",
+            offline_mode=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise SystemExit(f"ERROR: Failed to instantiate UnifiedInferenceClient: {exc}")
 
     # Simple completion (wraps /v1/chat/completions)
     response = client.complete(
