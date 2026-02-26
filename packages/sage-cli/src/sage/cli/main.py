@@ -284,7 +284,7 @@ def main(
       sage doctor                    # 系统诊断
 
     Application Commands:
-      sage llm run                   # 启动阻塞式 LLM 服务
+    sage llm serve                 # 启动 LLM 服务
       sage gateway start             # 启动API网关
       sage chat                      # 启动聊天助手
       sage pipeline build            # 构建 pipeline

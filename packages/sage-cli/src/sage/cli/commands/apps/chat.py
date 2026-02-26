@@ -711,7 +711,7 @@ class ResponseGenerator:
         elif self.backend == "mock":
             self.client = None
         elif self.backend == "auto":
-            # 自动检测本地 LLM 服务 (vllm 引擎的 auto 模式)
+            # 自动检测本地 LLM 服务（兼容模式的 auto 路径）
             self._setup_auto_backend()
         elif self.backend == "finetune":
             # 使用微调模型
@@ -788,13 +788,13 @@ class ResponseGenerator:
             raise RuntimeError(f"SageLLM 引擎初始化失败: {e}") from e
 
     def _setup_auto_backend(self) -> None:
-        """[DEPRECATED] 已废弃的自动检测后端方法。
+        """[DEPRECATED] 兼容模式的自动检测后端方法。
 
         优先级: 本地 LLM 服务 → 云端 API → mock 回退
 
-        请使用 --engine=sagellm 替代。
+        新项目请使用 --engine=sagellm。
         """
-        console.print("[yellow]⚠️  vllm 引擎已废弃，推荐使用 --engine=sagellm[/yellow]")
+        console.print("[yellow]⚠️  兼容模式路径已废弃，推荐使用 --engine=sagellm[/yellow]")
         import os
 
         import requests
@@ -1016,11 +1016,11 @@ class ResponseGenerator:
         if self.engine == "sagellm" and self._sagellm_generator:
             return self._sagellm_answer(question, contexts, references, stream)
 
-        # vllm 引擎的 mock 模式
+        # 兼容模式的 mock 路径
         if self.backend == "mock":
             return self._mock_answer(question, contexts, references)
 
-        # vllm 引擎使用 UnifiedInferenceClient
+        # 兼容模式使用 UnifiedInferenceClient
         if not self.client:
             raise RuntimeError("Client not initialized")
         messages = build_prompt(question, contexts)
@@ -1940,13 +1940,13 @@ def main(
         DEFAULT_ENGINE,
         "--engine",
         "-e",
-        help="LLM 推理引擎: sagellm (默认) / vllm (已废弃)",
+        help="LLM 推理引擎: sagellm (默认，推荐)。",
     ),
     backend: str = typer.Option(
         DEFAULT_BACKEND,
         "--backend",
         "-b",
-        help="后端类型: auto (自动检测) / mock / cuda / ascend / ... (sagellm 引擎); mock/openai/finetune/... (vllm 引擎)",
+        help="后端类型: auto (推荐) / mock / cuda / ascend / ...。兼容模式下仍可使用 openai/finetune 等后端。",
     ),
     model: str = typer.Option(
         DEFAULT_MODEL,
@@ -1957,7 +1957,7 @@ def main(
     base_url: str | None = typer.Option(
         None,
         "--base-url",
-        help="LLM API base_url (例如 vLLM 或兼容 OpenAI 的接口)",
+        help="LLM API base_url (例如 sagellm gateway 或兼容 OpenAI 的接口)",
     ),
     api_key: str | None = typer.Option(
         lambda: os.environ.get("TEMP_GENERATOR_API_KEY"),
@@ -1972,7 +1972,7 @@ def main(
     finetune_port: int = typer.Option(
         DEFAULT_FINETUNE_PORT,
         "--finetune-port",
-        help="finetune backend 使用的 vLLM 服务端口",
+        help="finetune backend 使用的推理服务端口",
     ),
     index_root: str | None = typer.Option(
         None,

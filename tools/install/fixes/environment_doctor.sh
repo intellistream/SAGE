@@ -70,6 +70,28 @@ log_message() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $*" >> "$DOCTOR_LOG"
 }
 
+# 轻量获取包版本（避免直接 import 大型包导致内存峰值）
+get_package_version_safe() {
+    local package_name="$1"
+    local detected_version=""
+
+    detected_version=$(python3 -c "from importlib.metadata import version, PackageNotFoundError; pkg='$package_name';
+try:
+    print(version(pkg))
+except PackageNotFoundError:
+    pass" 2>/dev/null | head -1)
+
+    if [ -z "$detected_version" ]; then
+        if command -v pip3 >/dev/null 2>&1; then
+            detected_version=$(pip3 show "$package_name" 2>/dev/null | awk -F': ' '/^Version:/{print $2; exit}')
+        elif command -v pip >/dev/null 2>&1; then
+            detected_version=$(pip show "$package_name" 2>/dev/null | awk -F': ' '/^Version:/{print $2; exit}')
+        fi
+    fi
+
+    echo "$detected_version"
+}
+
 # 问题报告结构
 declare -A ISSUE_REGISTRY
 declare -A FIX_REGISTRY
@@ -144,9 +166,9 @@ check_python_environment() {
     if command -v pip >/dev/null 2>&1 || command -v pip3 >/dev/null 2>&1; then
         local pip_version=""
         if command -v pip3 >/dev/null 2>&1; then
-            pip_version=$(pip3 --version 2>&1 | grep -oP 'pip \K[0-9]+\.[0-9]+\.[0-9]+')
+            pip_version=$(pip3 --version 2>&1 | grep -oE 'pip [0-9]+\.[0-9]+(\.[0-9]+)?' | awk '{print $2}' | head -1)
         else
-            pip_version=$(pip --version 2>&1 | grep -oP 'pip \K[0-9]+\.[0-9]+\.[0-9]+')
+            pip_version=$(pip --version 2>&1 | grep -oE 'pip [0-9]+\.[0-9]+(\.[0-9]+)?' | awk '{print $2}' | head -1)
         fi
         echo -e "  ${GREEN}${CHECK_MARK}${NC} pip 版本: $pip_version"
         log_message "INFO" "pip version: $pip_version"
@@ -197,7 +219,7 @@ check_package_manager_conflicts() {
         fi
 
         if [ "$pip_available" = "true" ]; then
-            pip_installed=$(python3 -c "import $package; print($package.__version__)" 2>/dev/null || echo "")
+            pip_installed=$(get_package_version_safe "$package")
         fi
 
         # 只有在真正冲突时才报告（conda 管理的包 vs pip 管理的包，且版本不同）
@@ -264,7 +286,7 @@ check_core_dependencies() {
         local status="missing"
 
         # 尝试获取包版本
-        version=$(python3 -c "import $package; print($package.__version__)" 2>/dev/null || echo "")
+        version=$(get_package_version_safe "$package")
 
         if [ -n "$version" ]; then
             status="installed"
@@ -276,16 +298,6 @@ check_core_dependencies() {
                 "numpy")
                     if [[ "$version" =~ ^1\. ]]; then
                         report_issue "numpy_v1" "numpy 1.x 版本可能与某些深度学习库不兼容，建议升级到 2.x" "major"
-                    fi
-                    ;;
-                "torch")
-                    # 检查CUDA支持
-                    local cuda_available=$(python3 -c "import torch; print(torch.cuda.is_available())" 2>/dev/null || echo "False")
-                    if [ "$cuda_available" = "True" ]; then
-                        local cuda_version=$(python3 -c "import torch; print(torch.version.cuda)" 2>/dev/null || echo "unknown")
-                        echo -e "    ${GREEN}${CHECK_MARK}${NC} CUDA 支持: $cuda_version"
-                    else
-                        echo -e "    ${YELLOW}${WARNING_MARK}${NC} 未检测到 CUDA 支持"
                     fi
                     ;;
             esac
@@ -309,8 +321,8 @@ check_specific_issues() {
     fi
 
     # 检查torch版本兼容性
-    local torch_version=$(python3 -c "import torch; print(torch.__version__)" 2>/dev/null || echo "")
-    local numpy_version=$(python3 -c "import numpy; print(numpy.__version__)" 2>/dev/null || echo "")
+    local torch_version=$(get_package_version_safe "torch")
+    local numpy_version=$(get_package_version_safe "numpy")
 
     if [ -n "$torch_version" ] && [ -n "$numpy_version" ]; then
         # 检查已知的不兼容组合
@@ -321,6 +333,7 @@ check_specific_issues() {
 
     # 检查CUDA环境
     if command -v nvidia-smi >/dev/null 2>&1; then
+        echo -e "  ${GREEN}${CHECK_MARK}${NC} CUDA 设备检测: 检测到 NVIDIA GPU"
         local driver_version=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader,nounits 2>/dev/null | head -1)
         echo -e "  ${INFO_MARK} NVIDIA 驱动版本: $driver_version"
 
@@ -339,6 +352,8 @@ check_specific_issues() {
             report_issue "nvcc_missing" "检测到 GPU 但未找到 nvcc 编译器 - vLLM 需要 CUDA Toolkit" "critical"
             echo -e "    ${DIM}修复建议: conda install -c conda-forge cudatoolkit-dev -y --override-channels${NC}"
         fi
+    else
+        echo -e "  ${INFO_MARK} CUDA 设备检测: 未检测到 nvidia-smi（当前可能为 CPU 环境）"
     fi
 
     # 检查磁盘空间

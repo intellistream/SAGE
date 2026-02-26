@@ -95,7 +95,6 @@ DOCTOR_ONLY=false
 FIX_ENVIRONMENT=false
 VERIFY_DEPS=false
 VERIFY_DEPS_STRICT=false
-AUTO_VENV=false  # 新增：自动创建虚拟环境
 SKIP_HOOKS=false
 HOOKS_MODE="auto"
 SETUP_WORKSPACE=false  # 新增：设置 workspace 依赖
@@ -139,12 +138,11 @@ detect_current_environment() {
         fi
     fi
 
-    # 检测虚拟环境
+    # 检测 Python venv（策略：不作为推荐环境，仅用于识别并后续 fail-fast）
     if [ -n "${VIRTUAL_ENV:-}" ]; then
         if [ "$in_conda" = false ] && [ "$in_conda_base" = false ]; then
-            env_type="venv"
-            env_name=$(basename "${VIRTUAL_ENV:-}")
-            in_venv=true
+            env_type="system"
+            env_name=""
         fi
     fi
 
@@ -160,8 +158,8 @@ get_smart_environment_recommendation() {
     local in_venv=$(echo "$env_info" | cut -d'|' -f4)
     local in_conda_base=$(echo "$env_info" | cut -d'|' -f5)
 
-    if [ "$in_conda" = true ] || [ "$in_venv" = true ]; then
-        # 用户已经在虚拟环境中（非 base），推荐直接使用
+    if [ "$in_conda" = true ]; then
+        # 用户已经在 conda 环境中（非 base），推荐直接使用
         echo "pip|$env_type|$env_name"
     elif [ "$in_conda_base" = true ]; then
         # 用户在 conda base 环境中，不推荐使用，推荐创建新环境
@@ -274,8 +272,6 @@ show_installation_menu() {
         echo -e "${INFO} 检测到您当前在 conda 环境中: ${GREEN}$current_env_name${NC}"
     elif [ "$current_env_type" = "conda_base" ]; then
         echo -e "${INFO} 检测到您当前在 conda ${YELLOW}base${NC} 环境中 ${DIM}(不推荐用于开发)${NC}"
-    elif [ "$current_env_type" = "venv" ] && [ -n "$current_env_name" ]; then
-        echo -e "${INFO} 检测到您当前在虚拟环境中: ${GREEN}$current_env_name${NC}"
     elif [ "$current_env_type" = "system" ]; then
         echo -e "${INFO} 检测到您当前在系统 Python 环境中"
     fi
@@ -293,10 +289,10 @@ show_installation_menu() {
         fi
 
         if [ "$recommended_env" = "pip" ]; then
-            # 推荐使用当前环境（仅当在真正的虚拟环境中，非 base）
+            # 推荐使用当前环境（仅当在当前 conda 环境中，非 base）
             if [ "$current_env_type" = "system" ]; then
-                # 在系统环境中，不推荐使用，建议创建虚拟环境
-                echo -e "  ${PURPLE}1)${NC} 使用当前系统环境 ${DIM}(不推荐，建议使用虚拟环境)${NC}"
+                # 在系统环境中，不推荐使用，建议创建 conda 环境
+                echo -e "  ${PURPLE}1)${NC} 使用当前系统环境 ${DIM}(不推荐，建议使用 conda 环境)${NC}"
                 if [ "$conda_available" = true ]; then
                     echo -e "  ${GREEN}2)${NC} 创建新的 Conda 环境 ${DIM}(推荐)${NC}"
                     local default_choice=2
@@ -315,8 +311,8 @@ show_installation_menu() {
                     local default_choice=1
                 fi
             else
-                # 在真正的虚拟环境中，推荐使用当前环境
-                echo -e "  ${GREEN}1)${NC} 使用当前环境 ${DIM}(推荐，已在虚拟环境中)${NC}"
+                # 在 conda 环境中，推荐使用当前环境
+                echo -e "  ${GREEN}1)${NC} 使用当前环境 ${DIM}(推荐，已在 Conda 环境中)${NC}"
                 if [ "$conda_available" = true ]; then
                     echo -e "  ${PURPLE}2)${NC} 创建新的 Conda 环境"
                 else
@@ -467,11 +463,8 @@ show_parameter_help() {
     echo ""
     echo -e "  ${BOLD}--pip, -pip${NC}                                  ${PURPLE}使用当前环境${NC}"
     echo -e "  ${BOLD}--conda, -conda${NC}                              ${GREEN}创建conda环境${NC}"
-    echo -e "  ${BOLD}--auto-venv${NC}                                  ${YELLOW}自动创建虚拟环境${NC}"
-    echo -e "    ${DIM}检测系统环境时自动创建 .sage/venv 虚拟环境${NC}"
-    echo -e "    ${DIM}优先使用 conda (如可用)，否则使用 Python venv${NC}"
     echo ""
-    echo -e "  ${DIM}💡 不指定时自动智能选择: 虚拟环境→pip，系统环境→conda${NC}"
+    echo -e "  ${DIM}💡 不指定时自动智能选择: Conda环境→pip，系统环境→conda${NC}"
     echo ""
 
     echo -e "${BLUE}⚡ 其他选项：${NC}"
@@ -626,11 +619,6 @@ parse_install_environment() {
             ;;
         "--pip"|"-pip")
             INSTALL_ENVIRONMENT="pip"
-            return 0
-            ;;
-        "--auto-venv")
-            AUTO_VENV=true
-            export SAGE_AUTO_VENV=true
             return 0
             ;;
         *)

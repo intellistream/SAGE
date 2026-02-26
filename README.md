@@ -84,7 +84,7 @@ env.submit()
 ```
 
 > 💡 **LLM Engine**: SAGE uses `sageLLM` as the default inference engine. For OpenAI-compatible APIs,
-> use `OpenAIGenerator`. See [CHANGELOG](./CHANGELOG.md) if migrating from vLLM.
+> use `OpenAIGenerator`. See [CHANGELOG](./CHANGELOG.md) for legacy migration notes.
 
 **Try it yourself:**
 

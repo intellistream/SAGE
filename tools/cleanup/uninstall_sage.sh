@@ -28,7 +28,7 @@ print_header() {
     echo ""
     echo -e "${DIM}此工具将帮助你:${NC}"
     echo -e "  • 卸载通过 quickstart.sh 安装的 SAGE Python 包"
-    echo -e "  • 可选：删除为 SAGE 创建的虚拟环境 (.sage/venv 或 Conda 环境)"
+    echo -e "  • 可选：删除为 SAGE 创建的 Conda 环境"
     echo -e "  • 保留项目源码和 Git 仓库本身${NC}"
     echo ""
 }

@@ -235,7 +235,7 @@ run_hello_world_demo() {
     # 验证 SAGE 安装（PEP 420 namespace - 检查实际包）
     echo -e "${INFO} 验证 SAGE 安装..."
     local sage_version
-    sage_version=$(VLLM_LOGGING_LEVEL=ERROR python3 -W ignore -c "import sage.common; print(sage.common.__version__)" 2>/dev/null | tail -1)
+    sage_version=$(SAGELLM_LOGGING_LEVEL=ERROR python3 -W ignore -c "import sage.common; print(sage.common.__version__)" 2>/dev/null | tail -1)
     if [ -n "$sage_version" ]; then
         echo -e "   ${GREEN}✅ SAGE v${sage_version} 已就绪${NC}"
     else
@@ -377,7 +377,7 @@ PY
                 echo -e "${DIM}   • Embedding 模型: bge-small-zh (~100MB)${NC}"
                 echo ""
                 # 后台启动服务
-                # 注意: sage llm serve 默认已包含 embedding 服务
+                # 注意: sage llm serve 默认已包含 embedding 服务（默认模型: Qwen/Qwen2.5-0.5B-Instruct）
                 sage llm serve &>/dev/null &
                 local serve_pid=$!
 
@@ -421,7 +421,7 @@ PY
             ingest_log=$(mktemp)
             local ingest_cmd
             # 设置环境变量抑制各种 INFO 日志
-            local quiet_env="VLLM_LOGGING_LEVEL=WARNING TRANSFORMERS_VERBOSITY=error HF_HUB_VERBOSITY=error HTTPX_LOG_LEVEL=WARNING"
+            local quiet_env="SAGELLM_LOGGING_LEVEL=WARNING TRANSFORMERS_VERBOSITY=error HF_HUB_VERBOSITY=error HTTPX_LOG_LEVEL=WARNING"
 
             if [ "$embedding_running" = true ]; then
                 # 使用运行中的 Embedding 服务
@@ -445,7 +445,7 @@ PY
                 echo -e "${DIM}   正在清理不完整的索引文件...${NC}"
                 rm -f "${chat_cache_dir}/docs-public"* 2>/dev/null || true
                 echo -e "${YELLOW}⚠️  可以稍后重试:${NC}"
-                echo -e "   ${CYAN}sage llm serve${NC}  # 启动 LLM + Embedding 服务"
+                echo -e "   ${CYAN}sage llm serve --model Qwen/Qwen2.5-0.5B-Instruct${NC}  # 启动 LLM + Embedding 服务"
                 echo -e "   ${CYAN}sage chat ingest --embedding-method openai --embedding-model BAAI/bge-m3 --embedding-base-url http://localhost:8090/v1${NC}"
             fi
             rm -f "$ingest_log"
@@ -458,24 +458,24 @@ PY
     echo ""
 
     # 启动 sage chat
-    # 优先使用本地 vLLM，如果没有则用 mock
-    if curl -s http://localhost:8901/v1/models >/dev/null 2>&1; then
-        echo -e "   ${GREEN}✅ 检测到本地 LLM 服务 (localhost:8901)${NC}"
-        # 获取实际运行的模型名称
-        local vllm_model
-        vllm_model=$(curl -s http://localhost:8901/v1/models | python3 -c "import sys,json; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null || echo "")
-        if [ -n "$vllm_model" ]; then
-            echo -e "   ${DIM}模型: $vllm_model${NC}"
+    # 优先使用本地 LLM（sagellm），如果没有则用 mock
+    if curl -s http://localhost:8000/v1/models >/dev/null 2>&1; then
+        echo -e "   ${GREEN}✅ 检测到本地 LLM 服务 (localhost:8000)${NC}"
+        # 获取实际运行的模型名称（若可用）
+        local local_model
+        local_model=$(curl -s http://localhost:8000/v1/models | python3 -c "import sys,json; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null || echo "")
+        if [ -n "$local_model" ]; then
+            echo -e "   ${DIM}模型: $local_model${NC}"
         fi
         echo ""
-        sage chat --backend vllm --base-url http://localhost:8901/v1 --model "${vllm_model:-Qwen/Qwen2.5-0.5B-Instruct}" --stream
+        sage chat --engine sagellm --backend auto --model "${local_model:-Qwen/Qwen2.5-0.5B-Instruct}" --stream
     elif [ -n "${SAGE_CHAT_API_KEY:-}" ] || [ -n "${OPENAI_API_KEY:-}" ]; then
         echo -e "   ${GREEN}✅ 使用云端 API${NC}"
         echo ""
         sage chat --backend openai --stream
     else
         echo -e "   ${YELLOW}ℹ️  使用 Mock 模式演示 (无需 LLM 服务)${NC}"
-        echo -e "   ${DIM}   提示: 运行 'sage llm serve' 可启动本地 LLM${NC}"
+        echo -e "   ${DIM}   提示: 运行 'sage llm serve --model Qwen/Qwen2.5-0.5B-Instruct' 可启动本地 LLM${NC}"
         echo ""
         sage chat --backend mock
     fi
@@ -486,10 +486,10 @@ PY
     echo -e "${BLUE}${BOLD}📝 使用方式:${NC}"
     echo ""
     echo -e "   ${CYAN}# 交互式 RAG 问答${NC}"
-    echo -e "   ${DIM}sage chat --backend vllm --base-url http://localhost:8901/v1${NC}"
+    echo -e "   ${DIM}sage chat --engine sagellm --backend auto --stream${NC}"
     echo ""
     echo -e "   ${CYAN}# 单次提问${NC}"
-    echo -e "   ${DIM}sage chat --ask \"如何创建 SAGE Pipeline?\" --backend vllm${NC}"
+    echo -e "   ${DIM}sage chat --ask \"如何创建 SAGE Pipeline?\" --engine sagellm --backend auto${NC}"
     echo ""
     echo -e "   ${CYAN}# 构建自定义知识库${NC}"
     echo -e "   ${DIM}sage chat ingest --source ./my-docs --index my-knowledge${NC}"
@@ -551,7 +551,7 @@ prompt_start_llm_service() {
         echo -e "  ${CYAN}conda activate ${SAGE_ENV_NAME:-}${NC}"
         echo ""
         echo -e "${DIM}激活后可用以下命令启动服务:${NC}"
-        echo -e "  ${CYAN}sage llm serve${NC}       # 启动 LLM 推理服务"
+        echo -e "  ${CYAN}sage llm serve --model Qwen/Qwen2.5-0.5B-Instruct${NC}       # 启动 LLM 推理服务（默认轻量模型）"
         echo ""
         echo -e "${DIM}💡 SAGE Studio 需要单独安装: pip install isage-studio${NC}"
         echo ""
@@ -564,9 +564,9 @@ prompt_start_llm_service() {
     echo -e "  ${BOLD}[1] 运行 Hello World${NC}  - 快速体验 SAGE Pipeline"
     echo -e "      ${DIM}运行一个简单的数据处理流水线示例${NC}"
     echo ""
-    echo -e "  ${BOLD}[2] sage llm serve${NC}    - 启动 LLM 推理服务"
+    echo -e "  ${BOLD}[2] sage llm serve${NC}    - 启动 LLM 推理服务（默认: Qwen/Qwen2.5-0.5B-Instruct）"
     if [ "$has_gpu" = true ]; then
-        echo -e "      ${DIM}提供 OpenAI 兼容 API (http://localhost:8901/v1)${NC}"
+        echo -e "      ${DIM}提供 OpenAI 兼容 API (http://localhost:8000/v1)${NC}"
     else
         echo -e "      ${DIM}${YELLOW}⚠️  需要 GPU，当前未检测到${NC}"
     fi
@@ -593,7 +593,7 @@ prompt_start_llm_service() {
                 echo -e "${INFO} 正在启动 LLM 服务..."
                 echo -e "${DIM}   首次启动会下载模型并加载到 GPU，可能需要 1-3 分钟${NC}"
                 echo -e "${DIM}   • 模型下载: Qwen2.5-0.5B (~300MB)${NC}"
-                echo -e "${DIM}   • GPU 加载: vLLM 初始化${NC}"
+                echo -e "${DIM}   • GPU 加载: LLM 引擎初始化${NC}"
                 echo ""
 
                 if command -v sage &>/dev/null; then
@@ -619,7 +619,7 @@ prompt_start_llm_service() {
                                 last_status="downloading"
                             elif grep -q "启动 LLM 服务" "$llm_log" 2>/dev/null && [ "$last_status" != "starting" ]; then
                                 printf "\r\033[K"
-                                echo -e "   ${CYAN}⏳ 正在启动 vLLM 服务...${NC}"
+                                echo -e "   ${CYAN}⏳ 正在启动 LLM 服务...${NC}"
                                 last_status="starting"
                             elif grep -q "启动中" "$llm_log" 2>/dev/null && [ "$last_status" != "loading" ]; then
                                 printf "\r\033[K"
@@ -651,7 +651,7 @@ prompt_start_llm_service() {
                     echo ""
                     if [ $exit_code -eq 0 ]; then
                         echo -e "${GREEN}✅ LLM 服务已启动${NC}"
-                        echo -e "${DIM}   API 地址: http://localhost:8901/v1${NC}"
+                        echo -e "${DIM}   API 地址: http://localhost:8000/v1${NC}"
                         echo -e "${DIM}   状态查看: sage llm status${NC}"
                         echo -e "${DIM}   停止服务: sage llm stop${NC}"
                     else
@@ -668,7 +668,7 @@ prompt_start_llm_service() {
                     fi
                 else
                     echo -e "${YELLOW}⚠️  sage 命令不可用，请手动启动:${NC}"
-                    echo -e "  ${CYAN}sage llm serve${NC}"
+                    echo -e "  ${CYAN}sage llm serve --model Qwen/Qwen2.5-0.5B-Instruct${NC}"
                 fi
             else
                 echo ""
@@ -683,7 +683,7 @@ prompt_start_llm_service() {
             echo -e "${DIM}已跳过。稍后可用以下命令:${NC}"
             echo -e "  ${CYAN}git clone https://github.com/intellistream/sage-examples.git${NC}"
             echo -e "  ${CYAN}python sage-examples/tutorials/hello_world.py${NC}  # Hello World"
-            echo -e "  ${CYAN}sage llm serve${NC}                                  # LLM 服务"
+            echo -e "  ${CYAN}sage llm serve --model Qwen/Qwen2.5-0.5B-Instruct${NC}  # LLM 服务"
             echo ""
             echo -e "${DIM}💡 SAGE Studio 需要单独安装:${NC}"
             echo -e "  ${CYAN}pip install isage-studio${NC}"
@@ -843,8 +843,19 @@ show_usage_tips() {
         echo ""
     fi
 
-    # 询问用户是否要启动 LLM 服务（非 CI 环境 + 非 --yes 自动模式）
-    prompt_start_llm_service "$mode"
+    # 安装结束时不自动触发服务启动交互，改为明确可执行的对话指引
+    # 默认优先使用 sagellm 非服务模式（run），避免用户额外理解 server/client 拓扑
+    echo -e "${BLUE}LLM 对话使用（推荐）：${NC}"
+    echo -e "  ${DIM}# 1) 直接使用非服务模式（无需先启动 server）${NC}"
+    echo -e "  ${CYAN}sagellm run -p \"Hello, SAGE!\"${NC}"
+    echo ""
+    echo -e "  ${DIM}# 2) 需要 RAG 交互时，使用 sagellm 引擎直连${NC}"
+    echo -e "  ${CYAN}sage chat --engine sagellm --backend auto --stream${NC}"
+    echo ""
+    echo -e "  ${DIM}# 3) 如需 OpenAI 兼容服务接口，再手动启动 server${NC}"
+    echo -e "  ${CYAN}sage llm serve --model Qwen/Qwen2.5-0.5B-Instruct${NC}"
+    echo -e "  ${CYAN}sage llm status${NC}"
+    echo -e "  ${CYAN}sage llm stop${NC}"
 }
 
 # 创建 VS Code conda 环境配置的辅助函数

@@ -244,10 +244,9 @@ detect_virtual_environment() {
     echo "$is_venv|$venv_type|$venv_name"
 }
 
-# 检查虚拟环境隔离（可配置为警告或错误）
+# 检查环境隔离（可配置为警告或错误）
 check_virtual_environment_isolation() {
     local install_environment="$1"
-    local auto_venv="${2:-false}"
 
     # 如果用户选择了 conda，则会创建新环境，不需要额外检查
     if [ "$install_environment" = "conda" ]; then
@@ -264,31 +263,28 @@ check_virtual_environment_isolation() {
     local venv_type=$(echo "$venv_info" | cut -d'|' -f2)
     local venv_name=$(echo "$venv_info" | cut -d'|' -f3)
 
+    # 项目策略：不支持 Python venv（含 .venv）作为安装/运行环境
+    if [ "$is_venv" = "true" ] && [ "$venv_type" = "venv" ]; then
+        echo ""
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BOLD}❌ 不支持 Python venv 环境${NC}"
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+        echo -e "${WARNING} 检测到 VIRTUAL_ENV: ${RED}${VIRTUAL_ENV:-unknown}${NC}"
+        echo -e "${INFO} SAGE 当前策略不允许使用或自动创建 venv/.venv"
+        echo ""
+        echo -e "${BLUE}请改用以下方式之一：${NC}"
+        echo -e "  ${GREEN}1)${NC} 退出当前 venv 后使用 Conda 环境（推荐）"
+        echo -e "     ${DIM}conda activate sage${NC}"
+        echo -e "  ${PURPLE}2)${NC} 退出当前 venv 后使用当前系统/已有环境"
+        echo -e "     ${DIM}deactivate && ./quickstart.sh --pip${NC}"
+        echo ""
+        echo -e "${RED}${BOLD}✗ 安装已终止${NC}"
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        exit 1
+    fi
+
     if [ "$is_venv" = "false" ]; then
-        # 如果启用了 auto-venv，自动创建虚拟环境
-        if [ "$auto_venv" = "true" ]; then
-            echo ""
-            echo -e "${BLUE}🔧 自动创建虚拟环境${NC}"
-            echo ""
-
-            local venv_path=".sage/venv"
-            echo -e "${INFO} 将在 ${GREEN}$venv_path${NC} 创建 Python 虚拟环境"
-
-            if ! ensure_python_venv "$venv_path"; then
-                echo -e "${RED}错误: 无法自动创建虚拟环境${NC}"
-                echo -e "${DIM}请手动创建: python3 -m venv $venv_path${NC}"
-                exit 1
-            fi
-
-            source "$venv_path/bin/activate"
-            if [ -n "${VIRTUAL_ENV:-}" ]; then
-                echo -e "${CHECK} 虚拟环境已激活: ${GREEN}$venv_path${NC}"
-                export PIP_CMD="python3 -m pip"
-                export PYTHON_CMD="python3"
-                return 0
-            fi
-        fi
-
         # 读取配置（默认为 warning）
         local venv_policy="${SAGE_VENV_POLICY:-warning}"
 
@@ -297,9 +293,9 @@ check_virtual_environment_isolation() {
         echo -e "${BOLD}⚠️  环境隔离警告${NC}"
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo ""
-        echo -e "${WARNING} 检测到您正在使用系统 Python 环境（非虚拟环境）"
+        echo -e "${WARNING} 检测到您正在使用系统 Python 环境（非 Conda 环境）"
         echo ""
-        echo -e "${BLUE}为什么推荐使用虚拟环境？${NC}"
+        echo -e "${BLUE}为什么推荐使用隔离环境（Conda）？${NC}"
         echo -e "  ${DIM}• 避免与系统包冲突${NC}"
         echo -e "  ${DIM}• 保持系统环境清洁${NC}"
         echo -e "  ${DIM}• 便于完全卸载和清理${NC}"
@@ -308,14 +304,10 @@ check_virtual_environment_isolation() {
 
         echo -e "${BLUE}建议的操作：${NC}"
         echo ""
-        echo -e "  ${YELLOW}1. 自动创建虚拟环境（推荐）${NC}"
-        echo -e "     ${DIM}重新运行: ${CYAN}./quickstart.sh --auto-venv${NC}"
+        echo -e "  ${GREEN}1. 使用 Conda 环境（推荐）${NC}"
+        echo -e "     ${DIM}运行: ${CYAN}./quickstart.sh --conda${NC}"
         echo ""
-        echo -e "  ${PURPLE}2. 手动创建虚拟环境${NC}"
-        echo -e "     ${DIM}使用 conda: ${CYAN}./quickstart.sh --conda${NC}"
-        echo -e "     ${DIM}或使用 venv: ${CYAN}python3 -m venv .sage/venv && source .sage/venv/bin/activate${NC}"
-        echo ""
-        echo -e "  ${GRAY}3. 继续在系统环境中安装（不推荐）${NC}"
+        echo -e "  ${GRAY}2. 继续在系统环境中安装（不推荐）${NC}"
         echo -e "     ${DIM}风险：可能污染系统 Python 环境${NC}"
         echo ""
 
@@ -338,7 +330,7 @@ check_virtual_environment_isolation() {
                 if [[ ! "$continue_choice" =~ ^[Yy]$ ]]; then
                     echo ""
                     echo -e "${INFO} 安装已取消"
-                    echo -e "${DIM}提示: 使用 --auto-venv 可自动创建虚拟环境${NC}"
+                    echo -e "${DIM}提示: 使用 --conda 创建并使用隔离环境${NC}"
                     echo ""
                     echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
                     exit 0
@@ -360,32 +352,10 @@ check_virtual_environment_isolation() {
                 ;;
         esac
     else
-        echo -e "${CHECK} 检测到虚拟环境: ${GREEN}$venv_type ($venv_name)${NC}"
+        echo -e "${CHECK} 检测到隔离环境: ${GREEN}$venv_type ($venv_name)${NC}"
     fi
 
     return 0
-}
-
-ensure_python_venv() {
-    local venv_path="$1"
-    : > /tmp/venv.log
-    if python3 -m venv "$venv_path" 2>/tmp/venv.log; then
-        return 0
-    fi
-    echo -e "${DIM}标准 venv 创建失败，尝试使用 virtualenv 模块...${NC}"
-    if python3 -m virtualenv "$venv_path" 2>>/tmp/venv.log; then
-        return 0
-    fi
-    echo -e "${DIM}virtualenv 模块不可用，尝试安装...${NC}"
-    if python3 -m pip install --user --break-system-packages virtualenv >/tmp/venv.log 2>&1; then
-        if python3 -m virtualenv "$venv_path" 2>>/tmp/venv.log; then
-            return 0
-        fi
-    fi
-    if [ -f /tmp/venv.log ]; then
-        tail -n 20 /tmp/venv.log
-    fi
-    return 1
 }
 
 # 配置安装环境的主函数
@@ -408,8 +378,8 @@ configure_installation_environment() {
         echo -e "${INFO} 已设置 PYTHONNOUSERSITE=1 以避免用户包冲突"
     fi
 
-    # 检查虚拟环境隔离（--auto-venv 会在 argument_parser 中设置 SAGE_AUTO_VENV）
-    check_virtual_environment_isolation "$install_environment" "${SAGE_AUTO_VENV:-false}"
+    # 检查环境隔离
+    check_virtual_environment_isolation "$install_environment"
 
     # 运行综合系统检查（包含预检查、系统检查、SAGE检查）
     if ! comprehensive_system_check "$install_mode" "$install_environment"; then

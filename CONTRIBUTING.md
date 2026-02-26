@@ -64,8 +64,8 @@ git pull --ff-only origin main-dev
 # 或核心安装（仅核心包）
 ./quickstart.sh --core --yes
 
-# 标准模式 + 安装 VLLM 支持
-./quickstart.sh --standard --vllm --yes
+# 标准模式安装
+./quickstart.sh --standard --yes
 ```
 
 ### 第二步：创建功能分支（勿在 main-dev 直接开发）
@@ -77,7 +77,7 @@ git pull --ff-only origin main-dev
 
 # 示例
 git checkout -b fix/ci-cache-permissions
-git checkout -b feat/vllm-integration
+git checkout -b feat/sagellm-integration
 git checkout -b refactor/jobmanager-architecture
 ```
 
@@ -237,10 +237,10 @@ Closes: #123
 #### 新功能
 
 ```
-feat(quickstart): add optional VLLM installation flag
+feat(quickstart): improve sagellm-first startup guidance
 
-Add --vllm flag to quickstart; auto-verifies vllm after install.
-Docs updated.
+Use sagellm run/chat as default onboarding flow.
+Keep serve mode as optional path.
 ```
 
 #### 测试修复
@@ -467,7 +467,7 @@ pre-commit run cross-repo-dedup-check --all-files
 | 安装（交互式） | `./quickstart.sh`                                  | 未传参进入菜单             |
 | 核心安装       | `./quickstart.sh --core --yes`                     | 仅核心包                   |
 | 开发者安装     | `./quickstart.sh --dev --yes`                      | 安装开发依赖（可编辑模式） |
-| 启用 VLLM      | `./quickstart.sh --standard --vllm --yes`          | 额外安装 vllm              |
+| 标准安装       | `./quickstart.sh --standard --yes`                 | 标准功能集合               |
 | 核心测试       | `sage-dev project test --coverage`                 | 运行核心测试集             |
 | 单个测试       | `pytest -k <keyword>`                              | 关键字过滤                 |
 | 版本查看       | `python -c "import sage; print(sage.__version__)"` | 确认安装                   |
@@ -554,8 +554,7 @@ bash -x ./quickstart.sh --dev --yes
 使用 GitHub CLI（推荐）：
 
 ```bash
-gh secret set OPENAI_API_KEY -b "your-openai-or-dashscope-key"
-gh secret set HF_TOKEN -b "your-huggingface-token"
+gh secret set SAGE_UNIFIED_API_KEY -b "token-abc123"
 ```
 
 ### 完整配置（可选）
@@ -570,8 +569,8 @@ gh secret set SILICONCLOUD_API_KEY -b "your-key"
 gh secret set JINA_API_KEY -b "your-key"
 gh secret set WEB_SEARCH_API_KEY -b "your-key"
 
-# vLLM 本地服务（如果不需要认证可以留空）
-gh secret set VLLM_API_KEY -b "token-abc123"
+# 本地/自建推理服务认证（可选）
+gh secret set SAGE_UNIFIED_API_KEY -b "token-abc123"
 
 # Hugging Face
 gh secret set HF_TOKEN -b "hf_xxx..."
@@ -583,13 +582,13 @@ gh secret set HF_TOKEN -b "hf_xxx..."
 1. 点击 `New repository secret`
 1. 添加以下 secrets：
 
-| Name                 | Value                                 | Required |
-| -------------------- | ------------------------------------- | -------- |
-| `OPENAI_API_KEY`     | 你的 OpenAI/DashScope API key         | ✅ 是    |
-| `HF_TOKEN`           | 你的 Hugging Face token               | ✅ 是    |
-| `ALIBABA_API_KEY`    | 阿里云 API key                        | ⭕ 可选  |
-| `VLLM_API_KEY`       | vLLM 服务 token（默认: token-abc123） | ⭕ 可选  |
-| `WEB_SEARCH_API_KEY` | Web 搜索服务 key                      | ⭕ 可选  |
+| Name                   | Value                                    | Required |
+| ---------------------- | ---------------------------------------- | -------- |
+| `OPENAI_API_KEY`       | 你的 OpenAI/DashScope API key            | ⭕ 可选  |
+| `HF_TOKEN`             | 你的 Hugging Face token                  | ⭕ 可选  |
+| `ALIBABA_API_KEY`      | 阿里云 API key                           | ⭕ 可选  |
+| `SAGE_UNIFIED_API_KEY` | 统一推理服务 token（默认: token-abc123） | ✅ 是    |
+| `WEB_SEARCH_API_KEY`   | Web 搜索服务 key                         | ⭕ 可选  |
 
 ### 验证配置
 
