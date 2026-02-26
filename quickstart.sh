@@ -210,6 +210,7 @@ main() {
     local mode=$(get_install_mode)
     local environment=$(get_install_environment)
     local auto_confirm=$(get_auto_confirm)
+    export SAGE_AUTO_CONFIRM="$auto_confirm"
     local clean_cache=$(get_clean_pip_cache)
     local verify_deps=$(get_verify_deps)
     local verify_deps_strict=$(get_verify_deps_strict)
