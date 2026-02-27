@@ -14,7 +14,7 @@
 
 ```bash
 pip install isage-studio
-sage-studio start         # Open http://localhost:4200
+sage-studio start
 ```
 
 ______________________________________________________________________
@@ -155,36 +155,31 @@ pip install isage[dev]         # Development tools (includes pre-commit, pytest,
 
 `isage` is a meta-package that bundles the full framework stack: `isage-common` (L1) ·
 `isage-platform` (L2) · `isage-kernel` + `isage-libs` (L3) · `isage-middleware` (L4) · `isage-cli`
-(L5) · `isage-flow` (runtime)
+(L5) · `isage-flow` (runtime) · `isagellm` (LLM gateway)
 
 **Capability Packages (Layer-integrated by default)** 🧩
 
 For a standard `pip install isage`, these capability packages are already installed transitively
 (primarily via `isage-middleware`) and usually do **not** require extra manual installation:
 
-| Feature            | Included Package | Notes                                 |
-| ------------------ | ---------------- | ------------------------------------- |
-| **Agents**         | `isage-agentic`  | ReAct, PlanExecute, complex reasoning |
-| **RAG**            | `isage-rag`      | Retrieval-augmented generation        |
-| **Vector DB**      | `isage-vdb`      | Fast vector search (SageVDB)          |
-| **Memory Systems** | `isage-neuromem` | Persistent memory + sessions          |
-| **Evaluation**     | `isage-eval`     | Metrics, judges, benchmarking         |
-| **Fine-tuning**    | `isage-finetune` | Model adaptation + training           |
-| **Privacy**        | `isage-privacy`  | Differential privacy, PII handling    |
+| Feature            | Included Package | Notes                                   |
+| ------------------ | ---------------- | --------------------------------------- |
+| **Agents**         | `isage-agentic`  | ReAct, PlanExecute, complex reasoning   |
+| **RAG**            | `isage-rag`      | Retrieval-augmented generation          |
+| **Vector DB**      | `isage-vdb`      | Fast vector search (SageVDB)            |
+| **Memory Systems** | `isage-neuromem` | Persistent memory + sessions            |
+| **Evaluation**     | `isage-eval`     | Metrics, judges, benchmarking           |
+| **Fine-tuning**    | `isage-finetune` | Model adaptation + training             |
+| **Privacy**        | `isage-privacy`  | Differential privacy, PII handling      |
+| **LLM Gateway**    | `isagellm`       | Control plane, unified inference client |
 
 Install these separately only when you need standalone usage, explicit version pinning, or
 independent upgrade cadence.
 
-**Truly Optional Packages (not pulled by default)**
-
-| Feature         | Package                | Use Case                                |
-| --------------- | ---------------------- | --------------------------------------- |
-| **LLM Gateway** | `pip install isagellm` | Control plane, unified inference client |
-
-Example: add LLM gateway on top of core SAGE
+Example: install full core SAGE stack
 
 ```bash
-pip install isage isagellm
+pip install isage
 ```
 
 See [Dependency Management](./DEVELOPER.md#dependency-management) in DEVELOPER.md for detailed
@@ -212,24 +207,6 @@ cp .env.template .env    # Copy template
 ```
 
 📖 **API key setup**: See [.env.template](./.env.template) for all available options
-
-## Use Cases
-
-**RAG Applications**: Build production-ready retrieval-augmented generation systems with multi-modal
-support and advanced reasoning capabilities.
-
-**Real-Time Analytics**: Process streaming data with AI-powered insights, anomaly detection, and
-automated decision making.
-
-**Data Pipeline Orchestration**: Coordinate complex ETL workflows that seamlessly integrate AI
-components with traditional data processing.
-
-**Multi-Modal Processing**: Handle text, images, audio, and structured data in unified pipelines
-with consistent APIs. **🆕 Advanced multimodal fusion** enables intelligent combination of different
-data modalities for enhanced AI understanding and generation.
-
-**Distributed AI Inference**: Scale AI model serving across multiple nodes with automatic load
-balancing and fault tolerance.
 
 ## 📚 Tutorials
 
