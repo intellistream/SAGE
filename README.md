@@ -169,17 +169,17 @@ For a standard `pip install isage`, these capability packages are already instal
 | **Vector DB**      | `isage-vdb`      | Fast vector search (SageVDB)          |
 | **Memory Systems** | `isage-neuromem` | Persistent memory + sessions          |
 | **Evaluation**     | `isage-eval`     | Metrics, judges, benchmarking         |
+| **Fine-tuning**    | `isage-finetune` | Model adaptation + training           |
+| **Privacy**        | `isage-privacy`  | Differential privacy, PII handling    |
 
 Install these separately only when you need standalone usage, explicit version pinning, or
 independent upgrade cadence.
 
 **Truly Optional Packages (not pulled by default)**
 
-| Feature         | Package                      | Use Case                                |
-| --------------- | ---------------------------- | --------------------------------------- |
-| **Fine-tuning** | `pip install isage-finetune` | Model adaptation + training             |
-| **Privacy**     | `pip install isage-privacy`  | Differential privacy, PII handling      |
-| **LLM Gateway** | `pip install isagellm`       | Control plane, unified inference client |
+| Feature         | Package                | Use Case                                |
+| --------------- | ---------------------- | --------------------------------------- |
+| **LLM Gateway** | `pip install isagellm` | Control plane, unified inference client |
 
 Example: add LLM gateway on top of core SAGE
 
