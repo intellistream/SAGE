@@ -157,25 +157,34 @@ pip install isage[dev]         # Development tools (includes pre-commit, pytest,
 `isage-platform` (L2) · `isage-kernel` + `isage-libs` (L3) · `isage-middleware` (L4) · `isage-cli`
 (L5) · `isage-flow` (runtime)
 
-**Optional Add-on Packages** 🧩
+**Capability Packages (Layer-integrated by default)** 🧩
 
-The following packages are **not** bundled in `isage` and must be installed separately:
+For a standard `pip install isage`, these capability packages are already installed transitively
+(primarily via `isage-middleware`) and usually do **not** require extra manual installation:
 
-| Feature            | Package                      | Use Case                                |
-| ------------------ | ---------------------------- | --------------------------------------- |
-| **Agents**         | `pip install isage-agentic`  | ReAct, PlanExecute, complex reasoning   |
-| **RAG**            | `pip install isage-rag`      | Retrieval-augmented generation          |
-| **Vector DB**      | `pip install isage-vdb`      | Fast vector search (SageVDB)            |
-| **Memory Systems** | `pip install isage-neuromem` | Persistent memory + sessions            |
-| **Evaluation**     | `pip install isage-eval`     | Metrics, judges, benchmarking           |
-| **Fine-tuning**    | `pip install isage-finetune` | Model adaptation + training             |
-| **Privacy**        | `pip install isage-privacy`  | Differential privacy, PII handling      |
-| **LLM Gateway**    | `pip install isagellm`       | Control plane, unified inference client |
+| Feature            | Included Package | Notes                                 |
+| ------------------ | ---------------- | ------------------------------------- |
+| **Agents**         | `isage-agentic`  | ReAct, PlanExecute, complex reasoning |
+| **RAG**            | `isage-rag`      | Retrieval-augmented generation        |
+| **Vector DB**      | `isage-vdb`      | Fast vector search (SageVDB)          |
+| **Memory Systems** | `isage-neuromem` | Persistent memory + sessions          |
+| **Evaluation**     | `isage-eval`     | Metrics, judges, benchmarking         |
 
-Example: Build an agentic RAG system
+Install these separately only when you need standalone usage, explicit version pinning, or
+independent upgrade cadence.
+
+**Truly Optional Packages (not pulled by default)**
+
+| Feature         | Package                      | Use Case                                |
+| --------------- | ---------------------------- | --------------------------------------- |
+| **Fine-tuning** | `pip install isage-finetune` | Model adaptation + training             |
+| **Privacy**     | `pip install isage-privacy`  | Differential privacy, PII handling      |
+| **LLM Gateway** | `pip install isagellm`       | Control plane, unified inference client |
+
+Example: add LLM gateway on top of core SAGE
 
 ```bash
-pip install isage isage-agentic isage-rag isage-vdb isagellm
+pip install isage isagellm
 ```
 
 See [Dependency Management](./DEVELOPER.md#dependency-management) in DEVELOPER.md for detailed
