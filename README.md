@@ -19,7 +19,7 @@ sage-studio start         # Open http://localhost:4200
 
 ______________________________________________________________________
 
-[![Build & Test](https://github.com/intellistream/SAGE/actions/workflows/build-test.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/build-test.yml)
+[![Build & Test](https://github.com/intellistream/SAGE/actions/workflows/ci-build-test.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/ci-build-test.yml)
 [![codecov](https://codecov.io/gh/intellistream/SAGE/branch/main/graph/badge.svg)](https://codecov.io/gh/intellistream/SAGE)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
