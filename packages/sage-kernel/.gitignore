@@ -1,6 +1,0 @@
-htmlcov/
-coverage.xml
-.coverage
-build/
-.pytest_cache/
-# .benchmarks/  # Deprecated - now uses .sage/benchmarks
