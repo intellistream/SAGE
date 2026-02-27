@@ -1,21 +1,13 @@
-name: Build and Test
+# DEPRECATED (#1466) — Monorepo per-package tests have moved to independent
+# standalone repos (sage-common, sage-platform, sage-kernel, sage-libs,
+# sage-middleware, sage-cli).  This workflow is preserved for reference but
+# no longer runs automatically.  Use workflows in the standalone repos instead.
+# Cross-repo smoke tests: see ci-integration.yml
+
+name: "[DEPRECATED] Build and Test (monorepo)"
 
 on:
-  push:
-    branches: [main, main-dev]
-    paths:
-      - 'packages/**'
-      - 'tools/**'
-      - 'pyproject.toml'
-      - '.github/workflows/ci-build-test.yml'
-  pull_request:
-    branches: [main, main-dev]
-    types: [opened, synchronize, reopened]
-    paths:
-      - 'packages/**'
-      - 'tools/**'
-      - 'pyproject.toml'
-  workflow_dispatch:
+  workflow_dispatch:  # manual only — automatic triggers removed (#1466)
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

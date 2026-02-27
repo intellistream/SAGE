@@ -80,8 +80,87 @@ pre_check_system_environment
 # 根据偏移探测结果设置Unicode符号
 setup_unicode_symbols
 
+# ─── SAGE 工作区初始化函数 ───────────────────────────────────────────────────
+# 用于将所有独立 SAGE 子仓库 clone 到本地工作区目录。
+# 使用方法：./quickstart.sh --workspace [--dir <path>]
+_init_sage_workspace() {
+    # 解析 --dir 参数
+    local workspace_dir="$HOME/sage-workspace"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --dir) workspace_dir="$2"; shift 2 ;;
+            --dir=*) workspace_dir="${1#--dir=}"; shift ;;
+            *) shift ;;
+        esac
+    done
+
+    local GREEN='\033[0;32m'; local CYAN='\033[0;36m'
+    local YELLOW='\033[1;33m'; local NC='\033[0m'; local BOLD='\033[1m'
+
+    echo -e "\n${BOLD}🚀 SAGE 工作区初始化${NC}"
+    echo -e "${CYAN}目标目录: ${workspace_dir}${NC}\n"
+
+    # ── 独立子仓库列表（按层级 L1→L5）────────────────────────────────────────
+    local SAGE_REPOS=(
+        "intellistream/sage-common"        # L1
+        "intellistream/sage-platform"      # L2
+        "intellistream/sage-kernel"        # L3
+        "intellistream/sage-libs"          # L3
+        "intellistream/sage-middleware"    # L4
+        "intellistream/sage-cli"           # L5
+        "intellistream/sage-dev-tools"     # dev tooling
+        "intellistream/sage-examples"      # examples
+    )
+
+    mkdir -p "$workspace_dir"
+
+    local ok=0; local skip=0; local fail=0
+    for repo in "${SAGE_REPOS[@]}"; do
+        local name="${repo#*/}"
+        local target="$workspace_dir/$name"
+        if [ -d "$target/.git" ]; then
+            echo -e "  ${YELLOW}↻${NC} $name — 已存在，正在 pull..."
+            git -C "$target" pull --ff-only 2>&1 | tail -1 && ((skip++)) || ((fail++))
+        else
+            echo -e "  ${CYAN}⬇${NC} clone $repo..."
+            if git clone "https://github.com/$repo.git" "$target" --depth 1 2>&1 | tail -1; then
+                ((ok++))
+            else
+                echo -e "  ${YELLOW}⚠ clone 失败，跳过 $name${NC}"
+                ((fail++))
+            fi
+        fi
+    done
+
+    # ── 主 SAGE meta 仓库（当前仓库）─────────────────────────────────────────
+    if [ ! -d "$workspace_dir/SAGE/.git" ]; then
+        echo -e "  ${CYAN}⬇${NC} clone intellistream/SAGE (meta)..."
+        git clone "https://github.com/intellistream/SAGE.git" "$workspace_dir/SAGE" --depth 1 2>&1 | tail -1 && ((ok++)) || ((fail++))
+    else
+        echo -e "  ${YELLOW}↻${NC} SAGE — 已存在，跳过"
+        ((skip++))
+    fi
+
+    echo ""
+    echo -e "${GREEN}✓ 完成: ${ok} 新克隆, ${skip} 已存在, ${fail} 失败${NC}"
+    echo -e "\n${BOLD}下一步:${NC}"
+    echo -e "  cd $workspace_dir/<repo>"
+    echo -e "  ./quickstart.sh --dev --yes    # 安装 editable dev 依赖"
+    echo -e "\n  或安装 meta 包（仅依赖已发布版本）:"
+    echo -e "  pip install \"isage[dev]\"\n"
+    return $fail
+}
+
 # 主函数
 main() {
+    # ── 工作区引导模式 (--workspace) ─────────────────────────────────────────
+    # Clone 所有 SAGE 子仓库到 WORKSPACE_DIR（默认 $HOME/sage-workspace）。
+    # 这是新开发者快速设置完整生态系统开发环境的推荐方式。
+    if [[ " $* " == *" --workspace "* ]] || [[ " $* " == *" --init-workspace "* ]]; then
+        _init_sage_workspace "$@"
+        exit $?
+    fi
+
     # 运行日志管理
     if [ -f "$TOOLS_DIR/log_management.sh" ]; then
         bash "$TOOLS_DIR/log_management.sh" "$SAGE_ROOT/.sage/logs"

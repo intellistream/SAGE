@@ -1,0 +1,158 @@
+# Cross-repo integration test for the SAGE meta package
+#
+# Installs the latest published versions of all SAGE sub-packages from PyPI
+# and runs a smoke test to confirm they compose correctly.
+#
+# Triggered:
+#   - Every push / PR to main-dev (fast feedback)
+#   - workflow_dispatch (manual trigger from sub-repo release pipelines via
+#     the dispatch-downstream mechanism in each sub-repo's release.yml)
+
+name: Integration Test (isage meta)
+
+on:
+  push:
+    branches: [main, main-dev]
+    paths:
+      - "packages/sage/**"
+      - ".github/workflows/ci-integration.yml"
+  pull_request:
+    branches: [main, main-dev]
+    paths:
+      - "packages/sage/**"
+  workflow_dispatch:
+    inputs:
+      use_testpypi:
+        description: "Install sub-packages from TestPyPI dev channel"
+        required: false
+        default: "false"
+        type: boolean
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke-test:
+    name: Smoke test — all sub-packages install & import
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install sub-packages (PyPI)
+        if: ${{ inputs.use_testpypi != 'true' }}
+        run: |
+          pip install --upgrade pip
+          pip install \
+            "isage-common>=0.2.4.16" \
+            "isage-platform>=0.2.4.15" \
+            "isage-kernel>=0.2.4.18" \
+            "isage-libs>=0.2.4.15" \
+            "isage-middleware>=0.2.4.16" \
+            "isage-cli>=0.2.4.19" \
+            "isage-flow>=0.1.1"
+
+      - name: Install sub-packages (TestPyPI dev channel)
+        if: ${{ inputs.use_testpypi == 'true' }}
+        run: |
+          pip install --upgrade pip
+          # Extract package names from pyproject.toml and install latest pre-releases
+          PKGS=$(python3 - <<'EOF'
+          import re, pathlib
+          content = pathlib.Path("packages/sage/pyproject.toml").read_text()
+          # pull isage-* names from dependencies block
+          names = re.findall(r'"(isage-[a-z-]+)>=', content)
+          print(" ".join(names))
+          EOF
+          )
+          pip install --pre \
+            --extra-index-url https://test.pypi.org/simple/ \
+            $PKGS
+
+      - name: Install meta package (editable)
+        run: |
+          pip install -e "packages/sage/[dev]"
+
+      - name: Smoke test — import each sub-package
+        run: |
+          python3 - <<'EOF'
+          import sys
+
+          checks = [
+              ("sage.common", "isage-common"),
+              ("sage.platform", "isage-platform"),
+              ("sage.kernel", "isage-kernel"),
+              ("sage.libs", "isage-libs"),
+              ("sage.middleware", "isage-middleware"),
+              ("sage.cli", "isage-cli"),
+          ]
+
+          failed = []
+          for module, pkg in checks:
+              try:
+                  __import__(module)
+                  print(f"  ✓ {module}")
+              except ImportError as e:
+                  print(f"  ✗ {module}  ({e})", file=sys.stderr)
+                  failed.append(pkg)
+
+          if failed:
+              print(f"\nFAILED: {', '.join(failed)}", file=sys.stderr)
+              sys.exit(1)
+
+          # Verify meta version is accessible
+          import sage
+          print(f"\n  ✓ sage.__version__ = {sage.__version__}")
+          EOF
+
+      - name: Smoke test — version matrix
+        run: |
+          python3 - <<'EOF'
+          import importlib.metadata as meta, sys
+
+          pkgs = [
+              "isage-common",
+              "isage-platform",
+              "isage-kernel",
+              "isage-libs",
+              "isage-middleware",
+              "isage-cli",
+              "isage-flow",
+              "isage",
+          ]
+
+          print("\nInstalled SAGE ecosystem versions:")
+          print("-" * 40)
+          for p in pkgs:
+              try:
+                  v = meta.version(p)
+                  print(f"  {p:<22} {v}")
+              except meta.PackageNotFoundError:
+                  print(f"  {p:<22} NOT FOUND", file=sys.stderr)
+          EOF
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🔗 Integration Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          python3 - <<'EOF' >> $GITHUB_STEP_SUMMARY
+          import importlib.metadata as meta
+
+          pkgs = ["isage-common","isage-platform","isage-kernel","isage-libs","isage-middleware","isage-cli","isage-flow","isage"]
+          for p in pkgs:
+              try:
+                  v = meta.version(p)
+                  print(f"| `{p}` | ✅ {v} |")
+              except meta.PackageNotFoundError:
+                  print(f"| `{p}` | ❌ not found |")
+          EOF

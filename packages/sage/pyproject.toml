@@ -11,7 +11,7 @@ name = "isage"
 dynamic = [
     "version",
 ]
-description = "SAGE - Streaming-Augmented Generative Execution"
+description = "SAGE - Streaming-Augmented Generative Execution (meta package)"
 readme = "README.md"
 authors = [
     { name = "SAGE Team", email = "shuhao_zhang@hust.edu.cn" },
@@ -25,25 +25,32 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "isage-common>=0.2.4.13",
-    "isagellm>=0.5.4.0",
-    "isage-platform>=0.1.0",
-    "isage-kernel>=0.2.4.14",
-    "isage-libs>=0.1.0",
-    "isage-middleware>=0.1.0",
-    "isage-flownet>=0.1.0",  # Flownet runtime (replaces Ray for distributed scheduling)
-    "isage-cli>=0.2.4.15",    # SAGE CLI (sage command)
+    # L1 — base utilities, config, logging, protocols
+    "isage-common>=0.2.4.16",
+    # L2 — queue, storage, service, runtime adapters
+    "isage-platform>=0.2.4.15",
+    # L3 — streaming runtime, scheduler, flow DSL
+    "isage-kernel>=0.2.4.18",
+    # L3 — algorithm library (agentic, RAG, NLP, …)
+    "isage-libs>=0.2.4.15",
+    # L4 — middleware components (VDB, memory backends, networked operators)
+    "isage-middleware>=0.2.4.16",
+    # L5 — unified CLI (sage command)
+    "isage-cli>=0.2.4.19",
+    # Runtime — Flownet distributed execution engine (replaces Ray)
+    "isage-flow>=0.1.1",
 ]
 
 license = "MIT"
 
 [project.optional-dependencies]
 dev = [
-    "isage-tools>=0.1.0",
+    "isage-dev-tools>=0.2.4.0",
     "pytest>=7.4.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
-    "ruff==0.14.6",
+    "pytest-mock>=3.12.0",
+    "ruff>=0.5.0",
     "mypy>=1.7.0",
     "pre-commit>=3.5.0",
     "isage-pypi-publisher>=0.2.0",

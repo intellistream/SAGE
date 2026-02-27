@@ -1,23 +1,11 @@
-name: Code Quality Check
+# DEPRECATED (#1466) — Per-repo code quality checks now run via pre-push hooks
+# and standalone repo CI (ruff + pytest in each of sage-common, sage-platform,
+# sage-kernel, sage-libs, sage-middleware, sage-cli).  Preserved for reference.
+
+name: "[DEPRECATED] Code Quality Check (monorepo)"
 
 on:
-  pull_request:
-    branches: [main, main-dev]
-    types: [opened, synchronize, reopened]
-    paths:
-      - '**.py'
-      - '**.pyi'
-      - 'tools/config/pre-commit-config.yaml'
-      - 'tools/config/ruff.toml'
-      - 'tools/hooks/**'
-      - '.github/workflows/ci-code-quality.yml'
-  push:
-    branches: [main, main-dev]
-    paths:
-      - '**.py'
-      - '**.pyi'
-      - 'tools/hooks/**'
-  workflow_dispatch:
+  workflow_dispatch:  # manual only — automatic triggers removed (#1466)
 
 concurrency:
   group: quality-${{ github.ref }}
