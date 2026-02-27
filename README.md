@@ -111,14 +111,15 @@ python sage-examples/tutorials/L3-kernel/cpu_node_demo.py
 
 ## Architecture
 
-SAGE is built on a **5-layer modular architecture** with 8 core packages:
+SAGE has a **5-layer modular architecture** with each layer independently released as its own
+package:
 
 ```
-L5: sage-cli, sage-tools              # CLI & Dev Tools
-L4: sage-middleware                   # Operators with C++ extensions
-L3: sage-kernel, sage-libs            # Dataflow engine & algorithms
-L2: sage-platform                     # Platform services (queue, storage)
-L1: sage-common                       # Foundation
+L5: sage-cli                          # CLI & Dev Tools       (isage-cli)
+L4: sage-middleware                   # Operators / C++ ext   (isage-middleware)
+L3: sage-kernel, sage-libs            # Runtime & algorithms  (isage-kernel, isage-libs)
+L2: sage-platform                     # Queue, storage        (isage-platform)
+L1: sage-common                       # Foundation            (isage-common)
 ```
 
 See [SAGE Ecosystem](#sage-ecosystem) for all independent sub-repositories with CI status, PyPI
@@ -301,15 +302,39 @@ make docs           # Build documentation
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
 [![Stars](https://img.shields.io/github/stars/intellistream/SAGE?style=social)](https://github.com/intellistream/SAGE/stargazers)
 
-SAGE core is a **5-layer monorepo** (`isage`) serving as the framework foundation:
+**SAGE** is a streaming AI framework decomposed into 5 independently-released layer packages:
 
-```
-L5: sage-cli, sage-tools              # CLI & Dev Tools
-L4: sage-middleware                   # Operators with C++ extensions
-L3: sage-kernel, sage-libs            # Dataflow engine & algorithms
-L2: sage-platform                     # Platform services (queue, storage)
-L1: sage-common                       # Foundation
-```
+**Core Layers**
+
+- **[sage-common](https://github.com/intellistream/sage-common)** (L1) — Foundation utilities,
+  config, logging
+  [![CI](https://github.com/intellistream/sage-common/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-common/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-common.svg)](https://pypi.org/project/isage-common/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-common?style=social)](https://github.com/intellistream/sage-common/stargazers)
+- **[sage-platform](https://github.com/intellistream/sage-platform)** (L2) — Queue, storage, and
+  service abstractions
+  [![CI](https://github.com/intellistream/sage-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-platform/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-platform.svg)](https://pypi.org/project/isage-platform/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-platform?style=social)](https://github.com/intellistream/sage-platform/stargazers)
+- **[sage-kernel](https://github.com/intellistream/sage-kernel)** (L3) — Streaming runtime,
+  scheduler, flow DSL
+  [![CI](https://github.com/intellistream/sage-kernel/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-kernel/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-kernel.svg)](https://pypi.org/project/isage-kernel/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-kernel?style=social)](https://github.com/intellistream/sage-kernel/stargazers)
+- **[sage-libs](https://github.com/intellistream/sage-libs)** (L3) — Algorithm library (RAG, agents,
+  ANNS interfaces)
+  [![CI](https://github.com/intellistream/sage-libs/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-libs/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-libs.svg)](https://pypi.org/project/isage-libs/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-libs?style=social)](https://github.com/intellistream/sage-libs/stargazers)
+- **[sage-middleware](https://github.com/intellistream/sage-middleware)** (L4) — Domain operators
+  with C++ extensions
+  [![CI](https://github.com/intellistream/sage-middleware/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-middleware/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-middleware.svg)](https://pypi.org/project/isage-middleware/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-middleware?style=social)](https://github.com/intellistream/sage-middleware/stargazers)
+- **[sage-cli](https://github.com/intellistream/sage-cli)** (L5) — Unified CLI and developer tooling
+  [![CI](https://github.com/intellistream/sage-cli/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-cli/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-cli.svg)](https://pypi.org/project/isage-cli/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-cli?style=social)](https://github.com/intellistream/sage-cli/stargazers)
 
 Independent sub-repositories are organized by category:
 
@@ -317,12 +342,12 @@ Independent sub-repositories are organized by category:
 
 - **[sage-studio](https://github.com/intellistream/sage-studio)** — Visual workflow builder and LLM
   playground
-  [![CI](https://github.com/intellistream/sage-studio/actions/workflows/cd-deploy-studio.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-studio/actions/workflows/cd-deploy-studio.yml)
+  [![CI](https://github.com/intellistream/sage-studio/actions/workflows/ci-test.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-studio/actions/workflows/ci-test.yml)
   [![PyPI](https://badge.fury.io/py/isage-studio.svg)](https://pypi.org/project/isage-studio/)
   [![Stars](https://img.shields.io/github/stars/intellistream/sage-studio?style=social)](https://github.com/intellistream/sage-studio/stargazers)
 - **[sage-examples](https://github.com/intellistream/sage-examples)** — Tutorials and application
   examples
-  [![CI](https://github.com/intellistream/sage-examples/actions/workflows/quality.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-examples/actions/workflows/quality.yml)
+  [![CI](https://github.com/intellistream/sage-examples/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-examples/actions/workflows/tests.yml)
   [![Stars](https://img.shields.io/github/stars/intellistream/sage-examples?style=social)](https://github.com/intellistream/sage-examples/stargazers)
 
 **Algorithms & Libraries**
