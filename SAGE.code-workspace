@@ -17,6 +17,54 @@
       "path": "../sagellm"
     },
     {
+      "name": "sagellm-protocol",
+      "path": "../sagellm-protocol"
+    },
+    {
+      "name": "sagellm-backend",
+      "path": "../sagellm-backend"
+    },
+    {
+      "name": "sagellm-core",
+      "path": "../sagellm-core"
+    },
+    {
+      "name": "sagellm-control-plane",
+      "path": "../sagellm-control-plane"
+    },
+    {
+      "name": "sagellm-gateway",
+      "path": "../sagellm-gateway"
+    },
+    {
+      "name": "sagellm-kv-cache",
+      "path": "../sagellm-kv-cache"
+    },
+    {
+      "name": "sagellm-comm",
+      "path": "../sagellm-comm"
+    },
+    {
+      "name": "sagellm-compression",
+      "path": "../sagellm-compression"
+    },
+    {
+      "name": "sagellm-benchmark",
+      "path": "../sagellm-benchmark"
+    },
+    {
+      "name": "sagellm-docs",
+      "path": "../sagellm-docs"
+    },
+    {
+      "name": "sagellm-website",
+      "path": "../sagellm-website"
+    },
+    {
+      "name": "sagellm-dev-tools",
+      "path": "../sagellm-dev-tools"
+    },
+    {
       "name": "sage-benchmark",
       "path": "../sage-benchmark"
     },
@@ -131,7 +179,7 @@
     {
       "name": "sage-safety",
       "path": "../sage-safety"
-    }
+    },
   ],
   "settings": {
     "python.analysis.extraPaths": [
@@ -143,7 +191,11 @@
       "${workspaceFolder:SAGE}/packages/sage-cli/src",
       "${workspaceFolder:SAGE}/packages/sage-tools/src",
     ],
-    "python.testing.pytestArgs": ["packages", "-v", "--tb=short"],
+    "python.testing.pytestArgs": [
+      "packages",
+      "-v",
+      "--tb=short"
+    ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "files.exclude": {
@@ -211,7 +263,9 @@
         "type": "debugpy",
         "request": "launch",
         "module": "sage.tools.cli",
-        "args": ["--help"],
+        "args": [
+          "--help"
+        ],
         "console": "integratedTerminal",
         "cwd": "${workspaceFolder:SAGE}",
       },
@@ -220,7 +274,11 @@
         "type": "debugpy",
         "request": "launch",
         "module": "pytest",
-        "args": ["${file}", "-v", "--tb=short"],
+        "args": [
+          "${file}",
+          "-v",
+          "--tb=short"
+        ],
         "console": "integratedTerminal",
         "cwd": "${workspaceFolder:SAGE}",
       },

@@ -189,6 +189,40 @@ install_core_packages() {
         fi
     done
 
+    # 非 dev 模式：仅 editable 安装本地 sage 元包，依赖统一从 PyPI 解析
+    if [ "$install_mode" != "dev" ]; then
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BOLD}  📦 安装 SAGE ($install_mode 模式：本地源码 + PyPI 依赖)${NC}"
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+        local install_target="packages/sage"
+        local install_flags="-e"
+
+        echo -e "${DIM}安装策略: editable 安装本地 packages/sage，依赖由 PyPI 解析${NC}"
+        log_info "非 dev 安装策略: 仅安装本地 packages/sage，依赖从 PyPI 解析" "INSTALL"
+
+        log_phase_start_enhanced "SAGE meta-package 安装（非 dev）" "INSTALL" 60
+        log_debug "PIP命令: $PIP_CMD install $install_flags $install_target $pip_args --upgrade" "INSTALL"
+
+        if ! log_command "INSTALL" "Deps" "$PIP_CMD install $install_flags \"$install_target\" $pip_args --upgrade"; then
+            log_error "安装 sage meta-package 失败" "INSTALL"
+            echo -e "${CROSS} 安装 sage meta-package 失败！"
+            log_phase_end_enhanced "SAGE meta-package 安装（非 dev）" "failure" "INSTALL"
+            return 1
+        fi
+
+        log_info "安装成功: sage meta-package" "INSTALL"
+        log_pip_package_info "isage" "INSTALL"
+        log_phase_end_enhanced "SAGE meta-package 安装（非 dev）" "success" "INSTALL"
+
+        echo ""
+        echo -e "${CHECK} SAGE ($install_mode 模式) 安装成功（依赖已从 PyPI 解析）"
+        echo ""
+
+        log_info "SAGE ($install_mode 模式) 安装完成" "INSTALL"
+        return 0
+    fi
+
     # 执行安装
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${BOLD}  📦 安装 SAGE ($install_mode 模式)${NC}"
