@@ -121,12 +121,8 @@ L2: sage-platform                     # Platform services (queue, storage)
 L1: sage-common                       # Foundation
 ```
 
-**Independent Repositories** (not in core):
-
-- **sage-examples**: Tutorials and applications
-- **sage-benchmark**: Evaluation framework (PyPI: `isage-benchmark`)
-- **sage-studio**: Visual workflow builder (PyPI: `isage-studio`)
-- **sageLLM**: LLM inference engine (PyPI: `isagellm`)
+See [SAGE Ecosystem](#sage-ecosystem) for all independent sub-repositories with CI status, PyPI
+packages, and categorized listings.
 
 📖 **[Architecture Guide](./docs-public/docs_src/concepts/architecture/package-structure.md)** -
 Detailed design principles and dependency rules
@@ -298,14 +294,184 @@ make docs           # Build documentation
 
 ## SAGE Ecosystem
 
-SAGE has a growing ecosystem of independent projects:
+### 🧠 SAGE — Streaming AI Framework
 
-- **[SAGE Studio](https://github.com/intellistream/sage-studio)** - Visual workflow builder and LLM
-  playground for creating AI pipelines with drag-and-drop interface
-- **[SAGE Benchmark](https://github.com/intellistream/sage-benchmark)** - Comprehensive evaluation
-  framework for RAG, agents, control plane, and memory systems
+[![CI](https://github.com/intellistream/SAGE/actions/workflows/ci-build-test.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/ci-build-test.yml)
+[![PyPI](https://badge.fury.io/py/isage.svg)](https://pypi.org/project/isage/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
+[![Stars](https://img.shields.io/github/stars/intellistream/SAGE?style=social)](https://github.com/intellistream/SAGE/stargazers)
 
-These projects depend on SAGE core packages and can be installed separately via PyPI.
+SAGE core is a **5-layer monorepo** (`isage`) serving as the framework foundation:
+
+```
+L5: sage-cli, sage-tools              # CLI & Dev Tools
+L4: sage-middleware                   # Operators with C++ extensions
+L3: sage-kernel, sage-libs            # Dataflow engine & algorithms
+L2: sage-platform                     # Platform services (queue, storage)
+L1: sage-common                       # Foundation
+```
+
+Independent sub-repositories are organized by category:
+
+**Application & UI**
+
+- **[sage-studio](https://github.com/intellistream/sage-studio)** — Visual workflow builder and LLM
+  playground
+  [![CI](https://github.com/intellistream/sage-studio/actions/workflows/cd-deploy-studio.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-studio/actions/workflows/cd-deploy-studio.yml)
+  [![PyPI](https://badge.fury.io/py/isage-studio.svg)](https://pypi.org/project/isage-studio/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-studio?style=social)](https://github.com/intellistream/sage-studio/stargazers)
+- **[sage-examples](https://github.com/intellistream/sage-examples)** — Tutorials and application
+  examples
+  [![CI](https://github.com/intellistream/sage-examples/actions/workflows/quality.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-examples/actions/workflows/quality.yml)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-examples?style=social)](https://github.com/intellistream/sage-examples/stargazers)
+
+**Algorithms & Libraries**
+
+- **[sage-agentic](https://github.com/intellistream/sage-agentic)** — ReAct, PlanExecute agents and
+  agentic workflows
+  [![CI](https://github.com/intellistream/sage-agentic/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-agentic/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-agentic.svg)](https://pypi.org/project/isage-agentic/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-agentic?style=social)](https://github.com/intellistream/sage-agentic/stargazers)
+- **[sage-rag](https://github.com/intellistream/sage-rag)** — Retrieval-augmented generation
+  components
+  [![CI](https://github.com/intellistream/sage-rag/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-rag/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-rag.svg)](https://pypi.org/project/isage-rag/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-rag?style=social)](https://github.com/intellistream/sage-rag/stargazers)
+- **[sageVDB](https://github.com/intellistream/sageVDB)** — High-performance vector database
+  (FAISS-compatible API)
+  [![CI](https://github.com/intellistream/sageVDB/actions/workflows/ci-tests.yml/badge.svg?branch=main)](https://github.com/intellistream/sageVDB/actions/workflows/ci-tests.yml)
+  [![PyPI](https://badge.fury.io/py/isage-vdb.svg)](https://pypi.org/project/isage-vdb/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sageVDB?style=social)](https://github.com/intellistream/sageVDB/stargazers)
+- **[sageRefiner](https://github.com/intellistream/sageRefiner)** — Query and response refinement
+  algorithms
+  [![CI](https://github.com/intellistream/sageRefiner/actions/workflows/ci-tests.yml/badge.svg?branch=main)](https://github.com/intellistream/sageRefiner/actions/workflows/ci-tests.yml)
+  [![PyPI](https://badge.fury.io/py/isage-refiner.svg)](https://pypi.org/project/isage-refiner/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sageRefiner?style=social)](https://github.com/intellistream/sageRefiner/stargazers)
+- **[sage-amms](https://github.com/intellistream/sage-amms)** — Approximate matrix multiplication
+  service
+  [![CI](https://github.com/intellistream/sage-amms/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-amms/actions/workflows/build.yml)
+  [![PyPI](https://badge.fury.io/py/isage-amms.svg)](https://pypi.org/project/isage-amms/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-amms?style=social)](https://github.com/intellistream/sage-amms/stargazers)
+- **[sageFlownet](https://github.com/intellistream/sageFlownet)** — Streaming flownet execution
+  engine 🔒 private
+  [![CI](https://github.com/intellistream/sageFlownet/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sageFlownet/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-flownet.svg)](https://pypi.org/project/isage-flownet/)
+
+**Data & Benchmarks**
+
+- **[sageData](https://github.com/intellistream/sageData)** — Unified dataset management for SAGE
+  subsystems
+  [![CI](https://github.com/intellistream/sageData/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sageData/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-data.svg)](https://pypi.org/project/isage-data/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sageData?style=social)](https://github.com/intellistream/sageData/stargazers)
+- **[sage-benchmark](https://github.com/intellistream/sage-benchmark)** — Comprehensive evaluation
+  framework for RAG, agents, memory, and control plane
+  [![CI](https://github.com/intellistream/sage-benchmark/actions/workflows/ci-benchmarks.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-benchmark/actions/workflows/ci-benchmarks.yml)
+  [![PyPI](https://badge.fury.io/py/isage-benchmark.svg)](https://pypi.org/project/isage-benchmark/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-benchmark?style=social)](https://github.com/intellistream/sage-benchmark/stargazers)
+- **[sage-eval](https://github.com/intellistream/sage-eval)** — Evaluation metrics, profilers, and
+  LLM judges
+  [![CI](https://github.com/intellistream/sage-eval/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-eval/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-eval.svg)](https://pypi.org/project/isage-eval/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-eval?style=social)](https://github.com/intellistream/sage-eval/stargazers)
+
+**Model Optimization & Safety**
+
+- **[sage-finetune](https://github.com/intellistream/sage-finetune)** — Model fine-tuning and
+  adaptation
+  [![CI](https://github.com/intellistream/sage-finetune/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-finetune/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-finetune.svg)](https://pypi.org/project/isage-finetune/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-finetune?style=social)](https://github.com/intellistream/sage-finetune/stargazers)
+- **[sage-privacy](https://github.com/intellistream/sage-privacy)** — Differential privacy and PII
+  handling
+  [![CI](https://github.com/intellistream/sage-privacy/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-privacy/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-privacy.svg)](https://pypi.org/project/isage-privacy/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-privacy?style=social)](https://github.com/intellistream/sage-privacy/stargazers)
+- **[sage-safety](https://github.com/intellistream/sage-safety)** — Safety filters and guardrails
+  [![CI](https://github.com/intellistream/sage-safety/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-safety/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-safety.svg)](https://pypi.org/project/isage-safety/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-safety?style=social)](https://github.com/intellistream/sage-safety/stargazers)
+
+**Developer Tooling**
+
+- **[sage-dev-tools](https://github.com/intellistream/sage-dev-tools)** — Development CLI and
+  quality tooling
+  [![CI](https://github.com/intellistream/sage-dev-tools/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-dev-tools/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-dev-tools.svg)](https://pypi.org/project/isage-dev-tools/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-dev-tools?style=social)](https://github.com/intellistream/sage-dev-tools/stargazers)
+- **[sage-kernel](https://github.com/intellistream/sage-kernel)** — Extracted kernel modules
+  (public)
+  [![CI](https://github.com/intellistream/sage-kernel/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-kernel/actions/workflows/ci.yml)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-kernel?style=social)](https://github.com/intellistream/sage-kernel/stargazers)
+
+______________________________________________________________________
+
+### ⚡ sageLLM — LLM Inference Engine
+
+[![CI](https://github.com/intellistream/sagellm/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm/actions/workflows/ci.yml)
+[![PyPI](https://badge.fury.io/py/isagellm.svg)](https://pypi.org/project/isagellm/)
+[![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+
+sageLLM is a modular, high-performance LLM inference engine. All repositories are 🔒 private and
+published to PyPI.
+
+**Core Engine**
+
+- **[sagellm-core](https://github.com/intellistream/sagellm-core)** — Core inference engine
+  [![CI](https://github.com/intellistream/sagellm-core/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-core/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-core.svg)](https://pypi.org/project/isagellm-core/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+- **[sagellm-backend](https://github.com/intellistream/sagellm-backend)** — Backend drivers (CUDA,
+  Ascend)
+  [![CI](https://github.com/intellistream/sagellm-backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-backend/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-backend.svg)](https://pypi.org/project/isagellm-backend/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+- **[sagellm-protocol](https://github.com/intellistream/sagellm-protocol)** — Wire protocol and
+  serialization
+  [![CI](https://github.com/intellistream/sagellm-protocol/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-protocol/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-protocol.svg)](https://pypi.org/project/isagellm-protocol/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+
+**Gateway & Control**
+
+- **[sagellm-gateway](https://github.com/intellistream/sagellm-gateway)** — OpenAI-compatible API
+  gateway
+  [![CI](https://github.com/intellistream/sagellm-gateway/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-gateway/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-gateway.svg)](https://pypi.org/project/isagellm-gateway/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+- **[sagellm-control-plane](https://github.com/intellistream/sagellm-control-plane)** — Scheduling
+  and resource management
+  [![CI](https://github.com/intellistream/sagellm-control-plane/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-control-plane/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-control-plane.svg)](https://pypi.org/project/isagellm-control-plane/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+
+**Optimization**
+
+- **[sagellm-kv-cache](https://github.com/intellistream/sagellm-kv-cache)** — KV cache management
+  [![CI](https://github.com/intellistream/sagellm-kv-cache/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-kv-cache/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-kv-cache.svg)](https://pypi.org/project/isagellm-kv-cache/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+- **[sagellm-comm](https://github.com/intellistream/sagellm-comm)** — Communication layer
+  [![CI](https://github.com/intellistream/sagellm-comm/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-comm/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-comm.svg)](https://pypi.org/project/isagellm-comm/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+- **[sagellm-compression](https://github.com/intellistream/sagellm-compression)** — Compression
+  algorithms
+  [![CI](https://github.com/intellistream/sagellm-compression/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-compression/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-compression.svg)](https://pypi.org/project/isagellm-compression/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+
+**Tooling & Benchmarks**
+
+- **[sagellm-benchmark](https://github.com/intellistream/sagellm-benchmark)** — Performance
+  benchmarks
+  [![CI](https://github.com/intellistream/sagellm-benchmark/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-benchmark/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-benchmark.svg)](https://pypi.org/project/isagellm-benchmark/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+- **[sagellm-dev-tools](https://github.com/intellistream/sagellm-dev-tools)** — Development tooling
+  [![CI](https://github.com/intellistream/sagellm-dev-tools/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-dev-tools/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-dev-tools.svg)](https://pypi.org/project/isagellm-dev-tools/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
 
 ## Community
 
