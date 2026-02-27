@@ -151,10 +151,15 @@ pip install isage              # Core framework
 pip install isage[dev]         # Development tools (includes pre-commit, pytest, etc.)
 ```
 
-**Optional Feature Modules** 🧩
+**What's included in `pip install isage`**
 
-SAGE uses a modular architecture. Core package is minimal; advanced features available through
-independent packages:
+`isage` is a meta-package that bundles the full framework stack: `isage-common` (L1) ·
+`isage-platform` (L2) · `isage-kernel` + `isage-libs` (L3) · `isage-middleware` (L4) · `isage-cli`
+(L5) · `isage-flow` (runtime)
+
+**Optional Add-on Packages** 🧩
+
+The following packages are **not** bundled in `isage` and must be installed separately:
 
 | Feature            | Package                      | Use Case                                |
 | ------------------ | ---------------------------- | --------------------------------------- |
