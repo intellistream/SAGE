@@ -1,0 +1,43 @@
+# ruff.toml — standalone ruff configuration for SAGE packages
+#
+# Packages inside the SAGE monorepo should use:
+#   [tool.ruff]
+#   extend = "../../tools/ruff.toml"
+#
+# Standalone repos copy this file to their root.
+
+target-version = "py311"
+line-length = 100
+
+extend-exclude = [
+    "build",
+    "dist",
+    ".venv",
+    "venv",
+    ".git",
+    "*.egg-info",
+    "thirdparty",
+    "ThirdParty",
+]
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",   # line length (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+]
+
+[lint.isort]
+known-first-party = ["my_pkg"]  # adjust to actual package name
+
+[format]
+quote-style = "double"
+indent-style = "space"
