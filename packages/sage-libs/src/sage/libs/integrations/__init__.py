@@ -9,11 +9,8 @@ Note:
     For LLM inference, SAGE uses vLLM as the backend engine.
 
     Vector store backends (ChromaBackend, MilvusBackend, ChromaVectorStoreAdapter)
-    have been migrated to sage.middleware.components.vector_stores (L4).
-    Please update imports:
-        from sage.middleware.components.vector_stores import (
-            ChromaBackend, MilvusBackend, ChromaVectorStoreAdapter
-        )
+    have been migrated to the L4 middleware layer (sage-middleware).
+    See: sage.middleware.components.vector_stores
 """
 
 # LLM Clients (local inference, no external service required)

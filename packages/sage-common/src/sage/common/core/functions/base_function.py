@@ -1,10 +1,9 @@
 import logging
 import pickle
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    from sage.kernel.runtime.context.task_context import TaskContext
+from sage.common.protocols import TaskContextProtocol
 
 
 class BaseFunction(ABC):
@@ -26,7 +25,7 @@ class BaseFunction(ABC):
     )
 
     def __init__(self, *args, **kwargs):
-        self.ctx: TaskContext | None = None  # 运行时注入
+        self.ctx: TaskContextProtocol | None = None  # 运行时注入
         self._logger = None
 
     @property

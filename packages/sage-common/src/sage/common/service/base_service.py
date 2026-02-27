@@ -7,17 +7,15 @@ Provides the base class for all SAGE services with:
 - Service context integration (via dependency injection)
 
 Architecture Note:
-- Uses TYPE_CHECKING import for ServiceContext (L3) - acceptable for type hints only
-- Runtime injection of context happens through ServiceFactory (L3+)
-- This class is in L1 to allow components at all layers to define services
+- Uses ServiceContextProtocol (L1 protocols) for type hints; no L3 import.
+- Runtime injection of context happens through ServiceFactory (L3+).
+- This class is in L1 to allow components at all layers to define services.
 """
 
 import logging
 from abc import ABC
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from sage.kernel.runtime.context.service_context import ServiceContext
+from sage.common.protocols import ServiceContextProtocol
 
 
 class BaseService(ABC):  # noqa: B024
@@ -43,7 +41,7 @@ class BaseService(ABC):  # noqa: B024
         """
         # ctx 由 ServiceFactory 在 __init__ 调用前通过 __new__ 方法注入
         if not hasattr(self, "ctx"):
-            self.ctx: ServiceContext | None = None
+            self.ctx: ServiceContextProtocol | None = None
         self._logger = None
 
     @property

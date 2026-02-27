@@ -56,6 +56,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Data management commands - requires isage-data (sageData external repo)
+data = [
+    "isage-data>=0.1.0",
+]
+
 # Development tools - for code quality, testing, etc.
 dev = [
     "pytest>=7.0.0",

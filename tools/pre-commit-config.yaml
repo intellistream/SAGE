@@ -122,6 +122,14 @@ repos:
     pass_filenames: false
     always_run: false
     files: ^docs-public/docs_src/dev-notes/.*\.md$
+  - id: libs-middleware-layer-check
+    name: check sage-libs (L3) does not import sage.middleware (L4)
+    entry: tools/hooks/check_libs_middleware_import.sh
+    language: system
+    pass_filenames: false
+    always_run: false
+    stages: [pre-commit, manual]
+    files: ^packages/sage-libs/src/.*\.py$
       # - id: control-plane-only-guard
       #   name: prevent embedded/local inference paths
       #   entry: tools/hooks/check_control_plane_only.py

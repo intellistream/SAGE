@@ -9,13 +9,14 @@ import random
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Iterator, Optional
+from typing import TYPE_CHECKING, Any, Iterable, Iterator, Optional
 
 from datasets import Dataset
 
-from sage.data.sources.agent_sft import AgentSFTDataLoader
-from sage.data.sources.agent_sft.schemas import AgentSFTDialog
-from sage.data.sources.agent_tools import AgentToolsDataLoader
+if TYPE_CHECKING:
+    from sage.data.sources.agent_sft import AgentSFTDataLoader
+    from sage.data.sources.agent_sft.schemas import AgentSFTDialog
+    from sage.data.sources.agent_tools import AgentToolsDataLoader
 
 # Note: format_alpaca_sample and format_conversation_sample are no longer available
 # in sage_libs.sage_finetune. Using inline implementations instead.
@@ -64,7 +65,14 @@ class AgentDialogProcessor:
         tool_loader: Optional[AgentToolsDataLoader] = None,
         seed: int = 42,
     ) -> None:
-        self.tool_loader = tool_loader or AgentToolsDataLoader()
+        try:
+            from sage.data.sources.agent_tools import AgentToolsDataLoader as _ATL
+        except ImportError as exc:  # pragma: no cover
+            raise ImportError(
+                "sage.tools agent_training requires isage-data. "
+                "Install it with: pip install isage-data"
+            ) from exc
+        self.tool_loader = tool_loader or _ATL()
         self.formatter = formatter or AgentSFTFormatter(
             output_format="chatml",
             tool_loader=self.tool_loader,
@@ -194,7 +202,14 @@ class AgentDialogProcessor:
     def _get_loader(self, source: str) -> AgentSFTDataLoader:
         if source not in self._loaders:
             if source == "agent_sft":
-                self._loaders[source] = AgentSFTDataLoader()
+                try:
+                    from sage.data.sources.agent_sft import AgentSFTDataLoader as _ASDL
+                except ImportError as exc:  # pragma: no cover
+                    raise ImportError(
+                        "sage.tools agent_training requires isage-data. "
+                        "Install it with: pip install isage-data"
+                    ) from exc
+                self._loaders[source] = _ASDL()
             else:  # pragma: no cover - future extensions
                 raise ValueError(f"Unsupported data source '{source}'")
         return self._loaders[source]
