@@ -1,178 +1,51 @@
 # ============================================================================
-# SAGE Common Package Configuration
+# SAGE Common — MONOREPO STUB
 # ============================================================================
-# 这是 SAGE 框架的基础层（L1）包配置文件
-# 提供核心工具和共享组件，被所有其他 SAGE 包依赖
+# ⚠️  MIGRATED: This package has been extracted to a standalone repository.
+#
+#   Standalone repo : https://github.com/intellistream/sage-common
+#   PyPI package    : isage-common
+#   Import path     : sage.common
+#
+# This file is kept as an install-time stub so that
+# `pip install -e packages/sage-common` in the SAGE monorepo dev workflow
+# resolves to the standalone package automatically.
+#
+# DO NOT add source code back to src/ here.
+# All changes must go to intellistream/sage-common.
 # ============================================================================
 
-# ----------------------------------------------------------------------------
-# 构建系统配置
-# ----------------------------------------------------------------------------
 [build-system]
-requires = [
-    "setuptools>=64",      # 现代 setuptools
-    "wheel",               # wheel 构建支持
-    "packaging>=24.2",     # 包版本管理
-]
+requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
-# ----------------------------------------------------------------------------
-# 项目元数据
-# ----------------------------------------------------------------------------
 [project]
-name = "isage-common"
-dynamic = ["version"]  # 版本号从 _version.py 动态读取
-description = "SAGE 框架核心公共工具包"
+name = "isage-common-stub"
+version = "0.2.4.13"
+description = "[STUB] Redirects to isage-common standalone repo (intellistream/sage-common)"
 readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
 authors = [
     { name = "IntelliStream Team", email = "shuhao_zhang@hust.edu.cn" },
 ]
 
-# PyPI 搜索关键词
-keywords = [
-    "ai", "sage", "machine learning", "artificial intelligence",
-    "core", "utilities", "framework", "infrastructure"
-]
-
-# PyPI 分类器
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-]
-
-# 最低 Python 版本要求
-requires-python = ">=3.11"
-
-# 许可证
-license = {text = "MIT"}
-
-# ----------------------------------------------------------------------------
-# 核心依赖 - 基础功能必需的最小依赖集
-# 原则：只包含核心模块运行绝对必需的依赖，可选功能放在 optional-dependencies
-# ----------------------------------------------------------------------------
+# ── The stub depends on the real standalone package ──────────────────────────
 dependencies = [
-    # 配置管理系统 (config/)
-    "pyyaml>=6.0",                   # YAML 配置文件加载和解析
-
-    # 系统工具集 (utils/system/)
-    "psutil>=6.1.0",                 # 进程管理、网络监控、系统信息
-
-    # 序列化工具 (utils/serialization/)
-    "dill>=0.3.8",                   # 高级 Python 对象序列化（支持 lambda 等）
-
-    # 数值计算基础 (components/sage_embedding/)
-    "numpy>=1.26.0,<2.3.0",          # 数组操作，embedding 组件必需
-
-    # 数据验证和配置 (utils/config/manager.py)
-    "pydantic>=2.10.0,<3.0.0",       # 数据验证、配置模型、API 数据结构
-
-    # 配置文件路径管理 (utils/config/loader.py)
-    "platformdirs>=4.0.0",           # 跨平台用户配置目录路径
+    "isage-common>=0.2.4.13",
 ]
 
-# ----------------------------------------------------------------------------
-# 可选依赖组 - 开发和测试工具
-# 用户可根据需要安装：pip install isage-common[dev]
-# ----------------------------------------------------------------------------
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.4.0",
-    "pytest-cov>=4.0.0",
-    "ruff==0.14.6",
-    "isage-pypi-publisher>=0.2.0",
+    "isage-common[dev]>=0.2.4.13",
 ]
+
 [project.urls]
-Homepage = "https://github.com/intellistream/SAGE"
-Documentation = "https://intellistream.github.io/SAGE-Pub/"
-Repository = "https://github.com/intellistream/SAGE"
-Issues = "https://github.com/intellistream/SAGE/issues"
+Homepage    = "https://github.com/intellistream/sage-common"
+Repository  = "https://github.com/intellistream/sage-common"
+Issues      = "https://github.com/intellistream/sage-common/issues"
+Monorepo    = "https://github.com/intellistream/SAGE"
 
-# ----------------------------------------------------------------------------
-# 包构建配置
-# ----------------------------------------------------------------------------
-[tool.setuptools.dynamic.version]
-attr = "sage.common._version.__version__"  # 从源码读取版本号
-
-[tool.setuptools.packages.find]
-where = ["src"]                            # 源码目录
-namespaces = true                          # PEP 420 namespace packages
-
-[tool.setuptools.package-dir]
-"" = "src"                                 # 包根目录映射
-
-# ----------------------------------------------------------------------------
-# 开发工具配置
-# ----------------------------------------------------------------------------
-
-# 代码格式化和质量检查 (Ruff)
-[tool.ruff]
-extend = "../../tools/ruff.toml"           # 继承项目级 ruff 配置
-
-# ----------------------------------------------------------------------------
-# 测试配置 (Pytest)
-# ----------------------------------------------------------------------------
-[tool.pytest.ini_options]
-# 测试文件搜索路径
-testpaths = [
-    "tests",                               # 测试目录
-    "src",                                 # 源码目录（doctest）
-]
-
-# 测试文件匹配模式
-python_files = [
-    "test_*.py",                           # 标准测试文件
-    "*_test.py",                           # 另一种测试文件命名
-]
-
-# 测试类匹配模式
-python_classes = ["Test*"]
-
-# 测试函数匹配模式
-python_functions = ["test_*"]
-
-# 测试运行参数
-addopts = [
-    "--benchmark-storage=../../.sage/benchmarks",  # 基准测试存储位置
-    "-o", "cache_dir=../../.sage/cache/pytest",   # Pytest 缓存目录
-    "--strict-markers",                            # 严格标记模式
-    "--strict-config",                             # 严格配置模式
-    "--verbose",                                   # 详细输出
-    "-ra",                                         # 显示所有测试结果摘要
-]
-
-# 测试标记定义
-markers = [
-    "slow: 标记为慢速测试 (使用 '-m \"not slow\"' 跳过)",
-    "integration: 标记为集成测试",
-    "unit: 标记为单元测试",
-    "core: 标记为核心功能测试",
-    "smoke: 标记为冒烟测试（快速验证）",
-]
-
-# ----------------------------------------------------------------------------
-# 测试覆盖率配置 (Coverage.py)
-# ----------------------------------------------------------------------------
-[tool.coverage.run]
-source = ["src/sage"]                      # 覆盖率统计源码目录
-
-# 排除文件模式
-omit = [
-    "*/tests/*",                           # 测试文件
-    "*/test_*.py",                         # 测试文件
-    "*/_test_*.py",                        # 测试文件
-]
-
-[tool.coverage.report]
-# 报告中排除的代码行
-exclude_lines = [
-    "pragma: no cover",                    # 手动排除标记
-    "def __repr__",                        # __repr__ 方法
-    "raise AssertionError",                # 断言错误
-    "raise NotImplementedError",           # 未实现错误
-    "if __name__ == .__main__.:",          # 主程序入口
-]
+# No [tool.setuptools.packages.find] — stub provides no source code.
+# sage.common is provided entirely by the isage-common package from PyPI
+# or from intellistream/sage-common installed in editable mode.

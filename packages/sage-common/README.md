@@ -1,4 +1,20 @@
-# SAGE Common
+# SAGE Common (Monorepo Stub)
+
+> ⚠️ **MIGRATED** — This package has been extracted to a standalone repository.
+>
+> - **Standalone repo**: https://github.com/intellistream/sage-common
+> - **PyPI**: `pip install isage-common`
+> - **Import path**: `sage.common`
+>
+> This directory in the SAGE monorepo is now a **stub** that depends on `isage-common>=0.2.4.13`.
+> For development, please clone and install the standalone repo:
+>
+> ```bash
+> git clone https://github.com/intellistream/sage-common.git
+> cd sage-common && ./quickstart.sh
+> ```
+
+______________________________________________________________________
 
 > SAGE 框架的核心工具和共享组件
 
