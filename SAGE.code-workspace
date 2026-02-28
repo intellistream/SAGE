@@ -156,6 +156,10 @@
       "path": "../sageData"
     },
     {
+      "name": "sage-benchmark  [L6]",
+      "path": "../sage-benchmark"
+    },
+    {
       "name": "sage-examples  [L6]",
       "path": "../sage-examples"
     },
