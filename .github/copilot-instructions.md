@@ -6,8 +6,14 @@
 - Runtime direction is Flownet-first: use `isage-flownet` patterns, do not introduce new `ray` imports/dependencies.
 - `sage-libs` is interface/algorithm layer; runtime/service-bound code (VDB, memory backends, networked operators) belongs in `sage-middleware`.
 
+## Polyrepo architecture (critical)
+- SAGE is a **polyrepo**: each sub-package (`isage-common`, `isage-platform`, `isage-kernel`, `isage-libs`, `isage-middleware`, `isage-cli`, etc.) lives in its own GitHub repository.
+- This repo (`intellistream/SAGE`) only contains the meta-package at `packages/sage/` — it is **the only local package** installed with `-e`.
+- All sub-package dependencies are declared with PyPI version pins in `packages/sage/pyproject.toml`. A sub-package change is only visible here **after it is published to PyPI and the version is bumped** in that file.
+- Do not add local editable installs of sub-packages to `quickstart.sh` or `core_installer.sh`. The install flow is simply: `pip install -e packages/sage` (standard) or `pip install -e packages/sage[dev]` (dev).
+
 ## Critical repo conventions
-- No manual dependency drift: declare Python deps in the relevant `packages/*/pyproject.toml` (don’t rely on ad-hoc pip-only fixes in code review).
+- No manual dependency drift: update sub-package version pins in `packages/sage/pyproject.toml` only after the sub-package is published to PyPI.
 - NEVER create any new Python virtual environment (`venv`/`.venv`) in this repo under any circumstance.
 - Do not use an active Python venv for SAGE install/run/test flows; if `VIRTUAL_ENV` is set, exit and switch to Conda or a pre-configured non-venv Python environment.
 - Never suggest or invoke `--auto-venv`, `python -m venv`, or `virtualenv` in SAGE workflows.
@@ -37,4 +43,5 @@
 ## High-signal paths to inspect first
 - Root workflow/docs: `README.md`, `DEVELOPER.md`, `CONTRIBUTING.md`, `quickstart.sh`, `pytest.ini`.
 - Quality/hooks: `tools/pre-commit-config.yaml`, `tools/hooks/check_docs_location.sh`.
-- Layered package layout: `packages/sage-common`, `packages/sage-platform`, `packages/sage-kernel`, `packages/sage-libs`, `packages/sage-middleware`, `packages/sage-tools`.
+- Meta-package: `packages/sage/pyproject.toml` — version pins for all sub-package dependencies.
+- Install logic: `tools/install/installation_table/core_installer.sh` — installs `packages/sage` (or `packages/sage[dev]`) only.
