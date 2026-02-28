@@ -71,7 +71,7 @@ echo ""
 
 # 4. Statistics
 echo "4️⃣  Documentation statistics:"
-TOTAL_MD=$(find . -name "*.md" -type f 2>/dev/null | grep -v ".git\|node_modules\|build/_deps\|vendors/vllm\|.sage" | wc -l)
+TOTAL_MD=$(find . -name "*.md" -type f 2>/dev/null | grep -v ".git\|node_modules\|build/_deps\|.sage" | wc -l)
 DEV_NOTES=$(find docs/dev-notes -name "*.md" -type f 2>/dev/null | wc -l)
 PACKAGE_READMES=$(find packages/ -maxdepth 2 -name "README.md" -type f 2>/dev/null | wc -l)
 EXAMPLE_READMES=$(find examples/ -name "README.md" -type f 2>/dev/null | wc -l)

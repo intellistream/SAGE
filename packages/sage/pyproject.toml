@@ -26,36 +26,36 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     # L1 — base utilities, config, logging, protocols
-    "isage-common>=0.2.4.16",
+    "isage-common>=0.2.4.20",
     # L2 — queue, storage, service, runtime adapters
-    "isage-platform>=0.2.4.15",
+    "isage-platform>=0.2.4.22",
     # L3 — streaming runtime, scheduler, flow DSL
-    "isage-kernel>=0.2.4.18",
+    "isage-kernel>=0.2.4.28",
     # L3 — algorithm library (agentic, RAG, NLP, …)
-    "isage-libs>=0.2.4.15",
+    "isage-libs>=0.2.4.22",
     # L4 — middleware components (VDB, memory backends, networked operators)
-    "isage-middleware>=0.2.4.16",
+    "isage-middleware>=0.2.4.28",
     # L5 — unified CLI (sage command)
-    "isage-cli>=0.2.4.19",
+    "isage-cli>=0.2.4.25",
     # Runtime — Flownet distributed execution engine (replaces Ray)
     "isage-flow>=0.1.1",
     # LLM Gateway — unified inference gateway and control plane
-    "isagellm>=0.5.4.0",
+    "isagellm>=0.5.4.3",
 ]
 
 license = "MIT"
 
 [project.optional-dependencies]
 dev = [
-    "isage-dev-tools>=0.2.4.0",
+    "isage-dev-tools>=0.2.4.1",
     "pytest>=7.4.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
     "pytest-mock>=3.12.0",
-    "ruff>=0.5.0",
+    "ruff>=0.15.0",
     "mypy>=1.7.0",
     "pre-commit>=3.5.0",
-    "isage-pypi-publisher>=0.2.0",
+    "isage-pypi-publisher>=0.2.1.0",
 ]
 
 [project.urls]

@@ -20,7 +20,6 @@ env:
   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
   JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
-  VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
   GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
   HF_ENDPOINT: https://hf-mirror.com
   CACHE_VERSION: v2-simplified-prod
@@ -76,9 +75,9 @@ jobs:
           JINA_API_KEY=${{ secrets.JINA_API_KEY }}
           ALIBABA_API_KEY=${{ secrets.ALIBABA_API_KEY }}
 
-          VLLM_API_KEY=${{ secrets.VLLM_API_KEY }}
-          VLLM_BASE_URL=http://localhost:8000/v1
-          VLLM_MODEL_NAME=meta-llama/Llama-2-13b-chat-hf
+          SAGELLM_API_KEY=EMPTY
+          SAGELLM_BASE_URL=http://localhost:8901/v1
+          SAGELLM_MODEL_NAME=Qwen/Qwen2.5-7B-Instruct
 
           WEB_SEARCH_API_KEY=${{ secrets.WEB_SEARCH_API_KEY }}
 

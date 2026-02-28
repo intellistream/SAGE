@@ -37,7 +37,7 @@ sage cluster start
 
 ### Services
 
-- `llm` - vLLM service settings
+- `llm` - SageLLM service settings
 - `embedding` - Embedding service
 - `gateway` - OpenAI-compatible API gateway
 - `studio` - Web UI ports

@@ -132,7 +132,7 @@ echo "📁 迁移 Control Plane 教程..."
 if [[ "$DRY_RUN" == "false" ]]; then
     mkdir -p "$LLM_CORE_TUTORIALS"
 
-    for file in tutorials/L3-libs/llm/vllm_control_plane_tutorial.py tutorials/L5-apps/benchmark_control_plane_demo.py; do
+    for file in tutorials/L3-libs/llm/sagellm_control_plane_tutorial.py tutorials/L5-apps/benchmark_control_plane_demo.py; do
         if [[ -f "$file" ]]; then
             cp "$file" "$LLM_CORE_TUTORIALS/"
             echo "  ✅ $(basename $file) → sage-llm-core/tutorials/"
@@ -140,9 +140,9 @@ if [[ "$DRY_RUN" == "false" ]]; then
     done
 
     # 移动 markdown 文件
-    if [[ -f "tutorials/L3-libs/llm/vllm_control_plane_config_examples.md" ]]; then
-        cp "tutorials/L3-libs/llm/vllm_control_plane_config_examples.md" "$LLM_CORE_TUTORIALS/"
-        echo "  ✅ vllm_control_plane_config_examples.md → sage-llm-core/tutorials/"
+    if [[ -f "tutorials/L3-libs/llm/sagellm_control_plane_config_examples.md" ]]; then
+        cp "tutorials/L3-libs/llm/sagellm_control_plane_config_examples.md" "$LLM_CORE_TUTORIALS/"
+        echo "  ✅ sagellm_control_plane_config_examples.md → sage-llm-core/tutorials/"
     fi
 
     # 创建 __init__.py

@@ -244,12 +244,6 @@ echo "开始回滚 SAGE 安装..."
 echo "卸载 SAGE 包..."
 pip uninstall -y sage-common sage-kernel sage-libs sage-middleware sage-benchmark sage 2>/dev/null || true
 
-# 卸载 VLLM（如果安装了）
-if pip show vllm &>/dev/null; then
-    echo "卸载 VLLM..."
-    pip uninstall -y vllm 2>/dev/null || true
-fi
-
 # 恢复备份的包环境（可选）
 if [ -f "$backup_path/pip_packages.txt" ] && [ "\$1" = "--restore-packages" ]; then
     echo "恢复原始包环境..."
