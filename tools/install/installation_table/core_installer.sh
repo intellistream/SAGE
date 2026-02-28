@@ -108,7 +108,7 @@ install_core_packages() {
     esac
 
     # 准备 pip 参数
-    local pip_args="--disable-pip-version-check --no-input --progress-bar=off"
+    local pip_args="--disable-pip-version-check --no-input"
 
     # CI 环境额外处理
     if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
@@ -176,14 +176,23 @@ install_core_packages() {
 
     log_info "安装目标: $install_target" "INSTALL"
     log_phase_start_enhanced "SAGE meta-package 安装" "INSTALL" 120
-    log_debug "PIP命令: $PIP_CMD install -e \"$install_target\" $pip_args --upgrade" "INSTALL"
+    log_debug "PIP命令: $PIP_CMD install -e \"$install_target\" $pip_args" "INSTALL"
 
-    if ! log_command "INSTALL" "Core" "$PIP_CMD install -e \"$install_target\" $pip_args --upgrade"; then
+    echo -e "${DIM}[INFO] 安装目标: $install_target${NC}"
+    echo -e "${DIM}[INFO] 安装日志同步写入: $log_file${NC}"
+    echo ""
+
+    # 直接流式输出 pip 进度到终端，同时 tee 到日志文件
+    # 使用 PIPESTATUS 捕获 pip 退出码（bash 专用），避免被 tee 覆盖
+    set -o pipefail
+    if ! $PIP_CMD install -e "$install_target" $pip_args 2>&1 | tee -a "$log_file"; then
+        set +o pipefail
         log_error "安装失败: $install_target" "INSTALL"
         echo -e "${CROSS} SAGE meta-package 安装失败！"
         log_phase_end_enhanced "SAGE meta-package 安装" "failure" "INSTALL"
         return 1
     fi
+    set +o pipefail
 
     log_info "安装成功: $install_target" "INSTALL"
     log_pip_package_info "isage" "INSTALL"
