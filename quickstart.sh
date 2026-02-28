@@ -335,8 +335,10 @@ main() {
 
         echo -e "${YELLOW}确认开始安装吗？${NC} [${GREEN}Y${NC}/${RED}n${NC}]"
         read -p "请输入选择: " -r continue_choice
+        # Trim whitespace/control chars, then only cancel on explicit n/N
+        continue_choice="${continue_choice//[[:space:]]/}"
 
-        if [[ ! "$continue_choice" =~ ^[Yy]$ ]] && [[ ! -z "$continue_choice" ]]; then
+        if [[ "$continue_choice" =~ ^[Nn] ]]; then
             echo ""
             echo -e "${INFO} 安装已取消。"
             echo -e "${DIM}提示: 可使用 ./quickstart.sh --help 查看所有选项${NC}"
@@ -397,17 +399,7 @@ main() {
             echo ""
             echo -e "${INFO} 安装代码质量和架构检查工具..."
 
-            # 1. 安装 pre-commit 框架（代码质量）
-            if command -v pip3 >/dev/null 2>&1 || command -v pip >/dev/null 2>&1; then
-                echo -e "${DIM}   安装 pre-commit 框架...${NC}"
-                if pip install -q pre-commit 2>/dev/null || pip3 install -q pre-commit 2>/dev/null; then
-                    echo -e "${GREEN}   ✅ pre-commit 框架已安装${NC}"
-                else
-                    echo -e "${YELLOW}   ⚠️  pre-commit 安装失败，代码格式检查将被跳过${NC}"
-                fi
-            fi
-
-            # 2. 安装 Git hooks（使用新的 sage-dev maintain hooks 命令）
+            # 安装 Git hooks（统一使用 sage-dev maintain hooks 命令）
             # 使用正确环境中的 sage-dev
             local sage_dev_cmd="sage-dev"
             if [ -n "$SAGE_ENV_NAME" ]; then
@@ -467,8 +459,35 @@ main() {
                     fi
                 fi
             else
-                echo -e "${YELLOW}⚠️  sage-dev 命令不可用，跳过 Git hooks 安装${NC}"
-                echo -e "${DIM}   安装完成后激活环境并运行: sage-dev maintain hooks install${NC}"
+                echo -e "${YELLOW}⚠️  sage-dev 命令暂不可用，尝试使用 pre-commit 回退安装 hooks...${NC}"
+
+                # 回退路径：仅安装 hooks，不负责安装依赖
+                local precommit_available=false
+                local precommit_cmd=""
+
+                if command -v pre-commit >/dev/null 2>&1; then
+                    precommit_available=true
+                    precommit_cmd="pre-commit"
+                elif [ -n "$SAGE_ENV_NAME" ] && conda run -n "$SAGE_ENV_NAME" python -c "import pre_commit" >/dev/null 2>&1; then
+                    precommit_available=true
+                    precommit_cmd="conda run -n $SAGE_ENV_NAME python -m pre_commit"
+                elif python3 -c "import pre_commit" >/dev/null 2>&1; then
+                    precommit_available=true
+                    precommit_cmd="python3 -m pre_commit"
+                fi
+
+                if [ "$precommit_available" = true ] && [ -d ".git" ]; then
+                    echo -e "${DIM}   使用 pre-commit 回退安装 hooks...${NC}"
+                    if eval "$precommit_cmd install --config tools/config/pre-commit-config.yaml" 2>&1; then
+                        echo -e "${GREEN}✅ Git hooks 已安装（pre-commit 回退路径）${NC}"
+                    else
+                        echo -e "${YELLOW}⚠️  pre-commit 回退安装失败${NC}"
+                        echo -e "${DIM}   请激活环境后运行: sage-dev maintain hooks install${NC}"
+                    fi
+                else
+                    echo -e "${YELLOW}⚠️  pre-commit 也不可用，跳过 Git hooks 安装${NC}"
+                    echo -e "${DIM}   请激活环境后运行: sage-dev maintain hooks install${NC}"
+                fi
             fi
         fi
 
@@ -494,55 +513,7 @@ main() {
                 echo -e "${DIM}   ℹ️  Git 配置脚本不存在，跳过${NC}"
             fi
 
-            # 安装主仓库的 pre-commit hooks
-            if command -v pre-commit >/dev/null 2>&1; then
-                echo -e "${DIM}   配置主仓库 pre-commit hooks...${NC}"
-                if pre-commit install 2>/dev/null; then
-                    echo -e "${GREEN}   ✅ 主仓库 pre-commit hooks 已安装${NC}"
-                else
-                    echo -e "${YELLOW}   ⚠️  主仓库 pre-commit hooks 安装失败${NC}"
-                fi
-            else
-                echo -e "${YELLOW}   ⚠️  pre-commit 未安装，跳过 Git hooks 安装${NC}"
-            fi
-
-            # 安装所有子模块的 pre-commit hooks
-            if command -v pre-commit >/dev/null 2>&1; then
-                echo -e "${DIM}   配置子模块 pre-commit hooks...${NC}"
-                local submodules_with_hooks=0
-                local submodules_installed=0
-
-                # 定义所有子模块路径
-                # 注意: C++ 扩展已迁移为独立 PyPI 包 (isagevdb, isage-flow, isage-tsdb, neuromem, isage-refiner)
-                # sageLLM 已独立为私有仓库
-                local submodule_paths=(
-                    # 所有子模块已迁移或独立，不在此列表中
-                )
-
-                for submodule_path in "${submodule_paths[@]}"; do
-                    local full_path="$SAGE_ROOT/$submodule_path"
-                    local submodule_name=$(basename "$submodule_path")
-
-                    if [ -d "$full_path" ] && [ -f "$full_path/.pre-commit-config.yaml" ]; then
-                        ((submodules_with_hooks++)) || true
-                        if (cd "$full_path" && pre-commit install 2>/dev/null); then
-                            echo -e "${GREEN}   ✅ $submodule_name pre-commit hooks 已安装${NC}"
-                            ((submodules_installed++)) || true
-                        else
-                            echo -e "${DIM}   ℹ️  $submodule_name pre-commit hooks 安装跳过${NC}"
-                        fi
-                    fi
-                done
-
-                # 使用 || true 避免 set -e 导致脚本退出
-                if [ $submodules_with_hooks -gt 0 ]; then
-                    echo -e "${GREEN}   ✅ 子模块 pre-commit hooks: $submodules_installed/$submodules_with_hooks 安装成功${NC}"
-                else
-                    echo -e "${DIM}   ℹ️  未发现子模块 pre-commit 配置${NC}"
-                fi || true
-            else
-                echo -e "${YELLOW}   ⚠️  pre-commit 未安装，跳过子模块 hooks${NC}"
-            fi
+            echo -e "${DIM}   ℹ️  hooks 已由 sage-dev maintain hooks install 统一管理${NC}"
         fi
 
         show_usage_tips "$mode"
