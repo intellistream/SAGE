@@ -144,26 +144,17 @@ install_core_packages() {
     log_phase_end_enhanced "环境信息收集" "true" "INSTALL"
 
     case "$install_mode" in
-        "minimal")
-            echo -e "${GRAY}最小安装：核心运行时包${NC}"
-            echo -e "${DIM}包含: L1-L5 核心包 + 所有独立 PyPI 依赖 (isage-vdb, isagellm, etc.)${NC}"
-            ;;
-        "dev")
-            echo -e "${GREEN}开发安装：核心 + 开发工具${NC}"
-            echo -e "${DIM}包含: 核心包 + 所有独立 PyPI 依赖 + pytest, ruff, mypy, pre-commit${NC}"
-            ;;
-        "full")
-            echo -e "${YELLOW}完整安装：核心 + 开发工具 + 所有可选依赖${NC}"
+        "standard")
+            echo -e "${YELLOW}standard 安装：核心 + 所有可选依赖${NC}"
             echo -e "${DIM}包含: 所有功能 (ML, VDB, streaming, compression, etc.) (~200+ 包)${NC}"
             ;;
-        # 兼容旧模式名称
-        "core"|"standard")
-            echo -e "${DIM}映射到: minimal 模式${NC}"
-            install_mode="minimal"
+        "dev")
+            echo -e "${GREEN}dev 安装：standard + 开发工具${NC}"
+            echo -e "${DIM}包含: standard 功能 + pytest, ruff, mypy, pre-commit${NC}"
             ;;
         *)
-            echo -e "${YELLOW}未知模式，使用完整安装${NC}"
-            install_mode="full"
+            echo -e "${YELLOW}未知模式，使用 standard 安装${NC}"
+            install_mode="standard"
             ;;
     esac
 
@@ -172,8 +163,8 @@ install_core_packages() {
     # 检查所有必要的包目录是否存在
     local required_packages=("packages/sage-common" "packages/sage-platform" "packages/sage-kernel" "packages/sage-libs" "packages/sage-middleware" "packages/sage-cli")
 
-    # dev 和 full 模式需要 sage-tools
-    if [ "$install_mode" = "dev" ] || [ "$install_mode" = "full" ]; then
+    # dev 模式需要 sage-tools
+    if [ "$install_mode" = "dev" ]; then
         [ -d "packages/sage-tools" ] && required_packages+=("packages/sage-tools")
     fi
 
@@ -350,9 +341,9 @@ dep_versions = defaultdict(list)
 
 package_dirs = ['packages/sage-common', 'packages/sage-platform', 'packages/sage-kernel', 'packages/sage-libs', 'packages/sage-middleware']
 install_mode = '$install_mode'
-if install_mode != 'core':
+if install_mode in ['standard', 'dev']:
     package_dirs.extend(['packages/sage-cli'])
-if install_mode in ['full', 'dev']:
+if install_mode == 'dev':
     package_dirs.extend(['packages/sage-tools'])
 
 for pkg_dir in package_dirs:
@@ -479,7 +470,7 @@ else:
     log_info "步骤 3/5: 安装核心引擎 (L3)" "INSTALL"
     local core_packages=("packages/sage-kernel")
 
-    if [ "$install_mode" != "core" ]; then
+    if [ "$install_mode" = "standard" ] || [ "$install_mode" = "dev" ]; then
         core_packages+=("packages/sage-libs")
     fi
 
@@ -502,7 +493,7 @@ else:
     done
 
     # 第四步：安装上层包（L4-L5，根据模式）
-    if [ "$install_mode" != "core" ]; then
+    if [ "$install_mode" = "standard" ] || [ "$install_mode" = "dev" ]; then
         echo -e "${DIM}步骤 4/5: 安装上层包 (L4-L5)...${NC}"
 
         # 显式安装独立 PyPI 包依赖 (因为下面使用了 --no-deps)
@@ -525,7 +516,7 @@ else:
         # sageLLM 推理引擎 (isage meta-package 的核心依赖)
         independent_packages="$independent_packages 'isagellm>=0.5.1.2'"
         # 开发工具后端（sage-tools 的核心依赖）
-        if [ "$install_mode" = "dev" ] || [ "$install_mode" = "full" ]; then
+        if [ "$install_mode" = "dev" ]; then
             independent_packages="$independent_packages 'isage-dev-tools>=0.1.0'"
         fi
 
@@ -559,8 +550,8 @@ else:
         log_pip_package_info "isage-middleware" "INSTALL"
         echo -e "${CHECK} sage-middleware 安装完成"
 
-        # L5: apps & benchmark (standard/full/dev 模式)
-        if [ "$install_mode" != "core" ]; then
+        # L5: apps & benchmark (standard/dev 模式)
+        if [ "$install_mode" = "standard" ] || [ "$install_mode" = "dev" ]; then
             # 清理已独立为 PyPI 包的组件残留目录
             local residual_paths=(
                 "packages/sage-benchmark"
@@ -584,7 +575,7 @@ else:
             # 如需使用 benchmark，请单独安装: pip install isage-benchmark
         fi
 
-        # L6: CLI (standard/full/dev 模式)
+        # L6: CLI (standard/dev 模式)
         if [ -d "packages/sage-cli" ]; then
             echo -e "${DIM}  正在安装: packages/sage-cli${NC}"
             log_info "开始安装: packages/sage-cli" "INSTALL"
@@ -602,9 +593,9 @@ else:
         fi
     fi
 
-    # L6: tools (full/dev 模式)
+    # L6: tools (dev 模式)
     # Note: sage-studio 已独立为独立仓库: https://github.com/intellistream/sage-studio
-    if [ "$install_mode" = "full" ] || [ "$install_mode" = "dev" ]; then
+    if [ "$install_mode" = "dev" ]; then
         if [ -d "packages/sage-tools" ]; then
             echo -e "${DIM}  正在安装: packages/sage-tools${NC}"
             log_info "开始安装: packages/sage-tools" "INSTALL"
@@ -624,8 +615,8 @@ else:
 
     # Note: L6 tools (sage-tools) 已在上面的代码块中安装
 
-    if [ "$install_mode" = "core" ]; then
-        echo -e "${DIM}步骤 4/5: 跳过上层包（core 模式）${NC}"
+    if [ "$install_mode" = "standard" ]; then
+        echo -e "${DIM}步骤 4/5: standard 模式已完成核心与功能包安装${NC}"
     fi
 
     echo -e "${CHECK} 本地依赖包安装完成"
@@ -702,12 +693,12 @@ allowed_isage_packages = {
     'isage-rag',         # L3 独立算法库
     'isage-flownet',     # 分布式运行时
     'isagellm',          # LLM 推理引擎
-    'isage-dev-tools',   # dev/full 模式工具依赖
+    'isage-dev-tools',   # dev 模式工具依赖
 }
 
 package_dirs = ['packages/sage-common', 'packages/sage-platform', 'packages/sage-kernel', 'packages/sage-libs', 'packages/sage-middleware']
 install_mode = '$install_mode'
-if install_mode != 'core':
+if install_mode in ['standard', 'dev']:
     # Note: sage-benchmark, sage-llm-gateway, sage-llm-core moved to independent repos
     package_dirs.extend(['packages/sage-cli'])
 if install_mode == 'dev':

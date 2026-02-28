@@ -17,7 +17,7 @@
 #
 # 示例:
 #   ./tools/install/ci_install_wrapper.sh --dev --yes
-#   ./tools/install/ci_install_wrapper.sh --core --yes
+#   ./tools/install/ci_install_wrapper.sh --standard --yes
 #
 
 

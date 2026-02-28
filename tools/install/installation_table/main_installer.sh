@@ -266,22 +266,28 @@ install_sage() {
 
     echo ""
     case "$mode" in
-        "minimal"|"core"|"standard")
-            # minimal 模式：只安装核心包，无开发工具，无可选依赖
-            echo -e "${BLUE}最小安装模式：仅安装核心 SAGE 包${NC}"
-            log_phase_start "最小安装模式" "MAIN"
+        "standard")
+            # standard 模式：核心包 + 所有可选依赖
+            echo -e "${BLUE}standard 安装模式：核心包 + 所有可选依赖${NC}"
+            log_phase_start "standard 安装模式" "MAIN"
 
-            if install_core_packages "minimal"; then
-                log_phase_end "最小安装模式" "success" "MAIN"
-                echo ""
+            if ! install_core_packages "standard"; then
+                log_phase_end "standard 安装模式" "failure" "MAIN"
+                return 1
+            fi
+
+            # 安装所有可选依赖
+            log_info "开始安装可选依赖 (ML, VDB, streaming, etc.)" "MAIN"
+            if install_optional_packages; then
+                log_phase_end "standard 安装模式" "success" "MAIN"
             else
-                log_phase_end "最小安装模式" "failure" "MAIN"
+                log_phase_end "standard 安装模式" "failure" "MAIN"
                 return 1
             fi
             ;;
         "dev")
-            # dev 模式：核心包 + 开发工具
-            echo -e "${BLUE}开发安装模式：核心包 + 开发工具${NC}"
+            # dev 模式：standard + 开发工具（同样包含可选依赖）
+            echo -e "${BLUE}dev 安装模式：standard + 开发工具${NC}"
             log_phase_start "开发安装模式" "MAIN"
 
             if ! install_core_packages "dev"; then
@@ -292,49 +298,29 @@ install_sage() {
             # 安装开发工具
             log_info "开始安装开发工具" "MAIN"
             if install_dev_packages; then
-                log_phase_end "开发安装模式" "success" "MAIN"
-                echo ""
+                # 安装所有可选依赖
+                log_info "开始安装可选依赖 (ML, VDB, streaming, etc.)" "MAIN"
+                if install_optional_packages; then
+                    log_phase_end "开发安装模式" "success" "MAIN"
+                    echo ""
+                else
+                    log_phase_end "开发安装模式" "failure" "MAIN"
+                    return 1
+                fi
             else
                 log_phase_end "开发安装模式" "failure" "MAIN"
                 return 1
             fi
             ;;
-        "full")
-            # full 模式：核心包 + 开发工具 + 所有可选依赖
-            echo -e "${BLUE}完整安装模式：核心包 + 开发工具 + 所有可选依赖${NC}"
-            log_phase_start "完整安装模式" "MAIN"
-
-            if ! install_core_packages "full"; then
-                log_phase_end "完整安装模式" "failure" "MAIN"
-                return 1
-            fi
-
-            # 安装开发工具
-            log_info "开始安装开发工具" "MAIN"
-            if ! install_dev_packages; then
-                log_phase_end "完整安装模式" "failure" "MAIN"
-                return 1
-            fi
-
-            # 安装所有可选依赖
-            log_info "开始安装可选依赖 (ML, VDB, streaming, etc.)" "MAIN"
-            if install_optional_packages; then
-                log_phase_end "完整安装模式" "success" "MAIN"
-            else
-                log_phase_end "完整安装模式" "failure" "MAIN"
-                return 1
-            fi
-            ;;
         *)
-            echo -e "${WARNING} 未知安装模式: $mode，使用完整安装"
-            log_warn "未知安装模式 $mode，使用完整安装" "MAIN"
-            log_phase_start "默认完整安装" "MAIN"
+            echo -e "${WARNING} 未知安装模式: $mode，使用 standard 安装"
+            log_warn "未知安装模式 $mode，使用 standard 安装" "MAIN"
+            log_phase_start "默认 standard 安装" "MAIN"
 
-            install_core_packages "full"
-            install_dev_packages
+            install_core_packages "standard"
             install_optional_packages
 
-            log_phase_end "默认完整安装" "success" "MAIN"
+            log_phase_end "默认 standard 安装" "success" "MAIN"
             ;;
     esac
 
