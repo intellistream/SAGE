@@ -63,29 +63,17 @@
       "name": "sage-agentic-tooluse-sias  [L3]",
       "path": "../sage-agentic-tooluse-sias"
     },
-    {
-      "name": "sage-agentic-tooluse-benchmark  [L3 · bench]",
-      "path": "../sage-agentic-tooluse-benchmark"
-    },
 
     // ── L3 · RAG ──────────────────────────────────────────────────────────────
     {
       "name": "sage-rag  [L3]",
       "path": "../sage-rag"
     },
-    {
-      "name": "sage-rag-benchmark  [L3 · bench]",
-      "path": "../sage-rag-benchmark"
-    },
 
     // ── L3 · Refiner ──────────────────────────────────────────────────────────
     {
       "name": "sageRefiner  [L3]",
       "path": "../sageRefiner"
-    },
-    {
-      "name": "sage-refiner-benchmark  [L3 · bench]",
-      "path": "../sage-refiner-benchmark"
     },
 
     // ── L3 · other algo ───────────────────────────────────────────────────────
@@ -147,10 +135,6 @@
       "name": "neuromem  [L4]",
       "path": "../neuromem"
     },
-    {
-      "name": "sage-memory-benchmark  [L4 · bench]",
-      "path": "../sage-memory-benchmark"
-    },
 
     // ── L5 ───────────────────────────────────────────────────────────────────
     {
@@ -172,10 +156,6 @@
       "path": "../sageData"
     },
     {
-      "name": "sage-benchmark  [L6]",
-      "path": "../sage-benchmark"
-    },
-    {
       "name": "sage-examples  [L6]",
       "path": "../sage-examples"
     },
@@ -186,10 +166,6 @@
     {
       "name": "SAGE-Docs  [L6]",
       "path": "../sage-docs"
-    },
-    {
-      "name": "sage-benchmark-agent  [L6 · bench]",
-      "path": "../sage-benchmark-agent"
     },
 
     // ── SageLLM ───────────────────────────────────────────────────────────────
