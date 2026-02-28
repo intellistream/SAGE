@@ -20,7 +20,7 @@
       "path": "."
     },
     {
-      "name": "sage-team-info",
+      "name": "sage-team-info  [meta]",
       "path": "../sage-team-info"
     },
 
