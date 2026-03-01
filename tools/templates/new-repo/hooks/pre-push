@@ -73,17 +73,39 @@ if [ -n "$VERSION_FILE" ]; then
     echo -e "${BLUE}📦 Current version: ${VERSION}${NC}"
 fi
 
+# Resolve publisher CLI command (binary first, then python -m fallback)
+resolve_publisher_cmd() {
+    if command -v sage-pypi-publisher >/dev/null 2>&1; then
+        PUBLISH_CMD=(sage-pypi-publisher)
+        return 0
+    fi
+
+    if command -v python3 >/dev/null 2>&1; then
+        if python3 - <<'PY_HOOK' >/dev/null 2>&1
+import importlib.util
+import sys
+sys.exit(0 if importlib.util.find_spec("pypi_publisher") else 1)
+PY_HOOK
+        then
+            PUBLISH_CMD=(python3 -m pypi_publisher.cli)
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
 # ─── Optional PyPI publish ────────────────────────────────────────────────────
 if [ "$PUBLISH_MODE" = "public" ] && [ -n "$VERSION_FILE" ]; then
-    if command -v sage-pypi-publisher >/dev/null 2>&1; then
+    if resolve_publisher_cmd; then
         echo -e "${YELLOW}Publish ${VERSION} to PyPI? [y/N]: ${NC}"
         read -r answer </dev/tty 2>/dev/null || answer="N"
         if [[ "$answer" =~ ^[Yy]$ ]]; then
-            sage-pypi-publisher publish . -r pypi --no-dry-run &
+            "${PUBLISH_CMD[@]}" publish . -r pypi --no-dry-run &
             echo -e "${GREEN}📤 PyPI publish scheduled (background)${NC}"
         fi
     else
-        echo -e "${DIM}  (sage-pypi-publisher not found — install: pip install isage-pypi-publisher)${NC}"
+        echo -e "${DIM}  (sage-pypi-publisher not found — install: python -m pip install isage-pypi-publisher)${NC}"
     fi
 fi
 

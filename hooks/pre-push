@@ -132,14 +132,36 @@ has_pypi_token() {
     return 1
 }
 
+# Resolve publisher CLI command (binary first, then python -m fallback)
+resolve_publisher_cmd() {
+    if command -v sage-pypi-publisher &> /dev/null; then
+        PUBLISH_CMD=(sage-pypi-publisher)
+        return 0
+    fi
+
+    if command -v python3 &> /dev/null; then
+        if python3 - <<'PY_HOOK' >/dev/null 2>&1
+import importlib.util
+import sys
+sys.exit(0 if importlib.util.find_spec("pypi_publisher") else 1)
+PY_HOOK
+        then
+            PUBLISH_CMD=(python3 -m pypi_publisher.cli)
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
 # Schedule PyPI publish as background job after push completes
 schedule_publish() {
     local version="$1"
     local package="$2"
 
-    if ! command -v sage-pypi-publisher &> /dev/null; then
+    if ! resolve_publisher_cmd; then
         echo -e "${YELLOW}⚠ sage-pypi-publisher not found, skipping auto-publish${NC}"
-        echo -e "${DIM}  Install: pip install isage-pypi-publisher${NC}"
+        echo -e "${DIM}  Install: python -m pip install isage-pypi-publisher${NC}"
         return
     fi
 
@@ -173,7 +195,7 @@ schedule_publish() {
 
             rm -rf dist/ build/ *.egg-info 2>/dev/null || true
 
-            if sage-pypi-publisher build . --upload --no-dry-run --mode ${PUBLISH_MODE}; then
+            if "${PUBLISH_CMD[@]}" build . --upload --no-dry-run --mode "${PUBLISH_MODE}"; then
                 echo ""
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 echo "✓ Successfully uploaded ${package} ${version} to PyPI"
