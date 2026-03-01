@@ -55,6 +55,12 @@ git checkout main-dev
 - ✅ 安装所有开发依赖（pytest, pre-commit, 代码检查工具等）
 - ✅ 配置 Git hooks（自动代码质量检查）
 - ✅ 安装 sage-dev 工具（用于维护和测试）
+- ✅ 尽量将同级工作区本地子仓库安装为 editable（`-e`，若仓库存在）
+
+**`--standard` 模式会自动：**
+
+- ✅ 安装本地 `packages/sage`
+- ✅ 子包依赖按版本约束从 PyPI 解析（稳定/发布导向）
 
 > 💡 **注意**: 文档已迁移到独立的 [SAGE-Pub](https://github.com/intellistream/SAGE-Pub) 仓库。### Initial Setup
 
@@ -211,7 +217,8 @@ pip install isagellm             # For LLM inference
 
 ```bash
 cd /path/to/SAGE
-./quickstart.sh --dev --yes      # Installs core + dev tools
+./quickstart.sh --dev --yes       # Installs core + dev tools + editable-first local deps
+./quickstart.sh --standard --yes  # Installs core + dependencies from PyPI (stable path)
 ```
 
 ______________________________________________________________________
@@ -343,12 +350,6 @@ To run pre-commit manually:
 
 ```bash
 pre-commit run --all-files
-```
-
-To skip pre-commit hooks temporarily (not recommended):
-
-```bash
-git commit --no-verify
 ```
 
 ## Code Quality

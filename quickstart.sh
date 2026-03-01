@@ -288,6 +288,7 @@ main() {
     # 获取解析后的参数
     local mode=$(get_install_mode)
     local environment=$(get_install_environment)
+    export SAGE_INSTALL_MODE="$mode"
     local auto_confirm=$(get_auto_confirm)
     export SAGE_AUTO_CONFIRM="$auto_confirm"
     local clean_cache=$(get_clean_pip_cache)

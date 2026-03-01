@@ -267,8 +267,8 @@ install_sage() {
     echo ""
     case "$mode" in
         "standard")
-            # standard 模式：核心包 + 所有可选依赖
-            echo -e "${BLUE}standard 安装模式：核心包 + 所有可选依赖${NC}"
+            # standard 模式：核心包 + 所有可选依赖（依赖默认走 PyPI）
+            echo -e "${BLUE}standard 安装模式：核心包 + 所有可选依赖（子包依赖默认 PyPI）${NC}"
             log_phase_start "standard 安装模式" "MAIN"
 
             if ! install_core_packages "standard"; then
@@ -286,8 +286,8 @@ install_sage() {
             fi
             ;;
         "dev")
-            # dev 模式：standard + 开发工具（同样包含可选依赖）
-            echo -e "${BLUE}dev 安装模式：standard + 开发工具${NC}"
+            # dev 模式：standard + 开发工具 + 本地 editable 优先
+            echo -e "${BLUE}dev 安装模式：standard + 开发工具 + 本地 editable（尽量）${NC}"
             log_phase_start "开发安装模式" "MAIN"
 
             if ! install_core_packages "dev"; then

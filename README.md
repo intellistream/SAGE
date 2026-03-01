@@ -134,7 +134,9 @@ Detailed design principles and dependency rules
 
 ```bash
 git clone https://github.com/intellistream/SAGE.git && cd SAGE
-./quickstart.sh --dev --yes    # Interactive mode: ./quickstart.sh
+./quickstart.sh --dev --yes         # 开发模式：尽量本地 editable
+# 或
+./quickstart.sh --standard --yes    # 标准模式：子包依赖默认从 PyPI 安装
 ```
 
 ⚡ **Auto-Acceleration**: Network optimization is now **enabled by default**:
@@ -143,6 +145,11 @@ git clone https://github.com/intellistream/SAGE.git && cd SAGE
 - 🚀 Parallel downloads (8 threads) + pre-compiled packages
 - ⏱️ **3-5x faster** installation: 12-18 min (vs 35-45 min)
 - 🔧 Disable: `./quickstart.sh --no-mirror --dev --yes`
+
+**Install Mode Semantics**
+
+- `standard`：本地安装 `packages/sage`，子包依赖按 `packages/sage/pyproject.toml` 版本从 PyPI 解析。
+- `dev`：先完成 `standard` 安装，再尽量将同级工作区中的本地 SAGE 子仓库切换为 editable (`-e`)。
 
 **PyPI Install**
 

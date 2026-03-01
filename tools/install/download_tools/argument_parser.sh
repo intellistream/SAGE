@@ -52,6 +52,22 @@ set_hooks_profile_value() {
     esac
 }
 
+set_install_mode_value() {
+    local value="${1,,}"
+    case "$value" in
+        "dev"|"standard")
+            INSTALL_MODE="$value"
+            ;;
+        "non-dev"|"nondev")
+            INSTALL_MODE="standard"
+            ;;
+        *)
+            echo -e "${CROSS} 无效的安装模式: $1 (可选: dev, standard)"
+            exit 1
+            ;;
+    esac
+}
+
 set_mirror_source_value() {
     local raw_value="$1"
     local value="${raw_value,,}"
@@ -225,8 +241,8 @@ show_installation_menu() {
     # 选择安装模式
     while true; do
         echo -e "${BOLD}1. 选择安装模式：${NC}"
-        echo -e "  ${YELLOW}1)${NC} standard 安装 - 完整功能依赖 ${DIM}(~200+包, 推荐)${NC}"
-        echo -e "  ${GREEN}2)${NC} dev 安装      - standard+开发工具 ${DIM}(~220+包, 日常开发)${NC}"
+        echo -e "  ${YELLOW}1)${NC} standard 安装 - 依赖优先从 PyPI 拉取 ${DIM}(~200+包, 推荐稳定使用)${NC}"
+        echo -e "  ${GREEN}2)${NC} dev 安装      - standard+开发工具+本地 editable(尽量) ${DIM}(~220+包, 日常开发)${NC}"
         echo ""
         read -p "请选择安装模式 [1-2，默认1]: " mode_choice
 
@@ -428,15 +444,20 @@ show_parameter_help() {
 
     echo -e "${BLUE}📦 安装模式：${NC}"
     echo ""
+    echo -e "  ${BOLD}--install-mode <dev|standard>, --mode <dev|standard>${NC} ${GREEN}显式指定安装模式${NC}"
+    echo -e "    ${DIM}推荐写法，语义清晰，便于脚本自动化${NC}"
+    echo ""
     echo -e "  ${BOLD}--standard, -s${NC}                              ${YELLOW}standard 安装 (默认)${NC}"
-    echo -e "    ${DIM}包含: 完整功能依赖 (ML, VDB, streaming, etc.)${NC}"
+    echo -e "    ${DIM}包含: 完整功能依赖 (ML, VDB, streaming, etc.)，子包依赖默认从 PyPI 解析${NC}"
     echo -e "    ${DIM}大小: ~200+ 个包（约 1GB，含 PyTorch）${NC}"
     echo -e "    ${DIM}适合: 学习示例、完整功能体验、研究实验${NC}"
     echo ""
     echo -e "  ${BOLD}--dev, -d${NC}                                   ${GREEN}开发安装${NC}"
     echo -e "    ${DIM}包含: standard 安装 + 开发工具 (pytest, ruff, mypy, pre-commit)${NC}"
+    echo -e "    ${DIM}并尽量将本地 polyrepo 子仓库安装为 editable（未命中仍回退到 PyPI）${NC}"
     echo -e "    ${DIM}大小: ~220+ 个包（约 1.2GB，含 PyTorch）${NC}"
     echo -e "    ${DIM}适合: 日常开发、贡献 SAGE 框架源码${NC}"
+    echo -e "    ${DIM}兼容别名: --non-dev / --nondev 等同于 standard${NC}"
     echo ""
 
     echo -e "${BLUE}🔧 安装环境：${NC}"
@@ -547,13 +568,15 @@ show_parameter_help() {
     echo -e "${BLUE}💡 使用示例：${NC}"
     echo -e "  ./quickstart.sh                                  ${DIM}# 交互式安装（推荐）${NC}"
     echo -e "  ./quickstart.sh --yes                            ${DIM}# standard 安装 + 跳过确认（默认）${NC}"
+    echo -e "  ./quickstart.sh --install-mode dev --yes         ${DIM}# 显式 dev 模式 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh --mode standard --pip            ${DIM}# 显式 standard 模式 + 当前环境${NC}"
     echo -e "  ./quickstart.sh --dev --yes                      ${DIM}# 开发安装 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --standard --conda               ${DIM}# standard 安装 + 创建conda环境${NC}"
     echo -e "  ./quickstart.sh --clone-satellites --yes         ${DIM}# standard 安装(默认) + 克隆附属仓库${NC}"
     echo ""
     echo -e "${PURPLE}📝 注意：${NC}"
-    echo -e "  ${DIM}• quickstart.sh 默认使用 standard 模式（包含所有功能）${NC}"
-    echo -e "  ${DIM}• dev 模式会在 standard 模式基础上额外安装开发工具${NC}"
+    echo -e "  ${DIM}• quickstart.sh 默认使用 standard 模式（子包依赖优先 PyPI）${NC}"
+    echo -e "  ${DIM}• dev 模式会在 standard 基础上额外安装开发工具，并尽量切换为本地 editable${NC}"
     echo -e "  ${DIM}• pip 安装: pip install isage (等同于默认 standard 模式)${NC}"
     echo -e "  ${DIM}• 克隆要求网络连接到 GitHub，多个仓库可能需要几十秒${NC}"
     echo ""
@@ -574,6 +597,10 @@ parse_install_mode() {
         # 开发安装：核心 + 开发工具
         "--dev"|"-d")
             INSTALL_MODE="dev"
+            return 0
+            ;;
+        "--non-dev"|"--nondev")
+            INSTALL_MODE="standard"
             return 0
             ;;
         *)
@@ -779,6 +806,16 @@ parse_arguments() {
         if [[ "$param" == "--skip-hooks" ]]; then
             SKIP_HOOKS=true
             shift
+        elif [[ "$param" == --install-mode=* ]] || [[ "$param" == --mode=* ]]; then
+            set_install_mode_value "${param#*=}"
+            shift
+        elif [[ "$param" == "--install-mode" ]] || [[ "$param" == "--mode" ]]; then
+            if [[ $# -lt 2 ]]; then
+                echo -e "${CROSS} $param 需要一个值 (dev|standard)"
+                exit 1
+            fi
+            set_install_mode_value "$2"
+            shift 2
         elif [[ "$param" == "--workspace" ]]; then
             SETUP_WORKSPACE=true
             shift
@@ -903,7 +940,7 @@ set_defaults_and_show_tips() {
     # 设置安装模式默认值
     if [ -z "$INSTALL_MODE" ]; then
         INSTALL_MODE="standard"
-        echo -e "${INFO} 未指定安装模式，使用默认: ${YELLOW}standard 安装${NC}"
+        echo -e "${INFO} 未指定安装模式，使用默认: ${YELLOW}standard 安装${NC} ${DIM}(历史兼容)${NC}"
         has_defaults=true
     fi
 

@@ -52,6 +52,62 @@ fi
 PYTHON_CMD="${PYTHON_CMD:-python3}"
 PIP_CMD="${PIP_CMD:-$PYTHON_CMD -m pip}"
 
+# dev 模式下优先尝试安装本地 polyrepo 子仓库（editable）
+install_local_editable_polyrepo_packages() {
+    local project_root="$1"
+    local log_file="$2"
+
+    local workspace_root
+    workspace_root="$(dirname "$project_root")"
+
+    local repo_candidates=(
+        "sage-common"
+        "sage-platform"
+        "sage-kernel"
+        "sage-libs"
+        "sage-middleware"
+        "sage-cli"
+        "sage-dev-tools"
+        "sageFlow"
+        "sagellm"
+    )
+
+    local installed_count=0
+    local skipped_count=0
+    local failed_count=0
+
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}  🧩 dev 模式：优先安装本地子仓库（editable，尽量）${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${DIM}工作区根目录: $workspace_root${NC}"
+    echo ""
+
+    for repo_name in "${repo_candidates[@]}"; do
+        local repo_dir="$workspace_root/$repo_name"
+
+        if [ ! -d "$repo_dir" ] || [ ! -f "$repo_dir/pyproject.toml" ]; then
+            echo -e "${DIM}  ⏭️  跳过 $repo_name（未检测到本地仓库）${NC}"
+            skipped_count=$((skipped_count + 1))
+            continue
+        fi
+
+        echo -e "${BOLD}  📦 安装本地 editable: $repo_name${NC}"
+        if (cd "$repo_dir" && $PIP_CMD install -e "." --no-deps --upgrade --no-cache-dir >> "$log_file" 2>&1); then
+            echo -e "${CHECK} $repo_name editable 安装成功"
+            installed_count=$((installed_count + 1))
+        else
+            echo -e "${WARNING} $repo_name editable 安装失败，继续后续流程"
+            echo -e "${DIM}      详情见日志: $log_file${NC}"
+            failed_count=$((failed_count + 1))
+        fi
+    done
+
+    echo ""
+    echo -e "${INFO} 本地 editable 安装汇总: 成功 ${installed_count} / 跳过 ${skipped_count} / 失败 ${failed_count}"
+    echo -e "${DIM}说明: dev 模式会尽量使用本地仓库；未命中或失败的依赖仍由 PyPI 解析保障可安装性${NC}"
+    echo ""
+}
+
 # ============================================================================
 # 版本比较辅助函数
 # ============================================================================
@@ -137,9 +193,17 @@ install_core_packages() {
     echo -e "${DIM}安装日志: $log_file${NC}"
     echo ""
 
-    # 配置 pip 镜像源
+    # 配置 pip 镜像源（遵循 quickstart 参数）
+    # - USE_PIP_MIRROR=false (e.g. --no-mirror) 时：强制官方 PyPI + 禁用缓存
+    # - 其他情况：按 MIRROR_SOURCE（默认 auto）配置
     echo -e "${BLUE}🌐 配置 pip 镜像源...${NC}"
-    configure_pip_mirror "auto"
+    if [ "${USE_PIP_MIRROR:-true}" = "false" ]; then
+        configure_pip_mirror "disable"
+        pip_args="$pip_args --no-cache-dir"
+        echo -e "${DIM}--no-mirror 生效：强制官方 PyPI + 禁用 pip 缓存${NC}"
+    else
+        configure_pip_mirror "${MIRROR_SOURCE:-auto}"
+    fi
     echo ""
 
     # 记录环境信息
@@ -150,11 +214,11 @@ install_core_packages() {
     case "$install_mode" in
         "standard")
             echo -e "${YELLOW}standard 安装：核心功能 + 所有可选依赖${NC}"
-            echo -e "${DIM}包含: isage 及所有子包依赖（从 PyPI 版本拉取）${NC}"
+            echo -e "${DIM}包含: 本地 packages/sage + 所有子包依赖（从 PyPI 版本拉取）${NC}"
             ;;
         "dev")
-            echo -e "${GREEN}dev 安装：standard + 开发工具${NC}"
-            echo -e "${DIM}包含: standard 功能 + pytest, ruff, mypy, pre-commit, isage-dev-tools${NC}"
+            echo -e "${GREEN}dev 安装：standard + 开发工具 + 本地子仓库 editable（尽量）${NC}"
+            echo -e "${DIM}包含: standard 功能 + pytest/ruff/mypy/pre-commit + 优先本地 editable 覆盖${NC}"
             ;;
     esac
     echo ""
@@ -170,7 +234,7 @@ install_core_packages() {
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${BOLD}  📦 安装 SAGE ($install_mode 模式：$install_target + PyPI 子包)${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${DIM}安装策略: editable install 本地 packages/sage，所有子包依赖从 PyPI 版本拉取${NC}"
+    echo -e "${DIM}安装策略: editable install 本地 packages/sage，子包依赖默认从 PyPI 版本拉取${NC}"
     echo -e "${DIM}子包更新需先发布到 PyPI，再在 packages/sage/pyproject.toml 中更新版本号${NC}"
     echo ""
 
@@ -202,6 +266,13 @@ install_core_packages() {
     echo -e "${CHECK} SAGE ($install_mode 模式) 安装成功"
     echo -e "${DIM}      子包依赖已从 PyPI 解析并安装${NC}"
     echo ""
+
+    # dev 模式：尽量将可用的本地 polyrepo 子仓库覆盖为 editable
+    if [ "$install_mode" = "dev" ]; then
+        log_phase_start_enhanced "dev 本地 editable 覆盖安装" "INSTALL" 60
+        install_local_editable_polyrepo_packages "$project_root" "$log_file"
+        log_phase_end_enhanced "dev 本地 editable 覆盖安装" "success" "INSTALL"
+    fi
 
     log_info "SAGE ($install_mode 模式) 安装完成" "INSTALL"
     return 0
