@@ -279,8 +279,8 @@ install_sage() {
             log_phase_end "standard 安装模式" "success" "MAIN"
             ;;
         "full")
-            # full 模式：standard + torch/accelerate/peft via packages/sage[full]
-            echo -e "${CYAN}full 安装模式：standard + torch/accelerate/peft（packages/sage[full]）${NC}"
+            # full 模式：standard + 扩展能力集 via packages/sage[full]
+            echo -e "${CYAN}full 安装模式：standard + 扩展能力集（packages/sage[full]）${NC}"
             log_phase_start "full 安装模式" "MAIN"
 
             if ! install_core_packages "full"; then
@@ -291,8 +291,8 @@ install_sage() {
             log_phase_end "full 安装模式" "success" "MAIN"
             ;;
         "dev")
-            # dev 模式：standard + 开发工具 + 本地 editable 优先
-            echo -e "${GREEN}dev 安装模式：standard + 开发工具 + 本地 editable（尽量）${NC}"
+            # dev 模式：full + 开发工具 + 本地 editable 优先
+            echo -e "${GREEN}dev 安装模式：full + 开发工具 + 本地 editable（尽量）${NC}"
             log_phase_start "开发安装模式" "MAIN"
 
             if ! install_core_packages "dev"; then

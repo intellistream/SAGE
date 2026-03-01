@@ -47,11 +47,8 @@ license = "MIT"
 
 [project.optional-dependencies]
 full = [
-    # Heavy ML/training deps — opt-in via [full] to avoid ~2 GB CUDA download
-    "torch>=2.0.0",
-    "torchvision>=0.15.0",
-    "accelerate<2.0.0,>=1.9.0",
-    "peft<1.0.0,>=0.18.0",
+    # Reserved extension set for optional capabilities.
+    # Heavy ML/CUDA deps are managed by dedicated packages (e.g. isagellm[cuda]).
 ]
 dev = [
     "isage-dev-tools>=0.2.4.1",

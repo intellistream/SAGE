@@ -237,7 +237,8 @@ verify_cli_commands() {
 verify_dependency_versions() {
     echo -e "${BLUE}📦 验证依赖版本兼容性...${NC}"
 
-    local critical_deps=("torch" "numpy" "transformers")
+    local critical_deps=("numpy")
+    local optional_deps=("torch" "transformers")
     local version_issues=()
 
     for dep in "${critical_deps[@]}"; do
@@ -250,18 +251,20 @@ verify_dependency_versions() {
         fi
     done
 
+    for dep in "${optional_deps[@]}"; do
+        if $PYTHON_CMD -c "import $dep; print($dep.__version__)" &> /dev/null; then
+            local version=$($PYTHON_CMD -c "import $dep; print($dep.__version__)" 2>/dev/null)
+            echo -e "${GREEN}   ✅ $dep $version 已安装（可选）${NC}"
+        else
+            echo -e "${DIM}   ℹ️  $dep 未安装（可选）${NC}"
+        fi
+    done
+
     # 检查版本兼容性
     if $PYTHON_CMD -c "
 import sys
 try:
-    import torch
     import numpy as np
-    import transformers
-
-    # 检查 PyTorch CUDA 版本
-    if torch.cuda.is_available():
-        cuda_version = torch.version.cuda
-        print(f'PyTorch CUDA 版本: {cuda_version}')
 
     # 检查 NumPy 版本
     numpy_version = np.__version__

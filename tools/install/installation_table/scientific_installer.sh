@@ -78,11 +78,9 @@ install_optional_packages() {
     # 在 PyPI 上不存在，pip 会静默忽略——实际什么都不安装。
     #
     # 重 GPU/ML 依赖（torch/accelerate/peft）现已统一收归
-    # packages/sage 的 [full] extra 中，通过以下方式启用：
-    #   --full  (full 安装)
-    #   --dev   (dev 安装不再包含 [full]，如需 GPU 依赖请显式使用 --full)
+    # 至独立能力包（如 isagellm[cuda]）中；SAGE meta 不再强制提供。
     #
     # 此函数保留为空白 no-op，防止外部调用报错。
-    log_info "install_optional_packages: 已废弃，无操作 (extras 已迁移至 packages/sage[full])" "Optional"
-    log_warn "如需 torch/accelerate/peft，请使用 --full 安装模式" "Optional"
+    log_info "install_optional_packages: 已废弃，无操作 (重型依赖已迁移至独立能力包)" "Optional"
+    log_warn "如需 GPU/LLM 重型依赖，请按能力包文档单独安装（如 isagellm[cuda]）" "Optional"
 }
