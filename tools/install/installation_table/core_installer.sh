@@ -146,7 +146,7 @@ install_resolver_guard_packages() {
     local guard_specs=(
         "setuptools>=68"
         "wheel>=0.42"
-        "wrapt>=1.15.0"
+        "wrapt>=1.15.0,<2.0.0"
     )
 
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -176,9 +176,10 @@ create_quickstart_constraints_file() {
 
     local constraints_file="$project_root/.sage/tmp/quickstart-pip-constraints.txt"
     cat > "$constraints_file" <<'EOF'
-wrapt>=1.14.2
+wrapt>=1.14.2,<2.0.0
 setuptools>=68
 wheel>=0.42
+uvicorn>=0.34.0,<1.0.0
 EOF
 
     echo "$constraints_file"

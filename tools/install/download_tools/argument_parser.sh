@@ -115,6 +115,7 @@ SKIP_HOOKS=false
 HOOKS_MODE="auto"
 SETUP_WORKSPACE=false  # 新增：设置 workspace 依赖
 CLONE_SATELLITE_REPOS=false  # 新增：克隆附属仓库
+CLONE_SATELLITE_REPOS_EXPLICIT=false  # 是否由用户显式指定克隆策略
 HOOKS_PROFILE="lightweight"
 USE_PIP_MIRROR=true  # 默认启用pip镜像自动检测（中国用户自动使用清华源）
 MIRROR_SOURCE="auto"
@@ -245,9 +246,9 @@ show_installation_menu() {
         echo -e "  ${CYAN}2)${NC} full 安装     - standard + torch/accelerate/peft ${DIM}(~220+包, 含 GPU 支持)${NC}"
         echo -e "  ${GREEN}3)${NC} dev 安装      - full + 开发工具 + 本地 editable ${DIM}(~230+包, 日常开发)${NC}"
         echo ""
-        read -p "请选择安装模式 [1-3，默认1]: " mode_choice
+        read -p "请选择安装模式 [1-3，默认3]: " mode_choice
 
-        case "${mode_choice:-1}" in
+        case "${mode_choice:-3}" in
             1)
                 INSTALL_MODE="standard"
                 break
@@ -422,9 +423,18 @@ show_installation_menu() {
     echo -e "${BOLD}3. 克隆附属仓库？${NC}"
     echo -e "  ${DIM}包括: sage-examples, sage-tutorials, sagellm, sage-benchmark 等${NC}"
     echo ""
-    read -p "是否克隆 SAGE 附属仓库？[y/N]: " -n 1 -r clone_choice
+    local clone_prompt="[y/N]"
+    local clone_default="N"
+    if [ "$INSTALL_MODE" = "dev" ]; then
+        clone_prompt="[Y/n]"
+        clone_default="Y"
+        echo -e "  ${INFO} dev 模式默认克隆附属仓库（便于本地 editable 开发）"
+    fi
+
+    read -p "是否克隆 SAGE 附属仓库？${clone_prompt}: " -n 1 -r clone_choice
     echo ""
-    if [[ "$clone_choice" =~ ^[Yy]$ ]]; then
+    local clone_choice_normalized="${clone_choice:-$clone_default}"
+    if [[ "$clone_choice_normalized" =~ ^[Yy]$ ]]; then
         CLONE_SATELLITE_REPOS=true
         echo -e "${GREEN}✅ 将克隆附属仓库${NC}"
     else
@@ -452,7 +462,7 @@ show_parameter_help() {
     echo -e "  ${BOLD}--install-mode <standard|full|dev>, --mode <standard|full|dev>${NC} ${GREEN}显式指定安装模式${NC}"
     echo -e "    ${DIM}推荐写法，语义清晰，便于脚本自动化${NC}"
     echo ""
-    echo -e "  ${BOLD}--standard, -s${NC}                              ${YELLOW}standard 安装 (默认)${NC}"
+    echo -e "  ${BOLD}--standard, -s${NC}                              ${YELLOW}standard 安装${NC}"
     echo -e "    ${DIM}包含: SAGE 核心子包，依赖从 PyPI 解析，不含 torch/CUDA${NC}"
     echo -e "    ${DIM}大小: ~200+ 个包（轻量，无 GPU 依赖）${NC}"
     echo -e "    ${DIM}适合: 仅使用 SAGE 核心功能、CI 环境、轻量部署${NC}"
@@ -577,19 +587,19 @@ show_parameter_help() {
 
     echo -e "${BLUE}💡 使用示例：${NC}"
     echo -e "  ./quickstart.sh                                  ${DIM}# 交互式安装（推荐）${NC}"
-    echo -e "  ./quickstart.sh --yes                            ${DIM}# standard 安装 + 跳过确认（默认）${NC}"
+    echo -e "  ./quickstart.sh --yes                            ${DIM}# dev 安装 + 跳过确认（默认）${NC}"
     echo -e "  ./quickstart.sh --full --yes                     ${DIM}# full 安装 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --dev --yes                      ${DIM}# dev 安装 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --install-mode full --yes        ${DIM}# 显式 full 模式 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --install-mode dev --yes         ${DIM}# 显式 dev 模式 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --mode standard --pip            ${DIM}# 显式 standard 模式 + 当前环境${NC}"
     echo -e "  ./quickstart.sh --standard --conda               ${DIM}# standard 安装 + 创建conda环境${NC}"
-    echo -e "  ./quickstart.sh --clone-satellites --yes         ${DIM}# standard 安装(默认) + 克隆附属仓库${NC}"
+    echo -e "  ./quickstart.sh --clone-satellites --yes         ${DIM}# dev 安装(默认) + 克隆附属仓库${NC}"
     echo ""
     echo -e "${PURPLE}📝 注意：${NC}"
-    echo -e "  ${DIM}• quickstart.sh 默认使用 standard 模式（子包依赖优先 PyPI）${NC}"
+    echo -e "  ${DIM}• quickstart.sh 默认使用 dev 模式（包含开发工具与本地 editable）${NC}"
     echo -e "  ${DIM}• dev 模式会在 standard 基础上额外安装开发工具，并尽量切换为本地 editable${NC}"
-    echo -e "  ${DIM}• pip 安装: pip install isage (等同于默认 standard 模式)${NC}"
+    echo -e "  ${DIM}• pip 安装: pip install isage (等同于 standard 模式)${NC}"
     echo -e "  ${DIM}• 克隆要求网络连接到 GitHub，多个仓库可能需要几十秒${NC}"
     echo ""
 }
@@ -792,10 +802,12 @@ parse_clone_satellites_option() {
     case "$param" in
         "--clone-satellites"|"--clone-repos"|"--satellites")
             CLONE_SATELLITE_REPOS=true
+            CLONE_SATELLITE_REPOS_EXPLICIT=true
             return 0
             ;;
         "--no-clone-satellites"|"--skip-satellites"|"--no-repos")
             CLONE_SATELLITE_REPOS=false
+            CLONE_SATELLITE_REPOS_EXPLICIT=true
             return 0
             ;;
         *)
@@ -956,8 +968,15 @@ set_defaults_and_show_tips() {
 
     # 设置安装模式默认值
     if [ -z "$INSTALL_MODE" ]; then
-        INSTALL_MODE="standard"
-        echo -e "${INFO} 未指定安装模式，使用默认: ${YELLOW}standard 安装${NC} ${DIM}(历史兼容)${NC}"
+        INSTALL_MODE="dev"
+        echo -e "${INFO} 未指定安装模式，使用默认: ${GREEN}dev 安装${NC}"
+        has_defaults=true
+    fi
+
+    # dev 模式下默认克隆附属仓库（除非用户显式指定了克隆策略）
+    if [ "$INSTALL_MODE" = "dev" ] && [ "$CLONE_SATELLITE_REPOS_EXPLICIT" = "false" ] && [ "$CLONE_SATELLITE_REPOS" = "false" ]; then
+        CLONE_SATELLITE_REPOS=true
+        echo -e "${INFO} dev 模式默认启用附属仓库克隆"
         has_defaults=true
     fi
 

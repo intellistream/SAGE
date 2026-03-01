@@ -70,7 +70,7 @@ env = LocalEnvironment("rag_pipeline")
 # Build declarative pipeline with sageLLM (recommended)
 (
     env.from_source(FileSource, {"file_path": "questions.txt"})
-    .map(DenseRetriever, {"model": "sentence-transformers/all-MiniLM-L6-v2"})
+  .map(DenseRetriever, {"model": "BAAI/bge-m3", "method": "sagellm"})
     .map(QAPromptor, {"template": "Answer based on context: {context}\nQ: {query}\nA:"})
     .map(SageLLMGenerator, {
         "model_path": "Qwen/Qwen2.5-7B-Instruct",

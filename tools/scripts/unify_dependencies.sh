@@ -20,7 +20,6 @@ declare -A UNIFIED_DEPS=(
     # Transformers 生态
     ["transformers"]='>=4.52.0,<4.58.0'
     ["tokenizers"]='>=0.21.0,<0.24.0'
-    ["sentence-transformers"]='>=3.1.0,<4.0.0'
     ["accelerate"]='>=1.9.0,<2.0.0'
     ["peft"]='>=0.18.0,<1.0.0'
     ["huggingface-hub"]='>=0.34.0,<1.0.0'

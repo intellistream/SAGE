@@ -26,15 +26,15 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     # L1 — base utilities, config, logging, protocols
-    "isage-common>=0.2.4.20",
+    "isage-common>=0.2.4.23",
     # L2 — queue, storage, service, runtime adapters
     "isage-platform>=0.2.4.22",
     # L3 — streaming runtime, scheduler, flow DSL
     "isage-kernel>=0.2.4.28",
     # L3 — algorithm library (agentic, RAG, NLP, …)
-    "isage-libs>=0.2.4.22",
+    "isage-libs>=0.2.4.28",
     # L4 — middleware components (VDB, memory backends, networked operators)
-    "isage-middleware>=0.2.4.32",
+    "isage-middleware>=0.2.4.33,<0.2.4.34",
     # L5 — unified CLI (sage command)
     "isage-cli>=0.2.4.25",
     # Runtime — Flownet distributed execution engine (replaces Ray)

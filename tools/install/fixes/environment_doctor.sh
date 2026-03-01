@@ -92,6 +92,42 @@ except PackageNotFoundError:
     echo "$detected_version"
 }
 
+# 检查 numpy 元数据是否完整（避免依赖 pkg_resources）
+is_numpy_metadata_healthy() {
+    python3 -c "
+import glob
+import os
+import site
+import sys
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    import numpy  # noqa: F401
+except Exception:
+    sys.exit(0)
+
+try:
+    version('numpy')
+except PackageNotFoundError:
+    sys.exit(1)
+
+paths = []
+for p in site.getsitepackages() + [site.getusersitepackages()]:
+    if p not in paths and os.path.isdir(p):
+        paths.append(p)
+
+for root in paths:
+    for candidate in glob.glob(os.path.join(root, '~umpy*')):
+        if os.path.exists(candidate):
+            sys.exit(1)
+    for dist_info in glob.glob(os.path.join(root, 'numpy-*.dist-info')):
+        if not os.path.isfile(os.path.join(dist_info, 'RECORD')):
+            sys.exit(1)
+
+sys.exit(0)
+" >/dev/null 2>&1
+}
+
 # 问题报告结构
 declare -A ISSUE_REGISTRY
 declare -A FIX_REGISTRY
@@ -313,9 +349,9 @@ check_core_dependencies() {
 check_specific_issues() {
     echo -e "\n${YELLOW}${BOLD}🔎 特定问题诊断${NC}"
 
-    # 检查numpy RECORD文件问题
+    # 检查 numpy 元数据完整性问题
     if python3 -c "import numpy" >/dev/null 2>&1; then
-        if ! python3 -c "import pkg_resources; pkg_resources.get_distribution('numpy')" >/dev/null 2>&1; then
+        if ! is_numpy_metadata_healthy; then
             report_issue "numpy_corrupted" "numpy 安装记录损坏，可能导致升级失败" "major"
         fi
     fi
@@ -697,18 +733,32 @@ fix_numpy_corrupted() {
         return 1
     fi
 
-    # 清理损坏的numpy
+    # 清理损坏的 numpy
     pip3 uninstall numpy -y >/dev/null 2>&1 || true
     python3 -c "
-import os, shutil, sys
-try:
-    import numpy
-    numpy_path = os.path.dirname(numpy.__file__)
-    if 'site-packages' in numpy_path:
-        shutil.rmtree(numpy_path, ignore_errors=True)
-        print('清理了损坏的 numpy 安装')
-except Exception:
-    pass
+import glob
+import os
+import shutil
+import site
+
+paths = []
+for p in site.getsitepackages() + [site.getusersitepackages()]:
+    if p not in paths and os.path.isdir(p):
+        paths.append(p)
+
+for root in paths:
+    for candidate in glob.glob(os.path.join(root, 'numpy')):
+        shutil.rmtree(candidate, ignore_errors=True)
+    for candidate in glob.glob(os.path.join(root, 'numpy-*.dist-info')):
+        shutil.rmtree(candidate, ignore_errors=True)
+    for candidate in glob.glob(os.path.join(root, '~umpy*')):
+        if os.path.isdir(candidate):
+            shutil.rmtree(candidate, ignore_errors=True)
+        elif os.path.exists(candidate):
+            try:
+                os.remove(candidate)
+            except OSError:
+                pass
 " 2>/dev/null || true
 
     # 重新安装（使用 SAGE 兼容版本：>=1.26.0,<2.3.0）

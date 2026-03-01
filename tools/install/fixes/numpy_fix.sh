@@ -36,7 +36,7 @@ check_numpy_installation() {
     local conda_numpy=""
     local pip_numpy=""
 
-    echo -e "${DIM}正在检测 numpy 安装状态...${NC}"
+    echo -e "${DIM}正在检测 numpy 安装状态...${NC}" >&2
 
     # 检查conda安装的numpy
     if command -v conda >/dev/null 2>&1; then
@@ -46,17 +46,43 @@ check_numpy_installation() {
     # 检查pip安装的numpy
     pip_numpy=$(python3 -c "import numpy; print(numpy.__version__)" 2>/dev/null || echo "not_found")
 
-    # 检查numpy的RECORD文件是否存在（判断是否损坏）
+    # 检查 numpy 元数据与 dist-info 完整性（判断是否损坏）
     local numpy_corrupted=false
+    local mixed_conflict=false
     if [ "$pip_numpy" != "not_found" ]; then
-        # 尝试检查pip的numpy记录
-        if ! python3 -c "import pkg_resources; pkg_resources.get_distribution('numpy')" >/dev/null 2>&1; then
+        if ! python3 -c "from importlib.metadata import version; version('numpy')" >/dev/null 2>&1; then
+            numpy_corrupted=true
+        fi
+
+        if ! python3 -c "
+import glob
+import os
+import site
+import sys
+
+paths = []
+for p in site.getsitepackages() + [site.getusersitepackages()]:
+    if p not in paths and os.path.isdir(p):
+        paths.append(p)
+
+for root in paths:
+    for candidate in glob.glob(os.path.join(root, '~umpy*')):
+        if os.path.exists(candidate):
+            sys.exit(1)
+    for dist_info in glob.glob(os.path.join(root, 'numpy-*.dist-info')):
+        if not os.path.isfile(os.path.join(dist_info, 'RECORD')):
+            sys.exit(1)
+" >/dev/null 2>&1; then
             numpy_corrupted=true
         fi
     fi
 
+    if [ -n "$conda_numpy" ] && [ "$pip_numpy" != "not_found" ] && [ "$conda_numpy" != "$pip_numpy" ]; then
+        mixed_conflict=true
+    fi
+
     # 返回状态信息
-    echo "conda_numpy:$conda_numpy|pip_numpy:$pip_numpy|corrupted:$numpy_corrupted"
+    echo "conda_numpy:$conda_numpy|pip_numpy:$pip_numpy|corrupted:$numpy_corrupted|mixed_conflict:$mixed_conflict"
 }
 
 # 修复numpy安装问题
@@ -68,11 +94,12 @@ fix_numpy_installation() {
     local conda_numpy=$(echo "$status_info" | cut -d'|' -f1 | cut -d':' -f2)
     local pip_numpy=$(echo "$status_info" | cut -d'|' -f2 | cut -d':' -f2)
     local corrupted=$(echo "$status_info" | cut -d'|' -f3 | cut -d':' -f2)
+    local mixed_conflict=$(echo "$status_info" | cut -d'|' -f4 | cut -d':' -f2)
 
-    log_info "numpy状态检测 - conda版本: $conda_numpy, pip版本: $pip_numpy, 损坏状态: $corrupted" "NumpyFix"
+    log_info "numpy状态检测 - conda版本: $conda_numpy, pip版本: $pip_numpy, 损坏状态: $corrupted, 混合冲突: $mixed_conflict" "NumpyFix"
 
     # 如果检测到问题，提供友好的解释和解决方案
-    if [ "$corrupted" = "true" ] || [ "$conda_numpy" != "" -a "$pip_numpy" != "not_found" ]; then
+    if [ "$corrupted" = "true" ] || [ "$mixed_conflict" = "true" ]; then
         echo -e "${BLUE}📋 环境状态分析：${NC}"
 
         if [ "$corrupted" = "true" ]; then
@@ -81,7 +108,7 @@ fix_numpy_installation() {
             echo -e "    ${DIM}这通常是由于包管理器切换或不完整的安装导致的${NC}"
         fi
 
-        if [ "$conda_numpy" != "" -a "$pip_numpy" != "not_found" ]; then
+        if [ "$mixed_conflict" = "true" ]; then
             log_warn "检测到 conda 和 pip 混合管理的 numpy" "NumpyFix"
             echo -e "  ${YELLOW}▸${NC} 检测到 conda 和 pip 混合管理的 numpy"
             echo -e "    ${DIM}conda版本: $conda_numpy, pip版本: $pip_numpy${NC}"
@@ -115,22 +142,36 @@ fix_numpy_installation() {
         fi
 
         # Step 2: 强制清理pip numpy
-        if [ "$pip_numpy" != "not_found" ]; then
+        if [ "$pip_numpy" != "not_found" ] || [ "$corrupted" = "true" ]; then
             log_info "清理 pip numpy 安装..." "NumpyFix"
             echo -e "  ${DIM}清理 pip numpy 安装...${NC}"
             log_command "NumpyFix" "Fix" "pip uninstall numpy -y" || true
             log_command "NumpyFix" "Fix" "python3 -m pip uninstall numpy -y" || true
-            log_info "尝试强制移除 numpy 目录" "NumpyFix"
+            log_info "尝试强制移除 numpy 目录和损坏元数据" "NumpyFix"
             python3 -c "
-import os, shutil, sys
-try:
-    import numpy
-    numpy_path = os.path.dirname(numpy.__file__)
-    if 'site-packages' in numpy_path:
-        shutil.rmtree(numpy_path, ignore_errors=True)
-        print('Forcibly removed numpy directory')
-except Exception:
-    pass
+import glob
+import os
+import shutil
+import site
+
+paths = []
+for p in site.getsitepackages() + [site.getusersitepackages()]:
+    if p not in paths and os.path.isdir(p):
+        paths.append(p)
+
+for root in paths:
+    for candidate in glob.glob(os.path.join(root, 'numpy')):
+        shutil.rmtree(candidate, ignore_errors=True)
+    for candidate in glob.glob(os.path.join(root, 'numpy-*.dist-info')):
+        shutil.rmtree(candidate, ignore_errors=True)
+    for candidate in glob.glob(os.path.join(root, '~umpy*')):
+        if os.path.isdir(candidate):
+            shutil.rmtree(candidate, ignore_errors=True)
+        elif os.path.exists(candidate):
+            try:
+                os.remove(candidate)
+            except OSError:
+                pass
 " 2>/dev/null || true
         fi
 
