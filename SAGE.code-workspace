@@ -182,8 +182,12 @@
       "path": "../sagellm-protocol"
     },
     {
-      "name": "sagellm-comm  [L1]",
+      "name": "sagellm-comm  [L2]",
       "path": "../sagellm-comm"
+    },
+    {
+      "name": "sagellm-backend  [L2]",
+      "path": "../sagellm-backend"
     },
     {
       "name": "sagellm-compression  [L3]",
@@ -192,10 +196,6 @@
     {
       "name": "sagellm-kv-cache  [L3]",
       "path": "../sagellm-kv-cache"
-    },
-    {
-      "name": "sagellm-backend  [L3]",
-      "path": "../sagellm-backend"
     },
     {
       "name": "sagellm-core  [L4]",
