@@ -45,3 +45,10 @@
 - Quality/hooks: `tools/pre-commit-config.yaml`, `tools/hooks/check_docs_location.sh`.
 - Meta-package: `packages/sage/pyproject.toml` — version pins for all sub-package dependencies.
 - Install logic: `tools/install/installation_table/core_installer.sh` — installs `packages/sage` (or `packages/sage[dev]`) only.
+
+## 🚫 NEVER_CREATE_DOT_VENV_MANDATORY
+
+- 永远不要创建 `.venv` 或 `venv`（无任何例外）。
+- NEVER create `.venv`/`venv` in this repository under any circumstance.
+- 必须复用当前已配置的非-venv Python 环境（如现有 conda 环境）。
+- If any script/task suggests creating a virtualenv, skip that step and continue with the existing environment.
