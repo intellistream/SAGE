@@ -14,8 +14,28 @@ NC='\033[0m'
 
 echo -e "${BLUE}🧹 安装前清理...${NC}"
 
+# 统一 pip 命令（优先使用 quickstart 注入的 PIP_CMD）
+PYTHON_CMD="${PYTHON_CMD:-python3}"
+PIP_CMD="${PIP_CMD:-$PYTHON_CMD -m pip}"
+
 # 计数器
 removed_count=0
+
+# 清理历史安装的 SAGE/SageLLM 相关包（显著降低 pip 解析复杂度）
+echo -e "${DIM}清理已安装的 isage/isagellm/sagellm 包...${NC}"
+installed_packages=$(eval "$PIP_CMD list --format=freeze" 2>/dev/null | grep -E '^(isage|isagellm|sagellm)(-|=)' || true)
+if [ -n "$installed_packages" ]; then
+    package_names=$(echo "$installed_packages" | cut -d'=' -f1 | tr '\n' ' ')
+    if [ -n "$package_names" ]; then
+        echo -e "${DIM}将卸载: $package_names${NC}"
+        eval "$PIP_CMD uninstall -y $package_names" >/dev/null 2>&1 || true
+        pkg_count=$(echo "$package_names" | wc -w)
+        echo -e "${GREEN}✅ 清理了 $pkg_count 个历史安装包${NC}"
+        removed_count=$((removed_count + pkg_count))
+    fi
+else
+    echo -e "${DIM}未检测到历史安装包${NC}"
+fi
 
 # 清理 Python 缓存文件
 echo -e "${DIM}清理 __pycache__ 目录...${NC}"
@@ -73,8 +93,8 @@ fi
 # 清理 pip 缓存 (可选，占用较大空间)
 if [ "${CLEAN_PIP_CACHE:-false}" = "true" ]; then
     echo -e "${DIM}清理 pip 缓存...${NC}"
-    if command -v pip3 >/dev/null 2>&1; then
-        pip3 cache purge 2>/dev/null || true
+    if eval "$PIP_CMD cache --help" >/dev/null 2>&1; then
+        eval "$PIP_CMD cache purge" 2>/dev/null || true
         echo -e "${GREEN}✅ pip 缓存已清理${NC}"
     fi
 fi

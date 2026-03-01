@@ -25,7 +25,7 @@ on:
       use_testpypi:
         description: "Install sub-packages from TestPyPI dev channel"
         required: false
-        default: "false"
+        default: false
         type: boolean
 
 concurrency:
@@ -40,6 +40,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Dependency audit consistency check
+        run: |
+          python3 tools/scripts/check_meta_dependency_audit.py
+
+      - name: Dependency audit change-evidence gate (PR)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          python3 tools/scripts/check_meta_dependency_audit.py \
+            --enforce-change-evidence \
+            --refspec "origin/${{ github.base_ref }}...HEAD"
 
       - name: Set up Python
         uses: actions/setup-python@v5

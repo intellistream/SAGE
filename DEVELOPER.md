@@ -90,6 +90,16 @@ ______________________________________________________________________
 
 ## Dependency Management
 
+### Layer Ownership Matrix (Wave A Baseline)
+
+For cross-repo boundary refactor reviews, use the canonical ownership matrix:
+
+- [ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md](ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md)
+
+This matrix defines L1-L5 ownership, forbidden dependency direction, violation examples, and
+remediation priority for Phase 1, including independent sub-repo coordination and `sagellm`
+capability boundaries.
+
 ### Core Dependencies Architecture
 
 SAGE follows a **minimalist core dependency strategy** with a **modular feature model**:

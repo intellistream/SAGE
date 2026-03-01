@@ -35,14 +35,15 @@ from sage.common.config import get_user_paths
 
 ## 🧭 Governance / 团队协作制度
 
-本包的团队安排、负责人制度、协作流程与质量门槛见：
+本包遵循 SAGE 主仓库协作规范，优先参考：
 
-- `docs/governance/TEAM.md`
-- `docs/governance/MAINTAINERS.md`
-- `docs/governance/DEVELOPER_GUIDE.md`
-- `docs/governance/PR_CHECKLIST.md`
-- `docs/governance/SELF_HOSTED_RUNNER.md`
-- `docs/governance/TODO.md`
+- 根目录 `README.md`
+- 根目录 `DEVELOPER.md`
+- 根目录 `CONTRIBUTING.md`
+
+团队信息与职责分工请参考独立仓库：`intellistream/sage-team-info`。
+
+依赖变更审计门禁与证据登记请参考：`packages/sage/docs/dependency-audit-gate.md`。
 
 ## 🎯 安装方式
 

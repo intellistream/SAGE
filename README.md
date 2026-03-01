@@ -128,6 +128,10 @@ packages, and categorized listings.
 📖 **[Architecture Guide](./docs-public/docs_src/concepts/architecture/package-structure.md)** -
 Detailed design principles and dependency rules
 
+📌 **[Layer Ownership Matrix v1 (Wave A)](./ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md)** - Canonical
+L1-L5 ownership, independent sub-repo coordination boundary (including `sagellm` capabilities),
+forbidden directions, and boundary refactor review checklist
+
 ## Installation
 
 **Quickstart (Recommended)**

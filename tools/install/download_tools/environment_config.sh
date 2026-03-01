@@ -195,10 +195,12 @@ configure_pip_mirror() {
             echo -e "${DIM}  使用官方 PyPI${NC}"
             ;;
         "disable")
-            # 显式禁用镜像配置
-            unset PIP_INDEX_URL
-            unset PIP_EXTRA_INDEX_URL
-            echo -e "${DIM}  镜像已禁用${NC}"
+            # 显式禁用镜像配置：强制官方 PyPI
+            # 说明：不能 simple unset，否则可能回落到用户全局 pip.conf 中的镜像配置。
+            export PIP_INDEX_URL="https://pypi.org/simple/"
+            export PIP_EXTRA_INDEX_URL=""
+            export PIP_NO_CACHE_DIR=1
+            echo -e "${DIM}  镜像已禁用（强制官方 PyPI）${NC}"
             return 0
             ;;
         custom:*)

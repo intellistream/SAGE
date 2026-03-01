@@ -52,6 +52,136 @@ fi
 PYTHON_CMD="${PYTHON_CMD:-python3}"
 PIP_CMD="${PIP_CMD:-$PYTHON_CMD -m pip}"
 
+extract_meta_package_dependencies() {
+    local install_mode="${1:-standard}"
+
+    local mode_json="[]"
+    if [ "$install_mode" = "dev" ]; then
+        mode_json='["dev"]'
+    fi
+
+    $PYTHON_CMD - <<PY
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover
+    import tomli as tomllib
+
+pyproject_path = Path("packages/sage/pyproject.toml")
+data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+
+project = data.get("project", {})
+deps = list(project.get("dependencies", []) or [])
+optional = project.get("optional-dependencies", {}) or {}
+
+selected_extras = json.loads('''$mode_json''')
+for extra in selected_extras:
+    deps.extend(optional.get(extra, []) or [])
+
+seen: set[str] = set()
+for dep in deps:
+    normalized = dep.strip()
+    if not normalized or normalized in seen:
+        continue
+    seen.add(normalized)
+    print(normalized)
+PY
+}
+
+install_meta_dependencies_sequentially() {
+    local install_mode="${1:-standard}"
+    local pip_args="$2"
+    local log_file="$3"
+
+    local dep_specs=()
+    while IFS= read -r dep; do
+        [ -n "$dep" ] && dep_specs+=("$dep")
+    done < <(extract_meta_package_dependencies "$install_mode")
+
+    if [ ${#dep_specs[@]} -eq 0 ]; then
+        log_warn "未提取到 meta-package 依赖，跳过预安装步骤" "INSTALL"
+        echo -e "${WARNING} 未提取到依赖，跳过依赖预安装"
+        return 0
+    fi
+
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}  🧩 预安装 meta-package 依赖（顺序安装，降低解析复杂度）${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+
+    local idx=1
+    local total=${#dep_specs[@]}
+    local dep_spec
+    for dep_spec in "${dep_specs[@]}"; do
+        echo -e "${DIM}[${idx}/${total}] 安装依赖: ${dep_spec}${NC}"
+        log_debug "PIP命令: $PIP_CMD install --upgrade \"$dep_spec\" $pip_args" "INSTALL"
+
+        set -o pipefail
+        if ! $PIP_CMD install --upgrade "$dep_spec" $pip_args 2>&1 | tee -a "$log_file"; then
+            set +o pipefail
+            log_error "依赖预安装失败: $dep_spec" "INSTALL"
+            echo -e "${CROSS} 依赖预安装失败: $dep_spec"
+            return 1
+        fi
+        set +o pipefail
+
+        idx=$((idx + 1))
+    done
+
+    echo ""
+    echo -e "${CHECK} meta-package 依赖预安装完成"
+    return 0
+}
+
+install_resolver_guard_packages() {
+    local pip_args="$1"
+    local log_file="$2"
+
+    local guard_specs=(
+        "setuptools>=68"
+        "wheel>=0.42"
+        "wrapt>=1.15.0"
+    )
+
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}  🛡️  预安装解析护栏依赖（避免回溯到不兼容旧版本）${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+
+    local spec
+    for spec in "${guard_specs[@]}"; do
+        echo -e "${DIM}安装护栏依赖: ${spec}${NC}"
+        set -o pipefail
+        if ! $PIP_CMD install --upgrade "$spec" $pip_args 2>&1 | tee -a "$log_file"; then
+            set +o pipefail
+            log_warn "护栏依赖安装失败，继续后续安装: $spec" "INSTALL"
+            echo -e "${WARNING} 护栏依赖安装失败，继续: $spec"
+        fi
+        set +o pipefail
+    done
+
+    echo ""
+    echo -e "${CHECK} 解析护栏依赖处理完成"
+    return 0
+}
+
+create_quickstart_constraints_file() {
+    local project_root="$1"
+
+    local constraints_file="$project_root/.sage/tmp/quickstart-pip-constraints.txt"
+    cat > "$constraints_file" <<'EOF'
+wrapt>=1.14.2
+setuptools>=68
+wheel>=0.42
+EOF
+
+    echo "$constraints_file"
+}
+
 # dev 模式下优先尝试安装本地 polyrepo 子仓库（editable）
 install_local_editable_polyrepo_packages() {
     local project_root="$1"
@@ -164,7 +294,7 @@ install_core_packages() {
     esac
 
     # 准备 pip 参数
-    local pip_args="--disable-pip-version-check --no-input"
+    local pip_args="--disable-pip-version-check --no-input --prefer-binary --upgrade-strategy only-if-needed"
 
     # CI 环境额外处理
     if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
@@ -184,6 +314,11 @@ install_core_packages() {
     export SAGE_INSTALL_LOG="$log_file"
     mkdir -p "$project_root/.sage/logs" "$project_root/.sage/tmp" "$project_root/.sage/cache"
 
+    local constraints_file
+    constraints_file="$(create_quickstart_constraints_file "$project_root")"
+    export SAGE_PIP_CONSTRAINT_FILE="$constraints_file"
+    pip_args="$pip_args -c $constraints_file"
+
     log_info "SAGE 安装日志" "INSTALL"
     log_info "开始时间: $(date '+%Y-%m-%d %H:%M:%S')" "INSTALL"
     log_info "安装模式: $install_mode" "INSTALL"
@@ -191,7 +326,14 @@ install_core_packages() {
 
     echo -e "${INFO} 安装 SAGE ($install_mode 模式)..."
     echo -e "${DIM}安装日志: $log_file${NC}"
+    echo -e "${DIM}pip constraints: $constraints_file${NC}"
     echo ""
+
+    if [ "${CLEAN_BEFORE_INSTALL:-true}" != "true" ]; then
+        echo -e "${WARNING} 检测到 --no-clean/--skip-clean：旧环境残留约束可能导致 pip 回溯过深（resolution-too-deep）"
+        echo -e "${DIM}建议: 去掉 --no-clean，或先执行一次完整安装前清理${NC}"
+        echo ""
+    fi
 
     # 配置 pip 镜像源（遵循 quickstart 参数）
     # - USE_PIP_MIRROR=false (e.g. --no-mirror) 时：强制官方 PyPI + 禁用缓存
@@ -239,8 +381,20 @@ install_core_packages() {
     echo ""
 
     log_info "安装目标: $install_target" "INSTALL"
+
+    log_phase_start_enhanced "解析护栏依赖安装" "INSTALL" 60
+    install_resolver_guard_packages "$pip_args" "$log_file"
+    log_phase_end_enhanced "解析护栏依赖安装" "success" "INSTALL"
+
+    log_phase_start_enhanced "meta-package 依赖预安装" "INSTALL" 180
+    if ! install_meta_dependencies_sequentially "$install_mode" "$pip_args" "$log_file"; then
+        log_phase_end_enhanced "meta-package 依赖预安装" "failure" "INSTALL"
+        return 1
+    fi
+    log_phase_end_enhanced "meta-package 依赖预安装" "success" "INSTALL"
+
     log_phase_start_enhanced "SAGE meta-package 安装" "INSTALL" 120
-    log_debug "PIP命令: $PIP_CMD install -e \"$install_target\" $pip_args" "INSTALL"
+    log_debug "PIP命令: $PIP_CMD install -e \"$install_target\" --no-deps $pip_args" "INSTALL"
 
     echo -e "${DIM}[INFO] 安装目标: $install_target${NC}"
     echo -e "${DIM}[INFO] 安装日志同步写入: $log_file${NC}"
@@ -249,7 +403,7 @@ install_core_packages() {
     # 直接流式输出 pip 进度到终端，同时 tee 到日志文件
     # 使用 PIPESTATUS 捕获 pip 退出码（bash 专用），避免被 tee 覆盖
     set -o pipefail
-    if ! $PIP_CMD install -e "$install_target" $pip_args 2>&1 | tee -a "$log_file"; then
+    if ! $PIP_CMD install -e "$install_target" --no-deps $pip_args 2>&1 | tee -a "$log_file"; then
         set +o pipefail
         log_error "安装失败: $install_target" "INSTALL"
         echo -e "${CROSS} SAGE meta-package 安装失败！"

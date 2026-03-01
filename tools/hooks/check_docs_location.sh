@@ -94,9 +94,10 @@ allowed_patterns=(
     "^tools/docs/.*\.md$"  # Allow tools/docs/ directory
     "^\.sage/.*\.md$"
 
-    # .github: Allow allowed config files in root + anything in subdirectories
+    # .github: Allow standard GitHub convention files in root + anything in subdirectories
     "^\.github/copilot-instructions\.md$"
     "^\.github/COPILOT_SETUP\.md$"
+    "^\.github/[^/]+\.md$"    # Standard GitHub root-level markdown (PULL_REQUEST_TEMPLATE, ISSUE_TEMPLATE, etc.)
     "^\.github/[^/]+/"
 )
 

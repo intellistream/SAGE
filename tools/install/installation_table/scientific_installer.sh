@@ -80,6 +80,14 @@ install_optional_packages() {
 
     log_info "开始安装可选依赖" "Optional"
 
+    local pip_args="--disable-pip-version-check --no-input --prefer-binary --upgrade-strategy only-if-needed"
+    if [ "${USE_PIP_MIRROR:-true}" = "false" ]; then
+        pip_args="$pip_args --no-cache-dir"
+    fi
+    if [ -n "${SAGE_PIP_CONSTRAINT_FILE:-}" ] && [ -f "${SAGE_PIP_CONSTRAINT_FILE:-}" ]; then
+        pip_args="$pip_args -c ${SAGE_PIP_CONSTRAINT_FILE}"
+    fi
+
     # 安装各个可选依赖组
     local optional_groups=(
         "isage-middleware[ml]"          # ML: transformers, sentence-transformers, accelerate
@@ -91,10 +99,10 @@ install_optional_packages() {
 
     for group in "${optional_groups[@]}"; do
         echo -e "${BOLD}  📦 正在安装 $group${NC}"
-        echo -e "${DIM}运行命令: $PIP_CMD install \"$group\"${NC}"
+        echo -e "${DIM}运行命令: $PIP_CMD install \"$group\" $pip_args${NC}"
         echo ""
 
-        if log_command "Optional" "Install" "$PIP_CMD install \"$group\""; then
+        if log_command "Optional" "Install" "$PIP_CMD install \"$group\" $pip_args"; then
             log_info "$group 安装成功！" "Optional"
             echo -e "${CHECK} $group 安装成功！"
         else

@@ -14,49 +14,6 @@ TOOLS_DIR="$SAGE_ROOT/tools/install"
 export PYTHON_CMD="${PYTHON_CMD:-python3}"
 export PIP_CMD="${PIP_CMD:-$PYTHON_CMD -m pip}"
 
-# 自动设置 HuggingFace 镜像（国内网络加速）
-# 如果用户已设置 HF_ENDPOINT 则不覆盖
-if [ -z "${HF_ENDPOINT}" ]; then
-    # 检测是否能直接访问 huggingface.co
-    if ! curl -s --connect-timeout 3 https://huggingface.co >/dev/null 2>&1; then
-        export HF_ENDPOINT="https://hf-mirror.com"
-        echo -e "\033[2m自动设置 HuggingFace 镜像: $HF_ENDPOINT\033[0m"
-
-        # 检测到国内网络，提示配置 HF_TOKEN
-        if [ -z "${HF_TOKEN}" ] && [ ! -f ".env" ] || ! grep -q "HF_TOKEN=" .env 2>/dev/null; then
-            echo -e "\033[33m💡 提示: 检测到您在中国大陆网络环境\033[0m"
-            echo -e "\033[2m为避免 HuggingFace API 限流 (429 错误)，建议配置 HF_TOKEN\033[0m"
-            echo -e "\033[2m获取 token: https://huggingface.co/settings/tokens\033[0m"
-            echo ""
-            read -p "是否现在配置 HF_TOKEN? (y/N): " -n 1 -r
-            echo
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                read -p "请输入您的 HuggingFace Token: " hf_token
-                if [ -n "$hf_token" ]; then
-                    # 创建或更新 .env 文件
-                    if [ ! -f ".env" ]; then
-                        cp .env.template .env 2>/dev/null || touch .env
-                    fi
-                    # 添加或更新 HF_TOKEN
-                    if grep -q "^HF_TOKEN=" .env 2>/dev/null; then
-                        sed -i "s/^HF_TOKEN=.*/HF_TOKEN=$hf_token/" .env
-                    else
-                        echo "HF_TOKEN=$hf_token" >> .env
-                    fi
-                    # 同时添加 HF_ENDPOINT
-                    if ! grep -q "^HF_ENDPOINT=" .env 2>/dev/null; then
-                        echo "HF_ENDPOINT=https://hf-mirror.com" >> .env
-                    fi
-                    echo -e "\033[32m✅ HF_TOKEN 已保存到 .env 文件\033[0m"
-                    export HF_TOKEN="$hf_token"
-                fi
-            else
-                echo -e "\033[2m跳过 HF_TOKEN 配置（可稍后在 .env 文件中手动添加）\033[0m"
-            fi
-        fi
-    fi
-fi
-
 # 导入所有模块
 source "$TOOLS_DIR/display_tools/colors.sh"
 source "$TOOLS_DIR/display_tools/output_formatter.sh"
@@ -79,6 +36,77 @@ pre_check_system_environment
 
 # 根据偏移探测结果设置Unicode符号
 setup_unicode_symbols
+
+is_interactive_session() {
+    [ -t 0 ] && [ -t 1 ]
+}
+
+# 在参数解析后再处理 HF 配置，避免 --yes/CI 模式被提前交互阻塞
+configure_huggingface_network() {
+    local auto_confirm="$1"
+
+    if [ -n "${HF_ENDPOINT:-}" ]; then
+        return 0
+    fi
+
+    if curl -s --connect-timeout 3 https://huggingface.co >/dev/null 2>&1; then
+        return 0
+    fi
+
+    export HF_ENDPOINT="https://hf-mirror.com"
+    echo -e "${DIM}自动设置 HuggingFace 镜像: $HF_ENDPOINT${NC}"
+
+    if [ -n "${HF_TOKEN:-}" ]; then
+        return 0
+    fi
+
+    local has_env_token=false
+    if [ -f ".env" ] && grep -q "^HF_TOKEN=" .env 2>/dev/null; then
+        has_env_token=true
+    fi
+    if [ "$has_env_token" = true ]; then
+        return 0
+    fi
+
+    if [ "$auto_confirm" = "true" ] || [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]] || ! is_interactive_session; then
+        echo -e "${YELLOW}💡 检测到可能受限网络，建议在 .env 中配置 HF_TOKEN 以减少 429 频率${NC}"
+        return 0
+    fi
+
+    echo -e "${YELLOW}💡 提示: 检测到受限网络环境${NC}"
+    echo -e "${DIM}为避免 HuggingFace API 限流 (429 错误)，建议配置 HF_TOKEN${NC}"
+    echo -e "${DIM}获取 token: https://huggingface.co/settings/tokens${NC}"
+    echo ""
+    read -r -p "是否现在配置 HF_TOKEN? (y/N): " -n 1 reply
+    echo
+
+    if [[ ! "$reply" =~ ^[Yy]$ ]]; then
+        echo -e "${DIM}跳过 HF_TOKEN 配置（可稍后在 .env 文件中手动添加）${NC}"
+        return 0
+    fi
+
+    read -r -p "请输入您的 HuggingFace Token: " hf_token
+    if [ -z "$hf_token" ]; then
+        return 0
+    fi
+
+    if [ ! -f ".env" ]; then
+        cp .env.template .env 2>/dev/null || touch .env
+    fi
+
+    if grep -q "^HF_TOKEN=" .env 2>/dev/null; then
+        sed -i "s/^HF_TOKEN=.*/HF_TOKEN=$hf_token/" .env
+    else
+        echo "HF_TOKEN=$hf_token" >> .env
+    fi
+
+    if ! grep -q "^HF_ENDPOINT=" .env 2>/dev/null; then
+        echo "HF_ENDPOINT=https://hf-mirror.com" >> .env
+    fi
+
+    export HF_TOKEN="$hf_token"
+    echo -e "${GREEN}✅ HF_TOKEN 已保存到 .env 文件${NC}"
+}
 
 # ─── SAGE 工作区初始化函数 ───────────────────────────────────────────────────
 # 用于将所有独立 SAGE 子仓库 clone 到本地工作区目录。
@@ -166,15 +194,21 @@ main() {
         bash "$TOOLS_DIR/log_management.sh" "$SAGE_ROOT/.sage/logs"
     fi
 
-    # 解析命令行参数（包括帮助检查）
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}🚀 SAGE Quickstart Pipeline${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+    # Phase 1: 参数解析（含默认值设置）
     parse_arguments "$@"
 
-    # 检查环境医生模式
+    # 解析完成后再处理 HF 网络配置，避免 --yes/CI 触发早期交互
+    local auto_confirm=$(get_auto_confirm)
+    configure_huggingface_network "$auto_confirm"
+
+    # Phase 2: 诊断与断点控制
     local run_doctor=$(get_run_doctor)
     local doctor_only=$(get_doctor_only)
     local fix_environment=$(get_fix_environment)
-
-    # 检查断点续传选项
     local resume_install=$(get_resume_install)
     local reset_checkpoint=$(get_reset_checkpoint)
 
@@ -200,7 +234,7 @@ main() {
             source "$TOOLS_DIR/fixes/environment_doctor.sh"
 
             # 确保如果使用了 --yes 参数，环境医生也会自动确认修复
-            if [ "$(get_auto_confirm)" = "true" ]; then
+            if [ "$auto_confirm" = "true" ]; then
                 export AUTO_CONFIRM_FIX="true"
             fi
 
@@ -233,7 +267,7 @@ main() {
 
             # 诊断完成，询问是否继续安装（CI 环境自动确认）
             echo ""
-            if [[ -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" ]] && [ "$(get_auto_confirm)" != "true" ]; then
+            if [[ -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" ]] && [ "$auto_confirm" != "true" ]; then
                 echo -e "${BLUE}${BOLD}📋 环境诊断完成${NC}"
                 echo -e "${DIM}诊断结果已显示在上方${NC}"
                 echo ""
@@ -253,9 +287,6 @@ main() {
             exit 1
         fi
     fi
-
-    # 设置智能默认值并显示提示
-    set_defaults_and_show_tips
 
     # 显示欢迎界面
     show_welcome
@@ -280,16 +311,16 @@ main() {
             echo -e "${YELLOW}⚠️  检测到潜在 numpy 环境问题，但将继续尝试安装${NC}"
         fi
     fi
-    # 如果没有指定任何参数且不在 CI 环境中，显示交互式菜单
+    # Phase 3: 交互式菜单（仅在无参数且非 CI）
     if [ $# -eq 0 ] && [[ -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" && -z "${GITLAB_CI:-}" && -z "${JENKINS_URL:-}" && -z "${BUILDKITE:-}" ]]; then
         show_installation_menu
+        auto_confirm=$(get_auto_confirm)
     fi
 
-    # 获取解析后的参数
+    # Phase 4: 读取最终安装配置
     local mode=$(get_install_mode)
     local environment=$(get_install_environment)
     export SAGE_INSTALL_MODE="$mode"
-    local auto_confirm=$(get_auto_confirm)
     export SAGE_AUTO_CONFIRM="$auto_confirm"
     local clean_cache=$(get_clean_pip_cache)
     local verify_deps=$(get_verify_deps)
@@ -300,6 +331,7 @@ main() {
     local use_mirror=$(should_use_pip_mirror)
     local mirror_source=$(get_mirror_source_value)
     local clean_before_install=$(get_clean_before_install)
+    export CLEAN_BEFORE_INSTALL="$clean_before_install"
 
     # 导出 pip 镜像配置为环境变量，供子脚本使用
     export USE_PIP_MIRROR="$use_mirror"

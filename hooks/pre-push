@@ -113,12 +113,22 @@ bump_patch() {
 
 # Check if PyPI token is available (no interaction needed)
 has_pypi_token() {
-    [ -n "${TWINE_PASSWORD:-}" ] || [ -n "${TWINE_TOKEN:-}" ] || [ -n "${UV_PUBLISH_TOKEN:-}" ] && return 0
-    if [ -f "$HOME/.pypirc" ] && grep -q "^\[pypi\]" "$HOME/.pypirc" 2>/dev/null; then
-        if grep -A5 "^\[pypi\]" "$HOME/.pypirc" | grep -qE "^(password|token)\s*=" 2>/dev/null; then
+    if [ -n "${TWINE_PASSWORD:-}" ] || [ -n "${TWINE_TOKEN:-}" ] || [ -n "${UV_PUBLISH_TOKEN:-}" ]; then
+        return 0
+    fi
+
+    if [ -f "$HOME/.pypirc" ]; then
+        if awk '
+            BEGIN { in_pypi = 0; found = 0 }
+            /^[[:space:]]*\[pypi\][[:space:]]*$/ { in_pypi = 1; next }
+            /^[[:space:]]*\[[^]]+\][[:space:]]*$/ { in_pypi = 0 }
+            in_pypi && /^[[:space:]]*(password|token)[[:space:]]*=[[:space:]]*.+$/ { found = 1; exit }
+            END { exit(found ? 0 : 1) }
+        ' "$HOME/.pypirc" 2>/dev/null; then
             return 0
         fi
     fi
+
     return 1
 }
 
