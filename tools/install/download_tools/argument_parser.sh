@@ -244,7 +244,7 @@ show_installation_menu() {
         echo -e "${BOLD}1. 选择安装模式：${NC}"
         echo -e "  ${YELLOW}1)${NC} standard 安装 - 仅 SAGE 核心子包 ${DIM}(~200+包, 轻量, 无 torch/CUDA)${NC}"
         echo -e "  ${CYAN}2)${NC} full 安装     - standard + torch/accelerate/peft ${DIM}(~220+包, 含 GPU 支持)${NC}"
-        echo -e "  ${GREEN}3)${NC} dev 安装      - full + 开发工具 + 本地 editable ${DIM}(~230+包, 日常开发)${NC}"
+        echo -e "  ${GREEN}3)${NC} dev 安装      - standard + 开发工具 + 本地 editable ${DIM}(~210+包, 日常开发, 无 torch/CUDA)${NC}"
         echo ""
         read -p "请选择安装模式 [1-3，默认3]: " mode_choice
 
@@ -473,9 +473,9 @@ show_parameter_help() {
     echo -e "    ${DIM}适合: 学习示例、完整功能体验、研究实验${NC}"
     echo ""
     echo -e "  ${BOLD}--dev, -d${NC}                                   ${GREEN}开发安装${NC}"
-    echo -e "    ${DIM}包含: full + 开发工具 (pytest, ruff, mypy, pre-commit) + 本地 editable${NC}"
-    echo -e "    ${DIM}将本地 polyrepo 子仓库安装为 editable（packages/sage[full,dev]）${NC}"
-    echo -e "    ${DIM}大小: ~230+ 个包（约 2GB，含 PyTorch）${NC}"
+    echo -e "    ${DIM}包含: standard + 开发工具 (pytest, ruff, mypy, pre-commit) + 本地 editable${NC}"
+    echo -e "    ${DIM}将本地 polyrepo 子仓库安装为 editable（packages/sage[dev]）${NC}"
+    echo -e "    ${DIM}大小: ~210+ 个包（不含 PyTorch/CUDA）${NC}"
     echo -e "    ${DIM}适合: 日常开发、贡献 SAGE 框架源码${NC}"
     echo -e "    ${DIM}兼容别名: --non-dev / --nondev 等同于 standard${NC}"
     echo ""
@@ -621,7 +621,7 @@ parse_install_mode() {
             INSTALL_MODE="full"
             return 0
             ;;
-        # 开发安装：full + 开发工具 + 本地 editable
+        # 开发安装：standard + 开发工具 + 本地 editable
         "--dev"|"-d")
             INSTALL_MODE="dev"
             return 0
@@ -1017,7 +1017,7 @@ show_install_configuration() {
             echo -e "  ${BLUE}安装模式:${NC} ${CYAN}full 安装${NC} ${DIM}(standard + torch/accelerate/peft)${NC}"
             ;;
         "dev")
-            echo -e "  ${BLUE}安装模式:${NC} ${GREEN}开发者安装${NC} ${DIM}(full + 开发工具 + 本地 editable)${NC}"
+            echo -e "  ${BLUE}安装模式:${NC} ${GREEN}开发者安装${NC} ${DIM}(standard + 开发工具 + 本地 editable，无 torch/CUDA)${NC}"
             ;;
         *)
             echo -e "  ${BLUE}安装模式:${NC} ${YELLOW}standard 安装${NC}"

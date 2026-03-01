@@ -59,7 +59,7 @@ extract_meta_package_dependencies() {
     if [ "$install_mode" = "full" ]; then
         mode_json='["full"]'
     elif [ "$install_mode" = "dev" ]; then
-        mode_json='["full","dev"]'
+        mode_json='["dev"]'
     fi
 
     $PYTHON_CMD - <<PY
@@ -285,11 +285,11 @@ install_core_packages() {
     # 根据 install_mode 选择安装目标（extras）
     # standard: pip install -e "packages/sage"          (轻量，无 torch/CUDA)
     # full:     pip install -e "packages/sage[full]"    (含 torch/accelerate/peft)
-    # dev:      pip install -e "packages/sage[full,dev]" (full + 开发工具 + local editable)
+    # dev:      pip install -e "packages/sage[dev]"      (开发工具 + local editable，无 torch/CUDA)
     local install_target
     case "$install_mode" in
         "dev")
-            install_target='packages/sage[full,dev]'
+            install_target='packages/sage[dev]'
             ;;
         "full")
             install_target='packages/sage[full]'
@@ -370,8 +370,8 @@ install_core_packages() {
             echo -e "${DIM}包含: packages/sage[full]，含完整 GPU 支持（约 2GB CUDA 下载）${NC}"
             ;;
         "dev")
-            echo -e "${GREEN}dev 安装：full + 开发工具 + 本地子仓库 editable${NC}"
-            echo -e "${DIM}包含: packages/sage[full,dev]， pytest/ruff/mypy/pre-commit + 优先本地 editable 覆盖${NC}"
+            echo -e "${GREEN}dev 安装：standard + 开发工具 + 本地子仓库 editable${NC}"
+            echo -e "${DIM}包含: packages/sage[dev]，pytest/ruff/mypy/pre-commit + 优先本地 editable 覆盖（无 torch/CUDA）${NC}"
             ;;
     esac
     echo ""

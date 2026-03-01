@@ -80,9 +80,9 @@ install_optional_packages() {
     # 重 GPU/ML 依赖（torch/accelerate/peft）现已统一收归
     # packages/sage 的 [full] extra 中，通过以下方式启用：
     #   --full  (full 安装)
-    #   --dev   (dev 安装，自动包含 [full])
+    #   --dev   (dev 安装不再包含 [full]，如需 GPU 依赖请显式使用 --full)
     #
     # 此函数保留为空白 no-op，防止外部调用报错。
     log_info "install_optional_packages: 已废弃，无操作 (extras 已迁移至 packages/sage[full])" "Optional"
-    log_warn "如需 torch/accelerate/peft，请使用 --full 或 --dev 安装模式" "Optional"
+    log_warn "如需 torch/accelerate/peft，请使用 --full 安装模式" "Optional"
 }
