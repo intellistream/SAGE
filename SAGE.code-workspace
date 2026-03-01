@@ -186,10 +186,6 @@
       "path": "../sagellm-comm"
     },
     {
-      "name": "sagellm-core  [L2]",
-      "path": "../sagellm-core"
-    },
-    {
       "name": "sagellm-compression  [L3]",
       "path": "../sagellm-compression"
     },
@@ -202,15 +198,19 @@
       "path": "../sagellm-backend"
     },
     {
-      "name": "sagellm-control-plane  [L4]",
+      "name": "sagellm-core  [L4]",
+      "path": "../sagellm-core"
+    },
+    {
+      "name": "sagellm-control-plane  [L5]",
       "path": "../sagellm-control-plane"
     },
     {
-      "name": "sagellm-control-plane-benchmark  [L4 \u00b7 bench]",
+      "name": "sagellm-control-plane-benchmark  [L5 \u00b7 bench]",
       "path": "../sagellm-control-plane-benchmark"
     },
     {
-      "name": "sagellm-gateway  [L5]",
+      "name": "sagellm-gateway  [L6]",
       "path": "../sagellm-gateway"
     },
     {

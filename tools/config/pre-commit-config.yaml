@@ -74,6 +74,14 @@ repos:
 
 - repo: local
   hooks:
+  - id: meta-dependency-audit-gate
+    name: check isage meta dependency audit evidence
+    entry: python3 tools/scripts/check_meta_dependency_audit.py --enforce-change-evidence --staged
+    language: system
+    pass_filenames: false
+    always_run: false
+    stages: [pre-commit, manual]
+    files: ^packages/sage/pyproject\.toml$|^packages/sage/docs/dependency-audit-gate\.md$
   - id: architecture-violation-check
     name: check architecture violations (directory placement)
     entry: tools/hooks/pre-commit-architecture.sh
@@ -312,6 +320,7 @@ repos:
         "CHANGELOG.md"
         "dependencies-spec.yaml"
         "tasks.md"
+        "ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md"
         "SAGE.code-workspace"
       )
 
