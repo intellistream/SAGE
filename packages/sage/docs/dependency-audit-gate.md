@@ -81,6 +81,8 @@ dependency pin governance, and contract-level policy only.
 
 - Callsite: `tools/verify_hello_world.py` (`import sage.middleware`)
 - Rationale: L4 middleware import check in meta installation verification.
+- Version pin: `>=0.2.4.32` (bumped from 0.2.4.31; removed `accelerate`, `peft`, and transitive
+  `torch`/CUDA deps — ~2 GB reduction in install size).
 
 ### `isage-cli`
 
@@ -102,9 +104,10 @@ dependency pin governance, and contract-level policy only.
 
 ## Change Log
 
-| Date       | Dependency                                                                                                | Change Type       | Callsite Evidence Updated | Notes                              |
-| ---------- | --------------------------------------------------------------------------------------------------------- | ----------------- | ------------------------- | ---------------------------------- |
-| 2026-03-01 | isage-common, isage-platform, isage-kernel, isage-libs, isage-middleware, isage-cli, isage-flow, isagellm | Baseline registry | Yes                       | Initial gate rollout for SAGE#1474 |
+| Date       | Dependency                                                                                                | Change Type       | Callsite Evidence Updated | Notes                                                                             |
+| ---------- | --------------------------------------------------------------------------------------------------------- | ----------------- | ------------------------- | --------------------------------------------------------------------------------- |
+| 2026-03-01 | isage-common, isage-platform, isage-kernel, isage-libs, isage-middleware, isage-cli, isage-flow, isagellm | Baseline registry | Yes                       | Initial gate rollout for SAGE#1474                                                |
+| 2026-03-01 | isage-middleware                                                                                          | Version bump      | Yes                       | Bump to >=0.2.4.32; drop `accelerate`/`peft`/`torch`/CUDA transitive deps (~2 GB) |
 
 ## How To Update
 
