@@ -13,7 +13,6 @@
       "name": "sage-github-manager  [org-tools]",
       "path": "../sage-github-manager"
     },
-
     // ── SAGE meta  (umbrella + team) ──────────────────────────────────────────
     {
       "name": "SAGE  [meta]",
@@ -23,13 +22,11 @@
       "name": "sage-team-info  [meta]",
       "path": "../sage-team-info"
     },
-
     // ── L1 ───────────────────────────────────────────────────────────────────
     {
       "name": "sage-common  [L1]",
       "path": "../sage-common"
     },
-
     // ── L2 ───────────────────────────────────────────────────────────────────
     {
       "name": "sage-platform  [L2]",
@@ -39,7 +36,6 @@
       "name": "sageFlownet  [L2 · runtime]",
       "path": "../sageFlownet"
     },
-
     // ── L3 · core ─────────────────────────────────────────────────────────────
     {
       "name": "sage-kernel  [L3]",
@@ -49,7 +45,6 @@
       "name": "sage-libs  [L3]",
       "path": "../sage-libs"
     },
-
     // ── L3 · agentic ─────────────────────────────────────────────────────────
     {
       "name": "sage-agentic  [L3]",
@@ -63,19 +58,16 @@
       "name": "sage-agentic-tooluse-sias  [L3]",
       "path": "../sage-agentic-tooluse-sias"
     },
-
     // ── L3 · RAG ──────────────────────────────────────────────────────────────
     {
       "name": "sage-rag  [L3]",
       "path": "../sage-rag"
     },
-
     // ── L3 · Refiner ──────────────────────────────────────────────────────────
     {
       "name": "sageRefiner  [L3]",
       "path": "../sageRefiner"
     },
-
     // ── L3 · other algo ───────────────────────────────────────────────────────
     {
       "name": "sage-eval  [L3]",
@@ -97,7 +89,6 @@
       "name": "sage-libs-intent  [L3]",
       "path": "../sage-libs-intent"
     },
-
     // ── L3 · research ─────────────────────────────────────────────────────────
     {
       "name": "sage-privacy  [L3 · research]",
@@ -111,7 +102,6 @@
       "name": "sage-edge  [L3 · research]",
       "path": "../sage-edge"
     },
-
     // ── L4 ───────────────────────────────────────────────────────────────────
     {
       "name": "sage-middleware  [L4]",
@@ -129,13 +119,11 @@
       "name": "sageTSDB  [L4]",
       "path": "../sageTSDB"
     },
-
     // ── L4 · Memory ───────────────────────────────────────────────────────────
     {
       "name": "neuromem  [L4]",
       "path": "../neuromem"
     },
-
     // ── L5 ───────────────────────────────────────────────────────────────────
     {
       "name": "sage-cli  [L5]",
@@ -149,7 +137,6 @@
       "name": "sage-studio  [L5 · app]",
       "path": "../sage-studio"
     },
-
     // ── L6  (applications / data / benchmarks above SAGE) ─────────────────────
     {
       "name": "sageData  [L6]",
@@ -171,7 +158,6 @@
       "name": "SAGE-Docs  [L6]",
       "path": "../sage-docs"
     },
-
     // ── SageLLM ───────────────────────────────────────────────────────────────
     {
       "name": "sagellm  [meta]",
@@ -182,12 +168,12 @@
       "path": "../sagellm-protocol"
     },
     {
-      "name": "sagellm-comm  [L2]",
+      "name": "sagellm-comm  [L1]",
       "path": "../sagellm-comm"
     },
     {
-      "name": "sagellm-backend  [L2]",
-      "path": "../sagellm-backend"
+      "name": "sagellm-core  [L2]",
+      "path": "../sagellm-core"
     },
     {
       "name": "sagellm-compression  [L3]",
@@ -198,19 +184,19 @@
       "path": "../sagellm-kv-cache"
     },
     {
-      "name": "sagellm-core  [L4]",
-      "path": "../sagellm-core"
+      "name": "sagellm-backend  [L3]",
+      "path": "../sagellm-backend"
     },
     {
-      "name": "sagellm-control-plane  [L5]",
+      "name": "sagellm-control-plane  [L4]",
       "path": "../sagellm-control-plane"
     },
     {
-      "name": "sagellm-control-plane-benchmark  [L5 \u00b7 bench]",
+      "name": "sagellm-control-plane-benchmark  [L4 \u00b7 bench]",
       "path": "../sagellm-control-plane-benchmark"
     },
     {
-      "name": "sagellm-gateway  [L6]",
+      "name": "sagellm-gateway  [L5]",
       "path": "../sagellm-gateway"
     },
     {
@@ -321,7 +307,9 @@
         "type": "debugpy",
         "request": "launch",
         "module": "sage.tools.cli",
-        "args": ["--help"],
+        "args": [
+          "--help"
+        ],
         "console": "integratedTerminal",
         "cwd": "${workspaceFolder:SAGE  [meta]}",
       },
@@ -330,7 +318,11 @@
         "type": "debugpy",
         "request": "launch",
         "module": "pytest",
-        "args": ["${file}", "-v", "--tb=short"],
+        "args": [
+          "${file}",
+          "-v",
+          "--tb=short"
+        ],
         "console": "integratedTerminal",
         "cwd": "${workspaceFolder:SAGE  [meta]}",
       },
@@ -345,7 +337,9 @@
         "command": "./quickstart.sh --dev --yes",
         "group": "build",
         "problemMatcher": [],
-        "options": { "cwd": "${workspaceFolder:SAGE  [meta]}" },
+        "options": {
+          "cwd": "${workspaceFolder:SAGE  [meta]}"
+        },
       },
       {
         "label": "Run Tests",
@@ -353,7 +347,9 @@
         "command": "sage-dev project test --coverage",
         "group": "test",
         "problemMatcher": [],
-        "options": { "cwd": "${workspaceFolder:SAGE  [meta]}" },
+        "options": {
+          "cwd": "${workspaceFolder:SAGE  [meta]}"
+        },
       },
       {
         "label": "Code Quality Check",
@@ -361,7 +357,9 @@
         "command": "sage-dev quality check --all-files",
         "group": "test",
         "problemMatcher": [],
-        "options": { "cwd": "${workspaceFolder:SAGE  [meta]}" },
+        "options": {
+          "cwd": "${workspaceFolder:SAGE  [meta]}"
+        },
       },
       {
         "label": "Code Quality Fix",
@@ -369,7 +367,9 @@
         "command": "sage-dev quality fix --all-files",
         "group": "build",
         "problemMatcher": [],
-        "options": { "cwd": "${workspaceFolder:SAGE  [meta]}" },
+        "options": {
+          "cwd": "${workspaceFolder:SAGE  [meta]}"
+        },
       },
       {
         "label": "Build Docs",
@@ -377,7 +377,9 @@
         "command": "mkdocs build",
         "group": "build",
         "problemMatcher": [],
-        "options": { "cwd": "${workspaceFolder:SAGE-Docs  [L6]}" },
+        "options": {
+          "cwd": "${workspaceFolder:SAGE-Docs  [L6]}"
+        },
       },
       {
         "label": "Serve Docs",
@@ -386,7 +388,9 @@
         "group": "build",
         "problemMatcher": [],
         "isBackground": true,
-        "options": { "cwd": "${workspaceFolder:SAGE-Docs  [L6]}" },
+        "options": {
+          "cwd": "${workspaceFolder:SAGE-Docs  [L6]}"
+        },
       },
     ],
   },
