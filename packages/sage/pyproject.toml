@@ -34,7 +34,7 @@ dependencies = [
     # L3 — algorithm library (agentic, RAG, NLP, …)
     "isage-libs>=0.2.4.28",
     # L4 — middleware components (VDB, memory backends, networked operators)
-    "isage-middleware>=0.2.4.33,<0.2.4.34",
+    "isage-middleware>=0.2.4.35,<0.2.4.36",
     # L5 — unified CLI (sage command)
     "isage-cli>=0.2.4.25",
     # Runtime — Flownet distributed execution engine (replaces Ray)

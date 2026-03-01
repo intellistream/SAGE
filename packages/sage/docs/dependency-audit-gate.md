@@ -83,7 +83,7 @@ dependency pin governance, and contract-level policy only.
 
 - Callsite: `tools/verify_hello_world.py` (`import sage.middleware`)
 - Rationale: L4 middleware import check in meta installation verification.
-- Version pin: `>=0.2.4.33,<0.2.4.34`.
+- Version pin: `>=0.2.4.35,<0.2.4.36`.
 
 ### `isage-cli`
 
@@ -105,11 +105,11 @@ dependency pin governance, and contract-level policy only.
 
 ## Change Log
 
-| Date       | Dependency                                                                                                | Change Type       | Callsite Evidence Updated | Notes                                                                             |
-| ---------- | --------------------------------------------------------------------------------------------------------- | ----------------- | ------------------------- | --------------------------------------------------------------------------------- |
-| 2026-03-01 | isage-common, isage-platform, isage-kernel, isage-libs, isage-middleware, isage-cli, isage-flow, isagellm | Baseline registry | Yes                       | Initial gate rollout for SAGE#1474                                                |
-| 2026-03-01 | isage-middleware                                                                                          | Version bump      | Yes                       | Bump to >=0.2.4.32; drop `accelerate`/`peft`/`torch`/CUDA transitive deps (~2 GB) |
-| 2026-03-02 | isage-common, isage-libs, isage-middleware                                                                | Version bump      | Yes                       | Pins updated to >=0.2.4.23 / >=0.2.4.28 / >=0.2.4.33,\<0.2.4.34                   |
+| Date       | Dependency                                                                                                | Change Type       | Callsite Evidence Updated | Notes                                                                              |
+| ---------- | --------------------------------------------------------------------------------------------------------- | ----------------- | ------------------------- | ---------------------------------------------------------------------------------- |
+| 2026-03-01 | isage-common, isage-platform, isage-kernel, isage-libs, isage-middleware, isage-cli, isage-flow, isagellm | Baseline registry | Yes                       | Initial gate rollout for SAGE#1474                                                 |
+| 2026-03-01 | isage-middleware                                                                                          | Version bump      | Yes                       | Bump to >=0.2.4.32; drop `accelerate`/`peft`/`torch`/CUDA transitive deps (~2 GB)  |
+| 2026-03-02 | isage-common, isage-libs, isage-middleware                                                                | Version bump      | Yes                       | Pins updated to >=0.2.4.23 / >=0.2.4.28 / >=0.2.4.35,\<0.2.4.36; neuromem optional |
 
 ## How To Update
 
