@@ -267,8 +267,8 @@ install_sage() {
     echo ""
     case "$mode" in
         "standard")
-            # standard 模式：核心包 + 所有可选依赖（依赖默认走 PyPI）
-            echo -e "${BLUE}standard 安装模式：核心包 + 所有可选依赖（子包依赖默认 PyPI）${NC}"
+            # standard 模式：仅核心包，不含 torch/GPU 依赖
+            echo -e "${YELLOW}standard 安装模式：核心子包（无 torch/CUDA）${NC}"
             log_phase_start "standard 安装模式" "MAIN"
 
             if ! install_core_packages "standard"; then
@@ -276,18 +276,23 @@ install_sage() {
                 return 1
             fi
 
-            # 安装所有可选依赖
-            log_info "开始安装可选依赖 (ML, VDB, streaming, etc.)" "MAIN"
-            if install_optional_packages; then
-                log_phase_end "standard 安装模式" "success" "MAIN"
-            else
-                log_phase_end "standard 安装模式" "failure" "MAIN"
+            log_phase_end "standard 安装模式" "success" "MAIN"
+            ;;
+        "full")
+            # full 模式：standard + torch/accelerate/peft via packages/sage[full]
+            echo -e "${CYAN}full 安装模式：standard + torch/accelerate/peft（packages/sage[full]）${NC}"
+            log_phase_start "full 安装模式" "MAIN"
+
+            if ! install_core_packages "full"; then
+                log_phase_end "full 安装模式" "failure" "MAIN"
                 return 1
             fi
+
+            log_phase_end "full 安装模式" "success" "MAIN"
             ;;
         "dev")
-            # dev 模式：standard + 开发工具 + 本地 editable 优先
-            echo -e "${BLUE}dev 安装模式：standard + 开发工具 + 本地 editable（尽量）${NC}"
+            # dev 模式：full + 开发工具 + 本地 editable 优先
+            echo -e "${GREEN}dev 安装模式：full + 开发工具 + 本地 editable（尽量）${NC}"
             log_phase_start "开发安装模式" "MAIN"
 
             if ! install_core_packages "dev"; then
@@ -295,22 +300,12 @@ install_sage() {
                 return 1
             fi
 
-            # 安装开发工具
-            log_info "开始安装开发工具" "MAIN"
-            if install_dev_packages; then
-                # 安装所有可选依赖
-                log_info "开始安装可选依赖 (ML, VDB, streaming, etc.)" "MAIN"
-                if install_optional_packages; then
-                    log_phase_end "开发安装模式" "success" "MAIN"
-                    echo ""
-                else
-                    log_phase_end "开发安装模式" "failure" "MAIN"
-                    return 1
-                fi
-            else
-                log_phase_end "开发安装模式" "failure" "MAIN"
-                return 1
-            fi
+            # 验证开发工具可用性
+            log_info "验证开发工具" "MAIN"
+            install_dev_packages
+
+            log_phase_end "开发安装模式" "success" "MAIN"
+            echo ""
             ;;
         *)
             echo -e "${WARNING} 未知安装模式: $mode，使用 standard 安装"
@@ -318,7 +313,6 @@ install_sage() {
             log_phase_start "默认 standard 安装" "MAIN"
 
             install_core_packages "standard"
-            install_optional_packages
 
             log_phase_end "默认 standard 安装" "success" "MAIN"
             ;;

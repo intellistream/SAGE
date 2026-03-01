@@ -55,14 +55,14 @@ set_hooks_profile_value() {
 set_install_mode_value() {
     local value="${1,,}"
     case "$value" in
-        "dev"|"standard")
+        "dev"|"standard"|"full")
             INSTALL_MODE="$value"
             ;;
         "non-dev"|"nondev")
             INSTALL_MODE="standard"
             ;;
         *)
-            echo -e "${CROSS} 无效的安装模式: $1 (可选: dev, standard)"
+            echo -e "${CROSS} 无效的安装模式: $1 (可选: standard, full, dev)"
             exit 1
             ;;
     esac
@@ -241,10 +241,11 @@ show_installation_menu() {
     # 选择安装模式
     while true; do
         echo -e "${BOLD}1. 选择安装模式：${NC}"
-        echo -e "  ${YELLOW}1)${NC} standard 安装 - 依赖优先从 PyPI 拉取 ${DIM}(~200+包, 推荐稳定使用)${NC}"
-        echo -e "  ${GREEN}2)${NC} dev 安装      - standard+开发工具+本地 editable(尽量) ${DIM}(~220+包, 日常开发)${NC}"
+        echo -e "  ${YELLOW}1)${NC} standard 安装 - 仅 SAGE 核心子包 ${DIM}(~200+包, 轻量, 无 torch/CUDA)${NC}"
+        echo -e "  ${CYAN}2)${NC} full 安装     - standard + torch/accelerate/peft ${DIM}(~220+包, 含 GPU 支持)${NC}"
+        echo -e "  ${GREEN}3)${NC} dev 安装      - full + 开发工具 + 本地 editable ${DIM}(~230+包, 日常开发)${NC}"
         echo ""
-        read -p "请选择安装模式 [1-2，默认1]: " mode_choice
+        read -p "请选择安装模式 [1-3，默认1]: " mode_choice
 
         case "${mode_choice:-1}" in
             1)
@@ -252,11 +253,15 @@ show_installation_menu() {
                 break
                 ;;
             2)
+                INSTALL_MODE="full"
+                break
+                ;;
+            3)
                 INSTALL_MODE="dev"
                 break
                 ;;
             *)
-                echo -e "${RED}无效选择，请输入 1 或 2${NC}"
+                echo -e "${RED}无效选择，请输入 1、2 或 3${NC}"
                 echo ""
                 ;;
         esac
@@ -444,18 +449,23 @@ show_parameter_help() {
 
     echo -e "${BLUE}📦 安装模式：${NC}"
     echo ""
-    echo -e "  ${BOLD}--install-mode <dev|standard>, --mode <dev|standard>${NC} ${GREEN}显式指定安装模式${NC}"
+    echo -e "  ${BOLD}--install-mode <standard|full|dev>, --mode <standard|full|dev>${NC} ${GREEN}显式指定安装模式${NC}"
     echo -e "    ${DIM}推荐写法，语义清晰，便于脚本自动化${NC}"
     echo ""
     echo -e "  ${BOLD}--standard, -s${NC}                              ${YELLOW}standard 安装 (默认)${NC}"
-    echo -e "    ${DIM}包含: 完整功能依赖 (ML, VDB, streaming, etc.)，子包依赖默认从 PyPI 解析${NC}"
-    echo -e "    ${DIM}大小: ~200+ 个包（约 1GB，含 PyTorch）${NC}"
+    echo -e "    ${DIM}包含: SAGE 核心子包，依赖从 PyPI 解析，不含 torch/CUDA${NC}"
+    echo -e "    ${DIM}大小: ~200+ 个包（轻量，无 GPU 依赖）${NC}"
+    echo -e "    ${DIM}适合: 仅使用 SAGE 核心功能、CI 环境、轻量部署${NC}"
+    echo ""
+    echo -e "  ${BOLD}--full, -f${NC}                                  ${CYAN}full 安装${NC}"
+    echo -e "    ${DIM}包含: standard + torch/torchvision/accelerate/peft（packages/sage[full]）${NC}"
+    echo -e "    ${DIM}大小: ~220+ 个包（约 2GB，含 PyTorch + CUDA）${NC}"
     echo -e "    ${DIM}适合: 学习示例、完整功能体验、研究实验${NC}"
     echo ""
     echo -e "  ${BOLD}--dev, -d${NC}                                   ${GREEN}开发安装${NC}"
-    echo -e "    ${DIM}包含: standard 安装 + 开发工具 (pytest, ruff, mypy, pre-commit)${NC}"
-    echo -e "    ${DIM}并尽量将本地 polyrepo 子仓库安装为 editable（未命中仍回退到 PyPI）${NC}"
-    echo -e "    ${DIM}大小: ~220+ 个包（约 1.2GB，含 PyTorch）${NC}"
+    echo -e "    ${DIM}包含: full + 开发工具 (pytest, ruff, mypy, pre-commit) + 本地 editable${NC}"
+    echo -e "    ${DIM}将本地 polyrepo 子仓库安装为 editable（packages/sage[full,dev]）${NC}"
+    echo -e "    ${DIM}大小: ~230+ 个包（约 2GB，含 PyTorch）${NC}"
     echo -e "    ${DIM}适合: 日常开发、贡献 SAGE 框架源码${NC}"
     echo -e "    ${DIM}兼容别名: --non-dev / --nondev 等同于 standard${NC}"
     echo ""
@@ -568,9 +578,11 @@ show_parameter_help() {
     echo -e "${BLUE}💡 使用示例：${NC}"
     echo -e "  ./quickstart.sh                                  ${DIM}# 交互式安装（推荐）${NC}"
     echo -e "  ./quickstart.sh --yes                            ${DIM}# standard 安装 + 跳过确认（默认）${NC}"
+    echo -e "  ./quickstart.sh --full --yes                     ${DIM}# full 安装 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh --dev --yes                      ${DIM}# dev 安装 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh --install-mode full --yes        ${DIM}# 显式 full 模式 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --install-mode dev --yes         ${DIM}# 显式 dev 模式 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --mode standard --pip            ${DIM}# 显式 standard 模式 + 当前环境${NC}"
-    echo -e "  ./quickstart.sh --dev --yes                      ${DIM}# 开发安装 + 跳过确认${NC}"
     echo -e "  ./quickstart.sh --standard --conda               ${DIM}# standard 安装 + 创建conda环境${NC}"
     echo -e "  ./quickstart.sh --clone-satellites --yes         ${DIM}# standard 安装(默认) + 克隆附属仓库${NC}"
     echo ""
@@ -586,7 +598,7 @@ show_parameter_help() {
 
 
 # 解析安装模式参数
-# 两种显式模式：--standard 与 --dev
+# 三种显式模式：--standard / --full / --dev
 parse_install_mode() {
     local param="$1"
     case "$param" in
@@ -594,7 +606,12 @@ parse_install_mode() {
             INSTALL_MODE="standard"
             return 0
             ;;
-        # 开发安装：核心 + 开发工具
+        # full 安装：核心 + torch/accelerate/peft
+        "--full"|"-f")
+            INSTALL_MODE="full"
+            return 0
+            ;;
+        # 开发安装：full + 开发工具 + 本地 editable
         "--dev"|"-d")
             INSTALL_MODE="dev"
             return 0
@@ -975,10 +992,13 @@ show_install_configuration() {
     echo -e "${BLUE}📋 安装配置：${NC}"
     case "$INSTALL_MODE" in
         "standard")
-            echo -e "  ${BLUE}安装模式:${NC} ${YELLOW}standard 安装${NC}"
+            echo -e "  ${BLUE}安装模式:${NC} ${YELLOW}standard 安装${NC} ${DIM}(核心子包, 无 torch/CUDA)${NC}"
+            ;;
+        "full")
+            echo -e "  ${BLUE}安装模式:${NC} ${CYAN}full 安装${NC} ${DIM}(standard + torch/accelerate/peft)${NC}"
             ;;
         "dev")
-            echo -e "  ${BLUE}安装模式:${NC} ${YELLOW}开发者安装${NC}"
+            echo -e "  ${BLUE}安装模式:${NC} ${GREEN}开发者安装${NC} ${DIM}(full + 开发工具 + 本地 editable)${NC}"
             ;;
         *)
             echo -e "  ${BLUE}安装模式:${NC} ${YELLOW}standard 安装${NC}"

@@ -73,49 +73,16 @@ install_scientific_packages() {
 # 安装可选依赖（完整安装模式）
 # 包含 ML、VDB、streaming、compression 等重型依赖
 install_optional_packages() {
-    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BOLD}  🔧 正在安装可选依赖（完整安装模式）...${NC}"
-    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo ""
-
-    log_info "开始安装可选依赖" "Optional"
-
-    local pip_args="--disable-pip-version-check --no-input --prefer-binary --upgrade-strategy only-if-needed"
-    if [ "${USE_PIP_MIRROR:-true}" = "false" ]; then
-        pip_args="$pip_args --no-cache-dir"
-    fi
-    if [ -n "${SAGE_PIP_CONSTRAINT_FILE:-}" ] && [ -f "${SAGE_PIP_CONSTRAINT_FILE:-}" ]; then
-        pip_args="$pip_args -c ${SAGE_PIP_CONSTRAINT_FILE}"
-    fi
-
-    # 安装各个可选依赖组
-    local optional_groups=(
-        "isage-middleware[ml]"          # ML: transformers, sentence-transformers, accelerate
-        "isage-middleware[vdb]"         # VDB: isage-vdb, faiss-cpu
-        "isage-middleware[streaming]"   # Streaming: isage-flow, isage-tsdb
-        "isage-middleware[compression]" # Compression: llmlingua
-        "isage-kernel[ml]"              # Kernel ML: torch, torchvision
-    )
-
-    for group in "${optional_groups[@]}"; do
-        echo -e "${BOLD}  📦 正在安装 $group${NC}"
-        echo -e "${DIM}运行命令: $PIP_CMD install \"$group\" $pip_args${NC}"
-        echo ""
-
-        if log_command "Optional" "Install" "$PIP_CMD install \"$group\" $pip_args"; then
-            log_info "$group 安装成功！" "Optional"
-            echo -e "${CHECK} $group 安装成功！"
-        else
-            log_warn "$group 安装失败，继续安装其他组..." "Optional"
-            echo -e "${WARNING} $group 安装失败（非关键，继续安装）"
-        fi
-        echo ""
-    done
-
-    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${GREEN}${BOLD}  🎉 可选依赖安装完成！${NC}"
-    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-
-    log_info "可选依赖安装完成" "Optional"
-    return 0
+    # ⚠️  已废弃 (deprecated since 2025)
+    # isage-middleware[ml/vdb/streaming/compression] 和 isage-kernel[ml] 等 extras
+    # 在 PyPI 上不存在，pip 会静默忽略——实际什么都不安装。
+    #
+    # 重 GPU/ML 依赖（torch/accelerate/peft）现已统一收归
+    # packages/sage 的 [full] extra 中，通过以下方式启用：
+    #   --full  (full 安装)
+    #   --dev   (dev 安装，自动包含 [full])
+    #
+    # 此函数保留为空白 no-op，防止外部调用报错。
+    log_info "install_optional_packages: 已废弃，无操作 (extras 已迁移至 packages/sage[full])" "Optional"
+    log_warn "如需 torch/accelerate/peft，请使用 --full 或 --dev 安装模式" "Optional"
 }
