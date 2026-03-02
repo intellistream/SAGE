@@ -1,0 +1,74 @@
+name: Layer Consistency Check
+
+on:
+  pull_request:
+    branches: [main, main-dev]
+    paths:
+      - "SAGE.code-workspace"
+      - "README.md"
+      - "packages/sage/docs/layer-manifest.json"
+      - ".github/workflows/ci-layer-consistency.yml"
+      - "tools/scripts/check_layer_manifest_sync.py"
+      - "ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md"
+  push:
+    branches: [main, main-dev]
+    paths:
+      - "SAGE.code-workspace"
+      - "README.md"
+      - "packages/sage/docs/layer-manifest.json"
+      - ".github/workflows/ci-layer-consistency.yml"
+      - "tools/scripts/check_layer_manifest_sync.py"
+      - "ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md"
+  workflow_dispatch:
+
+concurrency:
+  group: layer-consistency-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  layer-consistency:
+    name: Validate layer manifest and workspace labels
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout SAGE
+        uses: actions/checkout@v4
+
+      - name: Checkout referenced satellite repositories
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repos=(
+            sage-common
+            sage-platform
+            sage-kernel
+            sage-libs
+            sage-middleware
+            sage-cli
+            sage-dev-tools
+            sage-studio
+            sagellm-protocol
+            sagellm-comm
+            sagellm-backend
+            sagellm-kv-cache
+            sagellm-compression
+            sagellm-core
+            sagellm-control-plane-benchmark
+            sagellm-control-plane
+            sagellm-gateway
+          )
+
+          for repo in "${repos[@]}"; do
+            echo "Cloning intellistream/${repo}..."
+            git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/intellistream/${repo}.git" "../${repo}"
+          done
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run layer consistency check
+        run: |
+          python3 tools/scripts/check_layer_manifest_sync.py --strict-repos

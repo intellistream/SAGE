@@ -335,20 +335,42 @@ install_sage() {
         sage_dev_cmd="$HOME/.local/bin/sage-dev"
     fi
 
-    # 执行清理
+    # 执行清理（优先使用 sage-dev，失败时回退到仓库内置清理脚本）
+    local cleanup_script="$project_root/tools/maintenance/helpers/quick_cleanup.sh"
+    local sage_dev_healthy=false
     if { [ "$environment" = "conda" ] && conda run -n "$SAGE_ENV_NAME" which sage-dev >/dev/null 2>&1; } || \
        { [ "$environment" = "pip" ] && command -v sage-dev >/dev/null 2>&1; } || \
        { [ "$environment" = "pip" ] && [ -x "$HOME/.local/bin/sage-dev" ]; }; then
-        if $sage_dev_cmd project clean 2>&1 | tee -a "$log_file"; then
-            echo -e "${CHECK} 清理完成"
-            log_info "项目清理成功" "MAIN"
+        if $sage_dev_cmd --help >/dev/null 2>&1; then
+            sage_dev_healthy=true
         else
-            echo -e "${DIM}   清理跳过（非关键操作）${NC}"
-            log_warn "项目清理失败，但不影响安装" "MAIN"
+            log_warn "sage-dev 存在但不可用，回退到内置清理脚本" "MAIN"
+            echo -e "${DIM}   检测到 sage-dev 不可用，使用内置清理${NC}"
+        fi
+    fi
+
+    if [ "$sage_dev_healthy" = true ]; then
+        if $sage_dev_cmd project clean >>"$log_file" 2>&1; then
+            echo -e "${CHECK} 清理完成"
+            log_info "项目清理成功（sage-dev）" "MAIN"
+        else
+            log_warn "sage-dev 清理失败，回退到内置清理脚本" "MAIN"
+            if [ -f "$cleanup_script" ] && bash "$cleanup_script" >>"$log_file" 2>&1; then
+                echo -e "${CHECK} 清理完成"
+                log_info "项目清理成功（fallback script）" "MAIN"
+            else
+                echo -e "${DIM}   清理跳过（非关键操作）${NC}"
+                log_warn "项目清理失败，但不影响安装" "MAIN"
+            fi
         fi
     else
-        echo -e "${DIM}   sage-dev 命令不可用，跳过清理${NC}"
-        log_warn "sage-dev 不可用，跳过清理" "MAIN"
+        if [ -f "$cleanup_script" ] && bash "$cleanup_script" >>"$log_file" 2>&1; then
+            echo -e "${CHECK} 清理完成"
+            log_info "项目清理成功（fallback script）" "MAIN"
+        else
+            echo -e "${DIM}   清理跳过（非关键操作）${NC}"
+            log_warn "项目清理脚本不可用或执行失败，跳过清理" "MAIN"
+        fi
     fi
 
     # C++扩展已在 sage-middleware 安装时通过 scikit-build-core 自动构建

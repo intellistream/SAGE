@@ -115,16 +115,186 @@ detect_mainland_china_ip() {
     return 1
 }
 
+normalize_simple_url() {
+    local url="$1"
+    url="${url%/}"
+    if [[ "$url" != */simple ]]; then
+        url="$url/simple"
+    fi
+    echo "${url}/"
+}
+
+resolve_url_with_python() {
+    local base_url="$1"
+    local raw_url="$2"
+
+    python3 - <<PY
+from urllib.parse import urljoin
+print(urljoin(${base_url@Q}, ${raw_url@Q}))
+PY
+}
+
+extract_artifact_url_from_simple() {
+    local mirror_simple_url
+    mirror_simple_url="$(normalize_simple_url "$1")"
+    local package_name="${2:-pip}"
+    local package_simple_url="${mirror_simple_url}${package_name}/"
+
+    if ! command -v curl >/dev/null 2>&1; then
+        return 1
+    fi
+
+    local html
+    html="$(curl -L -s --connect-timeout 5 --max-time 12 "$package_simple_url" 2>/dev/null || true)"
+    [ -n "$html" ] || return 1
+
+    local href
+    href="$(printf '%s' "$html" | tr '\n' ' ' | grep -oE 'href="[^"]+"' | head -n 1 | sed 's/^href="//;s/"$//')"
+    [ -n "$href" ] || return 1
+
+    resolve_url_with_python "$package_simple_url" "$href"
+}
+
+probe_artifact_download_status() {
+    local artifact_url="$1"
+
+    if ! command -v curl >/dev/null 2>&1; then
+        echo "000"
+        return 1
+    fi
+
+    local status
+    status="$(curl -L -s -I --connect-timeout 5 --max-time 12 -o /dev/null -w "%{http_code}" "$artifact_url" 2>/dev/null || echo "000")"
+    case "$status" in
+        200|204|206|301|302)
+            echo "$status"
+            return 0
+            ;;
+        403)
+            echo "$status"
+            return 1
+            ;;
+        405|000)
+            status="$(curl -L -s --range 0-0 --connect-timeout 5 --max-time 12 -o /dev/null -w "%{http_code}" "$artifact_url" 2>/dev/null || echo "000")"
+            ;;
+    esac
+
+    echo "$status"
+    case "$status" in
+        200|204|206|301|302)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+is_mirror_download_healthy() {
+    local mirror_simple_url
+    mirror_simple_url="$(normalize_simple_url "$1")"
+    local test_package="${2:-pip}"
+
+    if ! command -v curl >/dev/null 2>&1; then
+        return 1
+    fi
+
+    local simple_status
+    simple_status="$(curl -L -s --connect-timeout 5 --max-time 12 -o /dev/null -w "%{http_code}" "${mirror_simple_url}${test_package}/" 2>/dev/null || echo "000")"
+    case "$simple_status" in
+        200|301|302)
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    local artifact_url
+    artifact_url="$(extract_artifact_url_from_simple "$mirror_simple_url" "$test_package" 2>/dev/null || true)"
+    [ -n "$artifact_url" ] || return 0
+
+    local artifact_status
+    artifact_status="$(probe_artifact_download_status "$artifact_url")"
+    case "$artifact_status" in
+        200|204|206|301|302)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+build_pip_mirror_fallback_chain() {
+    local primary_url
+    primary_url="$(normalize_simple_url "$1")"
+
+    local candidates=(
+        "$primary_url"
+        "https://mirrors.aliyun.com/pypi/simple/"
+        "https://repo.huaweicloud.com/repository/pypi/simple/"
+        "https://mirrors.cloud.tencent.com/pypi/simple/"
+        "https://pypi.mirrors.ustc.edu.cn/simple/"
+        "https://pypi.tuna.tsinghua.edu.cn/simple/"
+        "https://pypi.org/simple/"
+    )
+
+    local unique=()
+    local candidate
+    for candidate in "${candidates[@]}"; do
+        local normalized
+        normalized="$(normalize_simple_url "$candidate")"
+        local seen=false
+        local item
+        for item in "${unique[@]}"; do
+            if [ "$item" = "$normalized" ]; then
+                seen=true
+                break
+            fi
+        done
+        if [ "$seen" = "false" ]; then
+            unique+=("$normalized")
+        fi
+    done
+
+    local fallback_chain=""
+    for candidate in "${unique[@]}"; do
+        if [ -z "$fallback_chain" ]; then
+            fallback_chain="$candidate"
+        else
+            fallback_chain="$fallback_chain|$candidate"
+        fi
+    done
+
+    export SAGE_PIP_MIRROR_FALLBACKS="$fallback_chain"
+}
+
 # 配置 pip 镜像
 # 配置 pip 镜像
 configure_pip_mirror() {
     local mirror_source="${1:-auto}"
+    local selected_mirror="https://pypi.org/simple/"
 
     # 如果设置了 SAGE_FORCE_CHINA_MIRROR=true，强制使用中国镜像（适用于中国的 self-hosted runner）
     if [ "${SAGE_FORCE_CHINA_MIRROR:-}" = "true" ]; then
-        export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
+        local forced_candidates=(
+            "https://mirrors.aliyun.com/pypi/simple/"
+            "https://repo.huaweicloud.com/repository/pypi/simple/"
+            "https://mirrors.cloud.tencent.com/pypi/simple/"
+            "https://pypi.mirrors.ustc.edu.cn/simple/"
+            "https://pypi.tuna.tsinghua.edu.cn/simple/"
+        )
+        local candidate
+        for candidate in "${forced_candidates[@]}"; do
+            if is_mirror_download_healthy "$candidate" "pip"; then
+                selected_mirror="$candidate"
+                break
+            fi
+        done
+        export PIP_INDEX_URL="$(normalize_simple_url "$selected_mirror")"
         export PIP_EXTRA_INDEX_URL=""
-        echo -e "${GREEN}  ✓ SAGE_FORCE_CHINA_MIRROR=true，强制使用清华镜像${NC}"
+        build_pip_mirror_fallback_chain "$PIP_INDEX_URL"
+        echo -e "${GREEN}  ✓ SAGE_FORCE_CHINA_MIRROR=true，使用可下载镜像: $PIP_INDEX_URL${NC}"
         return 0
     fi
 
@@ -133,13 +303,29 @@ configure_pip_mirror() {
     if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
         # 在 CI 中也尝试检测是否在中国
         if detect_mainland_china_ip; then
-            export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
+            local ci_candidates=(
+                "https://mirrors.aliyun.com/pypi/simple/"
+                "https://repo.huaweicloud.com/repository/pypi/simple/"
+                "https://mirrors.cloud.tencent.com/pypi/simple/"
+                "https://pypi.mirrors.ustc.edu.cn/simple/"
+                "https://pypi.tuna.tsinghua.edu.cn/simple/"
+            )
+            local candidate
+            for candidate in "${ci_candidates[@]}"; do
+                if is_mirror_download_healthy "$candidate" "pip"; then
+                    selected_mirror="$candidate"
+                    break
+                fi
+            done
+            export PIP_INDEX_URL="$(normalize_simple_url "$selected_mirror")"
             export PIP_EXTRA_INDEX_URL=""
-            echo -e "${GREEN}  ✓ CI环境 + 中国大陆网络检测，使用清华镜像加速${NC}"
+            build_pip_mirror_fallback_chain "$PIP_INDEX_URL"
+            echo -e "${GREEN}  ✓ CI环境 + 中国大陆网络检测，使用可下载镜像: $PIP_INDEX_URL${NC}"
             return 0
         fi
         export PIP_INDEX_URL="https://pypi.org/simple/"
         export PIP_EXTRA_INDEX_URL=""
+        build_pip_mirror_fallback_chain "$PIP_INDEX_URL"
         echo -e "${INFO} CI环境检测：使用官方 PyPI（国际网络）"
         return 0
     fi
@@ -150,28 +336,54 @@ configure_pip_mirror() {
         "auto")
             # 自动检测最优镜像，优先根据公网 IP 判断
             if detect_mainland_china_ip; then
-                # 检测清华镜像是否可用（增加超时时间到 8 秒，避免网络延迟导致的误判）
-                if curl -s --connect-timeout 5 --max-time 8 -I "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
-                    export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
-                    export PIP_EXTRA_INDEX_URL=""
-                    echo -e "${GREEN}  ✓ 检测到中国大陆网络，自动使用清华镜像加速${NC}"
+                local mainland_candidates=(
+                    "https://mirrors.aliyun.com/pypi/simple/"
+                    "https://repo.huaweicloud.com/repository/pypi/simple/"
+                    "https://mirrors.cloud.tencent.com/pypi/simple/"
+                    "https://pypi.mirrors.ustc.edu.cn/simple/"
+                    "https://pypi.tuna.tsinghua.edu.cn/simple/"
+                )
+                local candidate
+                local mirror_picked=false
+                for candidate in "${mainland_candidates[@]}"; do
+                    if is_mirror_download_healthy "$candidate" "pip"; then
+                        selected_mirror="$candidate"
+                        mirror_picked=true
+                        break
+                    fi
+                done
+
+                export PIP_INDEX_URL="$(normalize_simple_url "$selected_mirror")"
+                export PIP_EXTRA_INDEX_URL=""
+                if [ "$mirror_picked" = "true" ] && [ "$PIP_INDEX_URL" != "https://pypi.org/simple/" ]; then
+                    echo -e "${GREEN}  ✓ 检测到中国大陆网络，自动使用可下载镜像: $PIP_INDEX_URL${NC}"
                 else
-                    export PIP_INDEX_URL="https://pypi.org/simple/"
-                    export PIP_EXTRA_INDEX_URL=""
-                    echo -e "${YELLOW}  ⚠️  清华镜像暂时不可用或网络连接较慢，已降级到官方 PyPI${NC}"
-                    echo -e "${DIM}     如需强制使用清华镜像，请运行: SAGE_FORCE_CHINA_MIRROR=true ./quickstart.sh${NC}"
+                    echo -e "${YELLOW}  ⚠️  国内镜像下载探测失败，已降级到官方 PyPI${NC}"
                 fi
             elif [[ "${LANG:-}" == zh_* ]] || [[ "${LC_ALL:-}" == zh_* ]] || [[ "${LC_CTYPE:-}" == zh_* ]]; then
-                # 中文环境也进行健康检查（同样增加超时时间）
-                if curl -s --connect-timeout 5 --max-time 8 -I "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
-                    export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
-                    export PIP_EXTRA_INDEX_URL=""
-                    echo -e "${GREEN}  ✓ 检测到中文环境，自动使用清华镜像加速${NC}"
+                local zh_candidates=(
+                    "https://mirrors.aliyun.com/pypi/simple/"
+                    "https://repo.huaweicloud.com/repository/pypi/simple/"
+                    "https://mirrors.cloud.tencent.com/pypi/simple/"
+                    "https://pypi.mirrors.ustc.edu.cn/simple/"
+                    "https://pypi.tuna.tsinghua.edu.cn/simple/"
+                )
+                local candidate
+                local mirror_picked=false
+                for candidate in "${zh_candidates[@]}"; do
+                    if is_mirror_download_healthy "$candidate" "pip"; then
+                        selected_mirror="$candidate"
+                        mirror_picked=true
+                        break
+                    fi
+                done
+
+                export PIP_INDEX_URL="$(normalize_simple_url "$selected_mirror")"
+                export PIP_EXTRA_INDEX_URL=""
+                if [ "$mirror_picked" = "true" ] && [ "$PIP_INDEX_URL" != "https://pypi.org/simple/" ]; then
+                    echo -e "${GREEN}  ✓ 检测到中文环境，自动使用可下载镜像: $PIP_INDEX_URL${NC}"
                 else
-                    export PIP_INDEX_URL="https://pypi.org/simple/"
-                    export PIP_EXTRA_INDEX_URL=""
-                    echo -e "${YELLOW}  ⚠️  清华镜像暂时不可用或网络连接较慢，已降级到官方 PyPI${NC}"
-                    echo -e "${DIM}     如需强制使用清华镜像，请运行: SAGE_FORCE_CHINA_MIRROR=true ./quickstart.sh${NC}"
+                    echo -e "${YELLOW}  ⚠️  中文环境镜像下载探测失败，已降级到官方 PyPI${NC}"
                 fi
             else
                 export PIP_INDEX_URL="https://pypi.org/simple/"
@@ -200,6 +412,7 @@ configure_pip_mirror() {
             export PIP_INDEX_URL="https://pypi.org/simple/"
             export PIP_EXTRA_INDEX_URL=""
             export PIP_NO_CACHE_DIR=1
+            build_pip_mirror_fallback_chain "$PIP_INDEX_URL"
             echo -e "${DIM}  镜像已禁用（强制官方 PyPI）${NC}"
             return 0
             ;;
@@ -216,7 +429,13 @@ configure_pip_mirror() {
             ;;
     esac
 
+    PIP_INDEX_URL="$(normalize_simple_url "${PIP_INDEX_URL:-https://pypi.org/simple/}")"
+    export PIP_INDEX_URL
+    export PIP_EXTRA_INDEX_URL=""
+    build_pip_mirror_fallback_chain "$PIP_INDEX_URL"
+
     echo -e "${DIM}  PIP_INDEX_URL: $PIP_INDEX_URL${NC}"
+    echo -e "${DIM}  镜像回退链: ${SAGE_PIP_MIRROR_FALLBACKS}${NC}"
 }
 
 # 检测是否在虚拟环境中

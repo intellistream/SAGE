@@ -1,6 +1,5 @@
 {
   "folders": [
-    // ── Org tools ─────────────────────────────────────────────────────────────
     {
       "name": "intellistream (.github)  [org]",
       "path": "../.github"
@@ -13,7 +12,6 @@
       "name": "sage-github-manager  [org-tools]",
       "path": "../sage-github-manager"
     },
-    // ── SAGE meta  (umbrella + team) ──────────────────────────────────────────
     {
       "name": "SAGE  [meta]",
       "path": "."
@@ -22,12 +20,10 @@
       "name": "sage-team-info  [meta]",
       "path": "../sage-team-info"
     },
-    // ── L1 ───────────────────────────────────────────────────────────────────
     {
       "name": "sage-common  [L1]",
       "path": "../sage-common"
     },
-    // ── L2 ───────────────────────────────────────────────────────────────────
     {
       "name": "sage-platform  [L2]",
       "path": "../sage-platform"
@@ -36,7 +32,6 @@
       "name": "sageFlownet  [L2 · runtime]",
       "path": "../sageFlownet"
     },
-    // ── L3 · core ─────────────────────────────────────────────────────────────
     {
       "name": "sage-kernel  [L3]",
       "path": "../sage-kernel"
@@ -45,7 +40,6 @@
       "name": "sage-libs  [L3]",
       "path": "../sage-libs"
     },
-    // ── L3 · agentic ─────────────────────────────────────────────────────────
     {
       "name": "sage-agentic  [L3]",
       "path": "../sage-agentic"
@@ -55,20 +49,29 @@
       "path": "../sage-agentic-tooluse"
     },
     {
+      "name": "sage-agentic-tooluse-benchmark  [L3 · bench]",
+      "path": "../sage-agentic-tooluse-benchmark"
+    },
+    {
       "name": "sage-agentic-tooluse-sias  [L3]",
       "path": "../sage-agentic-tooluse-sias"
     },
-    // ── L3 · RAG ──────────────────────────────────────────────────────────────
     {
       "name": "sage-rag  [L3]",
       "path": "../sage-rag"
     },
-    // ── L3 · Refiner ──────────────────────────────────────────────────────────
+    {
+      "name": "sage-rag-benchmark  [L3 · bench]",
+      "path": "../sage-rag-benchmark"
+    },
     {
       "name": "sageRefiner  [L3]",
       "path": "../sageRefiner"
     },
-    // ── L3 · other algo ───────────────────────────────────────────────────────
+    {
+      "name": "sage-refiner-benchmark  [L3 · bench]",
+      "path": "../sage-refiner-benchmark"
+    },
     {
       "name": "sage-eval  [L3]",
       "path": "../sage-eval"
@@ -89,7 +92,6 @@
       "name": "sage-libs-intent  [L3]",
       "path": "../sage-libs-intent"
     },
-    // ── L3 · research ─────────────────────────────────────────────────────────
     {
       "name": "sage-privacy  [L3 · research]",
       "path": "../sage-privacy"
@@ -102,7 +104,6 @@
       "name": "sage-edge  [L3 · research]",
       "path": "../sage-edge"
     },
-    // ── L4 ───────────────────────────────────────────────────────────────────
     {
       "name": "sage-middleware  [L4]",
       "path": "../sage-middleware"
@@ -119,12 +120,14 @@
       "name": "sageTSDB  [L4]",
       "path": "../sageTSDB"
     },
-    // ── L4 · Memory ───────────────────────────────────────────────────────────
     {
       "name": "neuromem  [L4]",
       "path": "../neuromem"
     },
-    // ── L5 ───────────────────────────────────────────────────────────────────
+    {
+      "name": "sage-memory-benchmark  [L4 · bench]",
+      "path": "../sage-memory-benchmark"
+    },
     {
       "name": "sage-cli  [L5]",
       "path": "../sage-cli"
@@ -134,10 +137,9 @@
       "path": "../sage-dev-tools"
     },
     {
-      "name": "sage-studio  [L5 · app]",
+      "name": "sage-studio  [L6 · app]",
       "path": "../sage-studio"
     },
-    // ── L6  (applications / data / benchmarks above SAGE) ─────────────────────
     {
       "name": "sageData  [L6]",
       "path": "../sageData"
@@ -158,7 +160,6 @@
       "name": "SAGE-Docs  [L6]",
       "path": "../sage-docs"
     },
-    // ── SageLLM ───────────────────────────────────────────────────────────────
     {
       "name": "sagellm  [meta]",
       "path": "../sagellm"
@@ -168,12 +169,12 @@
       "path": "../sagellm-protocol"
     },
     {
-      "name": "sagellm-comm  [L1]",
+      "name": "sagellm-comm  [L2]",
       "path": "../sagellm-comm"
     },
     {
-      "name": "sagellm-core  [L2]",
-      "path": "../sagellm-core"
+      "name": "sagellm-backend  [L2]",
+      "path": "../sagellm-backend"
     },
     {
       "name": "sagellm-compression  [L3]",
@@ -184,19 +185,19 @@
       "path": "../sagellm-kv-cache"
     },
     {
-      "name": "sagellm-backend  [L3]",
-      "path": "../sagellm-backend"
+      "name": "sagellm-core  [L4]",
+      "path": "../sagellm-core"
     },
     {
-      "name": "sagellm-control-plane  [L4]",
-      "path": "../sagellm-control-plane"
-    },
-    {
-      "name": "sagellm-control-plane-benchmark  [L4 \u00b7 bench]",
+      "name": "sagellm-control-plane-benchmark  [L4 · bench]",
       "path": "../sagellm-control-plane-benchmark"
     },
     {
-      "name": "sagellm-gateway  [L5]",
+      "name": "sagellm-control-plane  [L5]",
+      "path": "../sagellm-control-plane"
+    },
+    {
+      "name": "sagellm-gateway  [L6]",
       "path": "../sagellm-gateway"
     },
     {

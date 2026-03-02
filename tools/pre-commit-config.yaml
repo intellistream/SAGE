@@ -82,6 +82,14 @@ repos:
     always_run: false
     stages: [pre-commit, manual]
     files: ^packages/sage/pyproject\.toml$|^packages/sage/docs/dependency-audit-gate\.md$
+  - id: layer-manifest-consistency-check
+    name: check layer manifest/workspace consistency
+    entry: python3 tools/scripts/check_layer_manifest_sync.py
+    language: system
+    pass_filenames: false
+    always_run: false
+    stages: [pre-commit, manual]
+    files: ^SAGE\.code-workspace$|^packages/sage/docs/layer-manifest\.json$|^ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1\.md$|^README\.md$|^tools/scripts/check_layer_manifest_sync\.py$
   - id: architecture-violation-check
     name: check architecture violations (directory placement)
     entry: tools/hooks/pre-commit-architecture.sh

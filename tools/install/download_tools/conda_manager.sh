@@ -72,11 +72,30 @@ ask_conda_environment() {
     # 记录到日志
     echo "$(date): 用户选择 Conda 环境配置" >> "$log_file"
 
-    # 如果是CI环境、远程部署或使用了 --yes 参数，自动选择选项2（使用当前环境）
+    # 如果是CI环境、远程部署或使用了 --yes 参数，采用稳定的非交互策略：
+    # 1) 当前在非 base conda 环境：直接使用当前环境
+    # 2) 当前不在非 base 环境，但存在 sage 环境：使用 sage 环境
+    # 3) 当前不在非 base 环境，且不存在 sage 环境：创建 sage 环境
     if [ "${CI:-}" = "true" ] || [ "${SAGE_REMOTE_DEPLOY:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ] || [ "${AUTO_CONFIRM:-}" = "true" ]; then
-        echo -e "${INFO} 非交互模式，自动选择选项2：使用当前环境"
-        echo "$(date): 非交互模式自动选择选项2" >> "$log_file"
-        conda_choice=2
+        if [ -n "${CONDA_DEFAULT_ENV:-}" ] && [ "${CONDA_DEFAULT_ENV:-}" != "base" ]; then
+            echo -e "${INFO} 非交互模式：检测到当前 conda 环境 ${GREEN}${CONDA_DEFAULT_ENV:-}${NC}，自动使用当前环境"
+            echo "$(date): 非交互模式自动选择当前非 base conda 环境: ${CONDA_DEFAULT_ENV:-}" >> "$log_file"
+            conda_choice=2
+        elif conda env list | grep -q '^sage '; then
+            echo -e "${INFO} 非交互模式：检测到已存在环境 ${GREEN}sage${NC}，自动使用该环境"
+            echo "$(date): 非交互模式自动使用已存在环境: sage" >> "$log_file"
+            SAGE_ENV_NAME="sage"
+            export SAGE_ENV_NAME
+            activate_conda_environment "${SAGE_ENV_NAME:-}"
+            return $?
+        else
+            echo -e "${INFO} 非交互模式：未检测到可复用的非 base conda 环境，自动创建 ${GREEN}sage${NC} 环境"
+            echo "$(date): 非交互模式自动创建环境: sage" >> "$log_file"
+            SAGE_ENV_NAME="sage"
+            export SAGE_ENV_NAME
+            create_conda_environment "${SAGE_ENV_NAME:-}"
+            return $?
+        fi
     else
         # 交互模式，询问用户选择
         while true; do

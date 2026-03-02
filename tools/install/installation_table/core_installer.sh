@@ -52,6 +52,107 @@ fi
 PYTHON_CMD="${PYTHON_CMD:-python3}"
 PIP_CMD="${PIP_CMD:-$PYTHON_CMD -m pip}"
 
+parse_mirror_fallback_chain() {
+    local current_index="${PIP_INDEX_URL:-https://pypi.org/simple/}"
+    local chain="${SAGE_PIP_MIRROR_FALLBACKS:-}"
+
+    local -a mirrors=()
+    if [ -n "$chain" ]; then
+        IFS='|' read -r -a mirrors <<< "$chain"
+    fi
+
+    local has_current=false
+    local item
+    for item in "${mirrors[@]}"; do
+        if [ "$item" = "$current_index" ]; then
+            has_current=true
+            break
+        fi
+    done
+    if [ "$has_current" = "false" ]; then
+        mirrors=("$current_index" "${mirrors[@]}")
+    fi
+
+    local has_official=false
+    for item in "${mirrors[@]}"; do
+        if [ "$item" = "https://pypi.org/simple/" ]; then
+            has_official=true
+            break
+        fi
+    done
+    if [ "$has_official" = "false" ]; then
+        mirrors+=("https://pypi.org/simple/")
+    fi
+
+    local result=""
+    for item in "${mirrors[@]}"; do
+        [ -n "$item" ] || continue
+        if [ -z "$result" ]; then
+            result="$item"
+        else
+            result="$result|$item"
+        fi
+    done
+    echo "$result"
+}
+
+pip_output_has_403_error() {
+    local output_file="$1"
+    grep -Eqi "(HTTP.*403|403[[:space:]]+Forbidden|status code[[:space:]]*403|response.*403)" "$output_file"
+}
+
+pip_install_with_mirror_403_retry() {
+    local pip_args="$1"
+    local log_file="$2"
+    shift 2
+    local -a pip_install_args=("$@")
+
+    local mirrors
+    mirrors="$(parse_mirror_fallback_chain)"
+    local -a mirror_candidates=()
+    IFS='|' read -r -a mirror_candidates <<< "$mirrors"
+
+    local total_attempts=${#mirror_candidates[@]}
+    if [ "$total_attempts" -le 0 ]; then
+        mirror_candidates=("https://pypi.org/simple/")
+        total_attempts=1
+    fi
+
+    local attempt=0
+    local mirror_url
+    local last_rc=1
+    for mirror_url in "${mirror_candidates[@]}"; do
+        [ -n "$mirror_url" ] || continue
+        attempt=$((attempt + 1))
+        echo -e "${DIM}[pip ${attempt}/${total_attempts}] 使用镜像: ${mirror_url}${NC}"
+
+        local attempt_log
+        attempt_log="$(mktemp)"
+
+        set -o pipefail
+        if PIP_INDEX_URL="$mirror_url" PIP_EXTRA_INDEX_URL="" $PIP_CMD install "${pip_install_args[@]}" $pip_args 2>&1 | tee -a "$log_file" "$attempt_log"; then
+            set +o pipefail
+            rm -f "$attempt_log"
+            export PIP_INDEX_URL="$mirror_url"
+            export PIP_EXTRA_INDEX_URL=""
+            return 0
+        fi
+        last_rc=${PIPESTATUS[0]}
+        set +o pipefail
+
+        if pip_output_has_403_error "$attempt_log"; then
+            echo -e "${WARNING} 检测到镜像返回 HTTP 403，自动切换下一个镜像重试"
+            rm -f "$attempt_log"
+            continue
+        fi
+
+        rm -f "$attempt_log"
+        return "$last_rc"
+    done
+
+    return "$last_rc"
+}
+
 extract_meta_package_dependencies() {
     local install_mode="${1:-standard}"
 
@@ -120,16 +221,13 @@ install_meta_dependencies_sequentially() {
     local dep_spec
     for dep_spec in "${dep_specs[@]}"; do
         echo -e "${DIM}[${idx}/${total}] 安装依赖: ${dep_spec}${NC}"
-        log_debug "PIP命令: $PIP_CMD install --upgrade \"$dep_spec\" $pip_args" "INSTALL"
+        log_debug "PIP命令: $PIP_CMD install --upgrade \"$dep_spec\" [镜像403自动回退] $pip_args" "INSTALL"
 
-        set -o pipefail
-        if ! $PIP_CMD install --upgrade "$dep_spec" $pip_args 2>&1 | tee -a "$log_file"; then
-            set +o pipefail
+        if ! pip_install_with_mirror_403_retry "$pip_args" "$log_file" --upgrade "$dep_spec"; then
             log_error "依赖预安装失败: $dep_spec" "INSTALL"
             echo -e "${CROSS} 依赖预安装失败: $dep_spec"
             return 1
         fi
-        set +o pipefail
 
         idx=$((idx + 1))
     done
@@ -157,13 +255,10 @@ install_resolver_guard_packages() {
     local spec
     for spec in "${guard_specs[@]}"; do
         echo -e "${DIM}安装护栏依赖: ${spec}${NC}"
-        set -o pipefail
-        if ! $PIP_CMD install --upgrade "$spec" $pip_args 2>&1 | tee -a "$log_file"; then
-            set +o pipefail
+        if ! pip_install_with_mirror_403_retry "$pip_args" "$log_file" --upgrade "$spec"; then
             log_warn "护栏依赖安装失败，继续后续安装: $spec" "INSTALL"
             echo -e "${WARNING} 护栏依赖安装失败，继续: $spec"
         fi
-        set +o pipefail
     done
 
     echo ""
@@ -455,16 +550,13 @@ install_core_packages() {
     echo ""
 
     # 直接流式输出 pip 进度到终端，同时 tee 到日志文件
-    # 使用 PIPESTATUS 捕获 pip 退出码（bash 专用），避免被 tee 覆盖
-    set -o pipefail
-    if ! $PIP_CMD install -e "$install_target" --no-deps $pip_args 2>&1 | tee -a "$log_file"; then
-        set +o pipefail
+    # 针对镜像 403 进行自动回退重试
+    if ! pip_install_with_mirror_403_retry "$pip_args" "$log_file" -e "$install_target" --no-deps; then
         log_error "安装失败: $install_target" "INSTALL"
         echo -e "${CROSS} SAGE meta-package 安装失败！"
         log_phase_end_enhanced "SAGE meta-package 安装" "failure" "INSTALL"
         return 1
     fi
-    set +o pipefail
 
     log_info "安装成功: $install_target" "INSTALL"
     log_pip_package_info "isage" "INSTALL"

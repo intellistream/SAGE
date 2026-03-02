@@ -111,16 +111,19 @@ python sage-examples/tutorials/L3-kernel/cpu_node_demo.py
 
 ## Architecture
 
-SAGE has a **5-layer modular architecture** with each layer independently released as its own
-package:
+SAGE has a **5-layer core architecture (L1-L5)** with each core layer independently released as its
+own package:
 
-```
+```text
 L5: sage-cli                          # CLI & Dev Tools       (isage-cli)
 L4: sage-middleware                   # Operators / C++ ext   (isage-middleware)
 L3: sage-kernel, sage-libs            # Runtime & algorithms  (isage-kernel, isage-libs)
 L2: sage-platform                     # Queue, storage        (isage-platform)
 L1: sage-common                       # Foundation            (isage-common)
 ```
+
+Above the core stack, ecosystem repositories (applications, benchmarks, docs, websites) are
+classified as **L6**.
 
 See [SAGE Ecosystem](#sage-ecosystem) for all independent sub-repositories with CI status, PyPI
 packages, and categorized listings.

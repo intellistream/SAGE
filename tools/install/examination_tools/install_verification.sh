@@ -72,6 +72,17 @@ get_sage_cli_env() {
     fi
 }
 
+resolve_verification_python_cmd() {
+    local env_name
+    env_name=$(get_sage_cli_env)
+
+    if [ -n "$env_name" ] && command -v conda >/dev/null 2>&1; then
+        PYTHON_CMD="conda run -n $env_name python"
+    else
+        PYTHON_CMD="${PYTHON_CMD:-python3}"
+    fi
+}
+
 run_sage_dev() {
     local env_name
     env_name=$(get_sage_cli_env)
@@ -480,6 +491,8 @@ run_comprehensive_verification() {
     echo -e "${BLUE}${BOLD}🔍 开始全面安装验证...${NC}"
     echo ""
 
+    resolve_verification_python_cmd
+
     init_verification_log
 
     # 运行各项验证
@@ -506,6 +519,8 @@ run_comprehensive_verification() {
 # 快速验证（仅关键项目）
 run_quick_verification() {
     echo -e "${BLUE}🔍 快速安装验证...${NC}"
+
+    resolve_verification_python_cmd
 
     init_verification_log
 
