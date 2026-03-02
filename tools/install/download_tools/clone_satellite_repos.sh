@@ -21,43 +21,10 @@ load_repos_from_workspace() {
         return 1
     fi
 
-    # 尝试使用 jq（如果可用）
-    if command -v jq >/dev/null 2>&1; then
-        # 使用 jq 解析 JSON
-        jq -r '.folders[] | select(.name != "SAGE") | "\(.name)|\(.path)"' "$workspace_file"
-        return $?
-    else
-        # 降级方案：使用 python 解析 JSON
-        if command -v python3 >/dev/null 2>&1; then
-            python3 << 'PYTHON_EOF'
-import json
-import sys
-
-workspace_file = sys.argv[1]
-try:
-    with open(workspace_file) as f:
-        data = json.load(f)
-
-    for folder in data.get('folders', []):
-        if folder['name'] != 'SAGE':
-            # 转换相对路径为仓库名
-            path = folder['path']
-            name = folder['name']
-            # 清理路径（移除 ../ 前缀）
-            print(f"{name}|{path.lstrip('./')}")
-except Exception as e:
-    print(f"Error: {e}", file=sys.stderr)
-    sys.exit(1)
-PYTHON_EOF
-            return $?
-        else
-            # 最后的降级方案：简单的正则解析
-            grep -oP '"name":\s*"\K[^"]+(?=")|"path":\s*"\K[^"]+(?=")' "$workspace_file" | \
-            awk 'NR % 2 == 1 {name=$0; next} {print name "|" $0}' | \
-            grep -v '^SAGE|'
-            return $?
-        fi
-    fi
+    # JSONC 兼容解析：直接从 path 字段提取仓库名（避免 jq/json 对注释报错）
+    grep -oP '"path":\s*"\K[^"]+(?=")' "$workspace_file" | \
+        grep -v '^\.$' | \
+        awk -F'/' '{print $NF}'
 }
 
 # 构建仓库 URL
@@ -173,7 +140,7 @@ clone_all_public_repos() {
     fi
 
     local current=0
-    while IFS='|' read -r repo_name repo_path; do
+    while IFS= read -r repo_name; do
         [ -z "$repo_name" ] && continue
 
         current=$((current + 1))

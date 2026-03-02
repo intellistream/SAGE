@@ -185,6 +185,41 @@ EOF
     echo "$constraints_file"
 }
 
+collect_workspace_repo_candidates() {
+    local project_root="$1"
+    local workspace_root
+    workspace_root="$(dirname "$project_root")"
+    local workspace_file="$project_root/SAGE.code-workspace"
+
+    if [ ! -f "$workspace_file" ]; then
+        return 0
+    fi
+
+    # SAGE.code-workspace 可能包含注释（JSONC）：按 name/path 成对提取，再用 path 定位仓库
+    grep -oP '"name"\s*:\s*"\K[^"]+|"path"\s*:\s*"\K[^"]+' "$workspace_file" 2>/dev/null | \
+        awk 'NR % 2 == 1 {name=$0; next} {print name "|" $0}' | \
+        while IFS='|' read -r name rel_path; do
+            [ -z "$rel_path" ] && continue
+            [ "$rel_path" = "." ] && continue
+
+            local repo_dir
+            repo_dir="$(cd "$project_root" && cd "$rel_path" 2>/dev/null && pwd)"
+            [ -n "$repo_dir" ] || continue
+            [ -d "$repo_dir/.git" ] || continue
+            [ -f "$repo_dir/pyproject.toml" ] || continue
+
+            local repo_name
+            repo_name="$(basename "$repo_dir")"
+            case "$repo_name" in
+                sage*|sagellm*|neuromem)
+                    echo "$repo_name"
+                    ;;
+                *)
+                    ;;
+            esac
+        done
+}
+
 # dev 模式下优先尝试安装本地 polyrepo 子仓库（editable）
 install_local_editable_polyrepo_packages() {
     local project_root="$1"
@@ -193,17 +228,25 @@ install_local_editable_polyrepo_packages() {
     local workspace_root
     workspace_root="$(dirname "$project_root")"
 
-    local repo_candidates=(
-        "sage-common"
-        "sage-platform"
-        "sage-kernel"
-        "sage-libs"
-        "sage-middleware"
-        "sage-cli"
-        "sage-dev-tools"
-        "sageFlow"
-        "sagellm"
-    )
+    local repo_candidates=()
+    while IFS= read -r repo_name; do
+        [ -n "$repo_name" ] && repo_candidates+=("$repo_name")
+    done < <(collect_workspace_repo_candidates "$project_root")
+
+    if [ ${#repo_candidates[@]} -eq 0 ]; then
+        local fallback_candidates=(
+            "sage-common"
+            "sage-platform"
+            "sage-kernel"
+            "sage-libs"
+            "sage-middleware"
+            "sage-cli"
+            "sage-dev-tools"
+            "sageFlow"
+            "sagellm"
+        )
+        repo_candidates=("${fallback_candidates[@]}")
+    fi
 
     local installed_count=0
     local skipped_count=0
@@ -237,7 +280,7 @@ install_local_editable_polyrepo_packages() {
 
     echo ""
     echo -e "${INFO} 本地 editable 安装汇总: 成功 ${installed_count} / 跳过 ${skipped_count} / 失败 ${failed_count}"
-    echo -e "${DIM}说明: dev 模式会尽量使用本地仓库；未命中或失败的依赖仍由 PyPI 解析保障可安装性${NC}"
+    echo -e "${DIM}说明: dev 模式会自动尝试安装所有附属仓库（来自 SAGE.code-workspace）为 editable${NC}"
     echo ""
 }
 

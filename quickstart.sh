@@ -24,6 +24,7 @@ source "$TOOLS_DIR/examination_tools/comprehensive_check.sh"
 source "$TOOLS_DIR/examination_tools/environment_prechecks.sh"
 source "$TOOLS_DIR/examination_tools/install_verification.sh"
 source "$TOOLS_DIR/download_tools/argument_parser.sh"
+source "$TOOLS_DIR/download_tools/clone_satellite_repos.sh"
 source "$TOOLS_DIR/examination_tools/mirror_selector.sh"  # 网络加速优化（增强版）
 source "$TOOLS_DIR/installation_table/main_installer.sh"
 source "$TOOLS_DIR/fixes/environment_doctor.sh"
@@ -320,6 +321,7 @@ main() {
     # Phase 4: 读取最终安装配置
     local mode=$(get_install_mode)
     local environment=$(get_install_environment)
+    local clone_satellites=$(should_clone_satellite_repos)
     export SAGE_INSTALL_MODE="$mode"
     export SAGE_AUTO_CONFIRM="$auto_confirm"
     local clean_cache=$(get_clean_pip_cache)
@@ -386,6 +388,13 @@ main() {
 
     # 切换到项目根目录
     cd "$SAGE_ROOT"
+
+    # dev 模式下自动克隆附属仓库（默认启用，可用 --no-clone-satellites 关闭）
+    if [ "$mode" = "dev" ] && [ "$clone_satellites" = "true" ]; then
+        echo ""
+        echo -e "${BLUE}📚 同步附属仓库（dev 模式）...${NC}"
+        clone_all_public_repos "$(dirname "$SAGE_ROOT")" "$SAGE_ROOT/SAGE.code-workspace" || true
+    fi
 
     # 执行深度依赖验证（如果指定了 --verify-deps）
     if [ "$verify_deps" = "true" ]; then

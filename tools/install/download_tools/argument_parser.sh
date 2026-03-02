@@ -474,7 +474,7 @@ show_parameter_help() {
     echo ""
     echo -e "  ${BOLD}--dev, -d${NC}                                   ${GREEN}开发安装${NC}"
     echo -e "    ${DIM}包含: full + 开发工具 (pytest, ruff, mypy, pre-commit) + 本地 editable${NC}"
-    echo -e "    ${DIM}将本地 polyrepo 子仓库安装为 editable（packages/sage[full,dev]）${NC}"
+    echo -e "    ${DIM}自动将 SAGE.code-workspace 中检测到的附属仓库安装为 editable${NC}"
     echo -e "    ${DIM}大小: ~230+ 个包（开发模式默认）${NC}"
     echo -e "    ${DIM}适合: 日常开发、贡献 SAGE 框架源码${NC}"
     echo -e "    ${DIM}兼容别名: --non-dev / --nondev 等同于 standard${NC}"
