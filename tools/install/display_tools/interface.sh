@@ -844,7 +844,7 @@ create_vscode_conda_config() {
   ],
   "python.terminal.activateEnvironment": true,
   "python.analysis.extraPaths": [
-    "\${workspaceFolder}/packages/sage/src",
+    "\${workspaceFolder}/src",
     "\${workspaceFolder}/packages/sage-common/src",
     "\${workspaceFolder}/packages/sage-kernel/src",
     "\${workspaceFolder}/packages/sage-libs/src",

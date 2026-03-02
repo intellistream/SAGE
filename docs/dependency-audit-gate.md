@@ -2,16 +2,15 @@
 
 ## Purpose
 
-This document is the evidence registry for `packages/sage/pyproject.toml` direct dependencies. For
-Wave A task `SAGE#1474`, any dependency declaration change must include callsite evidence update in
-this file.
+This document is the evidence registry for `pyproject.toml` direct dependencies. For Wave A task
+`SAGE#1474`, any dependency declaration change must include callsite evidence update in this file.
 
 ## Gate Contract
 
 - Gate script: `tools/scripts/check_meta_dependency_audit.py`
 - Enforced in pre-commit and CI
 - Hard rule:
-  - Every direct dependency in `packages/sage/pyproject.toml` must have a dedicated section here.
+  - Every direct dependency in `pyproject.toml` must have a dedicated section here.
   - Every section must include at least one `Callsite` entry.
   - If dependency declarations change, this document must be updated in the same change.
 
@@ -21,11 +20,11 @@ this file.
 
 - Sub-package implementations must be changed in the owning sub-repo first (`sage-common`,
   `sage-platform`, `sage-kernel`, `sage-libs`, `sage-middleware`, `sage-cli`, etc.).
-- This document only audits dependency declaration evidence in `packages/sage/pyproject.toml`; it is
-  not a bypass for sub-repo ownership.
+- This document only audits dependency declaration evidence in `pyproject.toml`; it is not a bypass
+  for sub-repo ownership.
 - Cross-repo rollout order is mandatory:
   1. Sub-repo implementation + release
-  1. Version pin update in `packages/sage/pyproject.toml`
+  1. Version pin update in `pyproject.toml`
   1. Evidence update in this document
   1. Meta integration verification (CI/pre-commit gate)
 
@@ -51,9 +50,8 @@ dependency pin governance, and contract-level policy only.
 - `SAGE` meta can depend on and orchestrate `isagellm` capability.
 - `SAGE` core layers (L1-L5) must not re-embed SageLLM internals
   (protocol/core/backend/control-plane/gateway).
-- Any `isagellm` dependency change in `packages/sage/pyproject.toml` must provide callsite evidence
-  proving integration/orchestration usage only, not internal implementation migration into SAGE
-  core.
+- Any `isagellm` dependency change in `pyproject.toml` must provide callsite evidence proving
+  integration/orchestration usage only, not internal implementation migration into SAGE core.
 
 ## Dependency Evidence Registry
 
@@ -114,7 +112,7 @@ dependency pin governance, and contract-level policy only.
 
 ## How To Update
 
-When `packages/sage/pyproject.toml` changes in dependencies:
+When `pyproject.toml` changes in dependencies:
 
 1. Update relevant dependency sections in this file.
 1. Add at least one concrete `Callsite` per changed dependency.

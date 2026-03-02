@@ -70,7 +70,7 @@ declare -a L5_PACKAGES=(
 
 # Meta-package
 declare -a META_PACKAGE=(
-    "packages/sage"
+    "."  # isage meta-package at repo root
 )
 
 # Combine all packages in order

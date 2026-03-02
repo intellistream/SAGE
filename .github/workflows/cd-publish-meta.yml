@@ -68,7 +68,7 @@ jobs:
       - name: (Optional) Bump BUILD digit in _version.py
         if: ${{ inputs.bump_version == 'true' }}
         run: |
-          VERSION_FILE="packages/sage/src/sage/_version.py"
+          VERSION_FILE="src/sage/_version.py"
           CURRENT=$(python3 -c "
           import re, pathlib
           t = pathlib.Path('$VERSION_FILE').read_text()
@@ -116,11 +116,9 @@ jobs:
           fi
 
       - name: Build wheel
-        working-directory: packages/sage
         run: python3 -m build --wheel --sdist
 
       - name: Publish to ${{ steps.repo.outputs.target }}
-        working-directory: packages/sage
         env:
           TWINE_REPOSITORY: ${{ steps.repo.outputs.target }}
         run: |
@@ -135,7 +133,7 @@ jobs:
         run: |
           VERSION=$(python3 -c "
           import re, pathlib
-          t = pathlib.Path('packages/sage/src/sage/_version.py').read_text()
+          t = pathlib.Path('src/sage/_version.py').read_text()
           m = re.search(r'__version__\s*=\s*\"([^\"]+)\"', t)
           print(m.group(1))
           ")

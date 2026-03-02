@@ -73,7 +73,7 @@ for pkg in "${packages[@]}"; do
             # sage-edge 已独立: https://github.com/intellistream/sage-edge
             ;;
         "sage")
-            version_file="packages/sage/src/sage/_version.py"
+            version_file="src/sage/_version.py"
             ;;
     esac
 
@@ -149,7 +149,7 @@ for pkg in "${packages[@]}"; do
         "sage-studio") version_file="packages/sage-studio/src/sage/studio/_version.py" ;;
         "sage-llm-gateway") version_file="packages/sage-llm-gateway/src/sage/llm/gateway/_version.py" ;;
         "sage-edge") echo "sage-edge 已独立，请访问 https://github.com/intellistream/sage-edge"; continue ;;
-        "sage") version_file="packages/sage/src/sage/_version.py" ;;
+        "sage") version_file="src/sage/_version.py" ;;
     esac
 
     if [ -f "$version_file" ]; then

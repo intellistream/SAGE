@@ -81,7 +81,7 @@ repos:
     pass_filenames: false
     always_run: false
     stages: [pre-commit, manual]
-    files: ^packages/sage/pyproject\.toml$|^packages/sage/docs/dependency-audit-gate\.md$
+    files: ^pyproject.toml$|^docs/dependency-audit-gate\.md$
   - id: architecture-violation-check
     name: check architecture violations (directory placement)
     entry: tools/hooks/pre-commit-architecture.sh
@@ -321,6 +321,8 @@ repos:
         "dependencies-spec.yaml"
         "tasks.md"
         "SAGE.code-workspace"
+        "pyproject.toml"  # isage meta-package
+        "setup.py"        # isage meta-package
       )
 
       # Allowed directories in project root (whitelist)
@@ -337,11 +339,13 @@ repos:
         "build"
         "config"
         "docker"
-        # "docs"  # REMOVED: Root docs/ is now forbidden. Use docs-public/ instead.
+        # "docs"  # Root docs/ for meta-package (layer-manifest.json, dependency-audit-gate.md)
+        "docs"
         "docs-public"
         "examples"
         "htmlcov"
         "packages"
+        "src"   # isage meta-package source (src/sage/_version.py)
         "data"
         "tools"
         "hooks"

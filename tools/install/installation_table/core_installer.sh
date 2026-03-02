@@ -174,7 +174,7 @@ try:
 except ModuleNotFoundError:  # pragma: no cover
     import tomli as tomllib
 
-pyproject_path = Path("packages/sage/pyproject.toml")
+pyproject_path = Path("pyproject.toml")
 data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
 
 project = data.get("project", {})
@@ -416,25 +416,25 @@ except Exception:
 # SAGE 已重构为独立 meta-package（polyrepo 架构）：
 # - packages/sage 是本仓库维护的 meta-package，-e editable 安装
 # - 所有子包（isage-common/platform/kernel/libs/middleware/cli 等）均通过 PyPI 版本号拉取
-# - 子包更新后需先发布到 PyPI，然后在 packages/sage/pyproject.toml 中更新版本号
+# - 子包更新后需先发布到 PyPI，然后在 pyproject.toml 中更新版本号
 install_core_packages() {
     local install_mode="${1:-dev}"  # default: dev
 
     # 根据 install_mode 选择安装目标（extras）
-    # standard: pip install -e "packages/sage"          (轻量，无 torch/CUDA)
-    # full:     pip install -e "packages/sage[full]"    (扩展能力集)
-    # dev:      pip install -e "packages/sage[full,dev]" (full + 开发工具 + local editable)
+    # standard: pip install -e "."          (轻量，无 torch/CUDA)
+    # full:     pip install -e ".[full]"    (扩展能力集)
+    # dev:      pip install -e ".[full,dev]" (full + 开发工具 + local editable)
     local install_target
     case "$install_mode" in
         "dev")
-            install_target='packages/sage[full,dev]'
+            install_target='.[full,dev]'
             ;;
         "full")
-            install_target='packages/sage[full]'
+            install_target='.[full]'
             ;;
         "standard"|*)
             install_mode="standard"
-            install_target='packages/sage'
+            install_target='.'
             ;;
     esac
 
@@ -501,32 +501,32 @@ install_core_packages() {
     case "$install_mode" in
         "standard")
             echo -e "${YELLOW}standard 安装：核心子包，无 torch/CUDA GPU 依赖${NC}"
-            echo -e "${DIM}包含: 本地 packages/sage，子包依赖从 PyPI 拉取：无 torch/peft/accelerate${NC}"
+            echo -e "${DIM}包含: 本地 isage (meta-package)，子包依赖从 PyPI 拉取：无 torch/peft/accelerate${NC}"
             ;;
         "full")
             echo -e "${CYAN}full 安装：standard + 扩展能力集${NC}"
-            echo -e "${DIM}包含: packages/sage[full]（不强制 torch/CUDA）${NC}"
+            echo -e "${DIM}包含: .[full]（不强制 torch/CUDA）${NC}"
             ;;
         "dev")
             echo -e "${GREEN}dev 安装：full + 开发工具 + 本地子仓库 editable${NC}"
-            echo -e "${DIM}包含: packages/sage[full,dev]，pytest/ruff/mypy/pre-commit + 优先本地 editable 覆盖${NC}"
+            echo -e "${DIM}包含: .[full,dev]，pytest/ruff/mypy/pre-commit + 优先本地 editable 覆盖${NC}"
             ;;
     esac
     echo ""
 
     # 检查 meta-package 目录
-    if [ ! -d "packages/sage" ]; then
-        log_error "找不到 meta-package 目录: packages/sage" "INSTALL"
+    if [ ! -f "pyproject.toml" ]; then
+        log_error "找不到 meta-package (pyproject.toml)" "INSTALL"
         log_error "当前工作目录: $(pwd)" "INSTALL"
-        echo -e "${CROSS} 错误：找不到 meta-package 目录 (packages/sage)"
+        echo -e "${CROSS} 错误：找不到 meta-package (pyproject.toml)"
         return 1
     fi
 
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${BOLD}  📦 安装 SAGE ($install_mode 模式：$install_target + PyPI 子包)${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${DIM}安装策略: editable install 本地 packages/sage，子包依赖默认从 PyPI 版本拉取${NC}"
-    echo -e "${DIM}子包更新需先发布到 PyPI，再在 packages/sage/pyproject.toml 中更新版本号${NC}"
+    echo -e "${DIM}安装策略: editable install 本地 isage (meta-package)，子包依赖默认从 PyPI 版本拉取${NC}"
+    echo -e "${DIM}子包更新需先发布到 PyPI，再在 pyproject.toml 中更新版本号${NC}"
     echo ""
 
     log_info "安装目标: $install_target" "INSTALL"

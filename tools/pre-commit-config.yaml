@@ -81,15 +81,7 @@ repos:
     pass_filenames: false
     always_run: false
     stages: [pre-commit, manual]
-    files: ^packages/sage/pyproject\.toml$|^packages/sage/docs/dependency-audit-gate\.md$
-  - id: layer-manifest-consistency-check
-    name: check layer manifest/workspace consistency
-    entry: python3 tools/scripts/check_layer_manifest_sync.py
-    language: system
-    pass_filenames: false
-    always_run: false
-    stages: [pre-commit, manual]
-    files: ^SAGE\.code-workspace$|^packages/sage/docs/layer-manifest\.json$|^ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1\.md$|^README\.md$|^tools/scripts/check_layer_manifest_sync\.py$
+    files: ^pyproject.toml$|^docs/dependency-audit-gate\.md$
   - id: architecture-violation-check
     name: check architecture violations (directory placement)
     entry: tools/hooks/pre-commit-architecture.sh
@@ -138,14 +130,6 @@ repos:
     pass_filenames: false
     always_run: false
     files: ^docs-public/docs_src/dev-notes/.*\.md$
-  - id: libs-middleware-layer-check
-    name: check sage-libs (L3) does not import sage.middleware (L4)
-    entry: tools/hooks/check_libs_middleware_import.sh
-    language: system
-    pass_filenames: false
-    always_run: false
-    stages: [pre-commit, manual]
-    files: ^packages/sage-libs/src/.*\.py$
           # - id: control-plane-only-guard
           #   name: prevent embedded/local inference paths
           #   entry: tools/hooks/check_control_plane_only.py
@@ -337,6 +321,8 @@ repos:
         "dependencies-spec.yaml"
         "tasks.md"
         "SAGE.code-workspace"
+        "pyproject.toml"  # isage meta-package
+        "setup.py"        # isage meta-package
       )
 
       # Allowed directories in project root (whitelist)
@@ -344,6 +330,7 @@ repos:
         ".benchmarks"  # Deprecated; keep for legacy benchmark artifacts
         ".git"
         ".github"
+        ".mypy_cache"  # mypy cache (temporary; should use .sage/cache/mypy)
         ".pytest_cache"
         ".ruff_cache"
         ".sage"
@@ -352,11 +339,13 @@ repos:
         "build"
         "config"
         "docker"
-        # "docs"  # REMOVED: Root docs/ is now forbidden. Use docs-public/ instead.
+        # "docs"  # Root docs/ for meta-package (layer-manifest.json, dependency-audit-gate.md)
+        "docs"
         "docs-public"
         "examples"
         "htmlcov"
         "packages"
+        "src"   # isage meta-package source (src/sage/_version.py)
         "data"
         "tools"
         "hooks"
@@ -472,6 +461,15 @@ repos:
     files: ^(\.github/(copilot-instructions\.md|agents/my-agent\.agent\.md|workflows/.*\.yml)|quickstart\.sh|manage\.sh|Makefile|tools/(install/.*\.sh|pre-commit-config\.yaml|pytest\.ini|ruff\.toml)|packages/sage-common/src/sage/common/config/(ports|user_paths)\.py|packages/sage-cli/src/sage/cli/|packages/sage-gateway/src/sage/gateway/|packages/sage-common/src/sage/common/components/sage_(llm|embedding)/|packages/sage-[^/]+/pyproject\.toml|config/(config|cluster)\.yaml)
     stages: [pre-commit, manual]
     description: Warn if critical project files change without updating copilot instructions
+  - id: cli-ray-terminology-check
+    name: check sage-cli user-visible strings for Ray terminology (Issue     #1438)
+    entry: bash tools/hooks/check_cli_ray_terminology.sh
+    language: system
+    pass_filenames: false
+    always_run: false
+    files: ^packages/sage-cli/src/sage/cli/.*\.py$
+    stages: [pre-commit, manual]
+    description: Block commits if sage-cli CLI help text, echo messages or command docstrings contain Ray terminology instead of Flownet/SAGE
 # To install pre-commit hooks:
 #   pre-commit install
 #

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Dependency audit gate for isage meta package.
 
-This gate enforces two rules for `packages/sage/pyproject.toml`:
+This gate enforces two rules for `pyproject.toml`:
 1. Every direct dependency must have callsite evidence in the audit document.
 2. When dependency declarations change, the audit document must be updated in the same change.
 """
@@ -16,8 +16,8 @@ import tomllib
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PYPROJECT_PATH = Path("packages/sage/pyproject.toml")
-AUDIT_DOC_PATH = Path("packages/sage/docs/dependency-audit-gate.md")
+PYPROJECT_PATH = Path("pyproject.toml")
+AUDIT_DOC_PATH = Path("docs/dependency-audit-gate.md")
 
 SECTION_RE = re.compile(r"^###\s+`([^`]+)`\s*$")
 CALLSITE_RE = re.compile(r"^-\s+Callsite:\s+")

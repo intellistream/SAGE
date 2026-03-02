@@ -279,8 +279,8 @@ install_sage() {
             log_phase_end "standard 安装模式" "success" "MAIN"
             ;;
         "full")
-            # full 模式：standard + 扩展能力集 via packages/sage[full]
-            echo -e "${CYAN}full 安装模式：standard + 扩展能力集（packages/sage[full]）${NC}"
+            # full 模式：standard + 扩展能力集 via .[full]
+            echo -e "${CYAN}full 安装模式：standard + 扩展能力集（.[full]）${NC}"
             log_phase_start "full 安装模式" "MAIN"
 
             if ! install_core_packages "full"; then

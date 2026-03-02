@@ -468,7 +468,7 @@ show_parameter_help() {
     echo -e "    ${DIM}适合: 仅使用 SAGE 核心功能、CI 环境、轻量部署${NC}"
     echo ""
     echo -e "  ${BOLD}--full, -f${NC}                                  ${CYAN}full 安装${NC}"
-    echo -e "    ${DIM}包含: standard + 扩展能力集（packages/sage[full]）${NC}"
+    echo -e "    ${DIM}包含: standard + 扩展能力集（.[full]）${NC}"
     echo -e "    ${DIM}大小: ~220+ 个包（不强制安装 PyTorch/CUDA）${NC}"
     echo -e "    ${DIM}适合: 学习示例、完整功能体验、研究实验${NC}"
     echo ""

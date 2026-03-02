@@ -14,7 +14,7 @@ echo "========================================="
 # Strategy: Based on PyPI current versions + 0.0.0.1 for published packages
 #           Use 0.2.0.0 for unpublished packages (higher than TestPyPI legacy versions)
 declare -A VERSION_UPDATES=(
-    ["packages/sage/src/sage/_version.py"]="0.2.2.0→0.2.3.1"
+    ["src/sage/_version.py"]="0.2.2.0→0.2.3.1"
     ["packages/sage-common/src/sage/common/_version.py"]="0.2.3.0→0.2.3.1"
     ["packages/sage-llm-core/src/sage/llm/_version.py"]="0.2.3.0→0.2.3.1"
     ["packages/sage-platform/src/sage/platform/_version.py"]="0.2.3.0→0.2.0.0"

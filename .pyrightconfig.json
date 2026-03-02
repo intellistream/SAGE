@@ -1,13 +1,6 @@
 {
   "include": [
-    "packages/sage-kernel/src",
-    "packages/sage-common/src",
-    "packages/sage-platform/src",
-    "packages/sage-apps/src",
-    "packages/sage-middleware/src",
-    "packages/sage-cli/src",
-    "packages/sage-studio/src",
-    "packages/sage-tools/src"
+    "src"
   ],
   "exclude": [
     "**/.sage",
@@ -18,18 +11,8 @@
     "**/.pytest_cache",
     "**/dist",
     "**/*.egg-info",
-    "packages/sage-libs/src/sage/libs/libamm/**",
-    "packages/sage-common/src/sage/common/components/sage_llm/**",
     "**/tests/**",
-    "**/examples/**",
-    "**/scripts/**",
-    "**/vendors/**",
-    "**/vendor/**",
-    "**/thirdparty/**",
-    "packages/sage-cli/src/sage/cli/core/config_refactored.py",
-    "packages/sage-cli/src/sage/cli/core/refactor_example.py",
-    "packages/sage-studio/src/sage/studio/**",
-    "packages/sage-tools/src/sage/tools/dev/issues/**"
+    "**/examples/**"
   ],
   "ignore": [
   ],

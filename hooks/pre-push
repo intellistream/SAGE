@@ -62,7 +62,7 @@ safe_read() {
     fi
 }
 
-# Find all _version.py files in repo (optional: pass base dir as $1, default is BUILD_DIR or .)
+# Find all _version.py files in repo (optional: pass base dir as $1, default is BUILD_DIR)
 find_version_files() {
     local base="${1:-${BUILD_DIR:-.}}"
     find "$base" -maxdepth 5 -name '_version.py' \
@@ -80,7 +80,7 @@ update_version() {
     local new_version="$2"
     local updated=false
 
-    # Use absolute PYPROJECT_FILE path (supports monorepo: may be in a sub-dir)
+    # Use absolute PYPROJECT_FILE path
     if [ -f "${PYPROJECT_FILE}" ] && grep -q '^version = "' "${PYPROJECT_FILE}" 2>/dev/null; then
         sed -i "s/version = \"${old_version}\"/version = \"${new_version}\"/" "${PYPROJECT_FILE}"
         git add "${PYPROJECT_FILE}"
@@ -221,27 +221,16 @@ schedule_publish() {
 
 # --- Main Logic ---
 
-# Support monorepo layout: root may not have pyproject.toml
-# (e.g. SAGE meta-package lives in packages/sage/)
 BUILD_DIR="$REPO_DIR"
-if [ ! -f pyproject.toml ]; then
-    # Look for a single sub-package directory (packages/*/pyproject.toml)
-    for candidate in packages/*/pyproject.toml; do
-        if [ -f "$candidate" ]; then
-            BUILD_DIR="$REPO_DIR/$(dirname "$candidate")"
-            break
-        fi
-    done
-    if [ "$BUILD_DIR" = "$REPO_DIR" ]; then
-        exit 0
-    fi
+PYPROJECT_FILE="${BUILD_DIR}/pyproject.toml"
+if [ ! -f "$PYPROJECT_FILE" ]; then
+    exit 0
 fi
 
-PYPROJECT_FILE="${BUILD_DIR}/pyproject.toml"
 PACKAGE_NAME=$(grep -oP '^name = "\K[^"]+' "$PYPROJECT_FILE" 2>/dev/null || echo "unknown")
 
 # Get version: prefer _version.py (dynamic), fallback to pyproject.toml (static)
-# Search from BUILD_DIR with deeper maxdepth to support src-layout sub-packages
+# Search for _version.py in repo (src-layout: src/sage/_version.py)
 CURRENT_VERSION=""
 while IFS= read -r VERSION_FILE; do
     if [ -f "$VERSION_FILE" ]; then

@@ -134,7 +134,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--manifest",
-        default="packages/sage/docs/layer-manifest.json",
+        default="docs/layer-manifest.json",
         help="Layer manifest path relative to repo root",
     )
     parser.add_argument(

@@ -14,12 +14,12 @@ on:
   push:
     branches: [main, main-dev]
     paths:
-      - "packages/sage/**"
+      - "**"
       - ".github/workflows/ci-integration.yml"
   pull_request:
     branches: [main, main-dev]
     paths:
-      - "packages/sage/**"
+      - "**"
   workflow_dispatch:
     inputs:
       use_testpypi:
@@ -78,7 +78,7 @@ jobs:
           # Extract package names from pyproject.toml and install latest pre-releases
           PKGS=$(python3 - <<'EOF'
           import re, pathlib
-          content = pathlib.Path("packages/sage/pyproject.toml").read_text()
+          content = pathlib.Path("pyproject.toml").read_text()
           # pull isage-* names from dependencies block
           names = re.findall(r'"(isage-[a-z-]+)>=', content)
           print(" ".join(names))
@@ -90,7 +90,7 @@ jobs:
 
       - name: Install meta package (editable)
         run: |
-          pip install -e "packages/sage/[dev]"
+          pip install -e ".[dev]"
 
       - name: Smoke test — import each sub-package
         run: |
