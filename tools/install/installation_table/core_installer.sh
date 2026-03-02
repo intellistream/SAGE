@@ -122,47 +122,88 @@ install_meta_dependencies_sequentially() {
         echo -e "${DIM}[${idx}/${total}] 安装依赖: ${dep_spec}${NC}"
         log_debug "PIP命令: $PIP_CMD install --upgrade \"$dep_spec\" $pip_args" "INSTALL"
 
-        set -o pipefail
-        if ! $PIP_CMD install --upgrade "$dep_spec" $pip_args 2>&1 | tee -a "$log_file"; then
-            set +o pipefail
-            # 当前镜像安装失败（如 403），依次尝试回退镜像
-            local current_index="${PIP_INDEX_URL:-}"
-            local installed_ok=false
-            local fallback_mirrors=()
-            # 先遍历国内有序列表（跳过当前已用的）
-            if [ ${#ORDERED_CHINA_MIRRORS[@]} -gt 0 ] 2>/dev/null; then
-                for m in "${ORDERED_CHINA_MIRRORS[@]}"; do
-                    [ "$m" != "$current_index" ] && fallback_mirrors+=("$m")
-                done
-            fi
-            # 最后兜底官方 PyPI
-            fallback_mirrors+=("https://pypi.org/simple")
+        local install_out
+        install_out=$($PIP_CMD install --upgrade "$dep_spec" $pip_args 2>&1)
+        local install_rc=$?
+        echo "$install_out" | tee -a "$log_file"
 
-            for fallback_url in "${fallback_mirrors[@]}"; do
-                local fb_host
-                fb_host=$(echo "$fallback_url" | sed 's|https\?://||' | cut -d'/' -f1)
-                echo -e "${WARNING} 回退到镜像: $fallback_url 重试: $dep_spec"
-                log_warn "镜像安装失败，回退到 $fallback_url 重试: $dep_spec" "INSTALL"
+        if [ $install_rc -ne 0 ]; then
+            # 区分错误类型：权限错误 vs 网络/下载错误
+            if echo "$install_out" | grep -q "Permission denied\|Errno 13\|permissionerror"; then
+                # 权限错误：与镜像无关，直接加 --user 重试一次
+                echo -e "${WARNING} 检测到写入权限不足，添加 --user 重试: $dep_spec"
+                log_warn "写入权限不足，--user 重试: $dep_spec" "INSTALL"
+                local user_pip_args="$pip_args --user"
+                # 确保 --user 不重复添加
+                user_pip_args=$(echo "$user_pip_args" | tr ' ' '\n' | awk '!seen[$0]++' | tr '\n' ' ')
+                export PATH="$HOME/.local/bin:$PATH"
+                export PYTHONNOUSERSITE=0
                 set -o pipefail
-                if $PIP_CMD install --upgrade "$dep_spec" \
-                        --index-url "$fallback_url" \
-                        --trusted-host "$fb_host" \
-                        $pip_args 2>&1 | tee -a "$log_file"; then
+                if $PIP_CMD install --upgrade "$dep_spec" $user_pip_args 2>&1 | tee -a "$log_file"; then
                     set +o pipefail
-                    echo -e "${CHECK} 回退镜像安装成功 ($fallback_url): $dep_spec"
-                    installed_ok=true
-                    break
+                    echo -e "${CHECK} --user 模式安装成功: $dep_spec"
+                    # 后续安装也用 --user
+                    pip_args="$user_pip_args"
+                else
+                    set +o pipefail
+                    log_error "依赖预安装失败（权限问题无法解决）: $dep_spec" "INSTALL"
+                    echo -e "${CROSS} 依赖预安装失败: $dep_spec"
+                    return 1
                 fi
-                set +o pipefail
-            done
+            else
+                # 网络/下载错误（如 403）：依次尝试回退镜像
+                local current_index="${PIP_INDEX_URL:-}"
+                local installed_ok=false
+                local fallback_mirrors=()
+                if [ ${#ORDERED_CHINA_MIRRORS[@]} -gt 0 ] 2>/dev/null; then
+                    for m in "${ORDERED_CHINA_MIRRORS[@]}"; do
+                        [ "$m" != "$current_index" ] && fallback_mirrors+=("$m")
+                    done
+                fi
+                fallback_mirrors+=("https://pypi.org/simple")
 
-            if [ "$installed_ok" = "false" ]; then
-                log_error "依赖预安装失败（所有镜像均失败）: $dep_spec" "INSTALL"
-                echo -e "${CROSS} 依赖预安装失败: $dep_spec"
-                return 1
+                for fallback_url in "${fallback_mirrors[@]}"; do
+                    local fb_host
+                    fb_host=$(echo "$fallback_url" | sed 's|https\?://||' | cut -d'/' -f1)
+                    echo -e "${WARNING} 回退到镜像: $fallback_url 重试: $dep_spec"
+                    log_warn "镜像安装失败，回退到 $fallback_url 重试: $dep_spec" "INSTALL"
+                    local fb_out
+                    fb_out=$($PIP_CMD install --upgrade "$dep_spec" \
+                            --index-url "$fallback_url" \
+                            --trusted-host "$fb_host" \
+                            $pip_args 2>&1)
+                    local fb_rc=$?
+                    echo "$fb_out" | tee -a "$log_file"
+                    if [ $fb_rc -eq 0 ]; then
+                        echo -e "${CHECK} 回退镜像安装成功 ($fallback_url): $dep_spec"
+                        installed_ok=true
+                        break
+                    elif echo "$fb_out" | grep -q "Permission denied\|Errno 13"; then
+                        # 权限错误：停止换镜像，改用 --user 重试
+                        echo -e "${WARNING} 检测到写入权限不足，添加 --user 重试: $dep_spec"
+                        local user_pip_args="$pip_args --user"
+                        user_pip_args=$(echo "$user_pip_args" | tr ' ' '\n' | awk '!seen[$0]++' | tr '\n' ' ')
+                        export PATH="$HOME/.local/bin:$PATH"
+                        export PYTHONNOUSERSITE=0
+                        if $PIP_CMD install --upgrade "$dep_spec" \
+                                --index-url "$fallback_url" \
+                                --trusted-host "$fb_host" \
+                                $user_pip_args 2>&1 | tee -a "$log_file"; then
+                            echo -e "${CHECK} --user 模式安装成功: $dep_spec"
+                            pip_args="$user_pip_args"
+                            installed_ok=true
+                        fi
+                        break
+                    fi
+                done
+
+                if [ "$installed_ok" = "false" ]; then
+                    log_error "依赖预安装失败（所有镜像均失败）: $dep_spec" "INSTALL"
+                    echo -e "${CROSS} 依赖预安装失败: $dep_spec"
+                    return 1
+                fi
             fi
         fi
-        set +o pipefail
 
         idx=$((idx + 1))
     done
@@ -190,44 +231,73 @@ install_resolver_guard_packages() {
     local spec
     for spec in "${guard_specs[@]}"; do
         echo -e "${DIM}安装护栏依赖: ${spec}${NC}"
-        set -o pipefail
-        if $PIP_CMD install --upgrade "$spec" $pip_args 2>&1 | tee -a "$log_file"; then
-            set +o pipefail
-        else
-            set +o pipefail
-            # 当前镜像失败（可能 403），依次尝试回退镜像
-            local installed_ok=false
-            local current_index="${PIP_INDEX_URL:-}"
-            local fallback_mirrors=()
-            # 先遍历国内有序列表（跳过当前已用的）
-            if [ ${#ORDERED_CHINA_MIRRORS[@]} -gt 0 ] 2>/dev/null; then
-                for m in "${ORDERED_CHINA_MIRRORS[@]}"; do
-                    [ "$m" != "$current_index" ] && fallback_mirrors+=("$m")
-                done
-            fi
-            # 最后兜底官方 PyPI
-            fallback_mirrors+=("https://pypi.org/simple")
+        local g_out
+        g_out=$($PIP_CMD install --upgrade "$spec" $pip_args 2>&1)
+        local g_rc=$?
+        echo "$g_out" | tee -a "$log_file"
 
-            for fallback_url in "${fallback_mirrors[@]}"; do
-                local fb_host
-                fb_host=$(echo "$fallback_url" | sed 's|https\?://||' | cut -d'/' -f1)
-                echo -e "${WARNING} 回退到镜像: $fallback_url 重试: $spec"
-                log_warn "护栏依赖安装失败（可能 403），回退到 $fallback_url 重试: $spec" "INSTALL"
-                set -o pipefail
-                if $PIP_CMD install --upgrade "$spec" \
-                        --index-url "$fallback_url" \
-                        --trusted-host "$fb_host" \
-                        $pip_args 2>&1 | tee -a "$log_file"; then
-                    set +o pipefail
-                    installed_ok=true
-                    break
+        if [ $g_rc -ne 0 ]; then
+            if echo "$g_out" | grep -q "Permission denied\|Errno 13"; then
+                # 权限错误：加 --user 重试
+                echo -e "${WARNING} 检测到写入权限不足，--user 重试护栏依赖: $spec"
+                local user_pip_args="$pip_args --user"
+                user_pip_args=$(echo "$user_pip_args" | tr ' ' '\n' | awk '!seen[$0]++' | tr '\n' ' ')
+                export PATH="$HOME/.local/bin:$PATH"
+                export PYTHONNOUSERSITE=0
+                if $PIP_CMD install --upgrade "$spec" $user_pip_args 2>&1 | tee -a "$log_file"; then
+                    pip_args="$user_pip_args"
+                else
+                    log_warn "护栏依赖安装失败（权限问题），继续: $spec" "INSTALL"
+                    echo -e "${WARNING} 护栏依赖安装失败，继续: $spec"
                 fi
-                set +o pipefail
-            done
+            else
+                # 网络/403 错误：依次尝试回退镜像
+                local installed_ok=false
+                local current_index="${PIP_INDEX_URL:-}"
+                local fallback_mirrors=()
+                if [ ${#ORDERED_CHINA_MIRRORS[@]} -gt 0 ] 2>/dev/null; then
+                    for m in "${ORDERED_CHINA_MIRRORS[@]}"; do
+                        [ "$m" != "$current_index" ] && fallback_mirrors+=("$m")
+                    done
+                fi
+                fallback_mirrors+=("https://pypi.org/simple")
 
-            if [ "$installed_ok" = "false" ]; then
-                log_warn "护栏依赖安装失败，继续后续安装: $spec" "INSTALL"
-                echo -e "${WARNING} 护栏依赖安装失败，继续: $spec"
+                for fallback_url in "${fallback_mirrors[@]}"; do
+                    local fb_host
+                    fb_host=$(echo "$fallback_url" | sed 's|https\?://||' | cut -d'/' -f1)
+                    echo -e "${WARNING} 回退到镜像: $fallback_url 重试: $spec"
+                    log_warn "护栏依赖安装失败，回退到 $fallback_url 重试: $spec" "INSTALL"
+                    local fb_out
+                    fb_out=$($PIP_CMD install --upgrade "$spec" \
+                            --index-url "$fallback_url" \
+                            --trusted-host "$fb_host" \
+                            $pip_args 2>&1)
+                    local fb_rc=$?
+                    echo "$fb_out" | tee -a "$log_file"
+                    if [ $fb_rc -eq 0 ]; then
+                        installed_ok=true
+                        break
+                    elif echo "$fb_out" | grep -q "Permission denied\|Errno 13"; then
+                        echo -e "${WARNING} 检测到写入权限不足，--user 重试: $spec"
+                        local user_pip_args="$pip_args --user"
+                        user_pip_args=$(echo "$user_pip_args" | tr ' ' '\n' | awk '!seen[$0]++' | tr '\n' ' ')
+                        export PATH="$HOME/.local/bin:$PATH"
+                        export PYTHONNOUSERSITE=0
+                        if $PIP_CMD install --upgrade "$spec" \
+                                --index-url "$fallback_url" \
+                                --trusted-host "$fb_host" \
+                                $user_pip_args 2>&1 | tee -a "$log_file"; then
+                            pip_args="$user_pip_args"
+                            installed_ok=true
+                        fi
+                        break
+                    fi
+                done
+
+                if [ "$installed_ok" = "false" ]; then
+                    log_warn "护栏依赖安装失败，继续后续安装: $spec" "INSTALL"
+                    echo -e "${WARNING} 护栏依赖安装失败，继续: $spec"
+                fi
             fi
         fi
     done
@@ -421,6 +491,22 @@ install_core_packages() {
         fi
         export PATH="$HOME/.local/bin:$PATH"
         echo -e "${DIM}CI环境: 使用 --user 安装，PATH+=~/.local/bin${NC}"
+    else
+        # 非 CI 环境：检测 site-packages 写权限，无权限时自动加 --user
+        # （常见于 Docker 容器中使用 base conda 环境但用非 root 用户的场景）
+        if ! $PYTHON_CMD -c "
+import site, os, sys
+try:
+    sp = site.getsitepackages()[0]
+except AttributeError:
+    sp = sys.prefix + '/lib/python' + sys.version[:3] + '/site-packages'
+exit(0 if os.access(sp, os.W_OK) else 1)
+" 2>/dev/null; then
+            pip_args="$pip_args --user"
+            export PATH="$HOME/.local/bin:$PATH"
+            export PYTHONNOUSERSITE=0
+            echo -e "${WARNING} 检测到 site-packages 无写权限，自动添加 --user（~/.local）${NC}"
+        fi
     fi
 
     # 获取项目根目录并初始化日志

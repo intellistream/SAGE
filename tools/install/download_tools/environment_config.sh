@@ -67,21 +67,21 @@ detect_mainland_china_ip() {
 
     # 即使是 C.UTF-8，CST 时区也很可能在中国
     if [ "$tz_cst" = "true" ]; then
-        # 尝试快速测试清华源（2秒超时）
+        # 尝试快速测试阿里云源（2秒超时）
         if command -v curl >/dev/null 2>&1; then
-            if curl -s --connect-timeout 2 --max-time 2 -I "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
+            if curl -s --connect-timeout 2 --max-time 2 -I "https://mirrors.aliyun.com/pypi/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
                 return 0
             fi
         fi
-        # CST时区但清华源不可达，可能在境外或有网络问题，仍然返回中国
+        # CST时区但阿里云源不可达，可能在境外或有网络问题，仍然返回中国
         return 0
     fi
 
-    # 方法3: 测试清华源连接速度（可能被VPN干扰）
+    # 方法3: 测试阿里云源连接速度（可能被VPN干扰）
     if command -v curl >/dev/null 2>&1; then
-        local tsinghua_test=$(curl -s --connect-timeout 2 --max-time 3 -w "%{http_code}" \
-            -o /dev/null "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null || echo "000")
-        if [[ "$tsinghua_test" =~ ^(200|301|302)$ ]]; then
+        local aliyun_test=$(curl -s --connect-timeout 2 --max-time 3 -w "%{http_code}" \
+            -o /dev/null "https://mirrors.aliyun.com/pypi/simple/" 2>/dev/null || echo "000")
+        if [[ "$aliyun_test" =~ ^(200|301|302)$ ]]; then
             return 0
         fi
     fi
@@ -122,9 +122,9 @@ configure_pip_mirror() {
 
     # 如果设置了 SAGE_FORCE_CHINA_MIRROR=true，强制使用中国镜像（适用于中国的 self-hosted runner）
     if [ "${SAGE_FORCE_CHINA_MIRROR:-}" = "true" ]; then
-        export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
+        export PIP_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
         export PIP_EXTRA_INDEX_URL=""
-        echo -e "${GREEN}  ✓ SAGE_FORCE_CHINA_MIRROR=true，强制使用清华镜像${NC}"
+        echo -e "${GREEN}  ✓ SAGE_FORCE_CHINA_MIRROR=true，强制使用阿里云镜像${NC}"
         return 0
     fi
 
@@ -133,9 +133,9 @@ configure_pip_mirror() {
     if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
         # 在 CI 中也尝试检测是否在中国
         if detect_mainland_china_ip; then
-            export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
+            export PIP_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
             export PIP_EXTRA_INDEX_URL=""
-            echo -e "${GREEN}  ✓ CI环境 + 中国大陆网络检测，使用清华镜像加速${NC}"
+            echo -e "${GREEN}  ✓ CI环境 + 中国大陆网络检测，使用阿里云镜像加速${NC}"
             return 0
         fi
         export PIP_INDEX_URL="https://pypi.org/simple/"
@@ -150,29 +150,15 @@ configure_pip_mirror() {
         "auto")
             # 自动检测最优镜像，优先根据公网 IP 判断
             if detect_mainland_china_ip; then
-                # 检测清华镜像是否可用（增加超时时间到 8 秒，避免网络延迟导致的误判）
-                if curl -s --connect-timeout 5 --max-time 8 -I "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
-                    export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
-                    export PIP_EXTRA_INDEX_URL=""
-                    echo -e "${GREEN}  ✓ 检测到中国大陆网络，自动使用清华镜像加速${NC}"
-                else
-                    export PIP_INDEX_URL="https://pypi.org/simple/"
-                    export PIP_EXTRA_INDEX_URL=""
-                    echo -e "${YELLOW}  ⚠️  清华镜像暂时不可用或网络连接较慢，已降级到官方 PyPI${NC}"
-                    echo -e "${DIM}     如需强制使用清华镜像，请运行: SAGE_FORCE_CHINA_MIRROR=true ./quickstart.sh${NC}"
-                fi
+                # 直接使用阿里云镜像（稳定，支持实际 .whl 下载）
+                export PIP_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
+                export PIP_EXTRA_INDEX_URL=""
+                echo -e "${GREEN}  ✓ 检测到中国大陆网络，自动使用阿里云镜像加速${NC}"
             elif [[ "${LANG:-}" == zh_* ]] || [[ "${LC_ALL:-}" == zh_* ]] || [[ "${LC_CTYPE:-}" == zh_* ]]; then
-                # 中文环境也进行健康检查（同样增加超时时间）
-                if curl -s --connect-timeout 5 --max-time 8 -I "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
-                    export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
-                    export PIP_EXTRA_INDEX_URL=""
-                    echo -e "${GREEN}  ✓ 检测到中文环境，自动使用清华镜像加速${NC}"
-                else
-                    export PIP_INDEX_URL="https://pypi.org/simple/"
-                    export PIP_EXTRA_INDEX_URL=""
-                    echo -e "${YELLOW}  ⚠️  清华镜像暂时不可用或网络连接较慢，已降级到官方 PyPI${NC}"
-                    echo -e "${DIM}     如需强制使用清华镜像，请运行: SAGE_FORCE_CHINA_MIRROR=true ./quickstart.sh${NC}"
-                fi
+                # 中文环境也直接使用阿里云
+                export PIP_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
+                export PIP_EXTRA_INDEX_URL=""
+                echo -e "${GREEN}  ✓ 检测到中文环境，自动使用阿里云镜像加速${NC}"
             else
                 export PIP_INDEX_URL="https://pypi.org/simple/"
                 export PIP_EXTRA_INDEX_URL=""

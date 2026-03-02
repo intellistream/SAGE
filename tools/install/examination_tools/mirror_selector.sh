@@ -345,7 +345,7 @@ smart_configure_pip() {
             echo -e "${INFO} 检测到中国大陆网络环境"
         # 降级方案：简单网络测试
         elif ! curl -s --connect-timeout 2 https://pypi.org >/dev/null 2>&1; then
-            if curl -s --connect-timeout 2 https://pypi.tuna.tsinghua.edu.cn >/dev/null 2>&1; then
+            if curl -s --connect-timeout 2 https://mirrors.aliyun.com >/dev/null 2>&1; then
                 use_china_mirror=true
                 echo -e "${INFO} 网络测试：建议使用国内镜像"
             fi
