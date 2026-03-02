@@ -173,9 +173,9 @@ verify_hello_world() {
     fi
 }
 
-# 验证 sage doctor 命令
+# 验证 sage-dev 健康检查命令
 verify_sage_doctor() {
-    echo -e "${BLUE}🩺 验证 sage doctor 命令...${NC}"
+    echo -e "${BLUE}🩺 验证 sage-dev 健康检查命令...${NC}"
 
     # 检查 sage-dev 命令是否存在
     if ! sage_dev_available; then
@@ -184,18 +184,18 @@ verify_sage_doctor() {
         return 1
     fi
 
-    # 运行 sage maintain doctor（新命令结构）
+    # 运行当前可用的健康检查命令
     local output
-    output=$(run_sage_dev maintain doctor 2>&1)
+    output=$(run_sage_dev status 2>&1)
     local exit_code=$?
 
     if [ $exit_code -eq 0 ]; then
-        log_verification_result "sage_doctor" "PASS" "sage-dev maintain doctor 执行成功"
-        echo -e "${GREEN}   ✅ sage-dev maintain doctor 执行成功${NC}"
+        log_verification_result "sage_doctor" "PASS" "sage-dev status 执行成功"
+        echo -e "${GREEN}   ✅ sage-dev status 执行成功${NC}"
         return 0
     else
-        log_verification_result "sage_doctor" "WARN" "sage-dev maintain doctor 执行失败: $output"
-        echo -e "${YELLOW}   ⚠️  sage-dev maintain doctor 执行失败${NC}"
+        log_verification_result "sage_doctor" "WARN" "sage-dev status 执行失败: $output"
+        echo -e "${YELLOW}   ⚠️  sage-dev status 执行失败${NC}"
         echo -e "${DIM}   错误: $output${NC}"
         return 1
     fi
