@@ -23,7 +23,7 @@ removed_count=0
 
 # 清理历史安装的 SAGE/SageLLM 相关包（显著降低 pip 解析复杂度）
 echo -e "${DIM}清理已安装的 isage/isagellm/sagellm 包...${NC}"
-installed_packages=$(eval "$PIP_CMD list --format=freeze" 2>/dev/null | grep -E '^(isage|isagellm|sagellm)(-|=)' || true)
+installed_packages=$(eval "$PIP_CMD list --format=freeze" 2>/dev/null | grep -E '^(isage|isagellm|sagellm)(-|=)|^sage-pub-docs=' || true)
 if [ -n "$installed_packages" ]; then
     package_names=$(echo "$installed_packages" | cut -d'=' -f1 | tr '\n' ' ')
     if [ -n "$package_names" ]; then

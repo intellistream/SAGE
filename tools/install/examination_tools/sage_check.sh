@@ -139,18 +139,11 @@ uninstall_sage() {
                 total_packages=$((total_packages + 1))
                 # 先检查包是否真的存在
                 if _sage_pip_show "$package" >/dev/null 2>&1; then
-                    # 检查是否是editable安装
-                    local package_info=$(_sage_pip_show "$package")
-                    if echo "$package_info" | grep -q "Editable project location:"; then
-                        echo -e "${DIM}    ○ $package 开发模式安装，重新安装时会自动更新${NC}"
-                        uninstall_count=$((uninstall_count + 1))  # 算作处理成功
+                    if _sage_pip_uninstall "$package"; then
+                        echo -e "${DIM}    ✓ 已卸载 $package${NC}"
+                        uninstall_count=$((uninstall_count + 1))
                     else
-                        if _sage_pip_uninstall "$package"; then
-                            echo -e "${DIM}    ✓ 已卸载 $package${NC}"
-                            uninstall_count=$((uninstall_count + 1))
-                        else
-                            echo -e "${DIM}    ⚠ $package 卸载失败${NC}"
-                        fi
+                        echo -e "${DIM}    ⚠ $package 卸载失败${NC}"
                     fi
                 else
                     echo -e "${DIM}    - $package 未安装，跳过${NC}"
