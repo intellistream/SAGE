@@ -125,9 +125,42 @@ install_meta_dependencies_sequentially() {
         set -o pipefail
         if ! $PIP_CMD install --upgrade "$dep_spec" $pip_args 2>&1 | tee -a "$log_file"; then
             set +o pipefail
-            log_error "依赖预安装失败: $dep_spec" "INSTALL"
-            echo -e "${CROSS} 依赖预安装失败: $dep_spec"
-            return 1
+            # 当前镜像安装失败（如 403），依次尝试回退镜像
+            local current_index="${PIP_INDEX_URL:-}"
+            local installed_ok=false
+            local fallback_mirrors=()
+            # 先遍历国内有序列表（跳过当前已用的）
+            if [ ${#ORDERED_CHINA_MIRRORS[@]} -gt 0 ] 2>/dev/null; then
+                for m in "${ORDERED_CHINA_MIRRORS[@]}"; do
+                    [ "$m" != "$current_index" ] && fallback_mirrors+=("$m")
+                done
+            fi
+            # 最后兜底官方 PyPI
+            fallback_mirrors+=("https://pypi.org/simple")
+
+            for fallback_url in "${fallback_mirrors[@]}"; do
+                local fb_host
+                fb_host=$(echo "$fallback_url" | sed 's|https\?://||' | cut -d'/' -f1)
+                echo -e "${WARNING} 回退到镜像: $fallback_url 重试: $dep_spec"
+                log_warn "镜像安装失败，回退到 $fallback_url 重试: $dep_spec" "INSTALL"
+                set -o pipefail
+                if $PIP_CMD install --upgrade "$dep_spec" \
+                        --index-url "$fallback_url" \
+                        --trusted-host "$fb_host" \
+                        $pip_args 2>&1 | tee -a "$log_file"; then
+                    set +o pipefail
+                    echo -e "${CHECK} 回退镜像安装成功 ($fallback_url): $dep_spec"
+                    installed_ok=true
+                    break
+                fi
+                set +o pipefail
+            done
+
+            if [ "$installed_ok" = "false" ]; then
+                log_error "依赖预安装失败（所有镜像均失败）: $dep_spec" "INSTALL"
+                echo -e "${CROSS} 依赖预安装失败: $dep_spec"
+                return 1
+            fi
         fi
         set +o pipefail
 
@@ -158,12 +191,45 @@ install_resolver_guard_packages() {
     for spec in "${guard_specs[@]}"; do
         echo -e "${DIM}安装护栏依赖: ${spec}${NC}"
         set -o pipefail
-        if ! $PIP_CMD install --upgrade "$spec" $pip_args 2>&1 | tee -a "$log_file"; then
+        if $PIP_CMD install --upgrade "$spec" $pip_args 2>&1 | tee -a "$log_file"; then
             set +o pipefail
-            log_warn "护栏依赖安装失败，继续后续安装: $spec" "INSTALL"
-            echo -e "${WARNING} 护栏依赖安装失败，继续: $spec"
+        else
+            set +o pipefail
+            # 当前镜像失败（可能 403），依次尝试回退镜像
+            local installed_ok=false
+            local current_index="${PIP_INDEX_URL:-}"
+            local fallback_mirrors=()
+            # 先遍历国内有序列表（跳过当前已用的）
+            if [ ${#ORDERED_CHINA_MIRRORS[@]} -gt 0 ] 2>/dev/null; then
+                for m in "${ORDERED_CHINA_MIRRORS[@]}"; do
+                    [ "$m" != "$current_index" ] && fallback_mirrors+=("$m")
+                done
+            fi
+            # 最后兜底官方 PyPI
+            fallback_mirrors+=("https://pypi.org/simple")
+
+            for fallback_url in "${fallback_mirrors[@]}"; do
+                local fb_host
+                fb_host=$(echo "$fallback_url" | sed 's|https\?://||' | cut -d'/' -f1)
+                echo -e "${WARNING} 回退到镜像: $fallback_url 重试: $spec"
+                log_warn "护栏依赖安装失败（可能 403），回退到 $fallback_url 重试: $spec" "INSTALL"
+                set -o pipefail
+                if $PIP_CMD install --upgrade "$spec" \
+                        --index-url "$fallback_url" \
+                        --trusted-host "$fb_host" \
+                        $pip_args 2>&1 | tee -a "$log_file"; then
+                    set +o pipefail
+                    installed_ok=true
+                    break
+                fi
+                set +o pipefail
+            done
+
+            if [ "$installed_ok" = "false" ]; then
+                log_warn "护栏依赖安装失败，继续后续安装: $spec" "INSTALL"
+                echo -e "${WARNING} 护栏依赖安装失败，继续: $spec"
+            fi
         fi
-        set +o pipefail
     done
 
     echo ""

@@ -43,6 +43,18 @@ declare -A PYPI_MIRRORS=(
     ["中国科技大学"]="https://pypi.mirrors.ustc.edu.cn/simple"
 )
 
+# 国内镜像优先级有序列表（用于自动回退，不含官方源）
+# 排在前面的镜像在 403 等下载失败时会优先尝试
+ORDERED_CHINA_MIRRORS=(
+    "https://mirrors.aliyun.com/pypi/simple"
+    "https://repo.huaweicloud.com/repository/pypi/simple"
+    "https://mirrors.cloud.tencent.com/pypi/simple"
+    "https://pypi.mirrors.ustc.edu.cn/simple"
+    "https://pypi.tuna.tsinghua.edu.cn/simple"
+    "https://pypi.doubanio.com/simple"
+)
+export ORDERED_CHINA_MIRRORS
+
 # 测试镜像速度（使用 HTTP 响应时间）
 test_mirror_speed() {
     local mirror_url="$1"
@@ -141,6 +153,88 @@ auto_select_fastest_mirror() {
         echo "https://pypi.org/simple"
         return 1
     fi
+}
+
+# 测试镜像是否能实际下载 .whl 文件（区别于仅测试索引页可达性）
+# 部分镜像（如清华）的 /simple/ 索引页返回 200，但 /packages/ 下载 URL 返回 403
+# 本函数通过获取某个轻量包的索引页、提取 .whl URL、再发起 HEAD 请求来真正验证下载可用性
+test_mirror_download_capability() {
+    local mirror_url="$1"
+    local test_package="${2:-pip}"
+
+    if ! command -v curl &> /dev/null; then
+        # 无 curl 则跳过下载验证，退化为仅测速
+        return 0
+    fi
+
+    # 1. 获取包的索引页
+    local index_page
+    index_page=$(curl -s --connect-timeout 5 --max-time 10 "${mirror_url}/${test_package}/" 2>/dev/null)
+    if [ -z "$index_page" ]; then
+        return 1
+    fi
+
+    # 2. 提取第一个 .whl 下载链接（去掉 hash fragment）
+    local whl_url
+    whl_url=$(echo "$index_page" | grep -oP 'href="\K[^"]+\.whl[^"#]*' | head -1)
+    if [ -z "$whl_url" ]; then
+        # 没有 whl 链接（如纯 sdist），认为下载可用（不做阻断）
+        return 0
+    fi
+
+    # 3. 处理相对 URL
+    if [[ "$whl_url" != http* ]]; then
+        whl_url="${mirror_url}/${test_package}/${whl_url}"
+    fi
+    # 去掉 hash fragment
+    whl_url="${whl_url%%#*}"
+
+    # 4. HEAD 请求验证下载 URL 可达性
+    local http_code
+    http_code=$(curl -s --connect-timeout 5 --max-time 10 -I -o /dev/null -w "%{http_code}" "$whl_url" 2>/dev/null)
+    case "$http_code" in
+        200|206|301|302|307|308)
+            return 0
+            ;;
+        403|401|404)
+            return 1
+            ;;
+        *)
+            # 其他状态码（5xx / 超时等）也认为不可用
+            return 1
+            ;;
+    esac
+}
+
+# 从国内镜像列表中按优先级选出第一个真正可下载的镜像
+# 同时验证索引页可达 + .whl 下载不返回 403
+# 若全部失败则返回官方 PyPI
+select_working_china_mirror() {
+    local verbose="${1:-false}"
+    local test_package="${2:-pip}"
+
+    for mirror_url in "${ORDERED_CHINA_MIRRORS[@]}"; do
+        # 先测速（确认索引页可达）
+        local rt
+        rt=$(test_mirror_speed "$mirror_url" "$test_package")
+        if [ "$rt" -ge 99999 ] 2>/dev/null; then
+            [ "$verbose" = "true" ] && echo -e "${DIM}   ⏭  跳过（索引不可达）: $mirror_url${NC}" >&2
+            continue
+        fi
+
+        # 再验证下载可用性（防止 403）
+        if test_mirror_download_capability "$mirror_url" "$test_package"; then
+            [ "$verbose" = "true" ] && echo -e "${GREEN}   ✅ 可用镜像: $mirror_url (${rt}ms)${NC}" >&2
+            echo "$mirror_url"
+            return 0
+        else
+            [ "$verbose" = "true" ] && echo -e "${YELLOW}   ⚠️  索引可达但下载 403，跳过: $mirror_url${NC}" >&2
+        fi
+    done
+
+    [ "$verbose" = "true" ] && echo -e "${YELLOW}   ⚠️  国内镜像均不可用，回退官方 PyPI${NC}" >&2
+    echo "https://pypi.org/simple"
+    return 1
 }
 
 # 配置 pip 使用指定镜像
@@ -260,9 +354,16 @@ smart_configure_pip() {
 
     # 配置镜像源
     if [ "$use_china_mirror" = "true" ]; then
-        # 默认使用清华镜像（稳定可靠）
-        local mirror_url="https://pypi.tuna.tsinghua.edu.cn/simple"
-        echo -e "${CHECK} 使用清华 PyPI 镜像"
+        # 自动从有序列表中选出第一个真正可下载的国内镜像
+        # 避免仅凭索引页可达就选中实际下载返回 403 的镜像（如清华近期限制）
+        echo -e "${INFO} 自动探测可用国内镜像（含下载验证）..."
+        local mirror_url
+        mirror_url=$(select_working_china_mirror "true")
+        if [[ "$mirror_url" == "https://pypi.org/simple" ]]; then
+            echo -e "${YELLOW}⚠️  国内镜像均不可下载，回退官方 PyPI${NC}"
+        else
+            echo -e "${CHECK} 使用国内 PyPI 镜像: $mirror_url"
+        fi
         configure_pip_mirror "$mirror_url" "false"
     else
         echo -e "${DIM}使用 PyPI 官方源${NC}"
