@@ -495,7 +495,7 @@ Example:
 
 ```python
 import pytest
-from sage.core.api.local_environment import LocalEnvironment
+from sage.kernel.api.local_environment import LocalEnvironment
 
 
 def test_local_environment_initialization_creates_instance():
