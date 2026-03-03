@@ -59,19 +59,16 @@ SAGE transforms this into a **declarative, composable workflow**:
 
 ```python
 from sage.kernel.api.local_environment import LocalEnvironment
-from sage.libs.io.source import FileSource
-from sage.middleware.operators.rag import DenseRetriever, QAPromptor
+from sage.libs.foundation.io.source import FileSource
 from sage.middleware.operators.llm import SageLLMGenerator  # ✅ Recommended
-from sage.libs.io.sink import TerminalSink
+from sage.libs.foundation.io.sink import TerminalSink
 
 # Create execution environment
 env = LocalEnvironment("rag_pipeline")
 
 # Build declarative pipeline with sageLLM (recommended)
 (
-    env.from_source(FileSource, {"file_path": "questions.txt"})
-  .map(DenseRetriever, {"model": "BAAI/bge-m3", "method": "sagellm"})
-    .map(QAPromptor, {"template": "Answer based on context: {context}\nQ: {query}\nA:"})
+    env.from_source(FileSource, {"data_path": "questions.txt"})
     .map(SageLLMGenerator, {
         "model_path": "Qwen/Qwen2.5-7B-Instruct",
         "backend_type": "auto",  # auto/cuda/ascend/mock
@@ -86,6 +83,14 @@ env.submit()
 > 💡 **LLM Engine**: SAGE uses `sageLLM` as the default inference engine. For OpenAI-compatible APIs,
 > use `OpenAIGenerator`. See [CHANGELOG](./CHANGELOG.md) for legacy migration notes.
 
+**Current API quick reference**
+
+- `sage.libs.foundation.io.source`: `FileSource`, `TextFileSource`, `CSVFileSource`,
+  `JSONFileSource`
+- `sage.libs.foundation.io.sink`: `TerminalSink`, `FileSink`
+- `sage.middleware.operators.rag`: `RAGDocument`, `RAGQuery`, `RAGResponse`
+- `sage.middleware.operators.llm`: `SageLLMGenerator`
+
 **Try it yourself:**
 
 ```bash
@@ -93,9 +98,9 @@ git clone https://github.com/intellistream/SAGE.git && cd SAGE
 git checkout main-dev
 ./quickstart.sh --dev --yes
 
-# Examples are now in a separate repository
-git clone https://github.com/intellistream/sage-examples.git
-python sage-examples/tutorials/hello_world.py
+# Tutorials are now in a separate repository
+git clone https://github.com/intellistream/sage-tutorials.git
+python sage-tutorials/L1-common/hello_world.py
 ```
 
 **For CPU-only deployment:**
@@ -105,8 +110,8 @@ python sage-examples/tutorials/hello_world.py
 sage jobmanager start
 
 # Run CPU node demo (no GPU required)
-git clone https://github.com/intellistream/sage-examples.git
-python sage-examples/tutorials/L3-kernel/cpu_node_demo.py
+git clone https://github.com/intellistream/sage-tutorials.git
+python sage-tutorials/L3-kernel/cpu_node_demo.py
 ```
 
 ## Architecture
@@ -227,27 +232,27 @@ cp .env.template .env    # Copy template
 Complete tutorials covering all layers of SAGE (L1-L5):
 
 ```bash
-# Clone repository
-git clone https://github.com/intellistream/SAGE.git
-cd SAGE
+# Clone tutorials repository
+git clone https://github.com/intellistream/sage-tutorials.git
+cd sage-tutorials
 
 # Start learning (30 seconds)
-python tutorials/L1-common/hello_world.py
+python L1-common/hello_world.py
 
 # Follow the quick start guide
-cat tutorials/QUICK_START.md
+cat QUICK_START.md
 ```
 
 **Tutorial Structure**:
 
-- `tutorials/L1-common/` - Foundation layer (config, logging, unified client)
-- `tutorials/L2-platform/` - Platform services (scheduler, storage)
-- `tutorials/L3-kernel/` - Execution engine (batch, stream, operators)
-- `tutorials/L3-libs/` - RAG, Agents, Algorithms
-- `tutorials/L4-middleware/` - Domain operators (vector DB, time-series)
-- `tutorials/L5-cli/` - CLI and development tools
+- `sage-tutorials/L1-common/` - Foundation layer (config, logging, unified client)
+- `sage-tutorials/L2-platform/` - Platform services (scheduler, storage)
+- `sage-tutorials/L3-kernel/` - Execution engine (batch, stream, operators)
+- `sage-tutorials/L3-libs/` - RAG, Agents, Algorithms
+- `sage-tutorials/L4-middleware/` - Domain operators (vector DB, time-series)
+- `sage-tutorials/L5-apps/` - Applications and integration demos
 
-See `tutorials/README.md` for complete learning paths.
+See `sage-tutorials/README.md` for complete learning paths.
 
 ## Documentation & Resources
 
@@ -255,8 +260,10 @@ See `tutorials/README.md` for complete learning paths.
   [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
 - **Examples & Applications**:
   [intellistream/sage-examples](https://github.com/intellistream/sage-examples)
-  - Tutorials, RAG examples, and production applications
+  - RAG examples and production applications
   - Will be published as `isage-examples` on PyPI
+- **Tutorials**: [intellistream/sage-tutorials](https://github.com/intellistream/sage-tutorials)
+  - Layered tutorials from L1 to L5, quick-start learning paths
 - **Architecture**:
   [docs-public/docs_src/concepts/architecture/package-structure.md](./docs-public/docs_src/concepts/architecture/package-structure.md)
 

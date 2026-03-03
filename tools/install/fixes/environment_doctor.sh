@@ -985,8 +985,12 @@ run_auto_fixes() {
 
             # 如果没有执行过，则执行修复
             if [ "$already_executed" = false ]; then
-                "$fix_function"
-                executed_fixes+=("$fix_function")
+                if "$fix_function"; then
+                    executed_fixes+=("$fix_function")
+                else
+                    echo -e "  ${YELLOW}${WARNING_MARK}${NC} 修复函数执行失败: $fix_function"
+                    log_message "WARN" "Fix function failed: $fix_function"
+                fi
             fi
         fi
     done
