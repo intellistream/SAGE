@@ -204,8 +204,9 @@ schedule_publish() {
                 echo "🔗 https://pypi.org/project/${package}/${version}/"
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             else
+                _pub_exit=$?
                 echo ""
-                echo "✗ Failed to upload to PyPI (exit code: $?)"
+                echo "✗ Failed to upload to PyPI (exit code: ${_pub_exit})"
                 echo "  Re-run: sage-pypi-publisher build . --upload --no-dry-run --mode ${PUBLISH_MODE}"
             fi
         } >> "$PUBLISH_LOG" 2>&1
