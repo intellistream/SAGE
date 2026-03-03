@@ -48,7 +48,7 @@ jobs:
       - name: Dependency audit change-evidence gate (PR)
         if: ${{ github.event_name == 'pull_request' }}
         run: |
-          git fetch origin "${{ github.base_ref }}" --depth=1
+          git fetch origin "${{ github.base_ref }}" --deepen=200
           python3 tools/scripts/check_meta_dependency_audit.py \
             --enforce-change-evidence \
             --refspec "origin/${{ github.base_ref }}...HEAD"

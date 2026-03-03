@@ -257,6 +257,7 @@ jobs:
         if: always()
         run: |
           echo "📊 生成测试报告..."
+          mkdir -p .sage/examples-test-results
 
           cat > .sage/examples-test-results/REPORT.md << 'EOF'
           # Examples Test Report
