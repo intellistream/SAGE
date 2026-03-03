@@ -277,15 +277,11 @@ fi
 
 if [ "$PYPI_CHECK_RESULT" -eq 0 ]; then
     new_version=$(bump_patch "$CURRENT_VERSION")
-    old_version="$CURRENT_VERSION"
-    echo -e "${YELLOW}⚠ ${PACKAGE_NAME} ${CURRENT_VERSION} already on PyPI — auto-bumping: ${old_version} → ${new_version}${NC}"
-    if update_version "$CURRENT_VERSION" "$new_version"; then
-        git commit -m "chore: bump version to ${new_version}"
-        CURRENT_VERSION="$new_version"
-        echo -e "${GREEN}✓ Bumped to ${new_version}${NC}"
-    else
-        exit 1
-    fi
+    echo -e "${RED}✗ ${PACKAGE_NAME} ${CURRENT_VERSION} already exists on PyPI${NC}"
+    echo -e "${YELLOW}  To avoid hidden pre-push commits (which require pushing twice), pre-push will not auto-commit.${NC}"
+    echo -e "${CYAN}  Please bump version to something like: ${new_version}${NC}"
+    echo -e "${DIM}  Tip: ensure hooks are installed via ./quickstart.sh so post-commit bumps version automatically.${NC}"
+    exit 1
 elif [ "$PYPI_CHECK_RESULT" -eq 2 ]; then
     echo -e "${DIM}(PyPI check skipped — network/timeout)${NC}"
 fi

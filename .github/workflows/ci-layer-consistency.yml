@@ -37,8 +37,13 @@ jobs:
       - name: Checkout referenced satellite repositories
         env:
           GH_TOKEN: ${{ github.token }}
+          BASE_REF: ${{ github.base_ref }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
+          TARGET_BRANCH="${BASE_REF:-${REF_NAME:-main-dev}}"
+          echo "Target branch for satellite checkout: ${TARGET_BRANCH}"
+
           repos=(
             sage-common
             sage-platform
@@ -61,7 +66,13 @@ jobs:
 
           for repo in "${repos[@]}"; do
             echo "Cloning intellistream/${repo}..."
-            git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/intellistream/${repo}.git" "../${repo}"
+            repo_url="https://x-access-token:${GH_TOKEN}@github.com/intellistream/${repo}.git"
+            branch_to_clone="main"
+            if git ls-remote --exit-code --heads "${repo_url}" "${TARGET_BRANCH}" > /dev/null; then
+              branch_to_clone="${TARGET_BRANCH}"
+            fi
+            echo "  ↳ using branch: ${branch_to_clone}"
+            git clone --depth 1 --branch "${branch_to_clone}" "${repo_url}" "../${repo}"
           done
 
       - name: Set up Python

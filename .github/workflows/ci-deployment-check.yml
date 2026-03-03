@@ -66,7 +66,14 @@ jobs:
 
             if [ -n "$PYTHON_CHANGED" ]; then
               echo "📝 发现 Python 文件变更"
-              sage-dev quality architecture --changed-only || {
+              sage-dev quality --check-only \
+                --architecture \
+                --no-devnotes \
+                --no-examples \
+                --no-format \
+                --no-sort-imports \
+                --no-ruff \
+                --no-type-check || {
                   echo ""
                   echo "❌ 架构合规性检查失败！"
                   echo ""
@@ -86,7 +93,14 @@ jobs:
           else
             echo "📦 Push 模式：快速检查（仅检查变更文件）"
             # 在 push 时做快速检查，避免阻塞
-            sage-dev quality architecture --changed-only || {
+            sage-dev quality --check-only \
+              --architecture \
+              --no-devnotes \
+              --no-examples \
+              --no-format \
+              --no-sort-imports \
+              --no-ruff \
+              --no-type-check || {
               echo ""
               echo "⚠️  发现架构问题，但不阻塞部署"
               echo "请查看架构信息: sage-dev architecture"
@@ -102,7 +116,15 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           echo "📖 检查包 README 文档..."
 
-          if sage-dev quality readme; then
+          if sage-dev quality --check-only \
+            --readme \
+            --no-architecture \
+            --no-devnotes \
+            --no-examples \
+            --no-format \
+            --no-sort-imports \
+            --no-ruff \
+            --no-type-check; then
             echo "✅ 所有包的 README 文档完整"
           else
             if [ "${{ github.event_name }}" = "pull_request" ]; then
