@@ -33,8 +33,14 @@ dependencies = [
     "isage-kernel>=0.2.4.28",
     # L3 — algorithm library (agentic, RAG, NLP, …)
     "isage-libs>=0.2.4.28",
+    # L3 — intent recognition for tool-use agents
+    "isage-libs-intent>=0.1.0.7",
+    # L3 — continual-learning / coreset selection for tool-use (SIAS)
+    "isage-sias>=0.1.0",
     # L4 — middleware components (VDB, memory backends, networked operators)
-    "isage-middleware>=0.2.4.35,<0.2.4.36",
+    "isage-middleware>=0.2.4.43",
+    # L4 — memory management engine for RAG / retrieval pipelines
+    "isage-neuromem>=0.2.1.4",
     # L5 — unified CLI (sage command)
     "isage-cli>=0.2.4.25",
     # Runtime — Flownet distributed execution engine (replaces Ray)
@@ -47,8 +53,10 @@ license = "MIT"
 
 [project.optional-dependencies]
 full = [
-    # Reserved extension set for optional capabilities.
-    # Heavy ML/CUDA deps are managed by dedicated packages (e.g. isagellm[cuda]).
+    # L6 — dataset management for fine-tuning and benchmark workflows
+    "isage-data>=0.2.3.2",
+    # L6 — visual workflow builder and LLM playground
+    "isage-studio>=0.2.4.23",
 ]
 dev = [
     "isage-dev-tools>=0.2.4.1",

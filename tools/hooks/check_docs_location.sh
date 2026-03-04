@@ -118,8 +118,13 @@ third_party_patterns=(
 for file in $all_md_files; do
     # CRITICAL CHECK: Reject any file in root docs/ directory ONLY
     # Allow packages/*/docs/ and submodule docs/ directories
+    # Exception: intentionally tracked gate/manifest files (see .gitignore exceptions)
     if [[ "$file" == "docs/"* ]] && [[ "$file" != "packages/"* ]]; then
-        docs_violations="$docs_violations$file\n"
+        if [[ "$file" == "docs/dependency-audit-gate.md" ]] || [[ "$file" == "docs/layer-manifest.json" ]]; then
+            true  # intentionally tracked in root docs/; skip violation
+        else
+            docs_violations="$docs_violations$file\n"
+        fi
         continue
     fi
 

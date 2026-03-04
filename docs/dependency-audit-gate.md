@@ -81,7 +81,30 @@ dependency pin governance, and contract-level policy only.
 
 - Callsite: `tools/verify_hello_world.py` (`import sage.middleware`)
 - Rationale: L4 middleware import check in meta installation verification.
-- Version pin: `>=0.2.4.35,<0.2.4.36`.
+- Version pin: `>=0.2.4.43`.
+
+### `isage-libs-intent`
+
+- Callsite: `sage-libs-intent` repo — `src/sage_libs/sage_agentic/intent/__init__.py` (intent
+  recognition for tool-use agents)
+- Rationale: L3 intent recognition library; required by `isage-studio` and tool-use agent pipelines.
+  Implementation ownership in `sage-libs-intent` sub-repo.
+- Version pin: `>=0.1.0.7`.
+
+### `isage-neuromem`
+
+- Callsite: `neuromem` repo — `sage/neuromem/__init__.py` (memory management engine for RAG)
+- Rationale: L4 memory engine; required by `isage-studio` backend for memory collection and vector
+  retrieval. Implementation ownership in `neuromem` sub-repo.
+- Version pin: `>=0.2.1.4`.
+
+### `isage-sias`
+
+- Callsite: `sage-agentic-tooluse-sias` repo — `sage_sias/__init__.py` (SIAS continual-learning
+  tool-use selection)
+- Rationale: L3 continual-learning / coreset-selection for tool-use agents; required by
+  `isage-studio`. Implementation ownership in `sage-agentic-tooluse-sias` sub-repo.
+- Version pin: `>=0.1.0`.
 
 ### `isage-cli`
 
@@ -109,6 +132,8 @@ dependency pin governance, and contract-level policy only.
 | 2026-03-01 | isage-middleware                                                                                          | Version bump       | Yes                       | Bump to >=0.2.4.32; drop `accelerate`/`peft`/`torch`/CUDA transitive deps (~2 GB)          |
 | 2026-03-02 | isage-common, isage-libs, isage-middleware                                                                | Version bump       | Yes                       | Pins updated to >=0.2.4.23 / >=0.2.4.28 / >=0.2.4.35,\<0.2.4.36; neuromem optional         |
 | 2026-03-02 | isage (optional `full`)                                                                                   | Dependency cleanup | Yes                       | Removed `torch`/`torchvision`/`accelerate`/`peft` from meta `full`; dev remains `full+dev` |
+| 2026-03-04 | isage-libs-intent, isage-neuromem, isage-sias                                                             | New dep            | Yes                       | Add missing isage-studio transitive deps as direct pins                                    |
+| 2026-03-04 | isage-middleware                                                                                          | Version bump       | Yes                       | Bump pin to >=0.2.4.43; middleware fixed phantom huggingface-hub dep                       |
 
 ## How To Update
 
