@@ -582,12 +582,39 @@ main() {
         fi
 
         echo ""
+        # ── 安装后快速健康检查 ──────────────────────────────────────────────
+        echo -e "${INFO} 运行安装后健康检查..."
+        local python_cmd="${PYTHON_CMD:-python3}"
+        local sage_cli_ok=false
+        if $python_cmd -c "import sage.cli" &>/dev/null 2>&1; then
+            sage_cli_ok=true
+        fi
+
+        if [ "$sage_cli_ok" = true ]; then
+            # 用 sage doctor 做层级检查（静默失败，不阻塞安装）
+            if $python_cmd -m sage.cli.main doctor check 2>/dev/null; then
+                :
+            else
+                echo -e "${DIM}  💡 可运行 [sage doctor] 查看详细诊断${NC}"
+            fi
+        else
+            # 回退到简单 import 检查
+            if $python_cmd -c "import sage.common; print('✅ sage.common', sage.common.__version__)" 2>/dev/null; then
+                echo -e "${GREEN}  ✅ 核心包验证通过${NC}"
+            else
+                echo -e "${YELLOW}  ⚠️  core import 检查失败，请运行: sage doctor${NC}"
+            fi
+        fi
+
+        echo ""
         # 使用适配的居中显示函数，确保在所有环境下都能正确居中
         if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
             center_text_formatted "${ROCKET} 欢迎使用 SAGE！${ROCKET}" "$GREEN$BOLD"
         else
             center_text "${ROCKET} 欢迎使用 SAGE！${ROCKET}" "$GREEN$BOLD"
         fi
+        echo ""
+        echo -e "${DIM}  💡 验证安装: [bold]sage doctor[/bold] | 快速体验: [bold]sage demo hello[/bold]${NC}"
         echo ""
 
         if [ "${SAGE_SET_SKIP_SMUDGE:-0}" = 1 ]; then
@@ -598,10 +625,10 @@ main() {
         fi
     else
         echo ""
-        echo -e "${YELLOW}安装可能成功，请手动验证（PEP 420 namespace）：${NC}"
-        # 使用正确的 Python 命令和 PEP 420 导入
+        echo -e "${YELLOW}安装可能成功，请手动验证：${NC}"
         local python_cmd="${PYTHON_CMD:-python3}"
-        echo -e "  $python_cmd -c \"import sage.common; print(sage.common.__version__)\""
+        echo -e "  sage doctor           ${DIM}# 完整诊断（推荐）${NC}"
+        echo -e "  $python_cmd -c \"import sage.common; print(sage.common.__version__)\"  ${DIM}# 快速验证${NC}"
     fi
 }
 
