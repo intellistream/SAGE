@@ -82,7 +82,26 @@ clone_single_repo() {
 
     echo -e "${BLUE}📥 克隆 $repo_name...${NC}"
 
-    if git clone "$repo_url" "$repo_path" 2>/dev/null; then
+    # 最多重试 3 次（应对首次连接超时等瞬态故障）
+    local max_attempts=3
+    local attempt=1
+    local clone_ok=false
+    local clone_error=""
+    while [ $attempt -le $max_attempts ]; do
+        clone_error=$(git clone "$repo_url" "$repo_path" 2>&1)
+        if [ $? -eq 0 ]; then
+            clone_ok=true
+            break
+        fi
+        echo -e "${YELLOW}   ⚠️  第 $attempt 次克隆失败，${NC}${DIM}原因: $clone_error${NC}"
+        if [ $attempt -lt $max_attempts ]; then
+            echo -e "${DIM}   重试中 ($((attempt+1))/$max_attempts)...${NC}"
+            sleep 2
+        fi
+        attempt=$((attempt + 1))
+    done
+
+    if $clone_ok; then
         echo -e "${GREEN}✅ $repo_name 克隆成功${NC}"
 
         # 克隆成功后，尝试切换到 main-dev 分支
@@ -101,7 +120,8 @@ clone_single_repo() {
         fi
         return 0
     else
-        echo -e "${RED}❌ $repo_name 克隆失败${NC}"
+        echo -e "${RED}❌ $repo_name 克隆失败（已重试 $max_attempts 次）${NC}"
+        echo -e "${DIM}   最后一次错误: $clone_error${NC}"
         return 1
     fi
 }

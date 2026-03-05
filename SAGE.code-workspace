@@ -215,6 +215,10 @@
     {
       "name": "sagellm-website  [L6]",
       "path": "../sagellm-website"
+    },
+    {
+      "name": "sagellm-vscode  [L6]",
+      "path": "../sagellm-vscode"
     }
   ],
   "settings": {
