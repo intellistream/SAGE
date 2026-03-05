@@ -190,6 +190,20 @@ main() {
         exit $?
     fi
 
+    # ── Conda 环境引导模式 (--setup-conda) ──────────────────────────────────
+    # 检测 conda 是否已安装，引导安装 Miniforge3 / 创建专用环境。
+    # 适用于首次在新机器上配置开发环境的场景。
+    if [[ " $* " == *" --setup-conda "* ]]; then
+        # conda_guide.sh 由 environment_prechecks.sh 自动 source
+        if declare -f check_conda_environment >/dev/null 2>&1; then
+            check_conda_environment
+        else
+            source "$TOOLS_DIR/examination_tools/conda_guide.sh"
+            check_conda_environment
+        fi
+        exit $?
+    fi
+
     # 运行日志管理
     if [ -f "$TOOLS_DIR/log_management.sh" ]; then
         bash "$TOOLS_DIR/log_management.sh" "$SAGE_ROOT/.sage/logs"
@@ -559,6 +573,11 @@ main() {
         fi
 
         show_usage_tips "$mode"
+
+        # 将 sage conda 环境写入 shell RC，下次打开终端自动激活
+        if declare -f setup_bashrc_conda_default >/dev/null 2>&1; then
+            setup_bashrc_conda_default "${SAGE_ENV_NAME:-${SAGE_CONDA_ENV_NAME:-sage}}"
+        fi
 
         # 显示安装后使用提示（不自动启动服务）
 

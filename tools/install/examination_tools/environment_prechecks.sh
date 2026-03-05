@@ -4,6 +4,8 @@
 
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+# 导入 Conda 安装引导模块
+source "$(dirname "${BASH_SOURCE[0]}")/conda_guide.sh"
 
 # 最小要求常量
 
@@ -321,12 +323,16 @@ run_environment_prechecks() {
     local cuda_status="UNKNOWN"
     local conda_env_status="UNKNOWN"
 
-    # 检查 Conda base 环境（最优先）
-    if check_conda_base_environment; then
+    # 检查 Conda 环境（最优先）：未安装 / base / 未激活 / 正常
+    # 若 apply_defaults 中已交互完成，则跳过重复询问
+    if [ "${_SAGE_CONDA_ENV_CHECKED:-false}" = "true" ]; then
+        echo -e "${GREEN}   ✅ Conda 环境检查已完成（跳过重复检查）${NC}"
+        conda_env_status="PASS"
+    elif check_conda_environment; then
         conda_env_status="PASS"
     else
         conda_env_status="WARN"
-        # base 环境警告但不阻止安装（用户可能选择继续）
+        # 警告但不阻止安装（用户可能选择继续）
     fi
     echo ""
 

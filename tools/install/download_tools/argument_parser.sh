@@ -512,6 +512,11 @@ show_parameter_help() {
     echo -e "    ${DIM}克隆 SAGE-Pub 和 sage-team-info 仓库${NC}"
     echo -e "    ${DIM}用于 VS Code 多文件夹编辑（SAGE.code-workspace）${NC}"
     echo ""
+    echo -e "  ${BOLD}--setup-conda${NC}                            ${GREEN}引导安装 Conda 环境${NC}"
+    echo -e "    ${DIM}检测 conda 是否已安装，未安装时提供 Miniforge3 自动下载${NC}"
+    echo -e "    ${DIM}已安装时引导创建并激活专用 '${SAGE_CONDA_ENV_NAME:-sage}' 环境${NC}"
+    echo -e "    ${DIM}首次在新机器上配置开发环境时推荐使用${NC}"
+    echo ""
     echo -e "  ${BOLD}--clone-satellites${NC}                       ${GREEN}克隆附属仓库${NC}"
     echo -e "    ${DIM}克隆所有 SAGE 附属仓库（examples, tutorials, benchmark 等）${NC}"
     echo -e "    ${DIM}支持别名: --clone-repos, --satellites${NC}"
@@ -586,6 +591,7 @@ show_parameter_help() {
     echo ""
 
     echo -e "${BLUE}💡 使用示例：${NC}"
+    echo -e "  ./quickstart.sh --setup-conda                    ${DIM}# 首次使用：引导安装 Conda / 创建 sage 环境${NC}"
     echo -e "  ./quickstart.sh                                  ${DIM}# 交互式安装（推荐）${NC}"
     echo -e "  ./quickstart.sh --yes                            ${DIM}# dev 安装 + 跳过确认（默认）${NC}"
     echo -e "  ./quickstart.sh --full --yes                     ${DIM}# full 安装 + 跳过确认${NC}"
@@ -994,7 +1000,12 @@ set_defaults_and_show_tips() {
         elif [ "$recommended_env" = "conda" ]; then
             echo -e "${INFO} 检测到系统环境，推荐默认: ${GREEN}创建conda环境${NC}"
         else
-            echo -e "${INFO} 未指定安装环境，使用默认: ${PURPLE}系统Python环境${NC}"
+            # conda 未安装 + 系统 Python：交互式引导，而非静默回落
+            if declare -f check_conda_environment >/dev/null 2>&1; then
+                check_conda_environment || true
+            else
+                echo -e "${INFO} 未指定安装环境，使用默认: ${PURPLE}系统Python环境${NC}"
+            fi
         fi
         has_defaults=true
     fi
