@@ -219,6 +219,9 @@
     {
       "name": "sagellm-vscode  [L6]",
       "path": "../sagellm-vscode"
+    },
+    {
+      "path": "../sagellm-workstation"
     }
   ],
   "settings": {

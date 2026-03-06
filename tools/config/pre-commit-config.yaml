@@ -60,16 +60,23 @@ repos:
     #     exclude: ^(docs/|docs-public/|examples/data/|.*/(sageLLM|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
     #
     # Python: Ruff linter and formatter (replaces flake8, isort, pyupgrade)
-- repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.14.6
+    # NOTE: Using local/system ruff to avoid network download failures
+    # Requires: ruff is available in PATH (installed via pip in the active env)
+- repo: local
   hooks:
   - id: ruff
     name: ruff check
-    args: [--fix, --exit-non-zero-on-fix, --config, tools/config/ruff.toml]
+    language: system
+    entry: ruff
+    args: [check, --fix, --exit-non-zero-on-fix, --config, tools/config/ruff.toml]
+    types: [python]
     exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm|db)/|.*/(sageLLM|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
   - id: ruff-format
     name: ruff format
-    args: [--config, tools/config/ruff.toml]
+    language: system
+    entry: ruff
+    args: [format, --config, tools/config/ruff.toml]
+    types: [python]
     exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm|db)/|.*/(sageLLM|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
 - repo: local
@@ -406,45 +413,54 @@ repos:
     always_run: true
     stages: [pre-commit, manual]
         # Shell: shellcheck
-        # NOTE: shellcheck-py may fail in CI due to network issues when downloading shellcheck binary
-        # This is a known issue: https://github.com/shellcheck-py/shellcheck-py/issues/15
-        # Workaround: Use fail_fast: false in CI or install shellcheck separately
-- repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: v0.11.0.1
+        # NOTE: Using local/system shellcheck to avoid network download failures
+        # (shellcheck-py downloads the binary at install time, which fails behind proxies/firewalls)
+        # Requires: shellcheck is available in PATH (e.g. installed via conda or apt)
+- repo: local
   hooks:
   - id: shellcheck
+    name: shellcheck
+    language: system
+    entry: shellcheck
     args: [-x, -e, SC1091, -S, error]     # -x: follow sources, -e SC1091: ignore source errors, -S error: only fail on errors
     files: \.(sh|bash)$
     exclude: ^(tools/conda/|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
         # YAML formatting
-- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-  rev: v2.15.0
+        # NOTE: Using local/system pretty-format-yaml to avoid network download failures
+        # Requires: language-formatters-pre-commit-hooks is installed via pip
+- repo: local
   hooks:
   - id: pretty-format-yaml
+    name: pretty-format-yaml
+    language: system
+    entry: pretty-format-yaml
     args: [--autofix, --indent=2, --preserve-quotes]
+    types: [yaml]
     exclude: ^(\.github/|examples/config/|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
         # Markdown formatting
-- repo: https://github.com/executablebooks/mdformat
-  rev: 1.0.0
+        # NOTE: Using local/system mdformat to avoid network download failures
+        # Requires: mdformat + mdformat-gfm installed via pip
+- repo: local
   hooks:
   - id: mdformat
-    additional_dependencies:
-    - mdformat-gfm       # GitHub Flavored Markdown
-            # Note: mdformat-black is disabled because it fails on code blocks with:
-            # - Template placeholders (e.g., {module_name})
-            # - Special symbols in comments (e.g., ✅ ❌)
-            # - Pseudo-code or incomplete Python snippets
-            # - mdformat-black        # Black formatter for code blocks
+    name: mdformat
+    language: system
+    entry: mdformat
     args: [--wrap=100]
+    types: [markdown]
     exclude: ^(CHANGELOG.md|\.github/|docs/dev-notes/|docs-public/docs_src/api-reference/)
 
         # Security: Check for secrets
-- repo: https://github.com/Yelp/detect-secrets
-  rev: v1.5.0
+        # NOTE: Using local/system detect-secrets to avoid network download failures
+        # Requires: detect-secrets installed via pip
+- repo: local
   hooks:
   - id: detect-secrets
+    name: detect-secrets
+    language: system
+    entry: detect-secrets-hook
     args: [--baseline, tools/config/secrets.baseline]
     exclude: ^(tools/secrets\.baseline|\.env\.template|\.github/workflows/|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/.*/src/.*\.md$|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
