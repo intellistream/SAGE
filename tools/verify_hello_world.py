@@ -22,7 +22,7 @@ def main() -> int:
 
     errors = []
 
-    # Test L1: sage-common
+    # Test L1: sage-common (includes sage.libs.*)
     try:
         import sage.common
 
@@ -31,25 +31,7 @@ def main() -> int:
         print(f"❌ sage.common: {e}")
         errors.append("sage.common")
 
-    # Test L2: sage-platform
-    try:
-        import sage.platform
-
-        print(f"✅ sage.platform {sage.platform.__version__}")
-    except ImportError as e:
-        print(f"❌ sage.platform: {e}")
-        errors.append("sage.platform")
-
-    # Test L3: sage-kernel
-    try:
-        import sage.kernel
-
-        print(f"✅ sage.kernel {sage.kernel.__version__}")
-    except ImportError as e:
-        print(f"❌ sage.kernel: {e}")
-        errors.append("sage.kernel")
-
-    # Test L3: sage-libs (interface layer only)
+    # Test L1: sage.libs (now part of isage-common)
     try:
         import sage.libs
 
@@ -58,13 +40,32 @@ def main() -> int:
         print(f"❌ sage.libs: {e}")
         errors.append("sage.libs")
 
-    # Test L4: sage-middleware (optional, may have heavy deps)
+    # Test L1: sage-platform
+    try:
+        import sage.platform
+
+        print(f"✅ sage.platform {sage.platform.__version__}")
+    except ImportError as e:
+        print(f"❌ sage.platform: {e}")
+        errors.append("sage.platform")
+
+    # Test L2: sage-kernel (includes sage.middleware.*)
+    try:
+        import sage.kernel
+
+        print(f"✅ sage.kernel {sage.kernel.__version__}")
+    except ImportError as e:
+        print(f"❌ sage.kernel: {e}")
+        errors.append("sage.kernel")
+
+    # Test L2: sage.middleware (now part of isage-kernel)
     try:
         import sage.middleware
 
         print(f"✅ sage.middleware {sage.middleware.__version__}")
     except ImportError as e:
-        print(f"⚠️  sage.middleware: {e} (optional)")
+        print(f"❌ sage.middleware: {e}")
+        errors.append("sage.middleware")
 
     # Test L5: sage-cli (optional)
     try:

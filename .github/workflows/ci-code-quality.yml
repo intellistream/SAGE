@@ -107,29 +107,6 @@ jobs:
             exit 1
           fi
           echo "✓ sage-common layer check passed"
-      - name: Layer check – sage-tools undeclared sage.data imports [Issue #1454]
-        run: |
-          set +e
-          # Flag only unindented (top-level) sage.data imports.
-          # grep output format: file:lineno:content
-          # Legitimate lazy imports are always indented (inside try/function bodies).
-          top_level=$(grep -rn --include="*.py" "from sage\.data\|import sage\.data" \
-            packages/sage-tools/src \
-            | grep -v "TYPE_CHECKING" \
-            | awk -F: 'NF>=3 { rest=$0; sub(/^[^:]*:[^:]*:/, "", rest); if (rest !~ /^[[:space:]]/) print $0 }' \
-            || true)
-          if [ -n "$top_level" ]; then
-            echo "::error::sage-tools has module-level (non-lazy) sage.data imports:"
-            echo "$top_level" | while IFS= read -r line; do
-              file=$(echo "$line" | cut -d: -f1)
-              lineno=$(echo "$line" | cut -d: -f2)
-              echo "::error file=$file,line=$lineno::Top-level sage.data import: $line"
-            done
-            echo ""
-            echo "FAILED: Use lazy imports (inside try/except) and declare isage-data in pyproject.toml extras"
-            exit 1
-          fi
-          echo "✓ sage-tools sage.data import check passed"
       - name: Cross-repo dedup check - SAGE vs sageFlownet (Issue #1439)
         run: |
           python3 tools/scripts/check_cross_repo_dedup.py \

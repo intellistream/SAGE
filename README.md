@@ -167,7 +167,7 @@ git clone https://github.com/intellistream/SAGE.git && cd SAGE
 
 ```bash
 pip install isage              # Core framework
-pip install isage[dev]         # Development tools (includes pre-commit, pytest, etc.)
+pip install isage[dev]         # Development tools (includes isage-dev-tools, pre-commit, pytest, etc.)
 ```
 
 **What's included in `pip install isage`**
@@ -198,9 +198,11 @@ one-liner descriptions and install commands.
 ```bash
 pip install isage-rag              # RAG 管道（文档加载 / 分块 / 检索 / 重排）
 pip install isage-eval             # 评估框架（指标 / LLM 评判）
-pip install isage-finetune         # LLM 微调（LoRA / 数据加载器）
+pip install isage-finetune         # LLM 微调 / Agent training（LoRA / SFT / RL / Reward Model）
 pip install isage-agentic-tooluse  # Agent 工具选择（Hybrid/DFS/Gorilla）
 pip install isage-intent           # 意图识别（关键词 + LLM）
+pip install 'isage-tools[mcp]'     # 独立工具仓库；当前已注册到 sage-mcp
+pip install 'isage-mcp[all]'       # 聚合 MCP Server（当前默认聚合 isage-tools）
 ```
 
 Example: install full core SAGE stack
@@ -424,8 +426,8 @@ Independent sub-repositories are organized by category:
 
 **Model Optimization & Safety**
 
-- **[sage-finetune](https://github.com/intellistream/sage-finetune)** — Model fine-tuning and
-  adaptation
+- **[sage-finetune](https://github.com/intellistream/sage-finetune)** — Model fine-tuning, agent
+  training, and adaptation
   [![CI](https://github.com/intellistream/sage-finetune/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-finetune/actions/workflows/ci.yml)
   [![PyPI](https://badge.fury.io/py/isage-finetune.svg)](https://pypi.org/project/isage-finetune/)
   [![Stars](https://img.shields.io/github/stars/intellistream/sage-finetune?style=social)](https://github.com/intellistream/sage-finetune/stargazers)

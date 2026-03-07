@@ -1,43 +1,43 @@
-name: 'Setup SAGE'
-description: 'Install SAGE framework with all dependencies'
-author: 'SAGE Team'
+name: "Setup SAGE"
+description: "Install SAGE framework with all dependencies"
+author: "SAGE Team"
 
 inputs:
   install-mode:
-    description: 'Installation mode: core, standard, or dev'
+    description: "Installation mode: core, standard, or dev"
     required: false
-    default: 'dev'
+    default: "dev"
   python-version:
-    description: 'Python version to use (only for GitHub-hosted runners)'
+    description: "Python version to use (only for GitHub-hosted runners)"
     required: false
-    default: '3.11'
+    default: "3.11"
   skip-system-deps:
-    description: 'Skip system dependency installation (for self-hosted runners with pre-installed deps)'
+    description: "Skip system dependency installation (for self-hosted runners with pre-installed deps)"
     required: false
-    default: 'false'
+    default: "false"
   hf-token:
-    description: 'HuggingFace token'
+    description: "HuggingFace token"
     required: false
-    default: ''
+    default: ""
   create-env-file:
-    description: 'Create .env file with provided secrets'
+    description: "Create .env file with provided secrets"
     required: false
-    default: 'false'
+    default: "false"
   env-file-content:
-    description: 'Content for .env file (base64 encoded to handle multiline)'
+    description: "Content for .env file (base64 encoded to handle multiline)"
     required: false
-    default: ''
+    default: ""
 
 outputs:
   sage-version:
-    description: 'Installed SAGE version'
+    description: "Installed SAGE version"
     value: ${{ steps.verify.outputs.version }}
   cpp-extensions-available:
-    description: 'Whether C++ extensions are available'
+    description: "Whether C++ extensions are available"
     value: ${{ steps.verify.outputs.cpp_extensions }}
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     # Step 1: Setup Python (skip for self-hosted if Python already available)
     - name: Setup Python (GitHub-hosted runners)
@@ -45,7 +45,7 @@ runs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
-        cache: 'pip'
+        cache: "pip"
 
     # Step 2: Install System Dependencies
     - name: Install System Dependencies

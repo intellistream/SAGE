@@ -57,9 +57,10 @@ dependency pin governance, and contract-level policy only.
 
 ### `isage-common`
 
-- Callsite: `tools/verify_hello_world.py` (`import sage.common`)
-- Rationale: L1 base package import check in meta installation verification.
-- Version pin: `>=0.2.4.23`.
+- Callsite: `tools/verify_hello_world.py` (`import sage.common`, `import sage.libs`)
+- Rationale: L1 base package; as of 0.2.5.0 absorbs `isage-libs` — `sage.libs.*` algorithm
+  interfaces (BaseTool, RAG/agentic interfaces) now provided by this package.
+- Version pin: `>=0.2.5.0`.
 
 ### `isage-platform`
 
@@ -68,20 +69,10 @@ dependency pin governance, and contract-level policy only.
 
 ### `isage-kernel`
 
-- Callsite: `tools/verify_hello_world.py` (`import sage.kernel`)
-- Rationale: L3 kernel import check in meta installation verification.
-
-### `isage-libs`
-
-- Callsite: `tools/verify_hello_world.py` (`import sage.libs`)
-- Rationale: L3 libs import check in meta installation verification.
-- Version pin: `>=0.2.4.28`.
-
-### `isage-middleware`
-
-- Callsite: `tools/verify_hello_world.py` (`import sage.middleware`)
-- Rationale: L4 middleware import check in meta installation verification.
-- Version pin: `>=0.2.4.47`.
+- Callsite: `tools/verify_hello_world.py` (`import sage.kernel`, `import sage.middleware`)
+- Rationale: L2 runtime; as of 0.2.5.0 absorbs `isage-middleware` — `sage.middleware.*` pipeline
+  operators and service adapters now provided by this package.
+- Version pin: `>=0.2.5.0`.
 
 ### `isage-rag`
 
@@ -129,27 +120,35 @@ dependency pin governance, and contract-level policy only.
 - Callsite: `.github/workflows/ci-integration.yml` (smoke test install list includes `isage-flow`)
 - Rationale: runtime package is a required transitive runtime for meta integration smoke tests.
 
+### `isage-dev-tools`
+
+- Callsite: `README.md` (`pip install isage[dev]` explicitly states dev install includes
+  `isage-dev-tools`)
+- Callsite: `DEVELOPER.md` (`sage-dev` workflow and external `sage-dev-tools` repository guidance)
+- Rationale: developer workflow CLI is independently released in `sage-dev-tools`; `SAGE` meta
+  should depend on it instead of shipping the implementation in-tree.
+
 ### `isagellm`
 
-- Callsite: `packages/sage/setup.py` (installation hint explicitly references
-  `pip install isagellm`)
+- Callsite: `setup.py` (installation hint explicitly references `pip install isagellm`)
 - Callsite: `README.md` (`SageLLMGenerator` usage and ecosystem package list)
 - Rationale: LLM gateway/inference integration entry in meta package; capability implementation
   ownership remains in independent `sagellm*` repositories.
 
 ## Change Log
 
-| Date       | Dependency                                                                                                | Change Type        | Callsite Evidence Updated | Notes                                                                                           |
-| ---------- | --------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------- | ----------------------------------------------------------------------------------------------- |
-| 2026-03-01 | isage-common, isage-platform, isage-kernel, isage-libs, isage-middleware, isage-cli, isage-flow, isagellm | Baseline registry  | Yes                       | Initial gate rollout for SAGE#1474                                                              |
-| 2026-03-01 | isage-middleware                                                                                          | Version bump       | Yes                       | Bump to >=0.2.4.32; drop `accelerate`/`peft`/`torch`/CUDA transitive deps (~2 GB)               |
-| 2026-03-02 | isage-common, isage-libs, isage-middleware                                                                | Version bump       | Yes                       | Pins updated to >=0.2.4.23 / >=0.2.4.28 / >=0.2.4.35,\<0.2.4.36; neuromem optional              |
-| 2026-03-02 | isage (optional `full`)                                                                                   | Dependency cleanup | Yes                       | Removed `torch`/`torchvision`/`accelerate`/`peft` from meta `full`; dev remains `full+dev`      |
-| 2026-03-04 | isage-libs-intent, isage-neuromem, isage-sias                                                             | New dep            | Yes                       | Add missing isage-studio transitive deps as direct pins                                         |
-| 2026-03-04 | isage-middleware                                                                                          | Version bump       | Yes                       | Bump pin to >=0.2.4.43; middleware fixed phantom huggingface-hub dep                            |
-| 2026-03-07 | isage-middleware, isage-rag                                                                               | Version bump / New | Yes                       | Bump middleware to >=0.2.4.47; add isage-rag>=0.3.0 (vector_stores migrated from middleware)    |
-| 2026-03-08 | isage-sias                                                                                                | Restructure        | Yes                       | isage-sias moved from direct deps to optional capability-tooluse group; still in full via alias |
-| 2026-03-08 | isage-dev-tools (removed)                                                                                 | Removal / Merge    | Yes                       | isage-dev-tools removed; sage.dev module merged into SAGE meta; sage-dev CLI entry point added  |
+| Date       | Dependency                                                                                                | Change Type        | Callsite Evidence Updated | Notes                                                                                                                         |
+| ---------- | --------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 2026-03-01 | isage-common, isage-platform, isage-kernel, isage-libs, isage-middleware, isage-cli, isage-flow, isagellm | Baseline registry  | Yes                       | Initial gate rollout for SAGE#1474                                                                                            |
+| 2026-03-01 | isage-middleware                                                                                          | Version bump       | Yes                       | Bump to >=0.2.4.32; drop `accelerate`/`peft`/`torch`/CUDA transitive deps (~2 GB)                                             |
+| 2026-03-02 | isage-common, isage-libs, isage-middleware                                                                | Version bump       | Yes                       | Pins updated to >=0.2.4.23 / >=0.2.4.28 / >=0.2.4.35,\<0.2.4.36; neuromem optional                                            |
+| 2026-03-02 | isage (optional `full`)                                                                                   | Dependency cleanup | Yes                       | Removed `torch`/`torchvision`/`accelerate`/`peft` from meta `full`; dev remains `full+dev`                                    |
+| 2026-03-04 | isage-libs-intent, isage-neuromem, isage-sias                                                             | New dep            | Yes                       | Add missing isage-studio transitive deps as direct pins                                                                       |
+| 2026-03-04 | isage-middleware                                                                                          | Version bump       | Yes                       | Bump pin to >=0.2.4.43; middleware fixed phantom huggingface-hub dep                                                          |
+| 2026-03-07 | isage-middleware, isage-rag                                                                               | Version bump / New | Yes                       | Bump middleware to >=0.2.4.47; add isage-rag>=0.3.0 (vector_stores migrated from middleware)                                  |
+| 2026-03-08 | isage-sias                                                                                                | Restructure        | Yes                       | isage-sias moved from direct deps to optional capability-tooluse group; still in full via alias                               |
+| 2026-03-08 | isage-dev-tools                                                                                           | Restore external   | Yes                       | External ownership restored; meta `dev` now depends on `isage-dev-tools`                                                      |
+| 2026-03-08 | isage-common, isage-kernel, isage-libs, isage-middleware                                                  | Package merge      | Yes                       | isage-libs merged into isage-common 0.2.5.0; isage-middleware merged into isage-kernel 0.2.5.0; both removed from direct deps |
 
 ## How To Update
 

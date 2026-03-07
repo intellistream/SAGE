@@ -272,7 +272,7 @@ main() {
                 echo "用法: $0 monitor <pip_command...>"
                 echo ""
                 echo "示例："
-                echo "  $0 monitor pip install -e packages/sage-tools"
+                echo "  $0 monitor pip install isage-dev-tools"
                 exit 1
             fi
             shift  # 移除 'monitor' 参数
@@ -292,7 +292,7 @@ ${YELLOW}示例：${NC}
   $0 analyze .sage/logs/install.log
 
   # 监控 pip 安装命令
-  $0 monitor pip install -e packages/sage-tools
+    $0 monitor pip install isage-dev-tools
 
   # 在 CI/CD 中使用
   ./tools/install/installation_table/pip_install_monitor.sh analyze .sage/logs/install.log

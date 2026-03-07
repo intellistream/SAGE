@@ -237,7 +237,8 @@ ______________________________________________________________________
 
 ### Using the sage-dev CLI
 
-The `sage-dev` CLI (provided by `packages/sage-tools`) offers the same development workflows:
+The `sage-dev` CLI (provided by the independently released `isage-dev-tools` package) offers the
+same development workflows:
 
 > **💡 Note**: Additional development utilities are available via `sage-dev-tools` (automatically
 > installed in `--dev` mode):
