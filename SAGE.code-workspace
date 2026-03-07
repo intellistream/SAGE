@@ -21,16 +21,16 @@
       "path": "../sage-kernel"
     },
     {
-      "name": "sage-libs  [L2]",
-      "path": "../sage-libs"
-    },
-    {
-      "name": "sage-middleware  [L3]",
-      "path": "../sage-middleware"
-    },
-    {
       "name": "sage-cli  [L4]",
       "path": "../sage-cli"
+    },
+    {
+      "name": "sage-tools  [zoo]",
+      "path": "../sage-tools"
+    },
+    {
+      "name": "sage-benchmark  [benchmark]",
+      "path": "../sage-benchmark"
     },
     {
       "path": "../sage-studio"
@@ -38,19 +38,10 @@
   ],
   "settings": {
     "python.analysis.extraPaths": [
-      // SAGE meta packages (in-tree during migration)
-      "${workspaceFolder:SAGE  [meta]}/packages/sage-common/src",
-      "${workspaceFolder:SAGE  [meta]}/packages/sage-kernel/src",
-      "${workspaceFolder:SAGE  [meta]}/packages/sage-libs/src",
-      "${workspaceFolder:SAGE  [meta]}/packages/sage-middleware/src",
-      "${workspaceFolder:SAGE  [meta]}/packages/sage-cli/src",
-      "${workspaceFolder:SAGE  [meta]}/packages/sage-tools/src",
-      // Independent layer repos
       "${workspaceFolder:sage-common  [L1]}/src",
       "${workspaceFolder:sage-kernel  [L2]}/src",
-      "${workspaceFolder:sage-libs  [L2]}/src",
-      "${workspaceFolder:sage-middleware  [L3]}/src",
       "${workspaceFolder:sage-cli  [L4]}/src",
+      "${workspaceFolder:sage-tools  [zoo]}/src",
     ],
     "python.testing.pytestArgs": [
       "packages",
@@ -116,7 +107,7 @@
         "console": "integratedTerminal",
         "cwd": "${workspaceFolder:SAGE  [meta]}",
         "env": {
-          "PYTHONPATH": "${workspaceFolder:SAGE  [meta]}/packages/sage-common/src:${workspaceFolder:SAGE  [meta]}/packages/sage-kernel/src:${workspaceFolder:SAGE  [meta]}/packages/sage-libs/src:${workspaceFolder:SAGE  [meta]}/packages/sage-middleware/src:${workspaceFolder:SAGE  [meta]}/packages/sage-cli/src:${workspaceFolder:SAGE  [meta]}/packages/sage-tools/src:${workspaceFolder:sage-common  [L1]}/src:${workspaceFolder:sage-kernel  [L2]}/src:${workspaceFolder:sage-libs  [L2]}/src:${workspaceFolder:sage-middleware  [L3]}/src:${workspaceFolder:sage-cli  [L4]}/src",
+          "PYTHONPATH": "${workspaceFolder:sage-common  [L1]}/src:${workspaceFolder:sage-kernel  [L2]}/src:${workspaceFolder:sage-cli  [L4]}/src:${workspaceFolder:sage-tools  [zoo]}/src",
         },
       },
       {
