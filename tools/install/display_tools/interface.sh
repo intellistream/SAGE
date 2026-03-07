@@ -188,7 +188,7 @@ show_install_success() {
             ;;
         "dev")
             echo -e "${BLUE}已安装 (开发模式):${NC}"
-            echo_icon "✅" "standard + sage-tools (sage-dev 命令)" 1 1
+            echo_icon "✅" "standard + isage-dev-tools (sage-dev 命令)" 1 1
             echo_icon "✅" "pytest, pre-commit, 代码质量工具" 1 1
             ;;
     esac
@@ -850,7 +850,6 @@ create_vscode_conda_config() {
     "\${workspaceFolder}/packages/sage-libs/src",
     "\${workspaceFolder}/packages/sage-middleware/src",
     "\${workspaceFolder}/packages/sage-platform/src",
-    "\${workspaceFolder}/packages/sage-tools/src",
     "\${workspaceFolder}/packages/sage-cli/src"
   ]
 }

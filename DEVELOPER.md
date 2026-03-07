@@ -59,7 +59,7 @@ git checkout main-dev
 
 **`--standard` 模式会自动：**
 
-- ✅ 安装本地 `packages/sage`
+- ✅ 安装本地根目录 `isage` meta 包
 - ✅ 子包依赖按版本约束从 PyPI 解析（稳定/发布导向）
 
 > 💡 **注意**: 文档已迁移到独立的 [SAGE-Pub](https://github.com/intellistream/SAGE-Pub) 仓库。### Initial Setup
@@ -175,7 +175,7 @@ Each SAGE layer has carefully scoped core dependencies:
 - `isage-flow` → Stream processing
 - `isage-tsdb` → Time-series databases
 
-#### L5. sage-cli, sage-tools (CLI & Tools)
+#### L5. sage-cli + external dev tools
 
 **Core**:
 - `typer>=0.15.0` - CLI framework

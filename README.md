@@ -160,7 +160,7 @@ git clone https://github.com/intellistream/SAGE.git && cd SAGE
 
 **Install Mode Semantics**
 
-- `standard`：本地安装 `packages/sage`，子包依赖按 `packages/sage/pyproject.toml` 版本从 PyPI 解析。
+- `standard`：本地安装仓库根目录下的 `isage` meta 包，子仓依赖按根 `pyproject.toml` 版本从 PyPI 解析。
 - `dev`：先完成 `standard` 安装，再尽量将同级工作区中的本地 SAGE 子仓库切换为 editable (`-e`)。
 
 **PyPI Install**

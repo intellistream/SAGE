@@ -68,7 +68,6 @@ Repository = "https://github.com/intellistream/SAGE.git"
 [tool.setuptools.packages.find]
 namespaces = true
 where = ["src"]
-exclude = ["sage.dev*"]
 
 [tool.setuptools.package-dir]
 "" = "src"

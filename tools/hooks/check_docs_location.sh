@@ -63,7 +63,6 @@ allowed_patterns=(
     "^packages/sage-libs/src/sage/libs/agentic/[^/]+/[^/]+/README\.md$"
     "^packages/sage-llm-core/src/sage/llm/control_plane/[^/]+/README\.md$"
     "^packages/sage-cli/src/sage/cli/templates/README\.md$"
-    "^packages/sage-tools/src/sage/tools/templates/.*\.md$"
 
     # Allow submodule markers
     "^packages/.*/SUBMODULE\.md$"
