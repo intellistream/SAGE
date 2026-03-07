@@ -25,14 +25,11 @@
       "path": "../sage-cli"
     },
     {
-      "name": "sage-tools  [zoo]",
-      "path": "../sage-tools"
-    },
-    {
       "name": "sage-benchmark  [benchmark]",
       "path": "../sage-benchmark"
     },
     {
+      "name": "sage-studio  [L5]",
       "path": "../sage-studio"
     }
   ],
