@@ -159,7 +159,7 @@ def build_report(data: dict, run_date: str | None = None) -> str:
     section_labels = {
         "scheduler": "### Scheduler / Task Dispatch (`isage-kernel`)",
         "communication": "### Communication / Packet Serialization (`isage-kernel`)",
-        "dp_unlearning": "### DP Unlearning (`isage-libs/privacy`)",
+        "dp_unlearning": "### DP Unlearning (`isage-privacy/sage_privacy.dp_unlearning`)",
         "foundation_io": "### Foundation I/O (`isage-libs/foundation/io`)",
     }
 

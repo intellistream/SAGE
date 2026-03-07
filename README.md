@@ -192,8 +192,8 @@ extra manual installation:
 **Optional packages (not bundled — install separately)** 🦁
 
 These packages were moved to independent repositories and are no longer part of the default `isage`
-install. See **[SAGE_ZOO.md](./SAGE_ZOO.md)** for the full list with one-liner descriptions and
-install commands.
+install. See **[SAGE Zoo guide](./docs-public/docs_src/guides/sage_zoo.md)** for the full list with
+one-liner descriptions and install commands.
 
 ```bash
 pip install isage-rag              # RAG 管道（文档加载 / 分块 / 检索 / 重排）
@@ -315,7 +315,7 @@ make docs           # Build documentation
 
 ## SAGE Ecosystem
 
-📦 **[SAGE_ZOO.md](./SAGE_ZOO.md)** — 独立可选包（已 zoo 化，各自独立演进）
+📦 **[SAGE Zoo guide](./docs-public/docs_src/guides/sage_zoo.md)** — 独立可选包（已 zoo 化，各自独立演进）
 
 ### 🧠 SAGE — Streaming AI Framework
 

@@ -15,12 +15,12 @@ This directory contains the profiling workloads and tooling to:
 
 ## Hot-Path Candidates
 
-| Package        | Path                                | Suspected Cost Driver                                      |
-| -------------- | ----------------------------------- | ---------------------------------------------------------- |
-| `isage-kernel` | `scheduler/`                        | Task dispatch loop — `make_decision()` called per-operator |
-| `isage-kernel` | `runtime/communication/`            | `Packet` construction + msgpack ser/deser                  |
-| `isage-libs`   | `privacy/unlearning/dp_unlearning/` | NumPy noise generation over large vector batches           |
-| `isage-libs`   | `foundation/io/`                    | Batch assembly + JSON decode in streaming ingestion        |
+| Package         | Path                          | Suspected Cost Driver                                      |
+| --------------- | ----------------------------- | ---------------------------------------------------------- |
+| `isage-kernel`  | `scheduler/`                  | Task dispatch loop — `make_decision()` called per-operator |
+| `isage-kernel`  | `runtime/communication/`      | `Packet` construction + msgpack ser/deser                  |
+| `isage-privacy` | `sage_privacy/dp_unlearning/` | NumPy noise generation over large vector batches           |
+| `isage-libs`    | `foundation/io/`              | Batch assembly + JSON decode in streaming ingestion        |
 
 ## Quick Start
 
@@ -55,7 +55,7 @@ tools/profiling/
 ├── workloads/
 │   ├── workload_scheduler.py         # isage-kernel scheduler bench
 │   ├── workload_communication.py     # isage-kernel Packet + msgpack bench
-│   ├── workload_dp_unlearning.py     # isage-libs DP unlearning bench
+│   ├── workload_dp_unlearning.py     # isage-privacy DP unlearning bench
 │   └── workload_foundation_io.py     # isage-libs foundation/io bench
 └── reports/                     # ← generated, not committed (gitignored)
     ├── hot_path_summary.txt

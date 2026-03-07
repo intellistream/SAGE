@@ -1,5 +1,5 @@
 """
-Profiling Workload — isage-libs DP Unlearning (sage.libs.privacy.unlearning)
+Profiling Workload — isage-privacy DP Unlearning (sage_privacy.dp_unlearning)
 =============================================================================
 
 Measures the hot loops in differential-privacy unlearning:
@@ -8,7 +8,7 @@ Measures the hot loops in differential-privacy unlearning:
   3. Neighbor compensation — graph-walk update after unlearning
   4. Full engine run      — end-to-end unlearn() call
 
-This workload uses the real sage.libs classes when available, and falls
+This workload uses the real sage_privacy classes when available, and falls
 back to equivalent NumPy-based stubs that mirror the actual computation.
 
 Run standalone:
@@ -30,19 +30,19 @@ import numpy as np
 
 def _try_import_unlearning():
     try:
-        from sage.libs.privacy.unlearning.dp_unlearning.base_mechanism import (  # noqa: PLC0415
+        from sage_privacy.dp_unlearning.base_mechanism import (  # noqa: PLC0415
             SimpleLaplaceMechanism,
         )
-        from sage.libs.privacy.unlearning.dp_unlearning.neighbor_compensation import (  # noqa: PLC0415
+        from sage_privacy.dp_unlearning.neighbor_compensation import (  # noqa: PLC0415
             NeighborCompensation,
         )
-        from sage.libs.privacy.unlearning.dp_unlearning.privacy_accountant import (  # noqa: PLC0415
+        from sage_privacy.dp_unlearning.privacy_accountant import (  # noqa: PLC0415
             PrivacyAccountant,
         )
-        from sage.libs.privacy.unlearning.dp_unlearning.unlearning_engine import (  # noqa: PLC0415
+        from sage_privacy.dp_unlearning.unlearning_engine import (  # noqa: PLC0415
             UnlearningEngine,
         )
-        from sage.libs.privacy.unlearning.dp_unlearning.vector_perturbation import (  # noqa: PLC0415
+        from sage_privacy.dp_unlearning.vector_perturbation import (  # noqa: PLC0415
             VectorPerturbation,
         )
 
@@ -262,7 +262,7 @@ def run_dp_unlearning_workload(
     real = _try_import_unlearning()
     if real:
         Mech, Perturb, Acct, Comp, Engine, is_real = real
-        print("[dp_unlearn] Using real sage.libs.privacy.unlearning classes")
+        print("[dp_unlearn] Using real sage_privacy.dp_unlearning classes")
     else:
         Mech, Perturb, Acct, Comp, Engine, is_real = (
             _StubLaplace,
