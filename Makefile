@@ -72,9 +72,8 @@ install-deps:
 # C++ 扩展构建
 build-extensions:
 	@echo "🔨 构建 C++ 扩展..."
-	@echo "Building TSDB extension..."
-	@cd packages/sage-middleware/src/sage/middleware/components/sage_tsdb && ./build_tsdb.sh
-	@echo "✅ All C++ extensions built successfully!"
+	@echo "ℹ️ TSDB 已迁移为独立包（isage-tsdb），不再在 SAGE 内部构建。"
+	@echo "✅ 本仓库无需执行 TSDB 本地扩展构建。"
 
 # 代码质量
 lint:

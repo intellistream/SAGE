@@ -137,8 +137,6 @@ try:
                     from sage.middleware.components.sage_db.python import _sage_db
                 elif ext == 'sage_flow':
                     from sage.middleware.components.sage_flow.python import _sage_flow
-                elif ext == 'sage_tsdb':
-                    from sage.middleware.components.sage_tsdb.python import _sage_tsdb
             except Exception as e:
                 print(f'   {ext}: {type(e).__name__}: {e}')
 
@@ -173,7 +171,7 @@ except Exception as e:
         echo "$verify_output"
 
         if [ $validation_result -eq 0 ]; then
-            echo -e "${CHECK} C++ 扩展可用 (sage_db, sage_flow, sage_tsdb)"
+            echo -e "${CHECK} C++ 扩展可用 (sage_db, sage_flow)"
             echo -e "${DIM}现在可以使用高性能数据库和流处理功能${NC}"
             log_info "C++扩展验证成功" "CPPExt"
             return 0

@@ -131,8 +131,6 @@ try:
                     from sage.middleware.components.sage_flow.python import _sage_flow
                 elif ext == 'sage_db':
                     from sage.middleware.components.sage_db.python import _sage_db
-                elif ext == 'sage_tsdb':
-                    from sage.middleware.components.sage_tsdb.python import _sage_tsdb
             except Exception as e:
                 print(f"   错误: {e}")
 except Exception as e:

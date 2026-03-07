@@ -115,6 +115,9 @@ dependency pin governance, and contract-level policy only.
 - Rationale: L3 continual-learning / coreset-selection for tool-use agents; required by
   `isage-studio`. Implementation ownership in `sage-agentic-tooluse-sias` sub-repo.
 - Version pin: `>=0.1.0`.
+- **Note (2026-03-08)**: moved from `project.dependencies` to
+  `project.optional-dependencies.capability-tooluse`; still included transitively via `isage[full]`
+  → `isage[capability-tooluse]`.
 
 ### `isage-cli`
 
@@ -136,15 +139,17 @@ dependency pin governance, and contract-level policy only.
 
 ## Change Log
 
-| Date       | Dependency                                                                                                | Change Type        | Callsite Evidence Updated | Notes                                                                                        |
-| ---------- | --------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------- | -------------------------------------------------------------------------------------------- |
-| 2026-03-01 | isage-common, isage-platform, isage-kernel, isage-libs, isage-middleware, isage-cli, isage-flow, isagellm | Baseline registry  | Yes                       | Initial gate rollout for SAGE#1474                                                           |
-| 2026-03-01 | isage-middleware                                                                                          | Version bump       | Yes                       | Bump to >=0.2.4.32; drop `accelerate`/`peft`/`torch`/CUDA transitive deps (~2 GB)            |
-| 2026-03-02 | isage-common, isage-libs, isage-middleware                                                                | Version bump       | Yes                       | Pins updated to >=0.2.4.23 / >=0.2.4.28 / >=0.2.4.35,\<0.2.4.36; neuromem optional           |
-| 2026-03-02 | isage (optional `full`)                                                                                   | Dependency cleanup | Yes                       | Removed `torch`/`torchvision`/`accelerate`/`peft` from meta `full`; dev remains `full+dev`   |
-| 2026-03-04 | isage-libs-intent, isage-neuromem, isage-sias                                                             | New dep            | Yes                       | Add missing isage-studio transitive deps as direct pins                                      |
-| 2026-03-04 | isage-middleware                                                                                          | Version bump       | Yes                       | Bump pin to >=0.2.4.43; middleware fixed phantom huggingface-hub dep                         |
-| 2026-03-07 | isage-middleware, isage-rag                                                                               | Version bump / New | Yes                       | Bump middleware to >=0.2.4.47; add isage-rag>=0.3.0 (vector_stores migrated from middleware) |
+| Date       | Dependency                                                                                                | Change Type        | Callsite Evidence Updated | Notes                                                                                           |
+| ---------- | --------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------- | ----------------------------------------------------------------------------------------------- |
+| 2026-03-01 | isage-common, isage-platform, isage-kernel, isage-libs, isage-middleware, isage-cli, isage-flow, isagellm | Baseline registry  | Yes                       | Initial gate rollout for SAGE#1474                                                              |
+| 2026-03-01 | isage-middleware                                                                                          | Version bump       | Yes                       | Bump to >=0.2.4.32; drop `accelerate`/`peft`/`torch`/CUDA transitive deps (~2 GB)               |
+| 2026-03-02 | isage-common, isage-libs, isage-middleware                                                                | Version bump       | Yes                       | Pins updated to >=0.2.4.23 / >=0.2.4.28 / >=0.2.4.35,\<0.2.4.36; neuromem optional              |
+| 2026-03-02 | isage (optional `full`)                                                                                   | Dependency cleanup | Yes                       | Removed `torch`/`torchvision`/`accelerate`/`peft` from meta `full`; dev remains `full+dev`      |
+| 2026-03-04 | isage-libs-intent, isage-neuromem, isage-sias                                                             | New dep            | Yes                       | Add missing isage-studio transitive deps as direct pins                                         |
+| 2026-03-04 | isage-middleware                                                                                          | Version bump       | Yes                       | Bump pin to >=0.2.4.43; middleware fixed phantom huggingface-hub dep                            |
+| 2026-03-07 | isage-middleware, isage-rag                                                                               | Version bump / New | Yes                       | Bump middleware to >=0.2.4.47; add isage-rag>=0.3.0 (vector_stores migrated from middleware)    |
+| 2026-03-08 | isage-sias                                                                                                | Restructure        | Yes                       | isage-sias moved from direct deps to optional capability-tooluse group; still in full via alias |
+| 2026-03-08 | isage-dev-tools (removed)                                                                                 | Removal / Merge    | Yes                       | isage-dev-tools removed; sage.dev module merged into SAGE meta; sage-dev CLI entry point added  |
 
 ## How To Update
 

@@ -89,8 +89,7 @@ runs:
         all_ok=true
         for submodule in \
           "packages/sage-middleware/src/sage/middleware/components/sage_db/sageVDB" \
-          "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow" \
-          "packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB"; do
+          "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow"; do
           if [ -d "$submodule" ] && [ -n "$(ls -A "$submodule" 2>/dev/null)" ]; then
             echo "✅ $submodule - OK"
           else

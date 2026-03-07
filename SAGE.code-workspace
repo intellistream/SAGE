@@ -31,6 +31,9 @@
     {
       "name": "sage-cli  [L4]",
       "path": "../sage-cli"
+    },
+    {
+      "path": "../sage-studio"
     }
   ],
   "settings": {

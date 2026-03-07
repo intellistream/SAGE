@@ -33,8 +33,6 @@ dependencies = [
     "isage-libs>=0.2.4.28",
     # L2 — intent recognition for tool-use agents
     "isage-libs-intent>=0.1.0.7",
-    # L2 — continual-learning / coreset selection for tool-use (SIAS)
-    "isage-sias>=0.1.0",
     # L3 — middleware components (VDB, memory backends, networked operators)
     "isage-middleware>=0.2.4.47",
     # L3 — RAG pipelines (vector store backends migrated to isage-rag 0.3.0)
@@ -50,23 +48,44 @@ dependencies = [
 license = "MIT"
 
 [project.optional-dependencies]
+capability-tooluse = [
+    # L2 — continual-learning / coreset selection for tool-use (SIAS)
+    "isage-sias>=0.1.0",
+]
+
 full = [
+    "isage[capability-tooluse]",
     # L6 — dataset management for fine-tuning and benchmark workflows
     "isage-data>=0.2.3.2",
     # L6 — visual workflow builder and LLM playground
     "isage-studio>=0.2.4.23",
 ]
 dev = [
-    "isage-dev-tools>=0.2.4.1",
+    # sage-dev CLI dependencies (sage-dev-tools merged into SAGE)
+    "typer>=0.15.0,<1.0.0",
+    "rich>=13.0.0,<14.0.0",
+    "click>=8.0.0,<9.0.0",
+    "pyyaml>=6.0",
+    "jinja2>=3.1.0,<4.0.0",
+    "markupsafe>=2.0.1",
+    "gitpython>=3.1.0",
+    "requests>=2.28.0",
+    "filelock>=3.16.0,<4.0.0",
+    # Testing
     "pytest>=7.4.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
     "pytest-mock>=3.12.0",
+    # Quality
     "ruff>=0.15.0",
     "mypy>=1.7.0",
     "pre-commit>=3.5.0",
     "isage-pypi-publisher>=0.2.1.0",
 ]
+
+[project.scripts]
+# sage-dev: SAGE polyrepo development CLI (formerly isage-dev-tools)
+sage-dev = "sage.dev.cli.commands.dev.main:app"
 
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"

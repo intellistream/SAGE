@@ -248,7 +248,6 @@ git diff
 1. `packages/sage-middleware/src/sage/middleware/components/sage_db/sageVDB` - 数据库组件
 1. `packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow` - 流处理组件
 1. `packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem` - 内存组件
-1. `packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB` - 时序数据库
 1. `packages/sage-benchmark/src/sage/data` - 数据集
 1. `packages/sage-libs/src/sage/libs/libamm` - LibAMM 库
 
