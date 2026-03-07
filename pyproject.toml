@@ -48,13 +48,9 @@ dependencies = [
 license = "MIT"
 
 [project.optional-dependencies]
-capability-tooluse = [
+full = [
     # L2 — continual-learning / coreset selection for tool-use (SIAS)
     "isage-sias>=0.1.0",
-]
-
-full = [
-    "isage[capability-tooluse]",
     # L6 — dataset management for fine-tuning and benchmark workflows
     "isage-data>=0.2.3.2",
     # L6 — visual workflow builder and LLM playground
