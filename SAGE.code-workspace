@@ -31,13 +31,6 @@
     {
       "name": "sage-cli  [L4]",
       "path": "../sage-cli"
-    },
-    {
-      "name": "sage-vida  [L4]",
-      "path": "../sage-vida"
-    },
-    {
-      "path": "../flutty"
     }
   ],
   "settings": {
@@ -55,7 +48,6 @@
       "${workspaceFolder:sage-libs  [L2]}/src",
       "${workspaceFolder:sage-middleware  [L3]}/src",
       "${workspaceFolder:sage-cli  [L4]}/src",
-      "${workspaceFolder:sage-vida  [L4]}/src",
     ],
     "python.testing.pytestArgs": [
       "packages",
