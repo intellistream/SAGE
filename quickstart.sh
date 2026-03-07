@@ -574,6 +574,9 @@ main() {
 
         show_usage_tips "$mode"
 
+        # ── Zoo packages: 可选的独立插件包 ──────────────────────────────────
+        offer_zoo_packages "$auto_confirm"
+
         # 将 sage conda 环境写入 shell RC，下次打开终端自动激活
         if declare -f setup_bashrc_conda_default >/dev/null 2>&1; then
             setup_bashrc_conda_default "${SAGE_ENV_NAME:-${SAGE_CONDA_ENV_NAME:-sage}}"
@@ -648,6 +651,75 @@ main() {
         local python_cmd="${PYTHON_CMD:-python3}"
         echo -e "  sage doctor           ${DIM}# 完整诊断（推荐）${NC}"
         echo -e "  $python_cmd -c \"import sage.common; print(sage.common.__version__)\"  ${DIM}# 快速验证${NC}"
+    fi
+}
+
+# ============================================================================
+# Zoo packages: 可选安装的独立发布包
+# 这些包已从 SAGE workspace 独立出去，单独发布到 PyPI，按需安装即可。
+# ============================================================================
+offer_zoo_packages() {
+    local auto_confirm="${1:-false}"
+
+    # CI / --yes 模式 或 非交互终端 → 跳过
+    if [ "$auto_confirm" = "true" ] || \
+       [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" || -n "${GITLAB_CI:-}" || -n "${BUILDKITE:-}" ]] || \
+       ! is_interactive_session; then
+        return 0
+    fi
+
+    # Zoo 包列表：格式 "pypi-name|中文描述"
+    local zoo_packages=(
+        "isage-rag|RAG 管道组件（文档加载、分块、检索、重排）"
+        "isage-eval|评估框架（指标、性能分析、LLM 评判）"
+        "isage-finetune|LLM 微调工具（LoRA、数据加载器）"
+        "isage-agentic-tooluse|Agent 工具选择算法（Hybrid/DFS/Gorilla）"
+        "isage-intent|意图识别（关键词 + LLM 方案）"
+    )
+
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}🐾  Zoo 独立包（可选安装）${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${DIM}以下包已独立发布到 PyPI，不影响 SAGE 核心功能。${NC}"
+    echo -e "${DIM}按需选择是否安装（直接回车 = 跳过）：${NC}"
+    echo ""
+
+    local to_install=()
+    for entry in "${zoo_packages[@]}"; do
+        local pkg="${entry%%|*}"
+        local desc="${entry##*|}"
+        echo -ne "  ${YELLOW}?${NC} ${GREEN}${pkg}${NC}  ${DIM}${desc}${NC}  [y/N] "
+        read -r choice </dev/tty
+        choice="${choice//[[:space:]]/}"
+        if [[ "$choice" =~ ^[Yy] ]]; then
+            to_install+=("$pkg")
+        fi
+    done
+
+    if [ ${#to_install[@]} -eq 0 ]; then
+        echo ""
+        echo -e "${DIM}  已跳过所有 Zoo 包。可稍后通过 pip install <package> 按需安装。${NC}"
+        return 0
+    fi
+
+    echo ""
+    echo -e "${BLUE}📦 安装选中的 Zoo 包...${NC}"
+    local all_ok=true
+    for pkg in "${to_install[@]}"; do
+        echo -ne "  安装 ${pkg}... "
+        if $PIP_CMD install "$pkg" --quiet 2>/dev/null; then
+            echo -e "${GREEN}✓${NC}"
+        else
+            echo -e "${YELLOW}⚠  失败，请手动运行: pip install ${pkg}${NC}"
+            all_ok=false
+        fi
+    done
+    echo ""
+    if [ "$all_ok" = true ]; then
+        echo -e "${CHECK} Zoo 包安装完成"
+    else
+        echo -e "${WARNING} 部分 Zoo 包安装失败，可稍后手动安装"
     fi
 }
 

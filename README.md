@@ -176,24 +176,32 @@ pip install isage[dev]         # Development tools (includes pre-commit, pytest,
 `isage-platform` (L2) · `isage-kernel` + `isage-libs` (L3) · `isage-middleware` (L4) · `isage-cli`
 (L5) · `isage-flow` (runtime) · `isagellm` (LLM gateway)
 
-**Capability Packages (Layer-integrated by default)** 🧩
+**Capability Packages (bundled with `isage`)** 🧩
 
-For a standard `pip install isage`, these capability packages are already installed transitively
-(primarily via `isage-middleware`) and usually do **not** require extra manual installation:
+For a standard `pip install isage`, these packages are installed transitively and do **not** require
+extra manual installation:
 
 | Feature            | Included Package | Notes                                   |
 | ------------------ | ---------------- | --------------------------------------- |
 | **Agents**         | `isage-agentic`  | ReAct, PlanExecute, complex reasoning   |
-| **RAG**            | `isage-rag`      | Retrieval-augmented generation          |
 | **Vector DB**      | `isage-vdb`      | Fast vector search (SageVDB)            |
 | **Memory Systems** | `isage-neuromem` | Persistent memory + sessions            |
-| **Evaluation**     | `isage-eval`     | Metrics, judges, benchmarking           |
-| **Fine-tuning**    | `isage-finetune` | Model adaptation + training             |
 | **Privacy**        | `isage-privacy`  | Differential privacy, PII handling      |
 | **LLM Gateway**    | `isagellm`       | Control plane, unified inference client |
 
-Install these separately only when you need standalone usage, explicit version pinning, or
-independent upgrade cadence.
+**Optional packages (not bundled — install separately)** 🦁
+
+These packages were moved to independent repositories and are no longer part of the default `isage`
+install. See **[SAGE_ZOO.md](./SAGE_ZOO.md)** for the full list with one-liner descriptions and
+install commands.
+
+```bash
+pip install isage-rag              # RAG 管道（文档加载 / 分块 / 检索 / 重排）
+pip install isage-eval             # 评估框架（指标 / LLM 评判）
+pip install isage-finetune         # LLM 微调（LoRA / 数据加载器）
+pip install isage-agentic-tooluse  # Agent 工具选择（Hybrid/DFS/Gorilla）
+pip install isage-intent           # 意图识别（关键词 + LLM）
+```
 
 Example: install full core SAGE stack
 
@@ -306,6 +314,8 @@ make docs           # Build documentation
 📖 **Complete reference**: [DEVELOPER.md](./DEVELOPER.md)
 
 ## SAGE Ecosystem
+
+📦 **[SAGE_ZOO.md](./SAGE_ZOO.md)** — 独立可选包（已 zoo 化，各自独立演进）
 
 ### 🧠 SAGE — Streaming AI Framework
 

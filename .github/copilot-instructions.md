@@ -2,12 +2,12 @@
 
 ## Scope and architecture
 - SAGE is the core framework repo; examples/benchmarks/studio/docs are split into independent repos.
-- Keep the 5-layer dependency rule: L5 → L4 → L3 → L2 → L1 only (no upward imports).
+- Keep the 4-layer dependency rule: L4 → L3 → L2 → L1 only (no upward imports).
 - Runtime direction is Flownet-first: use `isage-flownet` patterns, do not introduce new `ray` imports/dependencies.
 - `sage-libs` is interface/algorithm layer; runtime/service-bound code (VDB, memory backends, networked operators) belongs in `sage-middleware`.
 
 ## Polyrepo architecture (critical)
-- SAGE is a **polyrepo**: each sub-package (`isage-common`, `isage-platform`, `isage-kernel`, `isage-libs`, `isage-middleware`, `isage-cli`, etc.) lives in its own GitHub repository.
+- SAGE is a **polyrepo**: each sub-package (`isage-common`, `isage-kernel`, `isage-libs`, `isage-middleware`, `isage-cli`, etc.) lives in its own GitHub repository.
 - This repo (`intellistream/SAGE`) only contains the meta-package at `packages/sage/` — it is **the only local package** installed with `-e`.
 - All sub-package dependencies are declared with PyPI version pins in `packages/sage/pyproject.toml`. A sub-package change is only visible here **after it is published to PyPI and the version is bumped** in that file.
 - Do not add local editable installs of sub-packages to `quickstart.sh` or `core_installer.sh`. The install flow is simply: `pip install -e packages/sage` (standard) or `pip install -e packages/sage[dev]` (dev).

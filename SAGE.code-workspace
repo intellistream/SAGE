@@ -5,14 +5,6 @@
       "path": "../.github"
     },
     {
-      "name": "sage-pypi-publisher  [org-tools]",
-      "path": "../sage-pypi-publisher"
-    },
-    {
-      "name": "sage-github-manager  [org-tools]",
-      "path": "../sage-github-manager"
-    },
-    {
       "name": "SAGE  [meta]",
       "path": "."
     },
@@ -25,210 +17,33 @@
       "path": "../sage-common"
     },
     {
-      "name": "sage-platform  [L2]",
-      "path": "../sage-platform"
-    },
-    {
-      "name": "sageFlownet  [L2 · runtime]",
-      "path": "../sageFlownet"
-    },
-    {
-      "name": "sage-kernel  [L3]",
+      "name": "sage-kernel  [L2]",
       "path": "../sage-kernel"
     },
     {
-      "name": "sage-libs  [L3]",
+      "name": "sage-libs  [L2]",
       "path": "../sage-libs"
     },
     {
-      "name": "sage-agentic  [L3]",
-      "path": "../sage-agentic"
-    },
-    {
-      "name": "sage-agentic-tooluse  [L3]",
-      "path": "../sage-agentic-tooluse"
-    },
-    {
-      "name": "sage-agentic-tooluse-benchmark  [L3 · bench]",
-      "path": "../sage-agentic-tooluse-benchmark"
-    },
-    {
-      "name": "sage-agentic-tooluse-sias  [L3]",
-      "path": "../sage-agentic-tooluse-sias"
-    },
-    {
-      "name": "sage-rag  [L3]",
-      "path": "../sage-rag"
-    },
-    {
-      "name": "sage-rag-benchmark  [L3 · bench]",
-      "path": "../sage-rag-benchmark"
-    },
-    {
-      "name": "sageRefiner  [L3]",
-      "path": "../sageRefiner"
-    },
-    {
-      "name": "sage-refiner-benchmark  [L3 · bench]",
-      "path": "../sage-refiner-benchmark"
-    },
-    {
-      "name": "sage-eval  [L3]",
-      "path": "../sage-eval"
-    },
-    {
-      "name": "sage-finetune  [L3]",
-      "path": "../sage-finetune"
-    },
-    {
-      "name": "sage-anns  [L3]",
-      "path": "../sage-anns"
-    },
-    {
-      "name": "sage-amms  [L3]",
-      "path": "../sage-amms"
-    },
-    {
-      "name": "sage-libs-intent  [L3]",
-      "path": "../sage-libs-intent"
-    },
-    {
-      "name": "sage-privacy  [L3 · research]",
-      "path": "../sage-privacy"
-    },
-    {
-      "name": "sage-safety  [L3 · research]",
-      "path": "../sage-safety"
-    },
-    {
-      "name": "sage-edge  [L3 · research]",
-      "path": "../sage-edge"
-    },
-    {
-      "name": "sage-middleware  [L4]",
+      "name": "sage-middleware  [L3]",
       "path": "../sage-middleware"
     },
     {
-      "name": "sageVDB  [L4]",
-      "path": "../sageVDB"
-    },
-    {
-      "name": "sageFlow  [L4]",
-      "path": "../sageFlow"
-    },
-    {
-      "name": "sageTSDB  [L4]",
-      "path": "../sageTSDB"
-    },
-    {
-      "name": "neuromem  [L4]",
-      "path": "../neuromem"
-    },
-    {
-      "name": "sage-memory-benchmark  [L4 · bench]",
-      "path": "../sage-memory-benchmark"
-    },
-    {
-      "name": "sage-cli  [L5]",
+      "name": "sage-cli  [L4]",
       "path": "../sage-cli"
     },
     {
-      "name": "sage-dev-tools  [L5]",
-      "path": "../sage-dev-tools"
+      "name": "sage-vida  [L4]",
+      "path": "../sage-vida"
     },
     {
-      "name": "sage-studio  [L6 · app]",
-      "path": "../sage-studio"
-    },
-    {
-      "name": "sageData  [L6]",
-      "path": "../sageData"
-    },
-    {
-      "name": "sage-benchmark  [L6]",
-      "path": "../sage-benchmark"
-    },
-    {
-      "name": "sage-examples  [L6]",
-      "path": "../sage-examples"
-    },
-    {
-      "name": "sage-tutorials  [L6]",
-      "path": "../sage-tutorials"
-    },
-    {
-      "name": "sage-docs  [L6]",
-      "path": "../sage-docs"
-    },
-    {
-      "name": "sagellm  [meta]",
-      "path": "../sagellm"
-    },
-    {
-      "name": "sagellm-protocol  [L1]",
-      "path": "../sagellm-protocol"
-    },
-    {
-      "name": "sagellm-comm  [L2]",
-      "path": "../sagellm-comm"
-    },
-    {
-      "name": "sagellm-backend  [L2]",
-      "path": "../sagellm-backend"
-    },
-    {
-      "name": "sagellm-compression  [L3]",
-      "path": "../sagellm-compression"
-    },
-    {
-      "name": "sagellm-kv-cache  [L3]",
-      "path": "../sagellm-kv-cache"
-    },
-    {
-      "name": "sagellm-core  [L4]",
-      "path": "../sagellm-core"
-    },
-    {
-      "name": "sagellm-control-plane-benchmark  [L4 · bench]",
-      "path": "../sagellm-control-plane-benchmark"
-    },
-    {
-      "name": "sagellm-control-plane  [L5]",
-      "path": "../sagellm-control-plane"
-    },
-    {
-      "name": "sagellm-gateway  [L6]",
-      "path": "../sagellm-gateway"
-    },
-    {
-      "name": "sagellm-benchmark  [L6]",
-      "path": "../sagellm-benchmark"
-    },
-    {
-      "name": "sagellm-dev-tools  [L6]",
-      "path": "../sagellm-dev-tools"
-    },
-    {
-      "name": "sagellm-docs  [L6]",
-      "path": "../sagellm-docs"
-    },
-    {
-      "name": "sagellm-website  [L6]",
-      "path": "../sagellm-website"
-    },
-    {
-      "name": "sagellm-vscode  [L6]",
-      "path": "../sagellm-vscode"
-    },
-    {
-      "path": "../sagellm-workstation"
+      "path": "../flutty"
     }
   ],
   "settings": {
     "python.analysis.extraPaths": [
       // SAGE meta packages (in-tree during migration)
       "${workspaceFolder:SAGE  [meta]}/packages/sage-common/src",
-      "${workspaceFolder:SAGE  [meta]}/packages/sage-platform/src",
       "${workspaceFolder:SAGE  [meta]}/packages/sage-kernel/src",
       "${workspaceFolder:SAGE  [meta]}/packages/sage-libs/src",
       "${workspaceFolder:SAGE  [meta]}/packages/sage-middleware/src",
@@ -236,12 +51,11 @@
       "${workspaceFolder:SAGE  [meta]}/packages/sage-tools/src",
       // Independent layer repos
       "${workspaceFolder:sage-common  [L1]}/src",
-      "${workspaceFolder:sage-platform  [L2]}/src",
-      "${workspaceFolder:sage-kernel  [L3]}/src",
-      "${workspaceFolder:sage-libs  [L3]}/src",
-      "${workspaceFolder:sage-middleware  [L4]}/src",
-      "${workspaceFolder:sage-cli  [L5]}/src",
-      "${workspaceFolder:sage-dev-tools  [L5]}/src",
+      "${workspaceFolder:sage-kernel  [L2]}/src",
+      "${workspaceFolder:sage-libs  [L2]}/src",
+      "${workspaceFolder:sage-middleware  [L3]}/src",
+      "${workspaceFolder:sage-cli  [L4]}/src",
+      "${workspaceFolder:sage-vida  [L4]}/src",
     ],
     "python.testing.pytestArgs": [
       "packages",
@@ -307,7 +121,7 @@
         "console": "integratedTerminal",
         "cwd": "${workspaceFolder:SAGE  [meta]}",
         "env": {
-          "PYTHONPATH": "${workspaceFolder:SAGE  [meta]}/packages/sage-common/src:${workspaceFolder:SAGE  [meta]}/packages/sage-platform/src:${workspaceFolder:SAGE  [meta]}/packages/sage-kernel/src:${workspaceFolder:SAGE  [meta]}/packages/sage-libs/src:${workspaceFolder:SAGE  [meta]}/packages/sage-middleware/src:${workspaceFolder:SAGE  [meta]}/packages/sage-cli/src:${workspaceFolder:SAGE  [meta]}/packages/sage-tools/src:${workspaceFolder:sage-common  [L1]}/src:${workspaceFolder:sage-platform  [L2]}/src:${workspaceFolder:sage-kernel  [L3]}/src:${workspaceFolder:sage-libs  [L3]}/src:${workspaceFolder:sage-middleware  [L4]}/src:${workspaceFolder:sage-cli  [L5]}/src",
+          "PYTHONPATH": "${workspaceFolder:SAGE  [meta]}/packages/sage-common/src:${workspaceFolder:SAGE  [meta]}/packages/sage-kernel/src:${workspaceFolder:SAGE  [meta]}/packages/sage-libs/src:${workspaceFolder:SAGE  [meta]}/packages/sage-middleware/src:${workspaceFolder:SAGE  [meta]}/packages/sage-cli/src:${workspaceFolder:SAGE  [meta]}/packages/sage-tools/src:${workspaceFolder:sage-common  [L1]}/src:${workspaceFolder:sage-kernel  [L2]}/src:${workspaceFolder:sage-libs  [L2]}/src:${workspaceFolder:sage-middleware  [L3]}/src:${workspaceFolder:sage-cli  [L4]}/src",
         },
       },
       {

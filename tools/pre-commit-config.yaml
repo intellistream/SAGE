@@ -321,6 +321,7 @@ repos:
         "dependencies-spec.yaml"
         "tasks.md"
         "SAGE.code-workspace"
+        "SAGE_ZOO.md"
         "pyproject.toml"  # isage meta-package
         "setup.py"        # isage meta-package
       )
