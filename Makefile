@@ -157,22 +157,16 @@ version-bump:
 
 # 文档
 docs:
-	@echo "📚 构建文档..."
-	cd docs-public && ./build.sh
+	@echo "📚 SAGE meta 仓库当前仅维护仓库内文档检查流程"
+	@bash tools/maintenance/check_docs.sh
 
 docs-serve:
-	@echo "🌐 启动文档服务器..."
-	cd docs-public && mkdocs serve
+	@echo "🌐 SAGE meta 仓库当前没有内置文档站点可启动"
+	@echo "请直接查看 docs/、README.md 和各独立仓库文档"
 
 docs-check:
 	@echo "🔍 检查文档质量..."
-	@echo "1️⃣  Checking dev-notes..."
-	@python tools/devnotes_checker.py --all
-	@echo ""
-	@echo "2️⃣  Checking package READMEs..."
-	@python tools/package_readme_checker.py --all
-	@echo ""
-	@echo "✅ Documentation check complete"
+	@bash tools/maintenance/check_docs.sh
 
 docs-report:
 	@echo "📊 生成文档质量报告..."

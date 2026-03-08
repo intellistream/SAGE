@@ -78,13 +78,13 @@ if [ -d "dist" ]; then
     removed_count=$((removed_count + 1))
 fi
 
-# 清理空目录 (排除.git目录和docs-public子模块)
+# 清理空目录 (排除.git目录)
 echo -e "${DIM}清理空目录...${NC}"
-empty_dirs=$(find . -type d -empty -not -path "./.git/*" -not -path "./docs-public" -not -path "./.sage/*" 2>/dev/null | wc -l)
+empty_dirs=$(find . -type d -empty -not -path "./.git/*" -not -path "./.sage/*" 2>/dev/null | wc -l)
 if [ "$empty_dirs" -gt 0 ]; then
     # 多次运行以处理嵌套的空目录
     for i in {1..5}; do
-        find . -type d -empty -not -path "./.git/*" -not -path "./docs-public" -not -path "./.sage/*" -delete 2>/dev/null || true
+        find . -type d -empty -not -path "./.git/*" -not -path "./.sage/*" -delete 2>/dev/null || true
     done
     echo -e "${GREEN}✅ 删除了 $empty_dirs 个空目录${NC}"
     removed_count=$((removed_count + empty_dirs))

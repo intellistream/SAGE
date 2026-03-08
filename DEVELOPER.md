@@ -112,7 +112,7 @@ SAGE follows a **minimalist core dependency strategy** with a **modular feature 
 
 ### Per-Layer Dependencies
 
-Each SAGE layer has carefully scoped core dependencies:
+Current workspace numbering is normalized to the actively maintained main repos:
 
 #### L1. sage-common (Foundation)
 
@@ -124,58 +124,21 @@ Each SAGE layer has carefully scoped core dependencies:
 - `pydantic>=2.10.0,<3.0.0` - Data validation
 - `platformdirs>=4.0.0` - User paths
 
-**Why minimal**: All packages extend from here; keep base lean.
+**Also owns now**: former `sage-platform` abstractions and the shared interface surface previously
+split into `sage-libs`.
 
-#### L2. sage-platform (Cluster Services)
+#### L2. sage-kernel (Runtime / Scheduler)
 
 **Core**:
 - `isage-flownet>=0.1.0` ⭐ **Distributed runtime/scheduling (mandatory)**
-- `paramiko>=3.5.0,<4.0.0` - SSH remote execution
-- `fabric>=3.2.0,<4.0.0` - Cluster management
+- `fastapi>=0.115.0,<1.0.0` - Kernel HTTP service
+- `grpcio>=1.74.0,<2.0.0` - RPC communication
+- `msgpack>=1.1.0,<2.0.0` - Serialization
+- `openai>=1.52.0` / `httpx>=0.28.0` - absorbed middleware runtime operators
 
-**Why flownet is core**: Distributed execution is fundamental to SAGE's dataflow engine.
+**Also owns now**: former `sage-middleware` runtime/operator responsibilities.
 
-#### L3a. sage-kernel (Dataflow Engine)
-
-**Core**: (Inherits from sage-platform via dependency)
-
-**Why**: Receives flownet runtime capability transitively through sage-platform.
-
-#### L3b. sage-libs (Algorithm Interfaces)
-
-**Core**:
-- `numpy>=1.26.0,<2.3.0`
-- `isage-common>=0.2.0`
-
-**Feature modules** (independent packages):
-- `isage-agentic` → Agent frameworks
-- `isage-rag` → RAG algorithms
-- `isage-eval` → Evaluation metrics
-- `isage-finetune` → Fine-tuning trainers
-- `isage-privacy` → Privacy-preserving tools
-- `isage-safety` → Safety checkers
-- `isage-anns` → ANN algorithms
-
-#### L4. sage-middleware (Runtime Operators)
-
-**Core**:
-- `openai>=1.52.0` - LLM API client
-- `httpx>=0.28.0` - Async HTTP
-- `aiohttp>=3.12.0` - Network utilities
-- `beautifulsoup4>=4.12.0` - Web scraping
-- `feedparser>=6.0.11` - RSS feeds
-- `json_repair>=0.30.0` - Fix malformed JSON
-- `bm25s>=0.2.13` - Keyword search
-- `rank-bm25>=0.2.0` - BM25 ranking
-- `PyStemmer>=3.0.0` - Word stemming
-
-**Feature modules** (independent packages):
-- `isage-vdb` → Vector databases (SageVDB, FAISS)
-- `isage-neuromem` → Memory systems
-- `isage-flow` → Stream processing
-- `isage-tsdb` → Time-series databases
-
-#### L5. sage-cli + external dev tools
+#### L3. sage-cli (Core user entrypoint)
 
 **Core**:
 - `typer>=0.15.0` - CLI framework
@@ -183,6 +146,25 @@ Each SAGE layer has carefully scoped core dependencies:
 - `click>=8.0.0` - Command parsing
 - `jinja2>=3.1.0` - Templates
 - `isage-dev-tools>=0.1.0` - Dev utilities
+
+**Role**: top layer of the core workspace stack; applications should extend it rather than sit as
+peers.
+
+#### L4. Applications (`sage-studio`, benchmarks, docs-facing apps)
+
+**Typical deps**:
+- `isage>=...` - full framework integration
+- `fastapi>=...` / frontend stacks - application API & UI
+- app-specific packages such as `isagellm`, `isage-agentic`, `isage-neuromem`
+
+**Note**: `sage-studio` is above `sage-cli`, not the same layer, because it plugs into the CLI via
+the `sage.cli.plugins` entry-point surface.
+
+### Capability Packages
+
+Packages such as `isage-rag`, `isage-neuromem`, `isage-libs-intent`, and `isage-sias` remain
+important capability dependencies, but they are no longer used as separate main-repo layer labels
+in the workspace numbering.
 
 ### Feature Modules
 
@@ -552,7 +534,7 @@ sage-dev docs serve
        pass
    ```
 
-1. **User Guides**: Place in `docs-public/docs_src/`
+1. **User Guides**: Place in `docs/`
 
 1. **Changelog**: 重要变更统一记录到 `CHANGELOG.md`
 
@@ -680,7 +662,7 @@ We follow [Semantic Versioning](https://semver.org/):
 
 ## Getting Help
 
-- **Documentation**: Check `docs-public/`
+- **Documentation**: Check `docs/`, `README.md`, and `CONTRIBUTING.md`
 - **Examples**: See [sage-examples](https://github.com/intellistream/sage-examples) repository
 - **Issues**: Search existing issues or create new one
 - **Community**: Join our

@@ -251,9 +251,6 @@ packages/sage-apps/src/sage/apps/**/data/**/*.json
 packages/sage-middleware/_deps/*
 packages/sage-middleware/.cmake*
 coverage.json
-docs/*
-!docs/dependency-audit-gate.md
-!docs/layer-manifest.json
 
 # ============================================
 # 敏感信息 - 已迁移到私有仓库

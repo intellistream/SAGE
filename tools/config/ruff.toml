@@ -21,12 +21,6 @@ line-length = 100
 # 排除特定目录
 extend-exclude = [
     "vendors",
-    "sageLLM",
-    "sageVDB",
-    "sageFlow",
-    "neuromem",
-    "sageTSDB",
-    "libamm",
     "**/benchmark_libamm/scripts/**",  # Jupyter notebooks with cell dependencies
     "**/benchmark_anns/DiskANN/**",
     "**/benchmark_anns/algorithms_impl/**",
@@ -38,7 +32,7 @@ extend-exclude = [
     "**/implementations/candy/**",
     "**/implementations/puck/**",
     "**/implementations/pybind11/**",
-    "**/benchmark_db/**",  # git submodule
+    "**/benchmark_db/**",  # benchmark data / external assets
     "build",
     "_deps",
     ".venv",

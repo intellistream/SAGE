@@ -36,25 +36,12 @@ echo "-----------------------------------"
 pip show isage-middleware || echo "未安装"
 echo ""
 
-# 2. 检查子模块状态
-echo "2. 检查子模块状态"
+# 2. 检查历史子模块残留状态
+echo "2. 检查历史子模块残留状态"
 echo "-----------------------------------"
 cd "$PROJECT_ROOT"
 
-# 注意: C++ 扩展已迁移为独立 PyPI 包 (isage-vdb, isage-flow, isage-tsdb, neuromem, isage-refiner)
-# 只检查实际的 Git 子模块
-for submodule in "docs-public"; do
-
-    if [ -d "$submodule" ]; then
-        if [ -n "$(ls -A "$submodule" 2>/dev/null)" ]; then
-            echo "✅ $submodule (已初始化)"
-        else
-            echo "⚠️  $submodule (空目录)"
-        fi
-    else
-        echo "❌ $submodule (不存在)"
-    fi
-done
+echo "ℹ️  历史文档子模块流程已移除；当前无需检查文档子模块"
 echo ""
 
 # 3. 检查 .so 文件位置

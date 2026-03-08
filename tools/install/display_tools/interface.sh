@@ -332,8 +332,8 @@ PY
         repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
         chat_cache_dir="${repo_root}/.sage/cache/chat"
     fi
-    local index_manifest="${chat_cache_dir}/docs-public_manifest.json"
-    local index_db_prefix="${chat_cache_dir}/docs-public.sagevdb"
+    local index_manifest="${chat_cache_dir}/docs_manifest.json"
+    local index_db_prefix="${chat_cache_dir}/docs.sagevdb"
     if [ ! -f "$index_manifest" ] || [ ! -f "${index_db_prefix}.config" ]; then
         echo -e "${YELLOW}⚠️  首次运行需要构建文档索引...${NC}"
         echo -e "${DIM}   这将使用本地 Embedding 服务创建向量索引${NC}"
@@ -425,7 +425,7 @@ PY
                 tail -n 10 "$ingest_log"
                 echo ""
                 echo -e "${DIM}   正在清理不完整的索引文件...${NC}"
-                rm -f "${chat_cache_dir}/docs-public"* 2>/dev/null || true
+                rm -f "${chat_cache_dir}/docs"* 2>/dev/null || true
                 echo -e "${YELLOW}⚠️  可以稍后重试:${NC}"
                 echo -e "   ${CYAN}sage llm serve --model Qwen/Qwen2.5-0.5B-Instruct${NC}  # 启动 LLM + Embedding 服务"
                 echo -e "   ${CYAN}sage chat ingest --embedding-method openai --embedding-model BAAI/bge-m3 --embedding-base-url http://localhost:8090/v1${NC}"
@@ -844,13 +844,7 @@ create_vscode_conda_config() {
   ],
   "python.terminal.activateEnvironment": true,
   "python.analysis.extraPaths": [
-    "\${workspaceFolder}/src",
-    "\${workspaceFolder}/packages/sage-common/src",
-    "\${workspaceFolder}/packages/sage-kernel/src",
-    "\${workspaceFolder}/packages/sage-libs/src",
-    "\${workspaceFolder}/packages/sage-middleware/src",
-    "\${workspaceFolder}/packages/sage-platform/src",
-    "\${workspaceFolder}/packages/sage-cli/src"
+        "\${workspaceFolder}/src"
   ]
 }
 EOF

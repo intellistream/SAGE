@@ -5,15 +5,15 @@ set -e
 # Check Docs Location Hook
 # ============================================================================
 # Purpose: Ensure markdown files are in proper locations.
-#          CRITICAL: Root 'docs/' directory is FORBIDDEN. Use 'docs-public/' instead.
+#          Root docs/ is the canonical location for meta-repo documentation.
 #
 # This hook prevents:
-# 1. Any files in root docs/ directory (which should not exist)
+# 1. Any files under legacy docs-public/
 # 2. Markdown files in random locations outside allowed patterns
 #
 # Rationale:
-# - Root 'docs/' is gitignored and should not be used for committed documentation
-# - All documentation must go to 'docs-public/' for centralized management
+# - Root 'docs/' is the canonical home for committed meta-repo documentation
+# - Legacy 'docs-public/' paths must not be reintroduced
 # - Package-specific docs go in packages/<package>/docs/ or README.md
 # - Submodules can have their own docs/ directories (e.g., sageLLM/docs/, sageFlow/docs/)
 # - Tools can have their own docs/ directories (e.g., tools/install/docs/)
@@ -32,8 +32,8 @@ if [ -z "$all_md_files" ]; then
     exit 0
 fi
 
-# Check for files in docs/ (root docs folder) - STRICTLY FORBIDDEN
-docs_violations=""
+# Check for files in legacy docs-public/ - STRICTLY FORBIDDEN
+legacy_docs_violations=""
 other_violations=""
 
 # Define allowed patterns (whitelist)
@@ -43,7 +43,7 @@ allowed_patterns=(
     "^CONTRIBUTING\.md$"
     "^LICENSE\.md$"
     "^DEVELOPER\.md$"
-    "^docs-public/"
+    "^docs/"
     "^docker/.*\.md$"
     "^packages/[^/]+/README\.md$"              # Only top-level README in packages
     "^packages/[^/]+/CHANGELOG\.md$"           # Only top-level CHANGELOG in packages
@@ -115,15 +115,8 @@ third_party_patterns=(
 )
 
 for file in $all_md_files; do
-    # CRITICAL CHECK: Reject any file in root docs/ directory ONLY
-    # Allow packages/*/docs/ and submodule docs/ directories
-    # Exception: intentionally tracked gate/manifest files (see .gitignore exceptions)
-    if [[ "$file" == "docs/"* ]] && [[ "$file" != "packages/"* ]]; then
-        if [[ "$file" == "docs/dependency-audit-gate.md" ]] || [[ "$file" == "docs/layer-manifest.json" ]]; then
-            true  # intentionally tracked in root docs/; skip violation
-        else
-            docs_violations="$docs_violations$file\n"
-        fi
+    if [[ "$file" == "docs-public/"* ]]; then
+        legacy_docs_violations="$legacy_docs_violations$file\n"
         continue
     fi
 
@@ -156,35 +149,33 @@ done
 
 failed=false
 
-# Priority 1: Root docs/ violations (most critical)
-if [ -n "$docs_violations" ]; then
+# Priority 1: Legacy docs-public violations (most critical)
+if [ -n "$legacy_docs_violations" ]; then
     echo "================================================================================================"
-    echo "❌ CRITICAL ERROR: Files detected in FORBIDDEN root 'docs/' directory"
+    echo "❌ CRITICAL ERROR: Files detected in forbidden legacy 'docs-public/' directory"
     echo "================================================================================================"
     echo ""
-    echo "The root 'docs/' directory is gitignored and must NOT contain committed documentation."
-    echo "All documentation must be placed in 'docs-public/' or other appropriate locations."
+    echo "The legacy 'docs-public/' path has been removed from the SAGE meta repository."
+    echo "All project documentation must be placed in 'docs/' or other appropriate locations."
     echo ""
-    echo "⚠️  Note: Package and submodule docs/ directories ARE ALLOWED:"
-    echo "   ✅ packages/<package>/docs/          - Package-specific documentation"
-    echo "   ✅ packages/.../submodule/docs/      - Submodule documentation (sageLLM, sageFlow, etc.)"
-    echo "   ✅ tools/<tool>/docs/                - Tool-specific documentation"
+    echo "⚠️  Note: Package and tool docs/ directories ARE ALLOWED:"
+    echo "   ✅ docs/                            - Meta repository documentation"
+    echo "   ✅ packages/<package>/docs/         - Package-specific documentation"
+    echo "   ✅ tools/<tool>/docs/               - Tool-specific documentation"
     echo ""
-    echo "❌ Violating files (in ROOT docs/ directory):"
-    echo -e "$docs_violations" | sed "s/^/  - /"
+    echo "❌ Violating files (under docs-public/):"
+    echo -e "$legacy_docs_violations" | sed "s/^/  - /"
     echo ""
     echo "📁 Correct locations for documentation:"
-    echo "  ✅ User-facing docs:     docs-public/docs_src/..."
-    echo "  ✅ Developer docs:       docs-public/docs_src/dev-notes/..."
+    echo "  ✅ Project docs:         docs/..."
     echo "  ✅ Package-specific:     packages/<package-name>/README.md or packages/<package-name>/docs/"
-    echo "  ✅ Submodule docs:       packages/<package>/src/.../submodule/docs/ (e.g., sageLLM/docs/)"
     echo "  ✅ Tool-specific:        tools/<tool-name>/docs/"
     echo "  ✅ Examples:             examples/<name>/README.md"
     echo ""
     echo "💡 Action required:"
-    echo "   1. Move files from ROOT 'docs/' to 'docs-public/docs_src/...' (appropriate subdirectory)"
+    echo "   1. Move files from 'docs-public/' to 'docs/' (appropriate subdirectory)"
     echo "   2. Update any internal links/references"
-    echo "   3. Remove the root 'docs/' directory entirely"
+    echo "   3. Remove the legacy docs-public path entirely"
     echo ""
     echo "================================================================================================"
     failed=true
@@ -203,9 +194,8 @@ if [ -n "$other_violations" ]; then
     echo "  📦 项目根目录:"
     echo "     - README.md, CHANGELOG.md, CONTRIBUTING.md, LICENSE.md, DEVELOPER.md"
     echo ""
-    echo "  📚 用户和开发者文档:"
-    echo "     - docs-public/docs_src/               (用户指南、教程)"
-    echo "     - docs-public/docs_src/dev-notes/     (开发者文档)"
+    echo "  📚 项目文档:"
+    echo "     - docs/                               (元仓库文档、治理、报告)"
     echo ""
     echo "  📦 包级文档:"
     echo "     - packages/<package>/README.md        (包的主文档)"
@@ -231,8 +221,8 @@ if [ -n "$other_violations" ]; then
     echo "💡 整理建议:"
     echo "   1. 包内文档 → packages/<package>/docs/"
     echo "   2. 子模块文档 → 子模块的 docs/ 子目录"
-    echo "   3. 通用开发者笔记 → docs-public/docs_src/dev-notes/"
-    echo "   4. 用户指南 → docs-public/docs_src/guides/"
+    echo "   3. 通用开发者文档 → docs/"
+    echo "   4. 用户指南/报告 → docs/ 对应子目录"
     echo ""
     echo "🔍 常见违规案例:"
     echo "   ❌ packages/.../src/.../BUILD.md          → 应移至 packages/<pkg>/docs/"

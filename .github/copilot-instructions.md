@@ -2,9 +2,9 @@
 
 ## Scope and architecture
 - SAGE is the core framework repo; examples/benchmarks/studio/docs are split into independent repos.
-- Keep the 4-layer dependency rule: L4 → L3 → L2 → L1 only (no upward imports).
+- Keep the 4-layer workspace dependency rule: L4 (apps) → L3 (CLI) → L2 (kernel/runtime) → L1 (common/foundation) only (no upward imports).
 - Runtime direction is Flownet-first: use `isage-flownet` patterns, do not introduce new `ray` imports/dependencies.
-- `sage-libs` is interface/algorithm layer; runtime/service-bound code (VDB, memory backends, networked operators) belongs in `sage-middleware`.
+- Former `sage-libs` and `sage-middleware` responsibilities are now absorbed into `isage-common` and `isage-kernel`; keep shared contracts in lower layers and keep applications above `sage-cli`.
 
 ## Polyrepo architecture (critical)
 - SAGE is a **polyrepo**: each sub-package (`isage-common`, `isage-kernel`, `isage-libs`, `isage-middleware`, `isage-cli`, etc.) lives in its own GitHub repository.
@@ -31,9 +31,8 @@
 - Package-scoped tests use `packages/<pkg>/tests/`; root `pytest.ini` is configured to collect package tests only.
 
 ## Documentation and file placement
-- Root `docs/` is forbidden by hooks (`tools/hooks/check_docs_location.sh`).
-- Put project docs under `docs-public/docs_src/...`; package docs under `packages/<pkg>/README.md` or `packages/<pkg>/docs/`.
-- If `docs-public/` is not present in this checkout, rely on root docs (`README.md`, `DEVELOPER.md`, `CONTRIBUTING.md`) and package READMEs as source of truth.
+- Put project docs under `docs/`; package docs under `packages/<pkg>/README.md` or `packages/<pkg>/docs/`.
+- Use root docs (`README.md`, `DEVELOPER.md`, `CONTRIBUTING.md`, `docs/`) as the source of truth for the meta repo.
 
 ## Integration map (what to call, what not to reintroduce)
 - LLM control-plane/gateway functionality is externalized; prefer `isagellm` integration points instead of re-adding legacy in-repo gateway patterns.

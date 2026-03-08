@@ -4,13 +4,13 @@ SAGE Profiling Report Generator
 ================================
 
 Converts the cProfile runner JSON output into a Markdown report suitable
-for committing into docs-public/profiling/ or the GitHub wiki.
+for committing into docs/profiling/ or the GitHub wiki.
 
 Usage
 -----
     python tools/profiling/report_generator.py
     python tools/profiling/report_generator.py --json path/to/full_summary.json
-    python tools/profiling/report_generator.py --output docs-public/profiling/hot_path_report.md
+    python tools/profiling/report_generator.py --output docs/profiling/hot_path_report.md
 
 The report includes:
   - Executive summary table (hot path vs. cost vs. verdict)
@@ -247,7 +247,7 @@ def main() -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(report, encoding="utf-8")
     print(f"[report] Markdown report → {out_path}")
-    print("[report] Copy to docs-public/profiling/ or GitHub wiki when ready.")
+    print("[report] Copy to docs/profiling/ or GitHub wiki when ready.")
 
 
 if __name__ == "__main__":

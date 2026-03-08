@@ -11,7 +11,7 @@ This directory contains the profiling workloads and tooling to:
 1. Identify the **actual** hot paths before any C++ porting work
 1. Collect cProfile `.prof` files for deep-dive analysis
 1. (Optionally) generate py-spy / perf flame graph SVGs
-1. Generate a Markdown report suitable for `docs-public/profiling/`
+1. Generate a Markdown report suitable for `docs/profiling/`
 
 ## Hot-Path Candidates
 
@@ -59,7 +59,7 @@ tools/profiling/
 │   └── workload_foundation_io.py     # isage-libs foundation/io bench
 └── reports/                     # ← generated, not committed (gitignored)
     ├── hot_path_summary.txt
-    ├── hot_path_report.md        # Copy to docs-public/profiling/ when ready
+    ├── hot_path_report.md        # Copy to docs/profiling/ when ready
     ├── full_summary.json
     ├── scheduler.prof
     ├── communication.prof
@@ -134,10 +134,10 @@ measurement:
 ## Committing Results
 
 ```bash
-# After run, copy to docs-public
-mkdir -p docs-public/profiling
-cp tools/profiling/reports/hot_path_report.md docs-public/profiling/
-git add docs-public/profiling/hot_path_report.md
+# After run, copy to docs/
+mkdir -p docs/profiling
+cp tools/profiling/reports/hot_path_report.md docs/profiling/
+git add docs/profiling/hot_path_report.md
 git commit -m "docs: add hot-path profiling report (closes #1467)"
 ```
 

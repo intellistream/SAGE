@@ -18,11 +18,8 @@
 # Critical project files that may require doc updates:
 #   - Installation: quickstart.sh, manage.sh, tools/install/*.sh
 #   - CI/CD: .github/workflows/*.yml
-#   - Config: tools/pre-commit-config.yaml, tools/config/pytest.ini, tools/ruff.toml
-#   - Ports: packages/sage-common/src/sage/common/config/ports.py
-#   - Architecture: packages/*/pyproject.toml (new packages)
-#   - CLI: packages/sage-cli/src/sage/cli/*.py (new commands)
-#   - LLM/Gateway: packages/sage-gateway/*, packages/sage-common/*/sage_llm/*
+#   - Config: pre-commit / ruff / project packaging / cluster config
+#   - Meta package layout: pyproject.toml, setup.py, src/sage/_version.py
 #
 # Exit codes:
 #   0 - OK (allow commit, warnings only)
@@ -56,32 +53,16 @@ CRITICAL_PATTERNS=(
 
     # Development Tools Config
     "^tools/pre-commit-config\.yaml$|开发工具|Pre-commit 配置"
+    "^tools/config/pre-commit-config\.yaml$|开发工具|Pre-commit 配置模板"
     "^tools/pytest\.ini$|测试|Pytest 配置"
     "^tools/ruff\.toml$|代码质量|Ruff 配置"
 
-    # Port Configuration
-    "^packages/sage-common/src/sage/common/config/ports\.py$|端口配置|SagePorts 定义"
-
-    # Architecture (new packages)
-    "^packages/sage-[^/]+/pyproject\.toml$|架构|包配置 (可能涉及新包或依赖变化)"
-
-    # CLI Commands
-    "^packages/sage-cli/src/sage/cli/commands/.*\.py$|CLI|CLI 命令 (可能涉及新命令)"
-    "^packages/sage-cli/src/sage/cli/main\.py$|CLI|CLI 入口"
-
-    # LLM & Gateway (sageLLM 已独立为 PyPI 包)
-    "^packages/sage-gateway/src/sage/gateway/.*\.py$|LLM/Gateway|Gateway 服务"
-    "^packages/sage-llm-gateway/src/sage/llm/gateway/.*\.py$|LLM/Gateway|Gateway 服务"
-    "^packages/sage-llm-core/src/sage/llm/.*\.py$|LLM/Gateway|LLM Control Plane"
-    "^packages/sage-common/src/sage/common/components/sage_embedding/.*\.py$|LLM/Gateway|Embedding 服务"
-
-    # User Paths & Config
-    "^packages/sage-common/src/sage/common/config/user_paths\.py$|用户路径|XDG 路径配置"
+    # Meta Package & Config
+    "^pyproject\.toml$|架构|Meta package 依赖与打包配置"
+    "^setup\.py$|架构|Meta package 安装入口"
+    "^src/sage/_version\.py$|架构|Meta package 版本定义"
     "^config/config\.yaml$|配置|主配置文件结构"
     "^config/cluster\.yaml$|配置|集群配置文件结构"
-
-    # Benchmark
-    "^packages/sage-benchmark/src/sage/benchmark/.*\.py$|Benchmark|评测框架"
 )
 
 # Get all staged files

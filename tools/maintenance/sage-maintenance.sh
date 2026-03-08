@@ -208,11 +208,13 @@ run_doctor() {
     echo -e "${BLUE}4. 检查构建产物...${NC}"
     # 使用 timeout 防止 find 命令卡住，限制搜索范围以提高速度
     local build_dirs=0
+    local build_find_cmd=(find .
+        \( -path "./.git" -o -path "./.github" \) -prune -o
+        -type d \( -name "dist" -o -name "build" -o -name "*.egg-info" \) -print)
     if command -v timeout &> /dev/null; then
-        build_dirs=$(timeout 5 find packages -maxdepth 2 -type d \( -name "dist" -o -name "build" -o -name "*.egg-info" \) 2>/dev/null | wc -l || echo "0")
+        build_dirs=$(timeout 5 "${build_find_cmd[@]}" 2>/dev/null | wc -l || echo "0")
     else
-        # 没有 timeout 命令时，只检查 packages 目录
-        build_dirs=$(find packages -maxdepth 2 -type d \( -name "dist" -o -name "build" -o -name "*.egg-info" \) 2>/dev/null | wc -l || echo "0")
+        build_dirs=$("${build_find_cmd[@]}" 2>/dev/null | wc -l || echo "0")
     fi
 
     if [ "$build_dirs" -gt 0 ]; then

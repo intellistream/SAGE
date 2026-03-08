@@ -16,7 +16,7 @@
 - **[.pre-commit-config.yaml](.pre-commit-config.yaml)** - Pre-commit 钩子配置（链接到
   `tools/pre-commit-config.yaml`）
 - **[docs/images/architecture.svg](docs/images/architecture.svg)** - 系统架构图
-- **[docs-public/docs_src/dev-notes/](docs-public/docs_src/dev-notes/)** - 开发笔记和修复总结
+- **[docs/](docs/)** - 元仓库架构与治理文档
 
 **快速开始开发**:
 
@@ -354,7 +354,7 @@ pre-commit run --all-files
 
 **禁止操作**：
 
-- ❌ **NEVER** 创建或提交 `packages/*/src/sage/__init__.py`
+- ❌ **NEVER** 创建或提交 `src/sage/__init__.py`
 - ❌ **NEVER** 在 `sage/` 命名空间层添加任何代码
 - ❌ **NEVER** 使用 `pkgutil.extend_path()` 或 `pkg_resources.declare_namespace()`
 
@@ -377,14 +377,11 @@ pre-commit run --all-files
 # 自动检查（pre-commit hook）
 tools/scripts/validate_pep420_compliance.sh
 
-# 集成测试
-python3 tools/scripts/verify_pep420_integration.py
-
 # 手动验证
 python3 -c "import sage; assert sage.__file__ is None"  # 应该成功
 ```
 
-**详细文档**：`docs-public/docs_src/dev-notes/cross-layer/pep420-namespace-migration.md`
+**详细文档**：请参考 `CONTRIBUTING.md` 与 `DEVELOPER.md` 中的 PEP 420 约束说明。
 
 **CI 检查**：所有 PR 会自动运行 PEP 420 合规性检查（`.github/workflows/ci-pep420-compliance.yml`）
 

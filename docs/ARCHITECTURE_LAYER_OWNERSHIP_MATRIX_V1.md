@@ -36,7 +36,7 @@ Coordination rule (mandatory):
 
 1. Fix boundary violations in the owning sub-repo first
 1. Publish that sub-repo package
-1. Bump version pin in `packages/sage/pyproject.toml`
+1. Bump version pin in the meta repo dependency file
 1. Verify integration in `SAGE` meta
 
 No meta-side compatibility shim should be added to bypass step 1.
@@ -76,10 +76,10 @@ Mandatory rules:
 
 1. Sub-package implementation changes must be done in their own repositories first (`sage-common`,
    `sage-platform`, `sage-kernel`, `sage-libs`, `sage-middleware`, `sage-cli`, etc.).
-1. `SAGE` meta repo consumes published versions via `packages/sage/pyproject.toml`; no implicit
-   local sibling coupling assumptions.
-1. Cross-repo rollout order is: sub-repo publish -> bump pin in `packages/sage/pyproject.toml` ->
-   meta integration verification.
+1. `SAGE` meta repo consumes published versions via root package metadata; no implicit local sibling
+   coupling assumptions.
+1. Cross-repo rollout order is: sub-repo publish -> bump pin in meta repo -> meta integration
+   verification.
 1. Do not add local editable install requirements for sibling sub-repos in default setup/docs as a
    replacement for versioned dependency governance.
 
@@ -190,10 +190,6 @@ template:
 - [ ] Call sites are updated directly to canonical import paths
 - [ ] Missing dependency/path fails fast (no silent fallback)
 
-Template location:
-
-- `.github/PULL_REQUEST_TEMPLATE.md`
-
 ## 9) Evidence for #1473 Completion
 
 The boundary problem for A1 is "missing canonical ownership matrix in SAGE meta".
@@ -218,5 +214,3 @@ Resolved by:
 
 1. Defining a normalized "No-Compatibility-Layer Checklist Baseline" in this governance document
 1. Wiring the same mandatory checks into `.github/PULL_REQUEST_TEMPLATE.md`
-1. Requiring evidence/verification fields in PR template for auditable review
-1. Adding explicit polyrepo boundary and `sagellm` capability boundary clauses

@@ -33,7 +33,7 @@ repos:
   - id: check-merge-conflict
     exclude: "(ThirdParty/|thirdparty/)"
   - id: check-case-conflict
-    exclude: ^(.*/benchmark_(libamm|db)/|.*/(libamm|sageLLM|neuromem|sageTSDB)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/)
+    exclude: ^(.*/benchmark_(libamm|db)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/)
   - id: mixed-line-ending
     args: [--fix=lf]
     exclude: "(ThirdParty/|thirdparty/)"
@@ -49,7 +49,7 @@ repos:
     #   - id: black
     #     language_version: python3.11
     #     args: [--line-length=100]
-    #     exclude: ^(docs/|docs-public/|examples/data/|.*/(sageLLM|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
+    #     exclude: ^(docs/|examples/data/|.*/vendors/|.*/build/)
 
     # Python: isort import sorting
     # - repo: https://github.com/pycqa/isort
@@ -57,7 +57,7 @@ repos:
     #   hooks:
     #   - id: isort
     #     args: [--profile=black, --line-length=100]
-    #     exclude: ^(docs/|docs-public/|examples/data/|.*/(sageLLM|neuromem|sageTSDB)/|.*/vendors/|.*/build/)
+    #     exclude: ^(docs/|examples/data/|.*/vendors/|.*/build/)
     #
     # Python: Ruff linter and formatter (replaces flake8, isort, pyupgrade)
     # NOTE: Using local/system ruff to avoid network download failures
@@ -70,14 +70,14 @@ repos:
     entry: ruff
     args: [check, --fix, --exit-non-zero-on-fix, --config, tools/config/ruff.toml]
     types: [python]
-    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm|db)/|.*/(sageLLM|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
+    exclude: ^(docs/|examples/data/|tests/fixtures/|.*/benchmark_(libamm|db)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
   - id: ruff-format
     name: ruff format
     language: system
     entry: ruff
     args: [format, --config, tools/config/ruff.toml]
     types: [python]
-    exclude: ^(docs/|docs-public/|examples/data/|tests/fixtures/|.*/benchmark_(libamm|db)/|.*/(sageLLM|neuromem|sageTSDB|libamm)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
+    exclude: ^(docs/|examples/data/|tests/fixtures/|.*/benchmark_(libamm|db)/|.*/vendors/|.*/build/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
 - repo: local
   hooks:
@@ -96,14 +96,14 @@ repos:
     pass_filenames: false
     always_run: false
     stages: [pre-commit]
-          # Check for files in wrong locations (e.g., sageLLM in sage-common instead of sage-llm-core)
+          # Check for files in wrong locations under the current meta-repo layout
           # - id: dependency-version-conflicts
           #   name: check dependency version conflicts
           #   entry: python3 tools/install/helpers/unify_dependencies.py --check
           #   language: system
           #   pass_filenames: false
           #   always_run: false
-          #   files: ^packages/.*/pyproject\.toml$
+          #   files: ^pyproject\.toml$
           #   # DEPRECATED: Script removed, dependency management moved to sage-tools
   - id: pep420-namespace-compliance
     name: PEP 420 namespace package compliance check
@@ -111,7 +111,7 @@ repos:
     language: system
     pass_filenames: false
     always_run: false
-    files: ^packages/.*/src/sage/__init__\.py$
+    files: ^src/sage/__init__\.py$
           # Block commit if src/sage/__init__.py is added/modified (violates PEP 420)
   - id: cross-repo-dedup-check
     name: cross-repo duplicate declaration check (SAGE vs sageFlownet)
@@ -130,13 +130,6 @@ repos:
     pass_filenames: false
     always_run: false
     files: \.md$
-  - id: dev-notes-categorization-check
-    name: check dev-notes files are properly categorized
-    entry: tools/hooks/check_dev_notes_location.sh
-    language: system
-    pass_filenames: false
-    always_run: false
-    files: ^docs-public/docs_src/dev-notes/.*\.md$
           # - id: control-plane-only-guard
           #   name: prevent embedded/local inference paths
           #   entry: tools/hooks/check_control_plane_only.py
@@ -167,7 +160,7 @@ repos:
       violations=""
       for file in $all_test_files; do
         # Test files should be in tests/ directories or test scripts in examples/
-        if echo "$file" | grep -qE "^(packages/[^/]+/tests/|tests/|examples/.*/tests?\.py$|examples/.*test.*\.py$)"; then
+        if echo "$file" | grep -qE "^(tests/|examples/.*/tests?\.py$|examples/.*test.*\.py$)"; then
           # Allowed location
           continue
         else
@@ -182,13 +175,13 @@ repos:
         echo -e "$violations" | sed "s/^/  - /"
         echo ""
         echo "📁 测试文件应该放在:"
-        echo "  - packages/<package-name>/tests/ - 单元测试和集成测试"
-        echo "  - packages/<package-name>/tests/unit/ - 单元测试"
-        echo "  - packages/<package-name>/tests/integration/ - 集成测试"
-        echo "  - packages/<package-name>/tests/manual/ - 手动测试脚本"
+        echo "  - tests/ - 单元测试和集成测试"
+        echo "  - tests/unit/ - 单元测试"
+        echo "  - tests/integration/ - 集成测试"
+        echo "  - tests/manual/ - 手动测试脚本"
         echo "  - examples/ - 示例和演示脚本（可以包含 test 名称）"
         echo ""
-        echo "💡 建议: 请将测试文件移动到对应包的 tests/ 目录"
+        echo "💡 建议: 请将测试文件移动到仓库的 tests/ 目录"
         exit 1
       else
         exit 0
@@ -197,103 +190,13 @@ repos:
     pass_filenames: false
     always_run: false
     files: \.py$
-  - id: devnotes-check
-    name: dev-notes documentation standards
-    entry: bash -c 'if git diff --cached --name-only --diff-filter=ACM | grep -q "^docs-public/docs_src/dev-notes/.*\.md$"; then sage-dev quality devnotes || true; else exit 0; fi'
-    language: system
-    pass_filenames: false
-    always_run: false
-    files: ^docs-public/docs_src/dev-notes/.*\.md$
-  - id: devnotes-structure-check
-    name: dev-notes directory structure validation
-    entry: bash -c
-    args:
-    - |
-      # Check if any files were staged in docs-public/docs_src/dev-notes/
-      if [ -n "$PRE_COMMIT_FROM_REF" ] && [ -n "$PRE_COMMIT_TO_REF" ]; then
-        # Running with --all-files or during push
-        staged_files=$(git ls-files "docs-public/docs_src/dev-notes/*")
-      else
-        # Running in normal commit mode
-        staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep "^docs-public/docs_src/dev-notes/" || true)
-      fi
-
-      if [ -z "$staged_files" ]; then
-        exit 0
-      fi
-
-      # Allowed top-level directories under docs-public/docs_src/dev-notes/
-      # NOTE: When adding new directories, update this list
-      allowed_dirs=(
-        "l1-common"
-        "l2-platform"
-        "l3-kernel"
-        "l3-libs"
-        "l4-middleware"
-        "l5-cli"
-        "l5-tools"
-        "cross-layer"
-        "testing"
-        "archive"
-        "research_work"
-        "hooks"
-      )
-
-      # Get all first-level directories under docs-public/docs_src/dev-notes/
-      violations=""
-      for file in $staged_files; do
-        # Extract the first directory component after docs-public/docs_src/dev-notes/
-        # e.g., docs-public/docs_src/dev-notes/foo/bar.md -> foo
-        dir_component=$(echo "$file" | sed -n 's|^docs-public/docs_src/dev-notes/\([^/]*\)/.*|\1|p')
-
-        # Skip root-level files (README.md, TEMPLATE.md)
-        if [ -z "$dir_component" ]; then
-          continue
-        fi
-
-        # Check if directory is allowed
-        allowed=false
-        for allowed_dir in "${allowed_dirs[@]}"; do
-          if [ "$dir_component" = "$allowed_dir" ]; then
-            allowed=true
-            break
-          fi
-        done
-
-        if [ "$allowed" = false ]; then
-          # Only add unique violations
-          if [[ ! "$violations" =~ "$dir_component" ]]; then
-            violations="$violations$dir_component\n"
-          fi
-        fi
-      done
-
-      # Report violations
-      if [ -n "$violations" ]; then
-        echo "❌ 错误: docs-public/docs_src/dev-notes/ 下存在未授权的目录:"
-        echo -e "$violations" | sort -u | sed "s/^/  - /"
-        echo ""
-        echo "📁 允许的目录:"
-        echo "  - 分层目录: l1-common, l2-platform, l3-kernel, l3-libs, l4-middleware"
-        echo "               l5-cli, l5-tools"
-        echo "  - 交叉主题: cross-layer, testing, archive"
-        echo "  - 研究工作: research_work"
-        echo ""
-        echo "💡 建议: 将文档移动到合适的目录，或联系维护者更新允许列表"
-        exit 1
-      fi
-      exit 0
-    language: system
-    pass_filenames: false
-    always_run: false
-    files: ^docs-public/docs_src/dev-notes/
   - id: installation-consistency-check
     name: installation consistency check (local vs CI/CD)
     entry: bash tools/install/examination_tools/installation_consistency_check.sh
     language: system
     pass_filenames: false
           # 仅在修改安装相关文件时运行
-    files: ^(quickstart\.sh|tools/install/.*\.sh|packages/.*/pyproject\.toml|packages/.*/setup\.py|\.github/workflows/.*\.yml)$
+    files: ^(quickstart\.sh|tools/install/.*\.sh|pyproject\.toml|setup\.py|\.github/workflows/.*\.yml)$
           # 也在手动运行 pre-commit run --all-files 时执行
     stages: [pre-commit, manual]
   - id: root-directory-cleanup-check
@@ -349,10 +252,8 @@ repos:
         "docker"
         # "docs"  # Root docs/ for meta-package (layer-manifest.json, dependency-audit-gate.md)
         "docs"
-        "docs-public"
         "examples"
         "htmlcov"
-        "packages"
         "src"   # isage meta-package source (src/sage/_version.py)
         "data"
         "tools"
@@ -405,7 +306,7 @@ repos:
         echo "   - 临时文件应放在 .sage/ 目录下"
         echo "   - 如果是新增的合法文件/目录，请更新 tools/config/pre-commit-config.yaml 中的白名单"
         echo ""
-        echo "📖 参考: docs-public/docs_src/dev-notes/l5-tools/CACHE_MANAGEMENT.md"
+        echo "📖 参考: DEVELOPER.md"
         exit 1
       fi
       exit 0
@@ -451,7 +352,7 @@ repos:
     entry: mdformat
     args: [--wrap=100]
     types: [markdown]
-    exclude: ^(CHANGELOG.md|\.github/|docs/dev-notes/|docs-public/docs_src/api-reference/)
+    exclude: ^(CHANGELOG.md|\.github/)
 
         # Security: Check for secrets
         # NOTE: Using local/system detect-secrets to avoid network download failures
@@ -463,7 +364,7 @@ repos:
     language: system
     entry: detect-secrets-hook
     args: [--baseline, tools/config/secrets.baseline]
-    exclude: ^(tools/secrets\.baseline|\.env\.template|\.github/workflows/|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|docs-public/.*\.md$|examples/.*\.py$|packages/.*/src/sage/libs/integrations/.*\.py$|.*\.html$|packages/.*/src/.*\.md$|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
+    exclude: ^(tools/secrets\.baseline|\.env\.template|\.github/workflows/|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|examples/.*\.py$|.*\.html$|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
         # SAGE Data Architecture Validation - REMOVED (sage-benchmark is now independent)
         # See: https://github.com/intellistream/sage-benchmark
@@ -475,18 +376,9 @@ repos:
     language: system
     pass_filenames: false
           # Trigger on: doc files, installation scripts, CI/CD, config, ports, CLI, LLM/Gateway
-    files: ^(\.github/(copilot-instructions\.md|agents/my-agent\.agent\.md|workflows/.*\.yml)|quickstart\.sh|manage\.sh|Makefile|tools/(install/.*\.sh|pre-commit-config\.yaml|pytest\.ini|ruff\.toml)|packages/sage-common/src/sage/common/config/(ports|user_paths)\.py|packages/sage-cli/src/sage/cli/|packages/sage-gateway/src/sage/gateway/|packages/sage-common/src/sage/common/components/sage_(llm|embedding)/|packages/sage-[^/]+/pyproject\.toml|config/(config|cluster)\.yaml)
+    files: ^(\.github/(copilot-instructions\.md|agents/my-agent\.agent\.md|workflows/.*\.yml)|quickstart\.sh|manage\.sh|Makefile|pyproject\.toml|setup\.py|tools/((config/)?pre-commit-config\.yaml|(config/)?ruff\.toml|install/.*\.sh)|config/(config|cluster)\.yaml)
     stages: [pre-commit, manual]
     description: Warn if critical project files change without updating copilot instructions
-  - id: cli-ray-terminology-check
-    name: check sage-cli user-visible strings for Ray terminology (Issue     #1438)
-    entry: bash tools/hooks/check_cli_ray_terminology.sh
-    language: system
-    pass_filenames: false
-    always_run: false
-    files: ^packages/sage-cli/src/sage/cli/.*\.py$
-    stages: [pre-commit, manual]
-    description: Block commits if sage-cli CLI help text, echo messages or command docstrings contain Ray terminology instead of Flownet/SAGE
 # To install pre-commit hooks:
 #   pre-commit install
 #

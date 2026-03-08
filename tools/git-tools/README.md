@@ -241,9 +241,8 @@ git diff
 
 ### 子模块列表
 
-当前 SAGE 项目的子模块:
+当前 SAGE 项目的历史子模块/外部能力来源:
 
-1. `docs-public` - 公共文档
 1. `packages/sage-llm-core/src/sage/llm` - LLM 组件
 1. `packages/sage-middleware/src/sage/middleware/components/sage_db/sageVDB` - 数据库组件
 1. `packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow` - 流处理组件

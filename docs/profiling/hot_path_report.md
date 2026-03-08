@@ -138,6 +138,5 @@ bash tools/profiling/flame_graph.sh dp_unlearning
 
 - Measurements are wall-clock (perf_counter), not CPU-only.
 - DP Unlearning benchmarks include NumPy allocation; C++ target should reuse pre-allocated buffers.
-- Communication benchmarks include stub Packet (no real network); validate with actual Flownet
-  traffic.
+- Communication benchmarks include stub Packet (no real network); validate with actual Flownet traffic.
 - See `.prof` files in `tools/profiling/reports/` for deep dives with `snakeviz` or `gprof2dot`.

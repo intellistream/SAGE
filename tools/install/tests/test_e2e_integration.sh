@@ -238,16 +238,13 @@ step8_verify_documentation() {
 
     # 检查文档文件
     local docs_to_check=(
-        "docs-public/docs_src/dev-notes/l1-common/CLEANUP_AUTOMATION.md"
+        "docs/ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md"
+        "docs/sage_zoo.md"
     )
 
     for doc in "${docs_to_check[@]}"; do
         if [ -f "$TEST_DIR/$doc" ]; then
             log_success "文档存在: $doc"
-
-            if grep -q "SAGE_VENV_POLICY" "$TEST_DIR/$doc"; then
-                log_info "文档包含 SAGE_VENV_POLICY 说明"
-            fi
         else
             log_info "文档不存在（跳过）: $doc"
         fi

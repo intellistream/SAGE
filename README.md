@@ -3,11 +3,6 @@
 > A declarative, composable framework for building transparent LLM-powered systems through dataflow
 > abstractions.
 
-> 📚 **Documentation Note**: Links referencing `docs-public/` point to the
-> [SAGE-Pub](https://github.com/intellistream/SAGE-Pub) repository, which contains comprehensive
-> documentation. Clone it separately if needed:
-> `git clone https://github.com/intellistream/SAGE-Pub.git`
-
 ## 🚀 Quick Start
 
 ### Try SAGE Studio
@@ -116,28 +111,31 @@ python sage-tutorials/L3-kernel/cpu_node_demo.py
 
 ## Architecture
 
-SAGE has a **5-layer core architecture (L1-L5)** with each core layer independently released as its
-own package:
+SAGE now uses a **4-tier workspace architecture (L1-L4)** centered on the actively maintained main
+repositories:
 
 ```text
-L5: sage-cli                          # CLI & Dev Tools       (isage-cli)
-L4: sage-middleware                   # Operators / C++ ext   (isage-middleware)
-L3: sage-kernel, sage-libs            # Runtime & algorithms  (isage-kernel, isage-libs)
-L2: sage-platform                     # Queue, storage        (isage-platform)
+L4: sage-studio                       # Application / UI      (isage-studio)
+L3: sage-cli                          # CLI entrypoint        (isage-cli)
+L2: sage-kernel                       # Runtime / scheduler   (isage-kernel)
 L1: sage-common                       # Foundation            (isage-common)
 ```
 
-Above the core stack, ecosystem repositories (applications, benchmarks, docs, websites) are
-classified as **L6**.
+Notes:
+
+- `isage-common` now carries the former platform / shared interface responsibilities.
+- `isage-kernel` now carries the former middleware runtime responsibilities.
+- `sage-studio` is intentionally above `sage-cli`, not the same layer, because it extends the CLI
+  via plugin entry points.
 
 See [SAGE Ecosystem](#sage-ecosystem) for all independent sub-repositories with CI status, PyPI
 packages, and categorized listings.
 
-📖 **[Architecture Guide](./docs-public/docs_src/concepts/architecture/package-structure.md)** -
-Detailed design principles and dependency rules
+📖 **[Architecture Guide](./docs/ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md)** -
+Canonical ownership boundaries and dependency rules for the meta repo
 
 📌 **[Layer Ownership Matrix v1 (Wave A)](./ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md)** - Canonical
-L1-L5 ownership, independent sub-repo coordination boundary (including `sagellm` capabilities),
+L1-L4 workspace ownership, independent sub-repo coordination boundary (including `sagellm` capabilities),
 forbidden directions, and boundary refactor review checklist
 
 ## Installation
@@ -172,9 +170,9 @@ pip install isage[dev]         # Development tools (includes isage-dev-tools, pr
 
 **What's included in `pip install isage`**
 
-`isage` is a meta-package that bundles the full framework stack: `isage-common` (L1) ·
-`isage-platform` (L2) · `isage-kernel` + `isage-libs` (L3) · `isage-middleware` (L4) · `isage-cli`
-(L5) · `isage-flow` (runtime) · `isagellm` (LLM gateway)
+`isage` is a meta-package that bundles the current framework stack: `isage-common` (L1, includes
+former platform/shared-interface responsibilities) · `isage-kernel` (L2, includes former
+middleware runtime responsibilities) · `isage-cli` (L3) · `isagellm` (LLM gateway)
 
 **Capability Packages (bundled with `isage`)** 🧩
 
@@ -192,7 +190,7 @@ extra manual installation:
 **Optional packages (not bundled — install separately)** 🦁
 
 These packages were moved to independent repositories and are no longer part of the default `isage`
-install. See **[SAGE Zoo guide](./docs-public/docs_src/guides/sage_zoo.md)** for the full list with
+install. See **[SAGE Zoo guide](./docs/sage_zoo.md)** for the full list with
 one-liner descriptions and install commands.
 
 ```bash
@@ -226,7 +224,7 @@ sage doctor                    # Check installation
 [Optimization Tips](tools/install/docs/INSTALLATION_OPTIMIZATION.md)
 
 ⚠️ **Known Issues**: If you encounter transformers version conflicts when installing multiple SAGE
-packages, see [Dependency Fix Guide](docs-public/docs_src/getting-started/DEPENDENCY_FIX.md)
+packages, prefer checking [DEVELOPER.md](./DEVELOPER.md) and the package-specific READMEs first.
 
 ## Environment Configuration
 
@@ -274,8 +272,7 @@ See `sage-tutorials/README.md` for complete learning paths.
   - Will be published as `isage-examples` on PyPI
 - **Tutorials**: [intellistream/sage-tutorials](https://github.com/intellistream/sage-tutorials)
   - Layered tutorials from L1 to L5, quick-start learning paths
-- **Architecture**:
-  [docs-public/docs_src/concepts/architecture/package-structure.md](./docs-public/docs_src/concepts/architecture/package-structure.md)
+- **Architecture**: [docs/ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md](./docs/ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md)
 
 ## Contributing
 
@@ -317,7 +314,7 @@ make docs           # Build documentation
 
 ## SAGE Ecosystem
 
-📦 **[SAGE Zoo guide](./docs-public/docs_src/guides/sage_zoo.md)** — 独立可选包（已 zoo 化，各自独立演进）
+📦 **[SAGE Zoo guide](./docs/sage_zoo.md)** — 独立可选包（已 zoo 化，各自独立演进）
 
 ### 🧠 SAGE — Streaming AI Framework
 
@@ -326,36 +323,21 @@ make docs           # Build documentation
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
 [![Stars](https://img.shields.io/github/stars/intellistream/SAGE?style=social)](https://github.com/intellistream/SAGE/stargazers)
 
-**SAGE** is a streaming AI framework decomposed into 5 independently-released layer packages:
+**SAGE** is a streaming AI framework centered on 4 main workspace tiers:
 
 **Core Layers**
 
 - **[sage-common](https://github.com/intellistream/sage-common)** (L1) — Foundation utilities,
-  config, logging
+  config, logging, and absorbed platform/shared-interface capabilities
   [![CI](https://github.com/intellistream/sage-common/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-common/actions/workflows/ci.yml)
   [![PyPI](https://badge.fury.io/py/isage-common.svg)](https://pypi.org/project/isage-common/)
   [![Stars](https://img.shields.io/github/stars/intellistream/sage-common?style=social)](https://github.com/intellistream/sage-common/stargazers)
-- **[sage-platform](https://github.com/intellistream/sage-platform)** (L2) — Queue, storage, and
-  service abstractions
-  [![CI](https://github.com/intellistream/sage-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-platform/actions/workflows/ci.yml)
-  [![PyPI](https://badge.fury.io/py/isage-platform.svg)](https://pypi.org/project/isage-platform/)
-  [![Stars](https://img.shields.io/github/stars/intellistream/sage-platform?style=social)](https://github.com/intellistream/sage-platform/stargazers)
-- **[sage-kernel](https://github.com/intellistream/sage-kernel)** (L3) — Streaming runtime,
-  scheduler, flow DSL
+- **[sage-kernel](https://github.com/intellistream/sage-kernel)** (L2) — Streaming runtime,
+  scheduler, flow DSL, and absorbed middleware runtime capabilities
   [![CI](https://github.com/intellistream/sage-kernel/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-kernel/actions/workflows/ci.yml)
   [![PyPI](https://badge.fury.io/py/isage-kernel.svg)](https://pypi.org/project/isage-kernel/)
   [![Stars](https://img.shields.io/github/stars/intellistream/sage-kernel?style=social)](https://github.com/intellistream/sage-kernel/stargazers)
-- **[sage-libs](https://github.com/intellistream/sage-libs)** (L3) — Algorithm library (RAG, agents,
-  ANNS interfaces)
-  [![CI](https://github.com/intellistream/sage-libs/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-libs/actions/workflows/ci.yml)
-  [![PyPI](https://badge.fury.io/py/isage-libs.svg)](https://pypi.org/project/isage-libs/)
-  [![Stars](https://img.shields.io/github/stars/intellistream/sage-libs?style=social)](https://github.com/intellistream/sage-libs/stargazers)
-- **[sage-middleware](https://github.com/intellistream/sage-middleware)** (L4) — Domain operators
-  with C++ extensions
-  [![CI](https://github.com/intellistream/sage-middleware/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-middleware/actions/workflows/ci.yml)
-  [![PyPI](https://badge.fury.io/py/isage-middleware.svg)](https://pypi.org/project/isage-middleware/)
-  [![Stars](https://img.shields.io/github/stars/intellistream/sage-middleware?style=social)](https://github.com/intellistream/sage-middleware/stargazers)
-- **[sage-cli](https://github.com/intellistream/sage-cli)** (L5) — Unified CLI and developer tooling
+- **[sage-cli](https://github.com/intellistream/sage-cli)** (L3) — Unified CLI and developer tooling
   [![CI](https://github.com/intellistream/sage-cli/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-cli/actions/workflows/ci.yml)
   [![PyPI](https://badge.fury.io/py/isage-cli.svg)](https://pypi.org/project/isage-cli/)
   [![Stars](https://img.shields.io/github/stars/intellistream/sage-cli?style=social)](https://github.com/intellistream/sage-cli/stargazers)
@@ -364,8 +346,8 @@ Independent sub-repositories are organized by category:
 
 **Application & UI**
 
-- **[sage-studio](https://github.com/intellistream/sage-studio)** — Visual workflow builder and LLM
-  playground
+- **[sage-studio](https://github.com/intellistream/sage-studio)** (L4) — Visual workflow builder
+  and LLM playground
   [![CI](https://github.com/intellistream/sage-studio/actions/workflows/ci-test.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-studio/actions/workflows/ci-test.yml)
   [![PyPI](https://badge.fury.io/py/isage-studio.svg)](https://pypi.org/project/isage-studio/)
   [![Stars](https://img.shields.io/github/stars/intellistream/sage-studio?style=social)](https://github.com/intellistream/sage-studio/stargazers)

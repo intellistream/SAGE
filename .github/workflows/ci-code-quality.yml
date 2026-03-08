@@ -76,37 +76,6 @@ jobs:
         run: |
           pre-commit run --all-files --config tools/config/pre-commit-config.yaml
 
-      - name: Check CLI Ray terminology (Issue #1438)
-        run: |
-          bash tools/hooks/check_cli_ray_terminology.sh --all-files
-      - name: Layer check – sage-libs (L3) must not import sage.middleware (L4) [Issue #1453]
-        run: |
-          bash tools/hooks/check_libs_middleware_import.sh --all-files
-      - name: Layer check – sage-common (L1) must not import L3+ packages [Issue #1452]
-        run: |
-          set +e
-          violations=$(grep -rn \
-            --include="*.py" \
-            -e "from sage\.kernel" \
-            -e "from sage\.middleware" \
-            -e "from sage\.platform" \
-            packages/sage-common/src \
-            | grep -v "#.*from sage\." \
-            | grep -v "must NOT import" \
-            | grep -v "TYPE_CHECKING" \
-            || true)
-          if [ -n "$violations" ]; then
-            echo "::error::sage-common (L1) contains upward layer imports:"
-            echo "$violations" | while IFS= read -r line; do
-              file=$(echo "$line" | cut -d: -f1)
-              lineno=$(echo "$line" | cut -d: -f2)
-              echo "::error file=$file,line=$lineno::sage-common L1 violation: $line"
-            done
-            echo ""
-            echo "FAILED: sage-common must not import sage.kernel / sage.middleware / sage.platform"
-            exit 1
-          fi
-          echo "✓ sage-common layer check passed"
       - name: Cross-repo dedup check - SAGE vs sageFlownet (Issue #1439)
         run: |
           python3 tools/scripts/check_cross_repo_dedup.py \

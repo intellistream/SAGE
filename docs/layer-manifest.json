@@ -1,29 +1,11 @@
 {
   "version": "v1",
   "description": "Canonical layer map for workspace labels and repository declarations.",
-  "declaration_optional_repos": [
-    "sage-dev-tools",
-    "sagellm-protocol",
-    "sagellm-compression"
-  ],
+  "declaration_optional_repos": [],
   "repos": [
     {"repo": "sage-common", "layer": "L1"},
-    {"repo": "sage-platform", "layer": "L2"},
-    {"repo": "sage-kernel", "layer": "L3"},
-    {"repo": "sage-libs", "layer": "L3"},
-    {"repo": "sage-middleware", "layer": "L4"},
-    {"repo": "sage-cli", "layer": "L5"},
-    {"repo": "sage-dev-tools", "layer": "L5"},
-    {"repo": "sage-studio", "layer": "L6"},
-
-    {"repo": "sagellm-protocol", "layer": "L1"},
-    {"repo": "sagellm-comm", "layer": "L2"},
-    {"repo": "sagellm-backend", "layer": "L2"},
-    {"repo": "sagellm-kv-cache", "layer": "L3"},
-    {"repo": "sagellm-compression", "layer": "L3"},
-    {"repo": "sagellm-core", "layer": "L4"},
-    {"repo": "sagellm-control-plane-benchmark", "layer": "L4"},
-    {"repo": "sagellm-control-plane", "layer": "L5"},
-    {"repo": "sagellm-gateway", "layer": "L6"}
+    {"repo": "sage-kernel", "layer": "L2"},
+    {"repo": "sage-cli", "layer": "L3"},
+    {"repo": "sage-studio", "layer": "L4"}
   ]
 }

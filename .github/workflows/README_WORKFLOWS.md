@@ -272,8 +272,8 @@ pip install -e ".[standard]"   # 标准模式
 
 ## 🔗 相关文档
 
-- [SAGE 架构文档](../../docs-public/docs_src/dev-notes/package-architecture.md)
-- [包依赖关系](../../docs-public/docs_src/dev-notes/package-dependencies.md)
+- [SAGE 架构文档](../../docs/ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md)
+- [包依赖关系](../../docs/dependency-audit-gate.md)
 - [贡献指南](../../CONTRIBUTING.md)
 - [CI/CD 分层与目录结构](../../docs/dev-notes/cross-layer/ci-cd.md)
 

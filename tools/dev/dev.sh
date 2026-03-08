@@ -225,19 +225,9 @@ cmd_docs() {
     echo "继续使用旧命令..."
     echo ""
 
-    print_header "Building documentation"
-    cd docs-public
-
-    if [ -f "build.sh" ]; then
-        ./build.sh
-    elif command -v mkdocs &> /dev/null; then
-        mkdocs build
-    else
-        print_error "mkdocs not found. Install with: pip install mkdocs mkdocs-material"
-        exit 1
-    fi
-
-    print_success "Documentation built"
+    print_header "Checking documentation"
+    bash tools/maintenance/check_docs.sh
+    print_success "Documentation check complete"
 }
 
 # Serve documentation
@@ -248,15 +238,9 @@ cmd_serve_docs() {
     echo "继续使用旧命令..."
     echo ""
 
-    print_header "Serving documentation"
-    cd docs-public
-
-    if command -v mkdocs &> /dev/null; then
-        mkdocs serve
-    else
-        print_error "mkdocs not found. Install with: pip install mkdocs mkdocs-material"
-        exit 1
-    fi
+    print_header "Documentation serving unavailable"
+    print_info "SAGE meta 仓库已不再内置独立文档站点"
+    print_info "请直接查看 docs/、README.md 和各独立仓库文档"
 }
 
 # Run full validation

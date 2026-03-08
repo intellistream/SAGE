@@ -21,7 +21,7 @@
       "path": "../sage-kernel"
     },
     {
-      "name": "sage-cli  [L4]",
+      "name": "sage-cli  [L3]",
       "path": "../sage-cli"
     },
     {
@@ -29,7 +29,7 @@
       "path": "../sage-benchmark"
     },
     {
-      "name": "sage-studio  [L5]",
+      "name": "sage-studio  [L4]",
       "path": "../sage-studio"
     }
   ],
@@ -37,7 +37,7 @@
     "python.analysis.extraPaths": [
       "${workspaceFolder:sage-common  [L1]}/src",
       "${workspaceFolder:sage-kernel  [L2]}/src",
-      "${workspaceFolder:sage-cli  [L4]}/src",
+      "${workspaceFolder:sage-cli  [L3]}/src",
       "${workspaceFolder:sage-tools  [zoo]}/src",
     ],
     "python.testing.pytestArgs": [
@@ -104,7 +104,7 @@
         "console": "integratedTerminal",
         "cwd": "${workspaceFolder:SAGE  [meta]}",
         "env": {
-          "PYTHONPATH": "${workspaceFolder:sage-common  [L1]}/src:${workspaceFolder:sage-kernel  [L2]}/src:${workspaceFolder:sage-cli  [L4]}/src:${workspaceFolder:sage-tools  [zoo]}/src",
+          "PYTHONPATH": "${workspaceFolder:sage-common  [L1]}/src:${workspaceFolder:sage-kernel  [L2]}/src:${workspaceFolder:sage-cli  [L3]}/src:${workspaceFolder:sage-tools  [zoo]}/src",
         },
       },
       {

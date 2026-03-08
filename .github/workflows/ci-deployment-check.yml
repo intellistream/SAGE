@@ -83,7 +83,7 @@ jobs:
                   echo "1. 检查跨层级导入（如 app 导入 kernel）"
                   echo "2. 确保导入路径符合包架构"
                   echo "3. 查看架构信息: sage-dev architecture"
-                  echo "4. 查看文档: docs-public/docs_src/dev-notes/package-architecture.md"
+                  echo "4. 查看文档: docs/ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md"
                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                   exit 1
                 }
@@ -104,7 +104,7 @@ jobs:
               echo ""
               echo "⚠️  发现架构问题，但不阻塞部署"
               echo "请查看架构信息: sage-dev architecture"
-              echo "并尽快修复: docs-public/docs_src/dev-notes/package-architecture.md"
+              echo "并尽快修复: docs/ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md"
             }
           fi
 
@@ -150,7 +150,7 @@ jobs:
 
           # 统计信息
           TOTAL_PACKAGES=$(find packages -name "setup.py" -o -name "pyproject.toml" | wc -l)
-          TOTAL_DOCS=$(find docs-public/docs_src/dev-notes -name "*.md" -type f 2>/dev/null | wc -l)
+          TOTAL_DOCS=$(find docs -name "*.md" -type f 2>/dev/null | wc -l)
 
           echo "📦 包数量: $TOTAL_PACKAGES"
           echo "📚 文档数量: $TOTAL_DOCS"
