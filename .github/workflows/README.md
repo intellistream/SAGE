@@ -164,18 +164,14 @@ Workflow 会在以下情况**自动运行**：
 所有核心包都会按依赖顺序发布:
 
 1. `isage-common` - 公共基础库 (L1)
-1. `isage-platform` - 平台服务 (L2)
-1. `isage-kernel` - 核心引擎 (L3)
-1. `isage-libs` - 算法库 (L3)
-1. `isage-middleware` - 中间件组件 (L4)
-1. `isage-cli` - 命令行工具 (L5)
-1. `isage-tools` - 开发工具 (L5)
+1. `isage-kernel` - 核心运行时 (L2)
+1. `isage-cli` - 命令行工具 (L3)
 1. `isage` - 元包（安装所有子包）
 
 **独立仓库发布** (不在 SAGE 核心仓库):
 - `isagellm` - LLM 推理引擎 (sageLLM 仓库)
 - `isage-benchmark` - 基准测试 (sage-benchmark 仓库)
-- `isage-studio` - 可视化工具 (sage-studio 仓库)
+- `isage-studio` - 可视化工具 (L4，sage-studio 仓库)
 - `isage-edge` - 边缘聚合器 (sage-edge 仓库)
 
 ### 版本策略

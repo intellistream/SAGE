@@ -237,7 +237,7 @@ cp .env.template .env    # Copy template
 
 ## 📚 Tutorials
 
-Complete tutorials covering all layers of SAGE (L1-L5):
+Complete tutorials covering the current workspace tiers of SAGE (L1-L4) plus historical capability topics:
 
 ```bash
 # Clone tutorials repository

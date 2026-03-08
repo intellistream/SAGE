@@ -48,7 +48,7 @@ dependency pin governance, and contract-level policy only.
 `isagellm` is an external capability package family from independent SageLLM repositories.
 
 - `SAGE` meta can depend on and orchestrate `isagellm` capability.
-- `SAGE` core layers (L1-L5) must not re-embed SageLLM internals
+- `SAGE` core workspace layers (L1-L4) must not re-embed SageLLM internals
   (protocol/core/backend/control-plane/gateway).
 - Any `isagellm` dependency change in `pyproject.toml` must provide callsite evidence proving
   integration/orchestration usage only, not internal implementation migration into SAGE core.

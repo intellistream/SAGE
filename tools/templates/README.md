@@ -123,37 +123,25 @@ For each upstream repo, edit `.github/workflows/release.yml` and set the `DOWNST
 in the `dispatch-downstream` job:
 
 ```yaml
-# sage-common (L1) — notifies all downstream layers
-DOWNSTREAM_REPOS="intellistream/sage-platform intellistream/sage-kernel intellistream/sage-libs intellistream/sage-middleware intellistream/sage-cli"
+# sage-common (L1) — notifies all downstream workspace layers
+DOWNSTREAM_REPOS="intellistream/sage-kernel intellistream/sage-cli intellistream/sage-studio"
 
-# sage-platform (L2) — notifies L3/L4
-DOWNSTREAM_REPOS="intellistream/sage-kernel intellistream/sage-middleware"
+# sage-kernel (L2) — notifies L3/L4
+DOWNSTREAM_REPOS="intellistream/sage-cli intellistream/sage-studio"
 
-# sage-kernel (L3) — notifies L4/L5
-DOWNSTREAM_REPOS="intellistream/sage-middleware intellistream/sage-cli"
-
-# sage-libs (L3) — notifies L4
-DOWNSTREAM_REPOS="intellistream/sage-middleware"
-
-# sage-middleware (L4) — notifies L5
-DOWNSTREAM_REPOS="intellistream/sage-cli"
+# sage-cli (L3) — notifies L4 apps
+DOWNSTREAM_REPOS="intellistream/sage-studio"
 ```
 
 ### Dependency graph
 
 ```
 isage-common (L1)
-    ├─ isage-platform (L2)
-    │       ├─ isage-kernel (L3)
-    │       │       ├─ isage-middleware (L4)
-    │       │       │       └─ isage-cli (L5)
-    │       │       └─ isage-cli (L5)
-    │       └─ isage-middleware (L4)
-    ├─ isage-kernel (L3)
-    ├─ isage-libs (L3)
-    │       └─ isage-middleware (L4)
-    ├─ isage-middleware (L4)
-    └─ isage-cli (L5)
+    ├─ isage-kernel (L2)
+    │       ├─ isage-cli (L3)
+    │       │       └─ isage-studio (L4)
+    │       └─ isage-studio (L4)
+    └─ isage-cli (L3)
 ```
 
 ______________________________________________________________________
