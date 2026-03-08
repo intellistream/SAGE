@@ -7,7 +7,7 @@
 
 ## 1) Purpose
 
-This document defines the canonical ownership boundaries for SAGE L1-L5 in this meta repository,
+This document defines the canonical ownership boundaries for the current SAGE workspace L1-L4 in this meta repository,
 including:
 
 - In-scope responsibilities per layer
@@ -25,7 +25,7 @@ and only becomes visible in this repo after release + version pin update.
 
 | Area                                  | Primary Ownership Repo(s)                                                                                                                                                                    | In-Scope for `SAGE` Meta                                                                        | Out-of-Scope for `SAGE` Meta                                                                 |
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Core layer packages (L1-L5)           | `sage-common`, `sage-platform`, `sage-kernel`, `sage-libs`, `sage-middleware`, `sage-cli`                                                                                                    | dependency pin governance, integration contract, docs and workflow guardrails                   | direct feature implementation that should happen in the owning sub-repo                      |
+| Core workspace packages (L1-L4)       | `sage-common`, `sage-kernel`, `sage-cli`, `sage-studio`                                                                                                                                      | dependency pin governance, integration contract, docs and workflow guardrails                   | direct feature implementation that should happen in the owning sub-repo                      |
 | L3 algorithm capability repos         | `sage-agentic`, `sage-agentic-tooluse`, `sage-agentic-tooluse-sias`, `sage-rag`, `sageRefiner`, `sage-eval`, `sage-finetune`, `sage-libs-intent`, `sage-privacy`, `sage-safety`, `sage-edge` | feature-level capability integration contract and version governance                            | implementing algorithm internals in `SAGE` meta as temporary shortcut                        |
 | L4 middleware/engine capability repos | `sageVDB`, `neuromem`, `sageFlow`, `sageTSDB`                                                                                                                                                | capability composition and dependency pin orchestration through middleware/meta contracts       | moving backend runtime internals into L3 or directly into meta docs/scripts as fallback path |
 | Runtime engine                        | `sageFlownet`                                                                                                                                                                                | runtime direction policy (Flownet-first), integration constraints                               | re-introducing `ray` dependency via meta-side shortcuts                                      |
@@ -41,28 +41,27 @@ Coordination rule (mandatory):
 
 No meta-side compatibility shim should be added to bypass step 1.
 
-## 2.2) Ownership Matrix (L1-L5)
+## 2.2) Ownership Matrix (L1-L4)
 
-| Layer | Package(s)                   | In Scope (MUST own)                                                              | Out of Scope (MUST NOT own)                                                                            |
-| ----- | ---------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| L1    | `isage-common`               | config/logging/protocols/base utils/base service primitives                      | scheduling/runtime orchestration/operator business logic/app CLI                                       |
-| L2    | `isage-platform`             | queue/storage/service abstractions/runtime adapters                              | algorithm implementations/domain operators/user-facing CLI                                             |
-| L3    | `isage-kernel`, `isage-libs` | dataflow runtime + scheduler (`kernel`), algorithm interfaces/factories (`libs`) | infrastructure-bound middleware resources (VDB/memory backends/networked operators), app orchestration |
-| L4    | `isage-middleware`           | domain operators + service-binding components (VDB/memory/flow/TSDB integration) | top-level CLI UX/tooling commands                                                                      |
-| L5    | `isage-cli`                  | user-facing commands, platform/app operation entrypoints                         | lower-layer reusable core logic reimplementation                                                       |
+| Layer | Package(s)      | In Scope (MUST own)                                                                 | Out of Scope (MUST NOT own)                                             |
+| ----- | --------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| L1    | `isage-common`  | config/logging/protocols/base utils/base service primitives; absorbed shared contracts | runtime orchestration, CLI UX, application composition                    |
+| L2    | `isage-kernel`  | dataflow runtime, scheduler, RPC, flow DSL, absorbed middleware runtime responsibilities | lower-level foundation reimplementation, CLI/app orchestration            |
+| L3    | `isage-cli`     | user-facing commands, platform/app operation entrypoints                            | lower-layer reusable core logic reimplementation                          |
+| L4    | `isage-studio`  | application UX, visual workflow composition, top-layer app integration via CLI plugin surface | reusable lower-layer runtime/CLI foundation code                          |
 
 ## 3) Dependency Direction Rules
 
 Allowed direction (strict):
 
 ```text
-L5 -> L4 -> L3 -> L2 -> L1
+L4 -> L3 -> L2 -> L1
 ```
 
 Forbidden:
 
 1. Reverse import (e.g. `L2 -> L3`, `L1 -> L4`)
-1. L3 runtime/service-bound implementations in `sage-libs`
+1. Application/runtime responsibilities leaking across the current workspace layer boundary
 1. Compatibility shim / re-export / fallback layers that hide migration work
 1. New `ray` dependency/imports (Flownet-first policy)
 1. Implementing sub-repo-owned runtime/LLM internals directly in `SAGE` meta as a workaround
@@ -75,7 +74,7 @@ not the implementation home for all capabilities.
 Mandatory rules:
 
 1. Sub-package implementation changes must be done in their own repositories first (`sage-common`,
-   `sage-platform`, `sage-kernel`, `sage-libs`, `sage-middleware`, `sage-cli`, etc.).
+   `sage-kernel`, `sage-cli`, `sage-studio`, and related capability repos).
 1. `SAGE` meta repo consumes published versions via root package metadata; no implicit local sibling
    coupling assumptions.
 1. Cross-repo rollout order is: sub-repo publish -> bump pin in meta repo -> meta integration
@@ -107,7 +106,7 @@ external capability package from SAGE meta governance perspective.
 
 Boundary rules:
 
-1. Keep SAGE core layers (L1-L5) focused on framework/runtime/contracts; do not re-embed SageLLM
+1. Keep SAGE core workspace layers (L1-L4) focused on framework/runtime/contracts; do not re-embed SageLLM
    control-plane/gateway internals into SAGE core packages.
 1. LLM inference/gateway capability should be integrated through declared package dependency and
    stable API usage (`isagellm` and its sub-repos), not by copying implementation into SAGE layers.
@@ -131,17 +130,13 @@ Capability scope reminder:
 > These are policy examples used during review and grep-based audits.
 
 1. `sage.common` importing any of:
-   - `sage.platform`
    - `sage.kernel`
-   - `sage.libs`
-   - `sage.middleware`
    - `sage.cli`
-1. `sage.platform` importing any of:
-   - `sage.kernel`
-   - `sage.libs`
-   - `sage.middleware`
+   - `sage.studio`
+1. `sage.kernel` importing any of:
    - `sage.cli`
-1. `sage.libs` containing runtime/service-coupled backend logic
+   - `sage.studio`
+1. `sage.cli` importing application-only modules from `sage.studio` outside the plugin surface
 1. New module-level fallback imports such as:
    - `try: import new_path ... except: import old_path ...`
 
@@ -149,8 +144,8 @@ Capability scope reminder:
 
 | Violation Type              | Example Symptom                                    | Direct Fix (No Shim)                                                   |
 | --------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------- |
-| Upward dependency           | L2 module imports L3 scheduler helper              | Move helper to L2/L1 interface or update caller to consume L2 API      |
-| Runtime code in `sage-libs` | VDB/network client appears in L3 interface package | Move runtime implementation to L4 and keep only protocol/factory at L3 |
+| Upward dependency           | L2 module imports L3 CLI helper                    | Move helper to L2/L1 interface or update caller to consume L2 API      |
+| App logic in lower layer    | Studio-only workflow code appears in CLI/runtime   | Move app-specific implementation back to L4 and keep L3 as orchestration |
 | Compatibility re-export     | old path re-exports new API silently               | Update all call sites to new path and remove old export                |
 | Fallback import             | dual-path import to preserve legacy path           | keep only canonical import path, fail-fast on missing dependency       |
 
@@ -158,7 +153,7 @@ Capability scope reminder:
 
 P0 (must clear first):
 
-1. Any reverse dependency violating `L5 -> L4 -> L3 -> L2 -> L1`
+1. Any reverse dependency violating `L4 -> L3 -> L2 -> L1`
 1. Any new/existing shim/fallback that masks boundary migration
 1. Any new `ray` import introduced after Flownet-first policy
 
