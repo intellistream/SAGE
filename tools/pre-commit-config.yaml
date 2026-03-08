@@ -250,7 +250,7 @@ repos:
         "build"
         "config"
         "docker"
-        # "docs"  # Root docs/ for meta-package (layer-manifest.json, dependency-audit-gate.md)
+        # "docs"  # Root docs/ only for machine-owned governance artifacts
         "docs"
         "examples"
         "htmlcov"

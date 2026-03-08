@@ -389,8 +389,8 @@ python3 -c "import sage; assert sage.__file__ is None"  # 应该成功
 
 **SAGE 与 sageFlownet 之间的代码迁移必须遵循 "先移动、立即删除" 原则。**
 
-迁移边界权威文档： `docs_src/concepts/architecture/design-decisions/flownet-migration-boundary.md`（sage-docs
-仓库）
+迁移边界权威文档： `sage-docs/docs_src/concepts/architecture/design-decisions/flownet-migration-boundary.md`
+（sage-docs 仓库）
 
 #### ❌ 禁止操作
 

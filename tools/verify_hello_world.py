@@ -101,7 +101,7 @@ def main() -> int:
     print("Next steps:")
     print("  - Clone examples: git clone https://github.com/intellistream/sage-examples.git")
     print("  - Run tutorial: python sage-examples/tutorials/hello_world.py")
-    print("  - Read docs: https://intellistream.github.io/SAGE-Pub/")
+    print("  - Read docs: https://intellistream.github.io/sage-docs/")
 
     return 0
 

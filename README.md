@@ -131,12 +131,12 @@ Notes:
 See [SAGE Ecosystem](#sage-ecosystem) for all independent sub-repositories with CI status, PyPI
 packages, and categorized listings.
 
-📖 **[Architecture Guide](./docs/ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md)** -
+📖 **[Architecture Guide](https://intellistream.github.io/sage-docs/architecture/)** -
 Canonical ownership boundaries and dependency rules for the meta repo
 
-📌 **[Layer Ownership Matrix v1 (Wave A)](./ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md)** - Canonical
-L1-L4 workspace ownership, independent sub-repo coordination boundary (including `sagellm` capabilities),
-forbidden directions, and boundary refactor review checklist
+📌 **[Layer Ownership Matrix v1 (Wave A)](https://intellistream.github.io/sage-docs/architecture/layer-ownership/)** - Canonical
+L1-L4 workspace ownership, independent sub-repo coordination boundary (including `sagellm`
+capabilities), forbidden directions, and boundary refactor review checklist
 
 ## Installation
 
@@ -190,7 +190,7 @@ extra manual installation:
 **Optional packages (not bundled — install separately)** 🦁
 
 These packages were moved to independent repositories and are no longer part of the default `isage`
-install. See **[SAGE Zoo guide](./docs/sage_zoo.md)** for the full list with
+install. See **[sage-docs package guide](https://intellistream.github.io/sage-docs/guides/packages/)** for the full list with
 one-liner descriptions and install commands.
 
 ```bash
@@ -219,8 +219,8 @@ sage doctor                    # Check installation
 ./quickstart.sh --doctor       # Diagnose issues
 ```
 
-📖 **Detailed guides**: [Installation Guide](docs/INSTALLATION_GUIDE.md) |
-[Troubleshooting](docs/TROUBLESHOOTING.md) | [Validation](docs/INSTALLATION_VALIDATION.md) |
+📖 **Detailed guides**: [Installation Guide](https://intellistream.github.io/sage-docs/guides/installation/) |
+[Troubleshooting](https://intellistream.github.io/sage-docs/guides/troubleshooting/) | [Validation](https://intellistream.github.io/sage-docs/guides/validation/) |
 [Optimization Tips](tools/install/docs/INSTALLATION_OPTIMIZATION.md)
 
 ⚠️ **Known Issues**: If you encounter transformers version conflicts when installing multiple SAGE
@@ -265,14 +265,14 @@ See `sage-tutorials/README.md` for complete learning paths.
 ## Documentation & Resources
 
 - **Documentation**:
-  [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
+  [https://intellistream.github.io/sage-docs/](https://intellistream.github.io/sage-docs/)
 - **Examples & Applications**:
   [intellistream/sage-examples](https://github.com/intellistream/sage-examples)
   - RAG examples and production applications
   - Will be published as `isage-examples` on PyPI
 - **Tutorials**: [intellistream/sage-tutorials](https://github.com/intellistream/sage-tutorials)
   - Layered tutorials from L1 to L5, quick-start learning paths
-- **Architecture**: [docs/ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md](./docs/ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md)
+- **Architecture**: [sage-docs architecture guide](https://intellistream.github.io/sage-docs/architecture/)
 
 ## Contributing
 
@@ -287,7 +287,7 @@ git commit -m "feat(kernel): add new feature"
 git push -u origin feature/my-feature
 ```
 
-**Resources**: [Quick Reference](./docs/QUICK_REFERENCE.md) |
+**Resources**: [Quick Reference](https://intellistream.github.io/sage-docs/reference/quick-reference/) |
 [GitHub Issues](https://github.com/intellistream/SAGE/issues) |
 [Discussions](https://github.com/intellistream/SAGE/discussions)
 
@@ -314,7 +314,7 @@ make docs           # Build documentation
 
 ## SAGE Ecosystem
 
-📦 **[SAGE Zoo guide](./docs/sage_zoo.md)** — 独立可选包（已 zoo 化，各自独立演进）
+📦 **[sage-docs package guide](https://intellistream.github.io/sage-docs/guides/packages/)** — 独立能力包与安装索引
 
 ### 🧠 SAGE — Streaming AI Framework
 

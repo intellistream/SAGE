@@ -5,15 +5,16 @@ set -e
 # Check Docs Location Hook
 # ============================================================================
 # Purpose: Ensure markdown files are in proper locations.
-#          Root docs/ is the canonical location for meta-repo documentation.
+#          User-facing project docs live in the sibling sage-docs repository.
 #
 # This hook prevents:
 # 1. Any files under legacy docs-public/
 # 2. Markdown files in random locations outside allowed patterns
 #
 # Rationale:
-# - Root 'docs/' is the canonical home for committed meta-repo documentation
+# - User-facing docs are centralized in the sibling 'sage-docs' repository
 # - Legacy 'docs-public/' paths must not be reintroduced
+# - Root 'docs/' in SAGE is reserved for machine-owned governance artifacts only
 # - Package-specific docs go in packages/<package>/docs/ or README.md
 # - Submodules can have their own docs/ directories (e.g., sageLLM/docs/, sageFlow/docs/)
 # - Tools can have their own docs/ directories (e.g., tools/install/docs/)
@@ -43,7 +44,8 @@ allowed_patterns=(
     "^CONTRIBUTING\.md$"
     "^LICENSE\.md$"
     "^DEVELOPER\.md$"
-    "^docs/"
+    "^docs/dependency-audit-gate\.md$"
+    "^docs/profiling/.*\.md$"
     "^docker/.*\.md$"
     "^packages/[^/]+/README\.md$"              # Only top-level README in packages
     "^packages/[^/]+/CHANGELOG\.md$"           # Only top-level CHANGELOG in packages
@@ -156,10 +158,11 @@ if [ -n "$legacy_docs_violations" ]; then
     echo "================================================================================================"
     echo ""
     echo "The legacy 'docs-public/' path has been removed from the SAGE meta repository."
-    echo "All project documentation must be placed in 'docs/' or other appropriate locations."
+    echo "User-facing project documentation must be managed in the sibling 'sage-docs' repository."
     echo ""
-    echo "⚠️  Note: Package and tool docs/ directories ARE ALLOWED:"
-    echo "   ✅ docs/                            - Meta repository documentation"
+    echo "⚠️  Note: package/tool docs and machine-owned governance docs ARE ALLOWED:"
+    echo "   ✅ ../sage-docs/                    - Centralized project documentation"
+    echo "   ✅ docs/dependency-audit-gate.md    - Meta governance audit evidence"
     echo "   ✅ packages/<package>/docs/         - Package-specific documentation"
     echo "   ✅ tools/<tool>/docs/               - Tool-specific documentation"
     echo ""
@@ -173,7 +176,7 @@ if [ -n "$legacy_docs_violations" ]; then
     echo "  ✅ Examples:             examples/<name>/README.md"
     echo ""
     echo "💡 Action required:"
-    echo "   1. Move files from 'docs-public/' to 'docs/' (appropriate subdirectory)"
+    echo "   1. Move user-facing docs into the sibling 'sage-docs' repository"
     echo "   2. Update any internal links/references"
     echo "   3. Remove the legacy docs-public path entirely"
     echo ""
@@ -195,7 +198,8 @@ if [ -n "$other_violations" ]; then
     echo "     - README.md, CHANGELOG.md, CONTRIBUTING.md, LICENSE.md, DEVELOPER.md"
     echo ""
     echo "  📚 项目文档:"
-    echo "     - docs/                               (元仓库文档、治理、报告)"
+    echo "     - ../sage-docs/                       (集中管理的项目文档仓库)"
+    echo "     - docs/dependency-audit-gate.md       (元仓库治理证据文档)"
     echo ""
     echo "  📦 包级文档:"
     echo "     - packages/<package>/README.md        (包的主文档)"
@@ -221,8 +225,8 @@ if [ -n "$other_violations" ]; then
     echo "💡 整理建议:"
     echo "   1. 包内文档 → packages/<package>/docs/"
     echo "   2. 子模块文档 → 子模块的 docs/ 子目录"
-    echo "   3. 通用开发者文档 → docs/"
-    echo "   4. 用户指南/报告 → docs/ 对应子目录"
+    echo "   3. 通用开发者文档 → sage-docs 仓库"
+    echo "   4. 元仓库治理证据/报告 → docs/ 中的机器专用文件"
     echo ""
     echo "🔍 常见违规案例:"
     echo "   ❌ packages/.../src/.../BUILD.md          → 应移至 packages/<pkg>/docs/"

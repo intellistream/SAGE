@@ -62,7 +62,7 @@ git checkout main-dev
 - ✅ 安装本地根目录 `isage` meta 包
 - ✅ 子包依赖按版本约束从 PyPI 解析（稳定/发布导向）
 
-> 💡 **注意**: 文档已迁移到独立的 [SAGE-Pub](https://github.com/intellistream/SAGE-Pub) 仓库。### Initial Setup
+> 💡 **注意**: 用户文档已迁移到独立的 [sage-docs](https://github.com/intellistream/sage-docs) 仓库。### Initial Setup
 
 1. Clone and switch to development branch
 
@@ -77,7 +77,7 @@ git checkout main-dev
    ./quickstart.sh --dev --yes
    ```
 
-> 💡 For multi-folder VS Code editing, clone `SAGE-Pub` repository in the parent directory pre-commit
+> 💡 For multi-folder VS Code editing, clone `sage-docs` repository in the parent directory pre-commit
 > install
 
 # Install development tools
@@ -94,7 +94,7 @@ ______________________________________________________________________
 
 For cross-repo boundary refactor reviews, use the canonical ownership matrix:
 
-- [ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md](ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md)
+- [sage-docs architecture/layer-ownership](https://intellistream.github.io/sage-docs/architecture/layer-ownership/)
 
 This matrix defines current workspace L1-L4 ownership, forbidden dependency direction, violation examples, and
 remediation priority for Phase 1, including independent sub-repo coordination and `sagellm`

@@ -29,6 +29,10 @@
       "path": "../sage-benchmark"
     },
     {
+      "name": "sage-docs  [docs]",
+      "path": "../sage-docs"
+    },
+    {
       "name": "sage-studio  [L4]",
       "path": "../sage-studio"
     }

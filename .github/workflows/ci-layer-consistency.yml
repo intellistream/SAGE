@@ -9,7 +9,6 @@ on:
       - "docs/layer-manifest.json"
       - ".github/workflows/ci-layer-consistency.yml"
       - "tools/scripts/check_layer_manifest_sync.py"
-      - "ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md"
   push:
     branches: [main, main-dev]
     paths:
@@ -18,7 +17,6 @@ on:
       - "docs/layer-manifest.json"
       - ".github/workflows/ci-layer-consistency.yml"
       - "tools/scripts/check_layer_manifest_sync.py"
-      - "ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md"
   workflow_dispatch:
 
 concurrency:

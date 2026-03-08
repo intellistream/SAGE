@@ -238,8 +238,10 @@ step8_verify_documentation() {
 
     # 检查文档文件
     local docs_to_check=(
-        "docs/ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md"
-        "docs/sage_zoo.md"
+        "README.md"
+        "DEVELOPER.md"
+        "CONTRIBUTING.md"
+        "docs/dependency-audit-gate.md"
     )
 
     for doc in "${docs_to_check[@]}"; do

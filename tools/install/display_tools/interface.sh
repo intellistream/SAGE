@@ -63,10 +63,10 @@ show_logo() {
 
     # 网址和版权信息也应用相同的偏移逻辑
     if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
-        center_text_formatted "https://intellistream.github.io/SAGE-Pub/" "$GRAY"
+        center_text_formatted "https://intellistream.github.io/sage-docs/" "$GRAY"
         center_text_formatted "intellistream 2025" "$GRAY"
     else
-        center_text "https://intellistream.github.io/SAGE-Pub/" "$GRAY"
+        center_text "https://intellistream.github.io/sage-docs/" "$GRAY"
         center_text "intellistream 2025" "$GRAY"
     fi
 }
@@ -770,7 +770,7 @@ show_usage_tips() {
     fi
 
     echo -e "${BLUE}文档和示例：${NC}"
-    echo -e "  ${GRAY}https://intellistream.github.io/SAGE-Pub/${NC}"
+    echo -e "  ${GRAY}https://intellistream.github.io/sage-docs/${NC}"
     echo -e "  ${GRAY}./examples/  # 查看示例代码${NC}"
     echo ""
 

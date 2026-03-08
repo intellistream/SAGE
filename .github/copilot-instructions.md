@@ -31,8 +31,9 @@
 - Package-scoped tests use `packages/<pkg>/tests/`; root `pytest.ini` is configured to collect package tests only.
 
 ## Documentation and file placement
-- Put project docs under `docs/`; package docs under `packages/<pkg>/README.md` or `packages/<pkg>/docs/`.
-- Use root docs (`README.md`, `DEVELOPER.md`, `CONTRIBUTING.md`, `docs/`) as the source of truth for the meta repo.
+- User-facing project docs are centralized in the `sage-docs` repository; add `../sage-docs` to the multi-root workspace when available.
+- In this meta repo, keep only root entry docs (`README.md`, `DEVELOPER.md`, `CONTRIBUTING.md`) plus machine-owned governance artifacts such as `docs/layer-manifest.json` and dependency audit evidence.
+- Do not add new duplicated user-facing markdown under root `docs/`; publish or update it in `sage-docs` instead.
 
 ## Integration map (what to call, what not to reintroduce)
 - LLM control-plane/gateway functionality is externalized; prefer `isagellm` integration points instead of re-adding legacy in-repo gateway patterns.

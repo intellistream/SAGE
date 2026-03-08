@@ -272,10 +272,10 @@ pip install -e ".[standard]"   # 标准模式
 
 ## 🔗 相关文档
 
-- [SAGE 架构文档](../../docs/ARCHITECTURE_LAYER_OWNERSHIP_MATRIX_V1.md)
+- [SAGE 架构文档](https://intellistream.github.io/sage-docs/architecture/)
 - [包依赖关系](../../docs/dependency-audit-gate.md)
 - [贡献指南](../../CONTRIBUTING.md)
-- [CI/CD 分层与目录结构](../../docs/dev-notes/cross-layer/ci-cd.md)
+- [CI/CD 分层与目录结构](https://intellistream.github.io/sage-docs/dev-notes/cross-layer/ci-cd/)
 
 ## ♻️ Workflow 命名规范
 
