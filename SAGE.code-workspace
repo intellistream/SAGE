@@ -21,10 +21,6 @@
       "path": "../sage-examples"
     },
     {
-      "name": "neuromem  [capability]",
-      "path": "../neuromem"
-    },
-    {
       "name": "sage-agentic  [capability]",
       "path": "../sage-agentic"
     },
