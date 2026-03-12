@@ -12,6 +12,13 @@ Expected output:
 """
 
 import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = REPO_ROOT / "src"
+
+if SRC_DIR.exists():
+    sys.path.insert(0, str(SRC_DIR))
 
 
 def main() -> int:
@@ -22,66 +29,94 @@ def main() -> int:
 
     errors = []
 
-    # Test L1: sage-common (includes sage.libs.*)
+    transitional = []
+
+    # Transitional compatibility surfaces may still be present in migrated environments.
     try:
         import sage.common
 
-        print(f"✅ sage.common {sage.common.__version__}")
+        print(f"ℹ️  sage.common {sage.common.__version__} (transitional)")
     except ImportError as e:
-        print(f"❌ sage.common: {e}")
-        errors.append("sage.common")
+        print(f"⚠️  sage.common: {e} (transitional)")
+        transitional.append("sage.common")
 
-    # Test L1: sage.libs (now part of isage-common)
+    # Transitional surface: sage.libs (now owned by consolidated isage)
     try:
         import sage.libs
 
-        print(f"✅ sage.libs {sage.libs.__version__}")
+        print(f"ℹ️  sage.libs {sage.libs.__version__} (transitional)")
     except ImportError as e:
-        print(f"❌ sage.libs: {e}")
-        errors.append("sage.libs")
+        print(f"⚠️  sage.libs: {e} (transitional)")
+        transitional.append("sage.libs")
 
-    # Test L1: sage-platform
+    # Transitional surface: sage.platform (now owned by consolidated isage runtime/foundation)
     try:
         import sage.platform
 
-        print(f"✅ sage.platform {sage.platform.__version__}")
+        print(f"ℹ️  sage.platform {sage.platform.__version__} (transitional)")
     except ImportError as e:
-        print(f"❌ sage.platform: {e}")
-        errors.append("sage.platform")
+        print(f"⚠️  sage.platform: {e} (transitional)")
+        transitional.append("sage.platform")
 
-    # Test L2: sage-kernel (includes sage.middleware.*)
+    # Transitional kernel/middleware imports are optional and no longer part of the root contract.
     try:
         import sage.kernel
 
-        print(f"✅ sage.kernel {sage.kernel.__version__}")
+        print(f"ℹ️  sage.kernel {sage.kernel.__version__} (transitional)")
     except ImportError as e:
-        print(f"❌ sage.kernel: {e}")
-        errors.append("sage.kernel")
+        print(f"⚠️  sage.kernel: {e} (transitional)")
+        transitional.append("sage.kernel")
 
-    # Test L2: sage.middleware (now part of isage-kernel)
+    # Test L2: sage.middleware (transitional)
     try:
         import sage.middleware
 
-        print(f"✅ sage.middleware {sage.middleware.__version__}")
+        print(f"ℹ️  sage.middleware {sage.middleware.__version__} (transitional)")
     except ImportError as e:
-        print(f"❌ sage.middleware: {e}")
-        errors.append("sage.middleware")
+        print(f"⚠️  sage.middleware: {e} (transitional)")
+        transitional.append("sage.middleware")
 
-    # Test L5: sage-cli (optional)
+    # Test main-repo in-tree surfaces
+    try:
+        import sage.foundation
+
+        print("✅ sage.foundation")
+    except ImportError as e:
+        print(f"❌ sage.foundation: {e}")
+        errors.append("sage.foundation")
+
+    try:
+        import sage.stream
+
+        print("✅ sage.stream")
+    except ImportError as e:
+        print(f"❌ sage.stream: {e}")
+        errors.append("sage.stream")
+
+    try:
+        import sage.runtime
+
+        print("✅ sage.runtime")
+    except ImportError as e:
+        print(f"❌ sage.runtime: {e}")
+        errors.append("sage.runtime")
+
+    try:
+        import sage.serving
+
+        print("✅ sage.serving")
+    except ImportError as e:
+        print(f"❌ sage.serving: {e}")
+        errors.append("sage.serving")
+
+    # Test L3: main-repo CLI (required)
     try:
         import sage.cli
 
         print(f"✅ sage.cli {sage.cli.__version__}")
     except ImportError as e:
-        print(f"⚠️  sage.cli: {e} (optional)")
-
-    # Test L5: sage-tools (optional)
-    try:
-        import sage.tools
-
-        print(f"✅ sage.tools {sage.tools.__version__}")
-    except ImportError as e:
-        print(f"⚠️  sage.tools: {e} (optional)")
+        print(f"❌ sage.cli: {e}")
+        errors.append("sage.cli")
 
     print("=" * 50)
 
@@ -90,17 +125,29 @@ def main() -> int:
         print("Please reinstall: ./quickstart.sh --dev --yes")
         return 1
 
-    # Get overall version from sage.common
+    # Get overall version from main repo
     try:
-        version = sage.common.__version__
+        from sage._version import __version__ as version
     except Exception:
         version = "unknown"
 
     print(f"✅ SAGE v{version} installed successfully!")
     print()
     print("Next steps:")
-    print("  - Clone examples: git clone https://github.com/intellistream/sage-examples.git")
-    print("  - Run tutorial: python sage-examples/tutorials/hello_world.py")
+    print("  - Verify CLI surface: sage verify")
+    print("  - Inspect runtime view: sage runtime nodes")
+    print("  - Inspect gateway contract: sage serve gateway --json")
+    print("  - Build a stream: from sage.stream import DataStream")
+    print("  - Pick a runtime: from sage.runtime import LocalEnvironment, FluttyEnvironment")
+    print("  - Attach serving when needed: from sage.serving import SageServeConfig")
+    print('  - Chat with sagellm: sage chat --ask "Hello, SAGE!"')
+    print(
+        "  - Record lightweight index metadata: sage index ingest --source ./docs --index local-docs"
+    )
+    if transitional:
+        print(
+            f"  - Transitional packages still visible via kernel stack: {', '.join(transitional)}"
+        )
     print("  - Read docs: https://intellistream.github.io/sage-docs/")
 
     return 0

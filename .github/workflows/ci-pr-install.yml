@@ -5,10 +5,11 @@ on:
     branches: [main, main-dev]
     types: [opened, synchronize, reopened]
     paths:
-      - 'packages/*/pyproject.toml'
-      - 'packages/*/setup.py'
-      - 'packages/*/setup.cfg'
+      - 'pyproject.toml'
+      - 'setup.py'
+      - 'src/**'
       - 'tools/install/**'
+      - '.github/workflows/ci-pr-install.yml'
   workflow_dispatch:
     inputs:
       python-version:
@@ -49,7 +50,14 @@ jobs:
 
       - name: Smoke import
         run: |
-          python -c "import sage; import sage.common; import sage.kernel; print('import ok')"
+          python -c "import sage.foundation, sage.stream, sage.runtime, sage.serving, sage.cli; print('import ok')"
+          sage version
+          sage verify
+          sage chat --help
+
+      - name: Run current in-tree tests
+        run: |
+          python -m pytest src/tests -q
 
       - name: Wheel build sanity (meta-package)
         run: |

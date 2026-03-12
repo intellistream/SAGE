@@ -1,8 +1,8 @@
 # pyproject.toml template for SAGE packages WITH C++ extension
 #
 # Replace ALL occurrences of:
-#   MY_PKG_NAME  → PyPI package name  (e.g. isage-kernel)
-#   my_pkg       → Python import name (e.g. sage_kernel)
+#   MY_PKG_NAME  → PyPI package name  (e.g. isage-anns)
+#   my_pkg       → Python import name (e.g. sage_anns)
 #   "Short description."
 #
 # This variant adds cmake + pybind11 as build dependencies and sets

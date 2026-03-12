@@ -15,7 +15,7 @@
 #
 # Examples:
 #   init-repo.sh --pkg-name isage-rag --pkg-mod sage_rag --desc "SAGE RAG components"
-#   init-repo.sh --pkg-name isage-kernel --pkg-mod sage_kernel --cpp
+#   init-repo.sh --pkg-name isage-anns --pkg-mod sage_anns --cpp
 
 set -euo pipefail
 

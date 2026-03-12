@@ -1,7 +1,6 @@
-# DEPRECATED (#1466) — Monorepo per-package tests have moved to independent
-# standalone repos (sage-common, sage-platform, sage-kernel, sage-libs,
-# sage-middleware, sage-cli).  This workflow is preserved for reference but
-# no longer runs automatically.  Use workflows in the standalone repos instead.
+# DEPRECATED (#1466) — Historical split-repo build/test orchestration has been
+# replaced by the consolidated main-repo workflow plus independent optional
+# adapter/tooling repos. This workflow is preserved for reference only.
 # Cross-repo smoke tests: see ci-integration.yml
 
 name: "[DEPRECATED] Build and Test (monorepo)"

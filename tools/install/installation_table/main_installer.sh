@@ -92,8 +92,8 @@ verify_cpp_extensions() {
     echo -e "${DIM}   如需使用，请通过 pip 安装这些独立包${NC}"
     echo ""
 
-    # sage-middleware 现在只包含 Python 兼容层，总是返回成功
-    log_info "sage-middleware 安装完成（仅包含 Python 兼容层）" "CPPExt"
+    # 历史中间件扩展已拆分为独立适配器包，总是返回成功
+    log_info "独立适配器提示完成（主仓不再内建这些 C++ 扩展）" "CPPExt"
     return 0
 
     # 以下代码已废弃，保留供参考
@@ -148,14 +148,14 @@ try:
         else
             print('')
             print(f'⚠️  部分扩展不可用 ({total}/{total_expected})，功能将受限')
-            print('💡 提示: 确保已安装构建依赖 (cmake, build-essential) 并重新安装 isage-middleware')
+            print('💡 提示: 确保已安装构建依赖并重新安装对应独立适配器包')
         sys.exit(0)  # 部分成功也返回 0
     else:
         print('')
         print('❌ 没有任何 C++ 扩展可用')
         print('💡 这可能是因为：')
         print('   1. 缺少构建工具：apt-get install build-essential cmake')
-        print('   2. 未按 --dev 安装或 isage-middleware 构建失败')
+        print('   2. 未按 --dev 安装或独立适配器包未正确安装')
         print('   3. 查看详细日志了解更多信息')
         sys.exit(1)
 except Exception as e:
@@ -178,10 +178,10 @@ except Exception as e:
         else
             echo -e "${WARNING} 扩展验证失败"
             log_warn "扩展验证失败" "CPPExt"
-            echo -e "${DIM}💡 提示: C++扩展在 sage-middleware 安装时自动构建${NC}"
+            echo -e "${DIM}💡 提示: C++扩展由对应独立适配器包负责构建${NC}"
             echo -e "${DIM}   如果验证失败，可能是因为：${NC}"
             echo -e "${DIM}   1. 缺少构建工具：apt-get install build-essential cmake${NC}"
-            echo -e "${DIM}   2. 未按 --dev 模式或 isage-middleware 安装失败${NC}"
+            echo -e "${DIM}   2. 未按 --dev 模式或独立适配器包安装失败${NC}"
             echo -e "${DIM}   3. 查看详细日志：cat ${SAGE_INSTALL_LOG:-}${NC}"
             return 1
         fi
@@ -371,7 +371,7 @@ install_sage() {
         fi
     fi
 
-    # C++扩展已在 sage-middleware 安装时通过 scikit-build-core 自动构建
+    # C++扩展由独立适配器包负责构建
     # 上面的验证步骤已检查扩展状态
 
     # 记录安装完成

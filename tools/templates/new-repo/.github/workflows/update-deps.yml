@@ -1,9 +1,10 @@
 name: Update upstream dependency
 
 # Triggered by upstream packages via repository_dispatch (event: package-released).
-# Payload: { "package": "isage-common", "version": "0.2.5", "tag": "v0.2.5" }
+# Payload: { "package": "isage-rag", "version": "0.3.1", "tag": "v0.3.1" }
 #
-# Required secret: DISPATCH_PAT — a PAT with `repo` scope (for create-pull-request).
+# No extra secret is required for the default same-repo pull request flow.
+# If a generated repository needs stronger auth, replace `github.token` after scaffolding.
 
 on:
   repository_dispatch:
@@ -51,7 +52,6 @@ jobs:
     - name: Create pull request
       uses: peter-evans/create-pull-request@v6
       with:
-        token: ${{ secrets.DISPATCH_PAT }}
         branch: deps/bump-${{ github.event.client_payload.package }}-${{ github.event.client_payload.version }}
         commit-message: "chore(deps): bump ${{ github.event.client_payload.package }} to >=${{ github.event.client_payload.version }}"
         title: "chore(deps): bump ${{ github.event.client_payload.package }} to >=${{ github.event.client_payload.version }}"

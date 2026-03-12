@@ -173,7 +173,7 @@ ls -la .sage/logs/install.log
 
 ```bash
 # 1. 卸载现有安装
-pip uninstall isage isage-common isage-kernel -y
+pip uninstall isage -y
 
 # 2. 清理环境
 ./quickstart.sh --clean

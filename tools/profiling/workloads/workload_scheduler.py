@@ -1,5 +1,5 @@
 """
-Profiling Workload — isage-kernel Scheduler / Task Dispatch
+Profiling Workload — SAGE Runtime Scheduler / Task Dispatch
 ============================================================
 
 Simulates heavy task-dispatch traffic to measure scheduler hot path:
@@ -19,8 +19,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 # ---------------------------------------------------------------------------
-# Lightweight stubs that mirror the real sage.kernel API so this workload
-# can be executed even when isage-kernel is not installed.  When the real
+# Lightweight stubs that mirror the real in-tree runtime API so this workload
+# can be executed even when the local SAGE package is not installed. When the real
 # package is available the real classes are used instead.
 # ---------------------------------------------------------------------------
 
@@ -28,16 +28,13 @@ from typing import Any
 def _try_import_real():
     """Return (Scheduler, PlacementDecision, TaskNode stubs or real impls)."""
     try:
-        from sage.kernel.scheduler.api import Scheduler  # noqa: PLC0415
-        from sage.kernel.scheduler.decision import PlacementDecision  # noqa: PLC0415
-        from sage.kernel.scheduler.impl.priority_scheduler import (  # noqa: PLC0415
-            PriorityScheduler,
-        )
-        from sage.kernel.scheduler.impl.round_robin_scheduler import (  # noqa: PLC0415
-            RoundRoundScheduler,
+        from sage.runtime.scheduler import (  # noqa: PLC0415
+            FIFOScheduler,
+            LoadAwareScheduler,
+            PlacementDecision,
         )
 
-        return Scheduler, PlacementDecision, RoundRoundScheduler, PriorityScheduler
+        return PlacementDecision, FIFOScheduler, LoadAwareScheduler
     except Exception:  # noqa: BLE001
         return None
 
@@ -107,12 +104,12 @@ def run_scheduler_workload(iterations: int = 50_000) -> dict[str, float]:
     """
     _real = _try_import_real()
     if _real:
-        _Scheduler, _Decision, RRScheduler, PriScheduler = _real
-        print("[scheduler] Using real isage-kernel scheduler classes")
+        _Decision, RRScheduler, PriScheduler = _real
+        print("[scheduler] Using real in-tree SAGE scheduler classes")
     else:
         RRScheduler = _FakeRoundRobinScheduler  # type: ignore[assignment]
         PriScheduler = _FakePriorityScheduler  # type: ignore[assignment]
-        print("[scheduler] isage-kernel not available — running synthetic stub")
+        print("[scheduler] in-tree scheduler not available — running synthetic stub")
 
     tasks = [
         _FakeTaskNode(name=f"op-{i}", parallelism=(i % 8) + 1, priority=i % 5)
@@ -120,7 +117,7 @@ def run_scheduler_workload(iterations: int = 50_000) -> dict[str, float]:
     ]
 
     # --- Round-robin ---
-    rr = RRScheduler(worker_count=8)
+    rr = RRScheduler()
     t0 = time.perf_counter()
     for i in range(iterations):
         node = tasks[i % len(tasks)]
@@ -128,7 +125,7 @@ def run_scheduler_workload(iterations: int = 50_000) -> dict[str, float]:
     rr_total = time.perf_counter() - t0
 
     # --- Priority-based ---
-    pri = PriScheduler(worker_count=8)
+    pri = PriScheduler()
     t0 = time.perf_counter()
     for i in range(iterations):
         node = tasks[i % len(tasks)]

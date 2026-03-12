@@ -4,9 +4,9 @@ from setuptools import setup
 
 if __name__ == "__main__":
     print("\n=== SAGE Installation Guide ===\n")
-    print("For LLM inference functionality, please install isagellm:")
-    print("    pip install isagellm")
-    print("\nFor full SAGE stack:")
-    print("    pip install isage[all]")
+    print("For the SAGE core stack (includes stream/runtime/serving/cli surfaces):")
+    print("    pip install isage")
+    print("\nFor optional adapters and data packages:")
+    print("    pip install 'isage[full]'")
     print()
     setup()

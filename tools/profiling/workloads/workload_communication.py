@@ -1,6 +1,6 @@
 """
-Profiling Workload — isage-kernel Communication / Packet Serialization
-=======================================================================
+Profiling Workload — SAGE Runtime Packet / Communication Path
+==============================================================
 
 Measures the cost of:
   1. Packet construction (Python object creation + timestamp)
@@ -28,7 +28,7 @@ from typing import Any
 
 def _try_import_packet():
     try:
-        from sage.kernel.runtime.communication.packet import Packet  # noqa: PLC0415
+        from sage.stream._runtime_kernel_types import Packet  # noqa: PLC0415
 
         return Packet
     except Exception:  # noqa: BLE001
@@ -177,9 +177,9 @@ def run_communication_workload(
     """
     Packet = _try_import_packet() or _StubPacket  # noqa: N806
     if Packet is _StubPacket:
-        print("[comm] isage-kernel not available — running with stub Packet")
+        print("[comm] in-tree Packet not available — running with stub Packet")
     else:
-        print("[comm] Using real sage.kernel.runtime.communication.packet.Packet")
+        print("[comm] Using real sage.stream._runtime_kernel_types.Packet")
 
     msgpack = _get_msgpack()
 

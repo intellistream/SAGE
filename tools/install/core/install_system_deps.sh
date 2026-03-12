@@ -197,8 +197,8 @@ main() {
 
     echo ""
     echo "🎉 系统依赖安装完成！"
-    echo "C++扩展将在安装 sage-middleware 包时自动构建"
-    echo "💡 如需手动重新构建，可运行: sage extensions install --force"
+    echo "主仓相关的 C++/原生扩展会在安装流程中按需自动构建"
+    echo "💡 如需重新触发构建，请重新运行: ./quickstart.sh --dev --yes"
 }
 
 # 解析命令行参数

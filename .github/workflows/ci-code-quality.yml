@@ -1,6 +1,6 @@
-# DEPRECATED (#1466) — Per-repo code quality checks now run via pre-push hooks
-# and standalone repo CI (ruff + pytest in each of sage-common, sage-platform,
-# sage-kernel, sage-libs, sage-middleware, sage-cli).  Preserved for reference.
+# DEPRECATED (#1466) — Historical split-repo code quality checks have been
+# superseded by the consolidated main-repo workflow plus independent optional
+# adapter/tooling repos. Preserved for reference.
 
 name: "[DEPRECATED] Code Quality Check (monorepo)"
 

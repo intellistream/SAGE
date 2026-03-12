@@ -1,8 +1,8 @@
 ﻿
 
-> 本地代码质量/测试请使用 `sage-dev quality` 或 `sage-dev test`，CI/CD 由 GitHub Workflows 自动完成。
-
 # SAGE 贡献指南
+
+> 本地代码质量/测试请使用 `sage-dev quality` 或 `sage-dev test`，CI/CD 由 GitHub Workflows 自动完成。
 
 > 本文档帮助你高效、规范地向 SAGE 贡献代码与文档。请在提交 Pull Request 前完整阅读。若英文协作者需要，可参考文末的 English Quick Guide。
 
@@ -61,11 +61,19 @@ git pull --ff-only origin main-dev
 # 安装开发环境 (默认 dev 模式 + conda)
 ./quickstart.sh --dev --yes
 
-# 或核心安装（仅核心包）
-./quickstart.sh --core --yes
-
 # 标准模式安装
 ./quickstart.sh --standard --yes
+```
+
+安装完成后，优先使用当前主仓维护的 `sage` 命令表面做最小验证：
+
+```bash
+sage verify
+sage status
+sage runtime nodes
+sage serve gateway --json
+sage chat --ask "Hello, SAGE!"
+sage index ingest --source ./docs --index local-docs
 ```
 
 ### 第二步：创建功能分支（勿在 main-dev 直接开发）
@@ -115,7 +123,7 @@ bash -n path/to/script.sh
 
 # 可选：若已安装 black / mypy（dev 模式会安装）
 black --check .
-mypy packages/sage-kernel || true
+mypy src || true
 ```
 
 ### 第五步：提交代码（使用规范化提交信息）
@@ -145,7 +153,7 @@ git push -u origin <branch-name>
 
 PR 描述建议模板：
 
-```
+```md
 ### 变更类型
 feat | fix | refactor | docs | test | perf | ci | chore | build | deps | security
 
@@ -179,7 +187,7 @@ feat | fix | refactor | docs | test | perf | ci | chore | build | deps | securit
 
 ### 分支命名规范
 
-```
+```text
 feat/<topic>           新功能
 fix/<issue-or-bug>     缺陷修复
 refactor/<area>        重构
@@ -200,7 +208,7 @@ revert/<hash-fragment> 回滚
 
 ### 基本格式
 
-```
+```text
 <type>(scope): summary
 
 <body 可选，多段换行>
@@ -215,17 +223,17 @@ revert/<hash-fragment> 回滚
 
 范围(scope) 建议与实际包/模块对应：
 
-```
-sage-common | sage-kernel | sage-libs | sage-middleware | sage-tools | quickstart | docs | tests | ci | infra
+```text
+foundation | runtime | stream | cli | tools | quickstart | docs | tests | ci | infra
 ```
 
-允许复合：`feat(sage-kernel,quickstart): ...`
+允许复合：`feat(runtime,quickstart): ...`
 
 ### 提交信息示例
 
 #### 修复问题
 
-```
+```text
 fix(ci): avoid apt permission error in GitHub Actions
 
 Cause: post-job cache save failed due to /var/cache/apt permissions
@@ -236,7 +244,7 @@ Closes: #123
 
 #### 新功能
 
-```
+```text
 feat(quickstart): improve sagellm-first startup guidance
 
 Use sagellm run/chat as default onboarding flow.
@@ -245,7 +253,7 @@ Keep serve mode as optional path.
 
 #### 测试修复
 
-```
+```text
 fix(tests): stabilize example + issues integration tests
 
 Replace legacy shell script with python-based IssuesTestSuite.
@@ -284,7 +292,7 @@ Reduce flakiness via timeout + category filtering.
    # 注意：quick_examples 标记可能在 sage-examples 仓库中
    pytest --maxfail=1 --durations=10
    black --check . && isort --check-only . || true
-   mypy packages/sage-kernel || true
+   mypy src || true
    ```
 
 ## 代码与文档质量
@@ -350,7 +358,7 @@ pre-commit run --all-files
 
 ### ⚠️ PEP 420 Namespace Packages - CRITICAL
 
-**SAGE 使用 PEP 420 原生命名空间包（Python 3.3+）**
+#### SAGE 使用 PEP 420 原生命名空间包（Python 3.3+）
 
 **禁止操作**：
 
@@ -533,7 +541,7 @@ grep -i FAIL /tmp/test.log || true
 
 ### 7. 安装脚本卡住或没有输出
 
-```
+```bash
 bash -x ./quickstart.sh --dev --yes
 ```
 
@@ -598,7 +606,7 @@ git push
 
 查看 CI 日志，应该能看到：
 
-```
+```text
 ✅ .env 文件创建完成
 📋 验证 .env 文件内容（隐藏敏感信息）:
 OPENAI_API_KEY=***
@@ -611,10 +619,12 @@ HF_TOKEN=***
 外部贡献者的 PR 默认无法访问主仓库的 Secrets（这是 GitHub 的安全特性）。你可以：
 
 1. **在自己的 fork 中配置 Secrets**（推荐用于测试）
-1. **使用 mock 模式测试**（大多数测试支持）：
+1. **使用本地 sagellm 或自托管 OpenAI-compatible endpoint 测试**：
+
    ```bash
    SAGE_TEST_MODE=true pytest
    ```
+
 1. **等待维护者审核后触发 CI**（维护者可手动触发带 Secrets 的 CI）
 
 ### ⚠️ 安全注意事项
@@ -628,7 +638,7 @@ HF_TOKEN=***
 
 若发现安全问题（例如：任意代码执行 / 信息泄露 / 供应链风险），请不要直接公开 Issue，可通过以下方式私下披露：
 
-- 邮件：security@intellistream.cn （示例；若需调整请维护者更新）
+- 邮件：[security@intellistream.cn](mailto:security@intellistream.cn) （示例；若需调整请维护者更新）
 - 标题建议：`[SECURITY] <简要描述>`
 
 请包含：影响版本、复现步骤、预期 vs 实际、安全影响评估。我们将在确认后尽快回应并在修复后发布公告。
@@ -648,7 +658,7 @@ HF_TOKEN=***
 2. Create branch: git checkout -b feat/<topic>
 3. Keep updated: git fetch && git rebase origin/main-dev
 4. Test: sage-dev project test --coverage && sage-dev quality
-5. Commit: feat(sage-kernel): add xyz
+5. Commit: feat(runtime): add xyz
 6. Push & PR: include background / solution / tests / impact
 ```
 

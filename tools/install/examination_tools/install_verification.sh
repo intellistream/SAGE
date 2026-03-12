@@ -146,8 +146,8 @@ init_verification_log() {
 安装环境: $(uname -s) $(uname -r)
 Python 命令: $PYTHON_CMD
 Python 版本: $($PYTHON_CMD --version 2>&1 || echo "未安装")
-SAGE 包版本: $($PYTHON_CMD -c "import sage.common; print(sage.common.__version__)" 2>/dev/null || echo "未安装")
-注意: SAGE 使用 PEP 420 namespace，各包版本独立（sage.common, sage.kernel 等）
+SAGE 包版本: $($PYTHON_CMD -c "from sage._version import __version__; print(__version__)" 2>/dev/null || echo "未安装")
+注意: SAGE 当前以主仓 in-tree 表面为核心，兼容命名空间（如 sage.common / sage.kernel）可能仍在部分环境中可见
 
 ================================================================================
 EOF
@@ -218,6 +218,27 @@ verify_cli_commands() {
 
     local failed_commands=()
 
+    if $PYTHON_CMD -m sage.cli.main verify &> /dev/null; then
+        echo -e "${GREEN}   ✅ sage verify 可用${NC}"
+    else
+        echo -e "${RED}   ❌ sage verify 不可用${NC}"
+        failed_commands+=("sage verify")
+    fi
+
+    if $PYTHON_CMD -m sage.cli.main chat --help &> /dev/null; then
+        echo -e "${GREEN}   ✅ sage chat --help 可用${NC}"
+    else
+        echo -e "${RED}   ❌ sage chat --help 不可用${NC}"
+        failed_commands+=("sage chat --help")
+    fi
+
+    if $PYTHON_CMD -m sage.cli.main index ingest --help &> /dev/null; then
+        echo -e "${GREEN}   ✅ sage index ingest --help 可用${NC}"
+    else
+        echo -e "${RED}   ❌ sage index ingest --help 不可用${NC}"
+        failed_commands+=("sage index ingest --help")
+    fi
+
     # 验证 sage-dev 命令
     if sage_dev_available; then
         echo -e "${GREEN}   ✅ sage-dev 命令可用${NC}"
@@ -236,7 +257,7 @@ verify_cli_commands() {
     fi
 
     if [ ${#failed_commands[@]} -eq 0 ]; then
-        log_verification_result "cli_commands" "PASS" "所有 CLI 命令可用"
+        log_verification_result "cli_commands" "PASS" "核心 CLI 命令可用"
         return 0
     else
         log_verification_result "cli_commands" "FAIL" "CLI 命令不可用: ${failed_commands[*]}"
@@ -318,12 +339,7 @@ verify_sage_imports() {
         echo ""
     fi
 
-    # 核心包列表：按层级顺序验证
-    # L1: sage-common
-    # L2: sage-platform
-    # L3: sage-kernel, sage-libs
-    # L4: sage-middleware
-    # L5: sage-cli, sage-tools
+    # 核心包列表：优先验证主仓 in-tree 产品表面
     # NOTE: PEP 420 namespace packages - 'sage' namespace is implicit, cannot be imported directly
     # We only verify actual packages under the namespace
     #
@@ -332,33 +348,42 @@ verify_sage_imports() {
     # - sage-examples (原 sage.apps): 已迁移到 sage-examples 仓库
     # - sage.benchmark: 独立 PyPI 包 isage-benchmark (pip install isage-benchmark)
     # - sage.studio: 独立仓库 https://github.com/intellistream/sage-studio
-    # - sage.edge: 独立 PyPI 包 isage-edge (pip install isage-edge)
+    # - sage.edge: 已回归主仓产品面；根包导入应始终可用，FastAPI 运行依赖由 extras 提供
     local sage_packages=(
-        "sage.common"             # L1: Foundation
-        "sage.platform"           # L2: Platform
-        "sage.kernel"             # L3: Kernel
-        "sage.libs"               # L3: Libraries
-        "sage.middleware"         # L4: Middleware (C++ extensions)
-        "sage.cli"                # L5: CLI (optional)
-        "sage.tools"              # L5: Dev Tools (optional)
+        "sage.foundation"         # Core: in-tree foundation
+        "sage.stream"             # Core: in-tree stream API
+        "sage.runtime"            # Core: in-tree runtime API
+        "sage.serving"            # Core: in-tree serving boundary
+        "sage.edge"               # Edge aggregation shell (in-tree)
+        "sage.cli"                # Core CLI surface
+        "sage.common"             # Transitional compatibility
+        "sage.platform"           # Transitional compatibility
+        "sage.kernel"             # Transitional compatibility
+        "sage.libs"               # Transitional compatibility
+        "sage.middleware"         # Transitional compatibility
+        "sage.tools"              # Optional tooling namespace
     )
     local failed_imports=()
     local optional_failed=()
 
     for pkg in "${sage_packages[@]}"; do
-        # 判断是否为可选包（L5 层 CLI/Tools）
+        # 判断是否为可选/过渡包
         local is_optional=false
-        if [[ "$pkg" =~ ^sage\.(cli|tools)$ ]]; then
+        if [[ "$pkg" =~ ^sage\.(common|platform|kernel|libs|middleware|tools)$ ]]; then
             is_optional=true
         fi
 
-        # 使用转义避免 shell 变量展开问题
-        if $PYTHON_CMD -c "import ${pkg}; print('${pkg}', ${pkg}.__version__)" &> /dev/null; then
-            local version=$($PYTHON_CMD -c "import ${pkg}; print(${pkg}.__version__)" 2>/dev/null)
-            echo -e "${GREEN}   ✅ $pkg $version 导入成功${NC}"
+        # 对 in-tree 表面优先验证“可导入”，版本号仅在模块显式提供时展示
+        if $PYTHON_CMD -c "import importlib; module = importlib.import_module('${pkg}'); print(getattr(module, '__version__', 'OK'))" &> /dev/null; then
+            local version=$($PYTHON_CMD -c "import importlib; module = importlib.import_module('${pkg}'); print(getattr(module, '__version__', 'OK'))" 2>/dev/null)
+            if [ "$version" = "OK" ]; then
+                echo -e "${GREEN}   ✅ $pkg 导入成功${NC}"
+            else
+                echo -e "${GREEN}   ✅ $pkg $version 导入成功${NC}"
+            fi
         else
             # 获取详细的导入错误信息
-            local import_error=$($PYTHON_CMD -c "import ${pkg}" 2>&1 | head -n 10)
+            local import_error=$($PYTHON_CMD -c "import importlib; importlib.import_module('${pkg}')" 2>&1 | head -n 10)
 
             if [ "$is_optional" = true ]; then
                 echo -e "${YELLOW}   ⚠️  $pkg 导入失败（可选包）${NC}"
@@ -376,19 +401,15 @@ verify_sage_imports() {
                 case "$pkg" in
                     "sage.middleware")
                         echo -e "${DIM}      💡 诊断提示:${NC}"
-                        echo -e "${DIM}         • 检查 packages/sage-middleware 是否存在${NC}"
-                        echo -e "${DIM}         • 运行: pip show isage-middleware${NC}"
-                        echo -e "${DIM}         • 如未安装，运行: pip install -e packages/sage-middleware${NC}"
+                        echo -e "${DIM}         • 这是过渡兼容命名空间，不再是主仓安装成功的硬性条件${NC}"
                         ;;
                     "sage.kernel")
                         echo -e "${DIM}      💡 诊断提示:${NC}"
-                        echo -e "${DIM}         • 运行: pip show isage-kernel${NC}"
-                        echo -e "${DIM}         • 如未安装，运行: pip install -e packages/sage-kernel${NC}"
+                        echo -e "${DIM}         • 这是过渡兼容命名空间，不再是主仓安装成功的硬性条件${NC}"
                         ;;
                     "sage.libs")
                         echo -e "${DIM}      💡 诊断提示:${NC}"
-                        echo -e "${DIM}         • 运行: pip show isage-libs${NC}"
-                        echo -e "${DIM}         • 如未安装，运行: pip install -e packages/sage-libs${NC}"
+                        echo -e "${DIM}         • 这是过渡兼容命名空间，不再是主仓安装成功的硬性条件${NC}"
                         ;;
                 esac
 
@@ -399,9 +420,9 @@ verify_sage_imports() {
 
     echo ""
     echo -e "${DIM}   说明：${NC}"
-    echo -e "${DIM}   • L1-L4 为核心层，必须能够导入${NC}"
-    echo -e "${DIM}   • L5 为接口层（CLI/Tools），根据安装模式可能不存在${NC}"
-    echo -e "${DIM}   • sage-benchmark/examples/studio/edge 已独立为单独仓库/包，不在此验证${NC}"
+    echo -e "${DIM}   • foundation / stream / runtime / serving / cli 为当前主仓核心表面${NC}"
+    echo -e "${DIM}   • common / platform / kernel / libs / middleware / tools 为可选或过渡命名空间${NC}"
+    echo -e "${DIM}   • sage-benchmark/examples/studio 等独立仓库不在此验证${NC}"
     echo ""
 
     if [ ${#failed_imports[@]} -eq 0 ]; then

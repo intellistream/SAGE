@@ -66,16 +66,14 @@ install.log
 **/install_manifest.txt
 **/compile_commands.json
 
-# C++ 编译输出目录（已废弃，现统一使用 .sage/build/）
-packages/sage-middleware/lib/
-packages/sage-middleware/bin/
-packages/sage-middleware/src/sage/middleware/components/*/lib/
-packages/sage-middleware/src/sage/middleware/components/*/bin/
-packages/sage-middleware/src/sage/middleware/components/*/install/
+# 历史 packages/ 树中的 C++ 编译输出目录（已废弃，现统一使用 .sage/build/）
+packages/**/lib/
+packages/**/bin/
+packages/**/install/
 
-# 独立 PyPI 包（通过 pip install 使用，不在 Git 中跟踪）
-packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem/
-packages/sage-middleware/src/sage/middleware/components/sage_refiner/sageRefiner/
+# 历史 packages/ 树中的外部能力目录（通过独立包使用，不在 Git 中跟踪）
+packages/**/neuromem/
+packages/**/sageRefiner/
 
 .github/chatmodes/
 id_llm
@@ -228,11 +226,11 @@ examples/medical_diagnosis/data/test_results/
 # 一些测试文件
 # ============================================
 !examples/memory/data/neuromem/vdb_collection/RAGMemoryCollection/indexes/test_index/faiss.index
-packages/sage-tools/src/sage/tools/studio/node_modules/*
-packages/sage-tools/src/sage/tools/studio/.angular/*
+packages/**/node_modules/*
+packages/**/.angular/*
 
 **/node_modules
-packages/sage-libs/src/sage/libs/applications/medical_diagnosis/data/*
+packages/**/applications/medical_diagnosis/data/*
 
 # ============================================
 # SAGE Apps 数据文件
@@ -248,8 +246,8 @@ packages/sage-apps/src/sage/apps/**/data/**/*.png
 packages/sage-apps/src/sage/apps/**/data/**/*.json
 !packages/sage-apps/src/sage/apps/**/data/**/README*
 !packages/sage-apps/src/sage/apps/**/data/**/config*
-packages/sage-middleware/_deps/*
-packages/sage-middleware/.cmake*
+packages/**/_deps/*
+packages/**/.cmake*
 coverage.json
 
 # ============================================

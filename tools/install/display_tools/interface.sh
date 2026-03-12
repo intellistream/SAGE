@@ -195,11 +195,11 @@ show_install_success() {
 
     echo ""
     echo -e "${BOLD}快速开始:${NC}"
-    echo -e "  ${DIM}# 验证安装（PEP 420 namespace）${NC}"
-    echo -e "  python3 -c 'import sage.common; print(f\"SAGE v{sage.common.__version__} 安装成功！\")'"
+    echo -e "  ${DIM}# 验证安装（主仓核心表面）${NC}"
+    echo -e "  sage verify"
     echo ""
-    echo -e "  ${DIM}# 运行示例${NC}"
-    echo -e "  cd examples && python3 rag/basic_rag.py"
+    echo -e "  ${DIM}# 使用 sagellm 直接运行一条真实推理${NC}"
+    echo -e "  sage chat --ask \"Hello, SAGE!\""
     echo ""
     echo -e "${DIM}更多信息请查看: README.md${NC}"
 }
@@ -214,10 +214,10 @@ run_hello_world_demo() {
     echo -e "${CYAN}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
 
-    # 验证 SAGE 安装（PEP 420 namespace - 检查实际包）
+    # 验证 SAGE 安装（主仓 in-tree 表面）
     echo -e "${INFO} 验证 SAGE 安装..."
     local sage_version
-    sage_version=$(SAGELLM_LOGGING_LEVEL=ERROR python3 -W ignore -c "import sage.common; print(sage.common.__version__)" 2>/dev/null | tail -1)
+    sage_version=$(SAGELLM_LOGGING_LEVEL=ERROR python3 -W ignore -c "from sage._version import __version__; import sage.foundation, sage.stream, sage.runtime, sage.serving, sage.cli; print(__version__)" 2>/dev/null | tail -1)
     if [ -n "$sage_version" ]; then
         echo -e "   ${GREEN}✅ SAGE v${sage_version} 已就绪${NC}"
     else
@@ -279,8 +279,8 @@ run_streaming_demo() {
     # 显示实际代码
     echo -e "${BLUE}${BOLD}📝 示例代码:${NC}"
     echo ""
-    echo -e "   ${DIM}from sage.kernel.api import LocalEnvironment${NC}"
-    echo -e "   ${DIM}from sage.common.core.functions import BatchFunction, MapFunction, SinkFunction${NC}"
+    echo -e "   ${DIM}from sage.runtime import LocalEnvironment${NC}"
+    echo -e "   ${DIM}from sage.foundation import BatchFunction, MapFunction, SinkFunction${NC}"
     echo ""
     echo -e "   ${CYAN}env = LocalEnvironment(\"demo\")${NC}"
     echo -e "   ${CYAN}env.from_batch(Source).map(Transform).sink(Output)${NC}"
@@ -348,45 +348,8 @@ PY
         fi
 
         if [ "$embedding_running" = false ]; then
-            echo -e "${YELLOW}ℹ️  Embedding 服务未运行，需要先启动${NC}"
-            echo -ne "${BOLD}是否启动 LLM + Embedding 服务? [Y/n]: ${NC}"
-            read -r start_services
-            if [[ ! "$start_services" =~ ^[Nn] ]]; then
-                echo ""
-                echo -e "${INFO} 启动 LLM + Embedding 服务..."
-                echo -e "${DIM}   首次启动需要下载模型并加载到 GPU，可能需要 2-4 分钟${NC}"
-                echo -e "${DIM}   • LLM 模型: Qwen2.5-0.5B (~300MB)${NC}"
-                echo -e "${DIM}   • Embedding 模型: bge-small-zh (~100MB)${NC}"
-                echo ""
-                # 后台启动服务
-                # 注意: sage llm serve 默认已包含 embedding 服务（默认模型: Qwen/Qwen2.5-0.5B-Instruct）
-                sage llm serve &>/dev/null &
-                local serve_pid=$!
-
-                # 等待 Embedding 服务就绪，同时显示进度
-                local wait_count=0
-                local max_wait=90  # 最多等待 180 秒 (90 * 2)
-                echo -e "   ${CYAN}⏳ 等待服务启动（LLM 加载到 GPU 需要时间）...${NC}"
-                while [ $wait_count -lt $max_wait ]; do
-                    if curl -s --connect-timeout 2 "http://localhost:${embedding_port}/v1/models" 2>/dev/null | grep -q '"data"'; then
-                        embedding_running=true
-                        break
-                    fi
-                    # 显示经过时间
-                    local elapsed=$((wait_count * 2))
-                    printf "\r   ${DIM}已等待 %ds...${NC}" $elapsed
-                    sleep 2
-                    wait_count=$((wait_count + 1))
-                done
-                printf "\r\033[K"  # 清除进度行
-
-                if [ "$embedding_running" = true ]; then
-                    echo -e "   ${GREEN}✅ Embedding 服务已就绪${NC}"
-                else
-                    echo -e "   ${YELLOW}⚠️  Embedding 服务启动超时，使用本地 HF 模型${NC}"
-                    echo -e "   ${DIM}提示: 服务可能仍在后台启动中，可稍后检查 sage llm status${NC}"
-                fi
-            fi
+            echo -e "${YELLOW}ℹ️  未检测到 Embedding 服务，将回退到本地 HF embedding 模型${NC}"
+            echo -e "${DIM}   如已自行启动 OpenAI 兼容 embedding endpoint，可稍后使用 --embedding-method openai 与 --embedding-base-url${NC}"
         else
             echo -e "   ${GREEN}✅ 检测到 Embedding 服务 (localhost:${embedding_port})${NC}"
         fi
@@ -408,11 +371,11 @@ PY
             if [ "$embedding_running" = true ]; then
                 # 使用运行中的 Embedding 服务
                 echo -e "${DIM}   使用 Embedding 服务: http://localhost:${embedding_port}/v1${NC}"
-                ingest_cmd=(env $quiet_env sage chat ingest --quiet --embedding-method openai --embedding-model BAAI/bge-m3 --embedding-base-url "http://localhost:${embedding_port}/v1")
+                ingest_cmd=(env $quiet_env sage index ingest --quiet --embedding-method openai --embedding-model BAAI/bge-m3 --embedding-base-url "http://localhost:${embedding_port}/v1")
             else
                 # 回退到本地 HuggingFace 模型
                 echo -e "${DIM}   使用本地 HF 模型: BAAI/bge-m3${NC}"
-                ingest_cmd=(env $quiet_env sage chat ingest --quiet --embedding-method hf --embedding-model BAAI/bge-m3)
+                ingest_cmd=(env $quiet_env sage index ingest --quiet --embedding-method hf --embedding-model BAAI/bge-m3)
             fi
 
             start_spinner "   索引构建中，请稍候"
@@ -427,8 +390,8 @@ PY
                 echo -e "${DIM}   正在清理不完整的索引文件...${NC}"
                 rm -f "${chat_cache_dir}/docs"* 2>/dev/null || true
                 echo -e "${YELLOW}⚠️  可以稍后重试:${NC}"
-                echo -e "   ${CYAN}sage llm serve --model Qwen/Qwen2.5-0.5B-Instruct${NC}  # 启动 LLM + Embedding 服务"
-                echo -e "   ${CYAN}sage chat ingest --embedding-method openai --embedding-model BAAI/bge-m3 --embedding-base-url http://localhost:8090/v1${NC}"
+                echo -e "   ${CYAN}sage index ingest --embedding-method hf --embedding-model BAAI/bge-m3${NC}"
+                echo -e "   ${CYAN}sage index ingest --embedding-method openai --embedding-model BAAI/bge-m3 --embedding-base-url http://localhost:8090/v1${NC}"
             fi
             rm -f "$ingest_log"
         fi
@@ -440,26 +403,28 @@ PY
     echo ""
 
     # 启动 sage chat
-    # 优先使用本地 LLM（sagellm），如果没有则用 mock
-    if curl -s http://localhost:8000/v1/models >/dev/null 2>&1; then
-        echo -e "   ${GREEN}✅ 检测到本地 LLM 服务 (localhost:8000)${NC}"
+    # 优先使用 gateway；若不可用则直接调用 sagellm CLI
+    if curl -s http://localhost:8889/v1/models >/dev/null 2>&1; then
+        echo -e "   ${GREEN}✅ 检测到本地 LLM gateway (localhost:8889)${NC}"
         # 获取实际运行的模型名称（若可用）
         local local_model
-        local_model=$(curl -s http://localhost:8000/v1/models | python3 -c "import sys,json; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null || echo "")
+        local_model=$(curl -s http://localhost:8889/v1/models | python3 -c "import sys,json; print(json.load(sys.stdin)['data'][0]['id'])" 2>/dev/null || echo "")
         if [ -n "$local_model" ]; then
             echo -e "   ${DIM}模型: $local_model${NC}"
         fi
         echo ""
         sage chat --engine sagellm --backend auto --model "${local_model:-Qwen/Qwen2.5-0.5B-Instruct}" --stream
+    elif command -v sagellm >/dev/null 2>&1; then
+        echo -e "   ${GREEN}✅ 未检测到 gateway，改为直接调用 sagellm CLI${NC}"
+        echo ""
+        sage chat --engine sagellm --backend direct
     elif [ -n "${SAGE_CHAT_API_KEY:-}" ] || [ -n "${OPENAI_API_KEY:-}" ]; then
         echo -e "   ${GREEN}✅ 使用云端 API${NC}"
         echo ""
         sage chat --backend openai --stream
     else
-        echo -e "   ${YELLOW}ℹ️  使用 Mock 模式演示 (无需 LLM 服务)${NC}"
-        echo -e "   ${DIM}   提示: 运行 'sage llm serve --model Qwen/Qwen2.5-0.5B-Instruct' 可启动本地 LLM${NC}"
-        echo ""
-        sage chat --backend mock
+        echo -e "   ${YELLOW}⚠️  未检测到 gateway，也未找到 sagellm 命令${NC}"
+        echo -e "   ${DIM}   提示: 运行 'sage serve gateway --json' 查看 gateway 契约，或确认 sagellm 已安装到当前环境${NC}"
     fi
 
     echo ""
@@ -474,7 +439,7 @@ PY
     echo -e "   ${DIM}sage chat --ask \"如何创建 SAGE Pipeline?\" --engine sagellm --backend auto${NC}"
     echo ""
     echo -e "   ${CYAN}# 构建自定义知识库${NC}"
-    echo -e "   ${DIM}sage chat ingest --source ./my-docs --index my-knowledge${NC}"
+    echo -e "   ${DIM}sage index ingest --source ./my-docs --index my-knowledge${NC}"
     echo ""
 
     show_demo_footer
@@ -493,8 +458,7 @@ show_demo_footer() {
     echo ""
 }
 
-# 询问用户是否要启动服务（LLM / Hello World）
-# 注意：SAGE Studio 需要单独安装 (pip install isage-studio)
+# 询问用户是否要继续体验主仓当前可用的能力（chat / hello world）
 prompt_start_llm_service() {
     local mode="$1"
 
@@ -504,13 +468,7 @@ prompt_start_llm_service() {
         return 0
     fi
 
-    # standard/dev 模式都支持服务提示
-
-    # 检查是否有 GPU 可用
-    local has_gpu=false
-    if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
-        has_gpu=true
-    fi
+    # standard/dev 模式都支持提示
 
     # 检查环境是否激活
     local env_activated=true
@@ -529,10 +487,10 @@ prompt_start_llm_service() {
         echo -e "${YELLOW}⚠️  请先激活 conda 环境后再启动服务:${NC}"
         echo -e "  ${CYAN}conda activate ${SAGE_ENV_NAME:-}${NC}"
         echo ""
-        echo -e "${DIM}激活后可用以下命令启动服务:${NC}"
-        echo -e "  ${CYAN}sage llm serve --model Qwen/Qwen2.5-0.5B-Instruct${NC}       # 启动 LLM 推理服务（默认轻量模型）"
-        echo ""
-        echo -e "${DIM}💡 SAGE Studio 需要单独安装: pip install isage-studio${NC}"
+        echo -e "${DIM}激活后可用以下命令继续体验:${NC}"
+        echo -e "  ${CYAN}sage verify${NC}"
+        echo -e "  ${CYAN}sage chat --ask \"Hello, SAGE!\"${NC}"
+        echo -e "  ${CYAN}sage serve gateway --json${NC}"
         echo ""
         return 0
     fi
@@ -543,16 +501,10 @@ prompt_start_llm_service() {
     echo -e "  ${BOLD}[1] 运行 Hello World${NC}  - 快速体验 SAGE Pipeline"
     echo -e "      ${DIM}运行一个简单的数据处理流水线示例${NC}"
     echo ""
-    echo -e "  ${BOLD}[2] sage llm serve${NC}    - 启动 LLM 推理服务（默认: Qwen/Qwen2.5-0.5B-Instruct）"
-    if [ "$has_gpu" = true ]; then
-        echo -e "      ${DIM}提供 OpenAI 兼容 API (http://localhost:8000/v1)${NC}"
-    else
-        echo -e "      ${DIM}${YELLOW}⚠️  需要 GPU，当前未检测到${NC}"
-    fi
+    echo -e "  ${BOLD}[2] 查看 gateway 契约${NC} - 查看外部 sagellm gateway 的启动/探活信息"
+    echo -e "      ${DIM}适合需要 OpenAI 兼容接口或联调服务模式时使用${NC}"
     echo ""
     echo -e "  ${BOLD}[3] 跳过${NC}              - 稍后手动操作"
-    echo ""
-    echo -e "${DIM}💡 SAGE Studio 需要单独安装: pip install isage-studio${NC}"
     echo ""
 
     # 交互式询问
@@ -567,106 +519,24 @@ prompt_start_llm_service() {
             run_hello_world_demo false
             ;;
         2)
-            if [ "$has_gpu" = true ]; then
+            echo ""
+            echo -e "${INFO} 当前主仓会把 gateway 视为外部 sagellm 集成能力。"
+            echo -e "${DIM}可先查看 SAGE 侧约定的启动命令、探活地址与日志路径：${NC}"
+            echo ""
+            if command -v sage &>/dev/null; then
+                sage serve gateway --json || true
                 echo ""
-                echo -e "${INFO} 正在启动 LLM 服务..."
-                echo -e "${DIM}   首次启动会下载模型并加载到 GPU，可能需要 1-3 分钟${NC}"
-                echo -e "${DIM}   • 模型下载: Qwen2.5-0.5B (~300MB)${NC}"
-                echo -e "${DIM}   • GPU 加载: LLM 引擎初始化${NC}"
-                echo ""
-
-                if command -v sage &>/dev/null; then
-                    # 后台启动并实时显示进度
-                    local llm_log="/tmp/sage_llm_serve_$$.log"
-
-                    # 启动服务（后台运行）
-                    sage llm serve > "$llm_log" 2>&1 &
-                    local sage_pid=$!
-
-                    # 显示实时进度，同时监控日志
-                    local elapsed=0
-                    local max_wait=180  # 最多等待 3 分钟
-                    local last_status=""
-
-                    while kill -0 $sage_pid 2>/dev/null && [ $elapsed -lt $max_wait ]; do
-                        # 尝试从日志中获取当前状态
-                        if [ -f "$llm_log" ]; then
-                            # 检测关键状态
-                            if grep -q "下载位置" "$llm_log" 2>/dev/null && [ "$last_status" != "downloading" ]; then
-                                printf "\r\033[K"
-                                echo -e "   ${CYAN}⏳ 正在下载模型...${NC}"
-                                last_status="downloading"
-                            elif grep -q "启动 LLM 服务" "$llm_log" 2>/dev/null && [ "$last_status" != "starting" ]; then
-                                printf "\r\033[K"
-                                echo -e "   ${CYAN}⏳ 正在启动 LLM 服务...${NC}"
-                                last_status="starting"
-                            elif grep -q "启动中" "$llm_log" 2>/dev/null && [ "$last_status" != "loading" ]; then
-                                printf "\r\033[K"
-                                echo -e "   ${CYAN}⏳ 正在加载模型到 GPU（这步较慢，请耐心等待）...${NC}"
-                                last_status="loading"
-                            fi
-                        fi
-
-                        # 显示经过时间
-                        printf "\r   ${DIM}已等待 %ds...${NC}" $elapsed
-                        sleep 2
-                        elapsed=$((elapsed + 2))
-                    done
-
-                    # 等待命令完成
-                    wait $sage_pid 2>/dev/null
-                    local exit_code=$?
-
-                    # 清除进度行
-                    printf "\r\033[K"
-
-                    # 显示关键信息（最后 10 行）
-                    if [ -f "$llm_log" ]; then
-                        # 过滤掉进度条行，只显示重要信息
-                        grep -v "启动中 \[" "$llm_log" | tail -10
-                        rm -f "$llm_log"
-                    fi
-
-                    echo ""
-                    if [ $exit_code -eq 0 ]; then
-                        echo -e "${GREEN}✅ LLM 服务已启动${NC}"
-                        echo -e "${DIM}   API 地址: http://localhost:8000/v1${NC}"
-                        echo -e "${DIM}   状态查看: sage llm status${NC}"
-                        echo -e "${DIM}   停止服务: sage llm stop${NC}"
-                    else
-                        echo -e "${YELLOW}⚠️  LLM 服务启动可能未完全成功，请检查状态${NC}"
-                        echo -e "${DIM}   状态查看: sage llm status${NC}"
-                    fi
-                    echo ""
-                    # 询问是否运行 LLM Demo
-                    echo -ne "${BOLD}是否运行 LLM Demo 体验? [y/N]: ${NC}"
-                    read -r run_demo
-                    if [[ "$run_demo" =~ ^[Yy] ]]; then
-                        echo ""
-                        run_hello_world_demo true
-                    fi
-                else
-                    echo -e "${YELLOW}⚠️  sage 命令不可用，请手动启动:${NC}"
-                    echo -e "  ${CYAN}sage llm serve --model Qwen/Qwen2.5-0.5B-Instruct${NC}"
-                fi
-            else
-                echo ""
-                echo -e "${YELLOW}⚠️  未检测到 GPU，无法启动本地 LLM 服务。${NC}"
-                echo -e "${DIM}您可以配置云端 API 作为替代（在 .env 文件中设置）:${NC}"
-                echo -e "  ${CYAN}SAGE_CHAT_API_KEY=sk-xxx${NC}"
-                echo -e "  ${CYAN}SAGE_CHAT_BASE_URL=https://api.openai.com/v1${NC}"
+                echo -e "${DIM}若已单独启动 gateway，可继续运行：${NC}"
+                echo -e "  ${CYAN}sage serve gateway --probe --json${NC}"
+                echo -e "  ${CYAN}sage chat --engine sagellm --backend auto --stream${NC}"
             fi
             ;;
         3|"")
             echo ""
             echo -e "${DIM}已跳过。稍后可用以下命令:${NC}"
-            echo -e "  ${CYAN}git clone https://github.com/intellistream/sage-examples.git${NC}"
-            echo -e "  ${CYAN}python sage-examples/tutorials/hello_world.py${NC}  # Hello World"
-            echo -e "  ${CYAN}sage llm serve --model Qwen/Qwen2.5-0.5B-Instruct${NC}  # LLM 服务"
-            echo ""
-            echo -e "${DIM}💡 SAGE Studio 需要单独安装:${NC}"
-            echo -e "  ${CYAN}pip install isage-studio${NC}"
-            echo -e "  ${CYAN}sage-studio start${NC}"
+            echo -e "  ${CYAN}sage verify${NC}"
+            echo -e "  ${CYAN}sage chat --ask \"Hello, SAGE!\"${NC}"
+            echo -e "  ${CYAN}sage serve gateway --json${NC}"
             ;;
         *)
             echo ""
@@ -747,6 +617,7 @@ show_usage_tips() {
             echo -e "${BLUE}standard 模式（默认）：${NC}"
             echo -e "  # 包含所有核心功能 + 科学计算 + ML + 向量数据库"
             echo -e "  sage --help                      # 查看 CLI 命令"
+            echo -e "  sage-edge --help                 # 查看 edge 聚合 shell（需 serving-edge/full 依赖）"
             echo -e "  jupyter notebook                 # 启动 Jupyter 笔记本"
             echo ""
             ;;
@@ -756,16 +627,14 @@ show_usage_tips() {
     echo -e "${BLUE}独立包（按需安装）：${NC}"
     echo -e "  pip install isage-benchmark             # 性能基准测试"
     echo -e "  pip install isagellm                    # LLM 推理引擎"
-    echo -e "  pip install isage-edge                  # Edge 聚合器"
-    echo -e "  git clone https://github.com/intellistream/sage-studio   # Web UI"
     echo -e "  git clone https://github.com/intellistream/sage-examples # 示例代码"
     echo ""
 
     if [ "$mode" = "dev" ] || [ "$mode" = "standard" ]; then
-        echo -e "${BLUE}C++扩展管理（可选）：${NC}"
-        echo -e "  ${DIM}# C++扩展已在安装 sage-middleware 时自动构建${NC}"
-        echo -e "  sage extensions status           # 检查扩展状态"
-        echo -e "  sage extensions install --force  # 强制重新构建扩展"
+        echo -e "${BLUE}C++扩展说明（可选）：${NC}"
+        echo -e "  ${DIM}# 原生/C++扩展会在安装流程中按需自动构建${NC}"
+        echo -e "  ./quickstart.sh --doctor         # 检查本机构建依赖"
+        echo -e "  ./quickstart.sh --dev --yes      # 重新执行主仓安装/重建流程"
         echo ""
     fi
 
@@ -803,10 +672,9 @@ show_usage_tips() {
     echo -e "  ${DIM}# 2) 需要 RAG 交互时，使用 sagellm 引擎直连${NC}"
     echo -e "  ${CYAN}sage chat --engine sagellm --backend auto --stream${NC}"
     echo ""
-    echo -e "  ${DIM}# 3) 如需 OpenAI 兼容服务接口，再手动启动 server${NC}"
-    echo -e "  ${CYAN}sage llm serve --model Qwen/Qwen2.5-0.5B-Instruct${NC}"
-    echo -e "  ${CYAN}sage llm status${NC}"
-    echo -e "  ${CYAN}sage llm stop${NC}"
+    echo -e "  ${DIM}# 3) 如需外部 gateway 服务模式，先查看 SAGE 侧契约并探活${NC}"
+    echo -e "  ${CYAN}sage serve gateway --json${NC}"
+    echo -e "  ${CYAN}sage serve gateway --probe --json${NC}"
 }
 
 # 创建 VS Code conda 环境配置的辅助函数

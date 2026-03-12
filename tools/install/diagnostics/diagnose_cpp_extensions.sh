@@ -30,10 +30,14 @@ echo "C++ 扩展安装诊断"
 echo "=================================================="
 echo ""
 
-# 1. 检查 isage-middleware 安装状态
-echo "1. 检查 isage-middleware 安装状态"
+# 1. 检查独立适配器包安装状态
+echo "1. 检查独立适配器包安装状态"
 echo "-----------------------------------"
-pip show isage-middleware || echo "未安装"
+for pkg in isage-vdb isage-flow isage-tsdb; do
+    echo "📦 $pkg"
+    pip show "$pkg" || echo "未安装"
+    echo ""
+done
 echo ""
 
 # 2. 检查历史子模块残留状态
@@ -44,59 +48,23 @@ cd "$PROJECT_ROOT"
 echo "ℹ️  历史文档子模块流程已移除；当前无需检查文档子模块"
 echo ""
 
-# 3. 检查 .so 文件位置
-echo "3. 检查 .so 文件位置"
+# 3. 检查适配器分发元数据
+echo "3. 检查适配器分发元数据"
 echo "-----------------------------------"
-for ext in sage_flow sage_db sage_tsdb; do
-    echo "📦 ${ext}:"
+python3 << 'PYEOF'
+from importlib import metadata
 
-    ext_dir="$PROJECT_ROOT/packages/sage-middleware/src/sage/middleware/components/${ext}"
+for dist_name in ("isage-vdb", "isage-flow", "isage-tsdb"):
+    try:
+        version = metadata.version(dist_name)
+        print(f"✅ {dist_name}: {version}")
+    except metadata.PackageNotFoundError:
+        print(f"❌ {dist_name}: 未安装")
+PYEOF
+echo ""
 
-    # 检查 python 目录中的 .so 文件
-    if [ -d "$ext_dir/python" ]; then
-        lib_files=$(find "$ext_dir/python" -maxdepth 1 -name "*.so" -type f 2>/dev/null || true)
-        if [ -n "$lib_files" ]; then
-            echo "$lib_files" | while read -r file; do
-                size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "?")
-                echo "  ✅ $(basename "$file") (${size} bytes)"
-            done
-        else
-            echo "  ❌ python/ 目录中没有 .so 文件"
-        fi
-    else
-        echo "  ❌ python/ 目录不存在"
-    fi
-
-    # 检查子模块 python 目录
-    submodule_dir=$(find "$ext_dir" -maxdepth 1 -type d \( -iname "sage${ext#sage_}" -o -iname "${ext}" \) 2>/dev/null | head -1 || true)
-    if [ -n "$submodule_dir" ] && [ -d "$submodule_dir/python" ]; then
-        lib_files=$(find "$submodule_dir/python" -maxdepth 1 -name "*.so" -type f 2>/dev/null || true)
-        if [ -n "$lib_files" ]; then
-            echo "  子模块 python/ 目录:"
-            echo "$lib_files" | while read -r file; do
-                size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "?")
-                echo "    📄 $(basename "$file") (${size} bytes)"
-            done
-        fi
-    fi
-
-    # 检查 build 目录
-    if [ -d "$ext_dir/build" ] || [ -d "$PROJECT_ROOT/packages/sage-middleware/build" ]; then
-        build_files=$(find "$ext_dir" "$PROJECT_ROOT/packages/sage-middleware/build" -name "lib*.so" -type f 2>/dev/null | grep -i "$ext" || true)
-        if [ -n "$build_files" ]; then
-            echo "  build/ 目录:"
-            echo "$build_files" | head -3 | while read -r file; do
-                size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "?")
-                echo "    📄 $(basename "$file") (${size} bytes)"
-            done
-        fi
-    fi
-
-    echo ""
-done
-
-# 4. 尝试导入扩展
-echo "4. 尝试导入 Python 扩展"
+# 4. 尝试导入主仓核心表面
+echo "4. 尝试导入主仓核心表面"
 echo "-----------------------------------"
 python3 << 'PYEOF'
 import sys
@@ -104,20 +72,18 @@ import warnings
 warnings.filterwarnings('ignore')
 
 try:
-    from sage.middleware.components.extensions_compat import check_extensions_availability
-    available = check_extensions_availability()
-
-    for ext, status in available.items():
-        symbol = '✅' if status else '❌'
-        print(f"{symbol} {ext}")
-
-        if not status:
-            # 尝试获取详细错误
-            try:
-                if ext == 'sage_flow':
-                    from sage.middleware.components.sage_flow.python import _sage_flow
-                elif ext == 'sage_db':
-                    from sage.middleware.components.sage_db.python import _sage_db
+    import sage.foundation  # noqa: F401
+    import sage.runtime  # noqa: F401
+    import sage.stream  # noqa: F401
+    import sage.serving  # noqa: F401
+    print('✅ sage.foundation')
+    print('✅ sage.runtime')
+    print('✅ sage.stream')
+    print('✅ sage.serving')
+except Exception as e:
+    print(f'❌ 主仓表面导入失败: {type(e).__name__}: {e}')
+    sys.exit(1)
+PYEOF
             except Exception as e:
                 print(f"   错误: {e}")
 except Exception as e:

@@ -15,12 +15,12 @@ This directory contains the profiling workloads and tooling to:
 
 ## Hot-Path Candidates
 
-| Package         | Path                          | Suspected Cost Driver                                      |
-| --------------- | ----------------------------- | ---------------------------------------------------------- |
-| `isage-kernel`  | `scheduler/`                  | Task dispatch loop — `make_decision()` called per-operator |
-| `isage-kernel`  | `runtime/communication/`      | `Packet` construction + msgpack ser/deser                  |
-| `isage-privacy` | `sage_privacy/dp_unlearning/` | NumPy noise generation over large vector batches           |
-| `isage-libs`    | `foundation/io/`              | Batch assembly + JSON decode in streaming ingestion        |
+| Surface | Path | Suspected Cost Driver |
+| ------- | ---- | --------------------- |
+| `sage.runtime` | `scheduler/` | Task dispatch loop — `make_decision()` called per-operator |
+| `sage.stream` / `sage.runtime` | `runtime/communication/` | `Packet` construction + routing / serialization overhead |
+| `isage-privacy` | `sage_privacy/dp_unlearning/` | NumPy noise generation over large vector batches |
+| Historical ingestion path | `foundation/io/` | Batch assembly + JSON decode in streaming ingestion |
 
 ## Quick Start
 
@@ -46,17 +46,17 @@ bash tools/profiling/flame_graph.sh --install
 
 ## Directory Layout
 
-```
+```text
 tools/profiling/
 ├── README.md                    # This file
 ├── cprofile_runner.py           # Main cProfile orchestrator
 ├── report_generator.py          # JSON → Markdown report
 ├── flame_graph.sh               # py-spy + perf SVG collector
 ├── workloads/
-│   ├── workload_scheduler.py         # isage-kernel scheduler bench
-│   ├── workload_communication.py     # isage-kernel Packet + msgpack bench
+│   ├── workload_scheduler.py         # scheduler bench (historical kernel vs in-tree runtime)
+│   ├── workload_communication.py     # packet / communication bench
 │   ├── workload_dp_unlearning.py     # isage-privacy DP unlearning bench
-│   └── workload_foundation_io.py     # isage-libs foundation/io bench
+│   └── workload_foundation_io.py     # historical foundation/io bench
 └── reports/                     # ← generated, not committed (gitignored)
     ├── hot_path_summary.txt
     ├── hot_path_report.md        # Copy to docs/profiling/ when ready
@@ -84,7 +84,7 @@ The `cprofile_runner.py` outputs `pstats` tables sorted by cumulative time. Focu
 
 After all paths run, a verdict table is printed:
 
-```
+```text
 🔴 HIGH  → C++ port directly benefits (>2× threshold)
 🟡 MED   → profile deeper with larger data or real traffic
 🟢 LOW   → Python overhead is acceptable, not worth porting

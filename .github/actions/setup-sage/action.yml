@@ -88,8 +88,9 @@ runs:
         echo "Checking critical submodule directories:"
         all_ok=true
         for submodule in \
-          "packages/sage-middleware/src/sage/middleware/components/sage_db/sageVDB" \
-          "packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow"; do
+          "src/sage/foundation" \
+          "src/sage/stream" \
+          "src/sage/runtime"; do
           if [ -d "$submodule" ] && [ -n "$(ls -A "$submodule" 2>/dev/null)" ]; then
             echo "✅ $submodule - OK"
           else
@@ -155,12 +156,12 @@ runs:
         echo "🔍 Verifying SAGE installation..."
 
         # Check SAGE import and version
-        SAGE_VERSION=$(python -c "import sage; print(sage.__version__)" 2>/dev/null || echo "unknown")
+        SAGE_VERSION=$(python -c "from sage._version import __version__; print(__version__)" 2>/dev/null || echo "unknown")
         echo "version=$SAGE_VERSION" >> $GITHUB_OUTPUT
         echo "✅ SAGE version: $SAGE_VERSION"
 
         # Check imports
-        python -c "import sage; import sage.common; import sage.kernel" && echo "✅ Core imports OK"
+        python -c "import sage.foundation, sage.stream, sage.runtime, sage.serving, sage.cli" && echo "✅ Core imports OK"
 
         # Check CLI
         if command -v sage-dev >/dev/null 2>&1 || [ -x "$HOME/.local/bin/sage-dev" ]; then
@@ -171,7 +172,7 @@ runs:
 
         # Check C++ extensions
         CPP_EXT="false"
-        so_files=$(find packages/sage-middleware/src/sage/middleware/components/ \
+        so_files=$(find src csrc \
           \( -name "_sage_*.so" -o -name "*.cpython-*.so" \) -type f 2>/dev/null || true)
         if [ -n "$so_files" ]; then
           CPP_EXT="true"

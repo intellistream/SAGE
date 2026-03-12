@@ -37,18 +37,18 @@ _DEFAULT_MD = _REPORTS_DIR / "hot_path_report.md"
 
 _THRESHOLDS: dict[str, tuple[str, float, str]] = {
     # (metric_key, threshold_µs, description)
-    "Scheduler — RoundRobin decision": ("rr_per_decision_us", 0.5, "isage-kernel/scheduler"),
-    "Scheduler — Priority decision": ("pri_per_decision_us", 1.0, "isage-kernel/scheduler"),
-    "Comm — Packet construction": ("pkt_construct_us", 0.2, "isage-kernel/communication"),
-    "Comm — msgpack serialize": ("msgpack_ser_us", 1.0, "isage-kernel/communication"),
-    "Comm — msgpack deserialize": ("msgpack_deser_us", 1.0, "isage-kernel/communication"),
-    "Comm — Key routing": ("route_us", 0.1, "isage-kernel/communication"),
-    "DP — Vector perturbation": ("perturb_ms_per_call", 5_000.0, "isage-libs/privacy"),
-    "DP — Neighbor compensation": ("comp_ms_per_call", 50_000.0, "isage-libs/privacy"),
-    "DP — Full engine call": ("engine_ms_per_call", 100_000.0, "isage-libs/privacy"),
-    "IO — Batch assembly": ("batch_assembly_us", 2.0, "isage-libs/foundation/io"),
-    "IO — JSON roundtrip": ("json_roundtrip_us", 10.0, "isage-libs/foundation/io"),
-    "IO — Queue enqueue": ("queue_enq_us", 0.5, "isage-libs/foundation/io"),
+    "Scheduler — RoundRobin decision": ("rr_per_decision_us", 0.5, "sage.runtime.scheduler"),
+    "Scheduler — Priority decision": ("pri_per_decision_us", 1.0, "sage.runtime.scheduler"),
+    "Comm — Packet construction": ("pkt_construct_us", 0.2, "sage.stream._runtime_kernel_types"),
+    "Comm — msgpack serialize": ("msgpack_ser_us", 1.0, "sage.runtime communication path"),
+    "Comm — msgpack deserialize": ("msgpack_deser_us", 1.0, "sage.runtime communication path"),
+    "Comm — Key routing": ("route_us", 0.1, "sage.stream._runtime_kernel_types"),
+    "DP — Vector perturbation": ("perturb_ms_per_call", 5_000.0, "sage.libs.unlearning"),
+    "DP — Neighbor compensation": ("comp_ms_per_call", 50_000.0, "sage.libs.unlearning"),
+    "DP — Full engine call": ("engine_ms_per_call", 100_000.0, "sage.libs.unlearning"),
+    "IO — Batch assembly": ("batch_assembly_us", 2.0, "sage.foundation / stream I/O"),
+    "IO — JSON roundtrip": ("json_roundtrip_us", 10.0, "sage.foundation / stream I/O"),
+    "IO — Queue enqueue": ("queue_enq_us", 0.5, "sage.foundation / stream I/O"),
 }
 
 
@@ -94,8 +94,8 @@ def build_report(data: dict, run_date: str | None = None) -> str:
         "",
         f"> Generated: {run_date}  ",
         "> Issue: [#1467](https://github.com/intellistream/SAGE/issues/1467)  ",
-        "> Feeds into: [#1468](https://github.com/intellistream/SAGE/issues/1468) (isage-kernel C++) · "
-        "[#1469](https://github.com/intellistream/SAGE/issues/1469) (isage-libs C++)",
+        "> Feeds into: [#1468](https://github.com/intellistream/SAGE/issues/1468) (runtime C++) · "
+        "[#1469](https://github.com/intellistream/SAGE/issues/1469) (algorithm / I/O C++)",
         "",
         "---",
         "",
@@ -157,10 +157,10 @@ def build_report(data: dict, run_date: str | None = None) -> str:
     ]
 
     section_labels = {
-        "scheduler": "### Scheduler / Task Dispatch (`isage-kernel`)",
-        "communication": "### Communication / Packet Serialization (`isage-kernel`)",
+        "scheduler": "### Scheduler / Task Dispatch (`sage.runtime.scheduler`)",
+        "communication": "### Communication / Packet Serialization (`sage.stream` / `sage.runtime`)",
         "dp_unlearning": "### DP Unlearning (`isage-privacy/sage_privacy.dp_unlearning`)",
-        "foundation_io": "### Foundation I/O (`isage-libs/foundation/io`)",
+        "foundation_io": "### Foundation I/O (`sage.foundation` / stream I/O)",
     }
 
     for section, header in section_labels.items():

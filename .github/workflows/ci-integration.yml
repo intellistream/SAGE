@@ -63,13 +63,8 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install \
-            "isage-common>=0.2.4.16" \
-            "isage-platform>=0.2.4.15" \
-            "isage-kernel>=0.2.4.18" \
-            "isage-libs>=0.2.4.15" \
-            "isage-middleware>=0.2.4.16" \
-            "isage-cli>=0.2.4.19" \
-            "isage-flow>=0.1.1"
+            "isage" \
+            "isagellm>=0.5.4.3"
 
       - name: Install sub-packages (TestPyPI dev channel)
         if: ${{ inputs.use_testpypi == 'true' }}
@@ -98,12 +93,11 @@ jobs:
           import sys
 
           checks = [
-              ("sage.common", "isage-common"),
-              ("sage.platform", "isage-platform"),
-              ("sage.kernel", "isage-kernel"),
-              ("sage.libs", "isage-libs"),
-              ("sage.middleware", "isage-middleware"),
-              ("sage.cli", "isage-cli"),
+              ("sage.foundation", "isage"),
+              ("sage.stream", "isage"),
+              ("sage.runtime", "isage"),
+              ("sage.serving", "isage"),
+              ("sage.cli", "isage"),
           ]
 
           failed = []
@@ -130,14 +124,8 @@ jobs:
           import importlib.metadata as meta, sys
 
           pkgs = [
-              "isage-common",
-              "isage-platform",
-              "isage-kernel",
-              "isage-libs",
-              "isage-middleware",
-              "isage-cli",
-              "isage-flow",
               "isage",
+              "isagellm",
           ]
 
           print("\nInstalled SAGE ecosystem versions:")
@@ -160,7 +148,7 @@ jobs:
           python3 - <<'EOF' >> $GITHUB_STEP_SUMMARY
           import importlib.metadata as meta
 
-          pkgs = ["isage-common","isage-platform","isage-kernel","isage-libs","isage-middleware","isage-cli","isage-flow","isage"]
+            pkgs = ["isage", "isagellm"]
           for p in pkgs:
               try:
                   v = meta.version(p)

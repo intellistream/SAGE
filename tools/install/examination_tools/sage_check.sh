@@ -39,13 +39,6 @@ check_existing_sage() {
     _detect_sage_version() {
         local installed_packages="$1"
         local priority_packages=(
-            "isage-cli"
-            "isage-common"
-            "isage-platform"
-            "isage-kernel"
-            "isage-libs"
-            "isage-middleware"
-            "isage-tools"
             "isage"
         )
 
@@ -62,8 +55,12 @@ check_existing_sage() {
         echo "$installed_packages" | head -n1 | awk '{print $2}'
     }
 
+    _sage_package_filter_pattern() {
+        echo '^(isage($|-)|intsage($|-)|sage$)'
+    }
+
     # 检查pip包列表中的所有SAGE相关包变体
-    local installed_packages=$(_sage_pip_list | grep -E '^(sage|isage|intsage)(-|$)' || echo "")
+    local installed_packages=$(_sage_pip_list | grep -E "$(_sage_package_filter_pattern)" || echo "")
     if [ -n "$installed_packages" ]; then
         local version=$(_detect_sage_version "$installed_packages")
         echo -e "${WARNING} 检测到已安装的 SAGE v${version}"
@@ -76,9 +73,9 @@ check_existing_sage() {
         return 0
     fi
 
-    # 检查是否能导入sage.common（PEP 420 namespace，检查实际包）
-    if python3 -c "import sage.common" 2>/dev/null; then
-        local sage_version=$(python3 -c "import sage.common; print(sage.common.__version__)" 2>/dev/null || echo "unknown")
+    # 检查是否能导入主仓核心表面
+    if python3 -c "from sage._version import __version__; import sage.foundation, sage.stream, sage.runtime, sage.serving, sage.cli" 2>/dev/null; then
+        local sage_version=$(python3 -c "from sage._version import __version__; print(__version__)" 2>/dev/null || echo "unknown")
         echo -e "${WARNING} 检测到已安装的 SAGE v${sage_version}"
         return 0
     fi
@@ -118,7 +115,11 @@ uninstall_sage() {
     }
 
     # 获取所有已安装的SAGE相关包（包括所有前缀变体）
-    local all_sage_packages=$(_sage_pip_list | grep -E '^(sage|isage|intsage)(-|$)' | awk '{print $1}' || echo "")
+    _sage_package_filter_pattern() {
+        echo '^(isage($|-)|intsage($|-)|sage$)'
+    }
+
+    local all_sage_packages=$(_sage_pip_list | grep -E "$(_sage_package_filter_pattern)" | awk '{print $1}' || echo "")
 
     if [ -n "$all_sage_packages" ]; then
         echo -e "${DIM}  → 发现已安装的包：${NC}"
@@ -158,22 +159,8 @@ uninstall_sage() {
     echo -e "${DIM}  → 清理开发模式链接${NC}"
     local dev_packages=(
         "sage"
-        "sage-libs"
-        "sage-middleware"
-        "sage-kernel"
-        "sage-common"
-        "sage-tools"
         "isage"
-        "isage-libs"
-        "isage-middleware"
-        "isage-kernel"
-        "isage-common"
         "intsage"
-        "intsage-apps"
-        "intsage-dev-toolkit"
-        "intsage-frontend"
-        "intsage-kernel"
-        "intsage-middleware"
     )
 
     for package in "${dev_packages[@]}"; do

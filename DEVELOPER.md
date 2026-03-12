@@ -12,14 +12,14 @@ ______________________________________________________________________
 ## Table of Contents
 
 - [Development Setup](#development-setup)
-  - [Prerequisites](#prerequisites)
-  - [Initial Setup](#initial-setup)
-  - [Submodule Management](#submodule-management)
+- [Prerequisites](#prerequisites)
+- [Initial Setup](#initial-setup)
 - [Dependency Management](#dependency-management)
-  - [Core Dependencies Architecture](#core-dependencies-architecture)
-  - [Per-Layer Dependencies](#per-layer-dependencies)
-  - [Feature Modules](#feature-modules)
-  - [Installation Examples](#installation-examples)
+- [Layer Ownership Matrix](#layer-ownership-matrix-wave-a-baseline)
+- [Core Dependencies Architecture](#core-dependencies-architecture)
+- [Per-Layer Dependencies](#per-layer-dependencies)
+- [Capability Packages](#capability-packages)
+- [Installation Examples](#installation-examples)
 - [Development Workflow](#development-workflow)
 - [Code Quality](#code-quality)
 - [Testing](#testing)
@@ -62,7 +62,24 @@ git checkout main-dev
 - ✅ 安装本地根目录 `isage` meta 包
 - ✅ 子包依赖按版本约束从 PyPI 解析（稳定/发布导向）
 
-> 💡 **注意**: 用户文档已迁移到独立的 [sage-docs](https://github.com/intellistream/sage-docs) 仓库。### Initial Setup
+### Current `sage` CLI Surface
+
+主仓当前维护的 `sage` 命令表面刻意保持精简，仅覆盖核心产品边界：
+
+- `sage version`
+- `sage status`
+- `sage doctor`
+- `sage verify`
+- `sage runtime nodes`
+- `sage serve gateway --json`
+- `sage serve gateway --probe --json`
+- `sage chat`
+- `sage chat --ask "Hello, SAGE!"`
+- `sage index ingest --source ./docs --index local-docs`
+
+> 💡 **注意**: 用户文档已迁移到独立的 [sage-docs](https://github.com/intellistream/sage-docs) 仓库。
+
+### Initial Setup
 
 1. Clone and switch to development branch
 
@@ -77,14 +94,14 @@ git checkout main-dev
    ./quickstart.sh --dev --yes
    ```
 
-> 💡 For multi-folder VS Code editing, clone `sage-docs` repository in the parent directory pre-commit
-> install
+> 💡 For multi-folder VS Code editing, clone the `sage-docs` repository in the parent directory.
+
+```bash
+pre-commit install
 
 # Install development tools
-
 pip install black isort ruff mypy pytest pytest-cov
-
-````
+```
 
 ______________________________________________________________________
 
@@ -106,17 +123,18 @@ SAGE follows a **minimalist core dependency strategy** with a **modular feature 
 
 - **Core Dependencies** (`dependencies`): Only packages necessary for base functionality
 - **Dev Dependencies** (`dev` extra): Testing tools, linters, and development utilities
-- **Feature Modules**: Functionality available through independent PyPI packages
+- **Feature Modules**: Functionality available through in-tree extras or independent PyPI packages
 
-**Key Principle**: We maintain **minimal core** to reduce bloat and installation time. Specialized functionality is available through independent packages that users can install as needed.
+**Key Principle**: We maintain **minimal core** to reduce bloat and installation time. Specialized functionality is available either through in-tree extras when it belongs to the SAGE product surface, or through independent packages when ownership should stay external.
 
 ### Per-Layer Dependencies
 
 Current workspace numbering is normalized to the actively maintained main repos:
 
-#### L1. sage-common (Foundation)
+#### L1. `sage.foundation` (Foundation)
 
 **Core**:
+
 - `pyyaml>=6.0` - Configuration files
 - `psutil>=6.1.0` - System information
 - `dill>=0.3.8` - Object serialization
@@ -124,23 +142,25 @@ Current workspace numbering is normalized to the actively maintained main repos:
 - `pydantic>=2.10.0,<3.0.0` - Data validation
 - `platformdirs>=4.0.0` - User paths
 
-**Also owns now**: former `sage-platform` abstractions and the shared interface surface previously
-split into `sage-libs`.
+**Also owns now**: former platform abstractions and the shared interface surface that used to live
+in historical split algorithm packages.
 
-#### L2. sage-kernel (Runtime / Scheduler)
+#### L2. `sage.runtime` / `sage.stream` (Runtime / Scheduler)
 
 **Core**:
-- `isage-flownet>=0.1.0` ⭐ **Distributed runtime/scheduling (mandatory)**
+
+- `flutty>=0.1.0` - optional distributed runtime backend
 - `fastapi>=0.115.0,<1.0.0` - Kernel HTTP service
 - `grpcio>=1.74.0,<2.0.0` - RPC communication
 - `msgpack>=1.1.0,<2.0.0` - Serialization
 - `openai>=1.52.0` / `httpx>=0.28.0` - absorbed middleware runtime operators
 
-**Also owns now**: former `sage-middleware` runtime/operator responsibilities.
+**Also owns now**: former runtime-bound adapter/operator responsibilities.
 
-#### L3. sage-cli (Core user entrypoint)
+#### L3. `sage.cli` (Core user entrypoint)
 
 **Core**:
+
 - `typer>=0.15.0` - CLI framework
 - `rich>=13.0.0` - Pretty output
 - `click>=8.0.0` - Command parsing
@@ -150,15 +170,16 @@ split into `sage-libs`.
 **Role**: top layer of the core workspace stack; applications should extend it rather than sit as
 peers.
 
-#### L4. Applications (`sage-studio`, benchmarks, docs-facing apps)
+#### L4. Optional applications (benchmarks, docs-facing apps, experimental UIs)
 
 **Typical deps**:
+
 - `isage>=...` - full framework integration
 - `fastapi>=...` / frontend stacks - application API & UI
 - app-specific packages such as `isagellm`, `isage-agentic`, `isage-neuromem`
 
-**Note**: `sage-studio` is above `sage-cli`, not the same layer, because it plugs into the CLI via
-the `sage.cli.plugins` entry-point surface.
+**Note**: optional apps are above `sage-cli`, not the same layer, because they extend the core via
+plugin, service, or API surfaces rather than defining the core product boundary.
 
 ### Capability Packages
 
@@ -166,12 +187,74 @@ Packages such as `isage-rag`, `isage-neuromem`, `isage-libs-intent`, and `isage-
 important capability dependencies, but they are no longer used as separate main-repo layer labels
 in the workspace numbering.
 
+Thin-wrapper rule: do not introduce new external packages that merely re-export SAGE-owned runtime,
+stream, or serving-boundary logic. If a package does not own substantial functionality, keep it
+in-tree.
+
+Current application of this rule: `sage-edge` has been folded back into the main repo as
+`sage.edge`; treat the former split repo as retired instead of retaining it as a separate Zoo
+package.
+
+Immediate non-Zoo retirement candidates follow the same logic: historical split foundation,
+runtime, and CLI repos are increasingly just release channels for product surfaces that already
+belong to the main repo, and duplicate stream surfaces should not be expanded as a separate
+ownership line.
+
+### Consolidation Target (2026 direction)
+
+The product direction is now to converge the highest-value capabilities into the main `SAGE`
+repository and reduce dependency on UI-first or thin-wrapper repos.
+
+Priority order:
+
+1. **Foundation in-tree**: keep centralized config, ports, user paths, model asset registry,
+   logging, and shared contracts close to the main repo.
+1. **Stream/runtime in-tree**: keep `DataStream`, `LocalEnvironment`, `JobManager`, scheduling,
+   and service lifecycle as the execution core.
+1. **Serving boundary in-tree, engine out-of-tree**: keep OpenAI-compatible access, health/status,
+   and integration contracts in SAGE, while leaving inference-engine internals in `isagellm`.
+1. **Edge shell in-tree**: keep edge aggregation as part of the SAGE serving contract instead of a
+   long-lived thin wrapper repository.
+1. **Capabilities as adapters**: RAG, memory, tool-use, evaluation, and benchmark modules should be
+   optional adapters unless they clearly strengthen the inference-service core.
+
+Distributed-runtime rule: `FluttyEnvironment` should remain a first-class **optional** public API
+for cluster execution. The consolidation target is not “distributed-only SAGE”; it is “stream-first
+SAGE” with a strong local default plus Flutty-backed scale-out when needed, and no new
+Ray-oriented dependency path.
+
+Inference-engine rule: do not absorb `isagellm` internals into `SAGE`. `isagellm` is itself an
+independent inference engine and should remain separately owned/released. SAGE may standardize the
+integration boundary around it, but not re-home its backend/control-plane internals.
+
+Migration rule: do not add compatibility shims for old repo boundaries during consolidation;
+instead, move ownership deliberately and update call sites directly.
+
+Retirement rule: do not delete historical split foundation/runtime repositories until both conditions
+are true: (1) main-repo call sites and install/verification workflows no longer rely on their
+implementation modules as hard dependencies, and (2) external example/tutorial/adapter repos no
+longer need those repos as transitional compatibility owners.
+
+Zoo rule of thumb: if a repository is not an MCP-facing tool surface, not an independently valuable
+engine/runtime, and not a clearly optional adapter with substantial owned logic, it should default
+back into the main `SAGE` repo instead of living forever as a split package.
+
+Current status note: the main repo now owns the primary `sage.foundation`, `sage.stream`,
+`sage.runtime`, `sage.serving`, and `sage.cli` product surfaces directly. The local runtime path
+and scheduler / packet / job-manager primitives are now also owned in-tree, so the historical runtime split package is
+no longer a direct root dependency of `isage`. Remaining kernel/common usage is now primarily a
+compatibility and ecosystem-migration concern rather than a main-repo public-API dependency.
+
+Interpreter note: in Python 3.13 environments, root installation currently skips automatic
+`isagellm` resolution because upstream `isagellm-protocol` wheels are not yet available there.
+This does not block stream/runtime development in the main repo.
+
 ### Feature Modules
 
 When extras were removed, functionality migrated to independent packages:
 
 | Feature | Before | Now |
-|---------|--------|-----|
+| ------- | ------ | --- |
 | Embedding | `commons[embedding]` | → `isage-neuromem` |
 | Agentic | `libs[agentic]` | → `isage-agentic` |
 | RAG | `libs[rag]` | → `isage-rag` |
@@ -185,12 +268,10 @@ When extras were removed, functionality migrated to independent packages:
 #### Minimal (core only)
 
 ```bash
-pip install isage-common
-pip install isage-platform       # Includes Flownet-aligned runtime integration
-pip install isage-kernel isage-libs isage-middleware
-````
+pip install isage
+```
 
-#### Standard (recommended for most users)
+### Standard (recommended for most users)
 
 ```bash
 pip install isage                # Meta package with all core layers
@@ -202,7 +283,8 @@ Then add features as needed:
 pip install isage-agentic        # For agents
 pip install isage-rag            # For RAG
 pip install isage-vdb            # For vector search
-pip install isagellm             # For LLM inference
+pip install isage-neuromem       # For memory / retrieval persistence
+pip install isage-libs-intent    # For intent / orchestration adapters
 ```
 
 #### Development (with all tools)
@@ -227,7 +309,7 @@ same development workflows:
 >
 > - Work report generation: `sage-dev-tools report --period weekly`
 > - Cluster code sync: `sage-dev-tools maintenance sync-cluster`
-> - See: https://github.com/intellistream/sage-dev-tools
+> - See: [sage-dev-tools](https://github.com/intellistream/sage-dev-tools)
 
 ```bash
 # Format code / auto-fix quality issues
@@ -478,7 +560,7 @@ Example:
 
 ```python
 import pytest
-from sage.kernel.api.local_environment import LocalEnvironment
+from sage.runtime import LocalEnvironment
 
 
 def test_local_environment_initialization_creates_instance():

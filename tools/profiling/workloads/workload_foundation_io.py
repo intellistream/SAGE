@@ -1,6 +1,6 @@
 """
-Profiling Workload — isage-libs Foundation I/O (sage.libs.foundation.io)
-========================================================================
+Profiling Workload — SAGE Foundation / Stream I/O
+=================================================
 
 Measures the hot paths in streaming data ingestion:
   1. BatchFunction execution overhead (Python call + data copy)

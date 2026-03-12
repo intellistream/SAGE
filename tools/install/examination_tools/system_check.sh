@@ -30,13 +30,14 @@ verify_installation() {
     echo -e "${INFO} 验证安装..."
 
     if python3 -c "
-import sage
-import sage.common
-import sage.kernel
-import sage.libs
-import sage.middleware
-print(f'${CHECK} SAGE v{sage.__version__} 安装成功！')
-print(f'${CHECK} 所有子包版本一致: {sage.common.__version__}')
+from sage._version import __version__
+import sage.foundation
+import sage.stream
+import sage.runtime
+import sage.serving
+import sage.cli
+print(f'${CHECK} SAGE v{__version__} 安装成功！')
+print(f'${CHECK} 主仓核心表面可用: foundation, stream, runtime, serving, cli')
 " 2>/dev/null; then
         echo -e "${CHECK} 验证通过！"
 

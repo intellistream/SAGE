@@ -15,17 +15,24 @@ Source: `https://pypi.org/pypi/isage/json` (checked on 2026-02-14, UTC).
 ## [Unreleased]
 
 ### Changed
+
+- Promoted the main repository to the `0.3` product line after the stream/runtime/serving consolidation.
+- Reworked the owned `sage` CLI surface around the in-tree core boundary: `version`, `status`, `doctor`, `verify`, `runtime nodes`, `serve gateway`, `chat`, and `index ingest`.
+- Switched `sage chat` to a `sagellm`-first integration model: direct `sagellm` CLI or external gateway, with no in-repo mock fallback.
+- Updated install/help/verification flows to match the current command surface and the external `sagellm` engine contract.
+- Updated root and cross-repo high-signal docs to remove retired commands such as `sage llm`, `sage extensions`, `sage cluster`, and `sage jobmanager`.
 - Updated documentation references from `dev-notes` paths to stable repository-level references.
 - Consolidated markdown retention policy to aggressively trim non-critical docs while preserving root entry docs (`README.md`, `CONTRIBUTING.md`, `DEVELOPER.md`) and Copilot/agent instruction metadata.
 - Preserved critical operational constraints in changelog: `sageFlownet` replaces Ray for runtime direction, and new work should avoid adding Ray-oriented dependencies.
 - Preserved critical engineering policy in changelog: dependency changes must be declared in `pyproject.toml` (no ad-hoc manual install workflow as a source of truth).
 - Consolidated guidance from removed governance/docs markdown into changelog-level policy summaries:
-	- Cross-package governance baselines remain: layer-boundary compliance, fail-fast behavior, and quality/test gate expectations.
-	- Runtime API layering intent remains: facade APIs for default users and environment APIs for advanced control, with contract-level semantic consistency.
-	- Installation/operations note remains: long-install progress and install optimization guidance are now treated as implementation details rather than standalone markdown docs.
+  - Cross-package governance baselines remain: layer-boundary compliance, fail-fast behavior, and quality/test gate expectations.
+  - Runtime API layering intent remains: facade APIs for default users and environment APIs for advanced control, with contract-level semantic consistency.
+  - Installation/operations note remains: long-install progress and install optimization guidance are now treated as implementation details rather than standalone markdown docs.
 - Markdown inventory in tracked files was reduced to a minimal set (primarily `README*.md` + `CHANGELOG*.md` + root contribution docs + agent/copilot instruction docs).
 
 ### Removed
+
 - Removed selected Copilot-related markdown documents and obsolete dev-notes references from documentation.
 - Removed selected markdown in package docs/examples and tools docs to reduce documentation footprint.
 - Removed markdown-heavy governance and template docs across packages (CLI/Common/Kernel/Libs/Middleware/Platform/Tools/meta-package), plus issue/PR markdown templates and selected install-fix notes.

@@ -3,6 +3,11 @@
 This directory provides standardised scaffolding for all SAGE split-repos. Apply the templates to a
 new (or existing) repo with a single command.
 
+For the 2026 consolidation direction, do **not** use these templates to create new core-layer repos
+that duplicate `sage.foundation`, `sage.stream`, `sage.runtime`, or `sage.serving`. They should be
+used only for clearly independent optional adapters, benchmark utilities, or other genuinely
+separate deliverables.
+
 ## Quick start
 
 ```bash
@@ -13,10 +18,10 @@ cd /path/to/target-repo
     --desc     "SAGE RAG components"
 ```
 
-Pass `--cpp` for repos that contain a C++ extension (e.g. `isage-kernel`, `isage-libs`):
+Pass `--cpp` for repos that contain a C++ extension (for example, independently owned high-performance adapters):
 
 ```bash
-init-repo.sh --pkg-name isage-kernel --pkg-mod sage_kernel --cpp
+init-repo.sh --pkg-name isage-anns --pkg-mod sage_anns --cpp
 ```
 
 Options:
@@ -34,7 +39,7 @@ ______________________________________________________________________
 
 ## Directory structure
 
-```
+```text
 tools/templates/
 ├── init-repo.sh              ← one-command initialiser
 │
@@ -98,7 +103,8 @@ ______________________________________________________________________
 
 ## Cross-repo release pipeline
 
-The release pipeline creates a fully automated version-linking chain (L1 → L2 → L3 → L4 → L5).
+The release pipeline can create a fully automated version-linking chain for repos that still have a
+real upstream/downstream release relationship.
 
 ### How it works
 
@@ -123,25 +129,18 @@ For each upstream repo, edit `.github/workflows/release.yml` and set the `DOWNST
 in the `dispatch-downstream` job:
 
 ```yaml
-# sage-common (L1) — notifies all downstream workspace layers
-DOWNSTREAM_REPOS="intellistream/sage-kernel intellistream/sage-cli intellistream/sage-studio"
+# Example: an independently owned base adapter notifies a dependent adapter repo
+DOWNSTREAM_REPOS="intellistream/some-dependent-repo"
 
-# sage-kernel (L2) — notifies L3/L4
-DOWNSTREAM_REPOS="intellistream/sage-cli intellistream/sage-studio"
-
-# sage-cli (L3) — notifies L4 apps
-DOWNSTREAM_REPOS="intellistream/sage-studio"
+# Example: a leaf repo with no automatic downstream bump targets
+DOWNSTREAM_REPOS=""
 ```
 
 ### Dependency graph
 
-```
-isage-common (L1)
-    ├─ isage-kernel (L2)
-    │       ├─ isage-cli (L3)
-    │       │       └─ isage-studio (L4)
-    │       └─ isage-studio (L4)
-    └─ isage-cli (L3)
+```text
+independent-base-package
+    └─ dependent-package
 ```
 
 ______________________________________________________________________
@@ -149,5 +148,5 @@ ______________________________________________________________________
 ## Related issues
 
 - #1456 — This template directory (P1 infra)
-- #1459 / #1460 — `isage-libs` / `isage-kernel` (use `--cpp` flag)
+- #1459 / #1460 — historical C++ split-repo rollout examples (use `--cpp` flag when still justified)
 - #1465 — Cross-repo release pipeline (release.yml dispatch + update-deps.yml)

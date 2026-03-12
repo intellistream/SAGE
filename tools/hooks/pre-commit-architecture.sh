@@ -20,9 +20,9 @@ NC='\033[0m' # No Color
 # 格式：错误路径|正确路径|描述
 # 注意：sageLLM 已独立为 PyPI 包（pip install isage-sagellm），不应再有源码
 ARCHITECTURE_VIOLATIONS=(
-  "packages/sage-common/src/sage/common/components/sage_llm|REMOVED|sageLLM 已独立为 PyPI 包（pip install isage-sagellm）"
-  "packages/sage-common/src/sage/common/components/sageLLM|REMOVED|sageLLM 已独立为 PyPI 包（pip install isage-sagellm）"
-  "packages/sage-llm-core/src/sage/llm/sageLLM|REMOVED|sageLLM 已独立为 PyPI 包（pip install isage-sagellm）"
+  "src/sage/common/components/sage_llm|REMOVED|sageLLM 已独立为 PyPI 包（pip install isage-sagellm）"
+  "src/sage/common/components/sageLLM|REMOVED|sageLLM 已独立为 PyPI 包（pip install isage-sagellm）"
+  "src/sage/llm/sageLLM|REMOVED|sageLLM 已独立为 PyPI 包（pip install isage-sagellm）"
   # 可以添加更多架构规则
 )
 

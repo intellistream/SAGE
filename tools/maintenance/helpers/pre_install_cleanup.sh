@@ -21,21 +21,36 @@ PIP_CMD="${PIP_CMD:-$PYTHON_CMD -m pip}"
 # 计数器
 removed_count=0
 
-# 清理历史安装的 SAGE/SageLLM 相关包（显著降低 pip 解析复杂度）
-echo -e "${DIM}清理已安装的 isage/isagellm/sagellm 包...${NC}"
-installed_packages=$(eval "$PIP_CMD list --format=freeze" 2>/dev/null | grep -E '^(isage|isagellm|sagellm)(-|=)|^(sage-pub-docs|isage-docs)=' || true)
-if [ -n "$installed_packages" ]; then
-    package_names=$(echo "$installed_packages" | cut -d'=' -f1 | tr '\n' ' ')
-    if [ -n "$package_names" ]; then
-        echo -e "${DIM}将卸载: $package_names${NC}"
-        eval "$PIP_CMD uninstall -y $package_names" >/dev/null 2>&1 || true
-        pkg_count=$(echo "$package_names" | wc -w)
-        echo -e "${GREEN}✅ 清理了 $pkg_count 个历史安装包${NC}"
-        removed_count=$((removed_count + pkg_count))
-    fi
+# 清理当前主仓直接产出的历史安装（避免误删 benchmark/docs/isagellm/zoo 等独立包）
+echo -e "${DIM}清理当前 SAGE 主仓的直接安装包...${NC}"
+
+collect_direct_sage_packages_to_remove() {
+    local installed_lines="$1"
+    local removable_packages=(
+        "isage"
+        "sage"
+        "intsage"
+    )
+
+    local package_name
+    for package_name in "${removable_packages[@]}"; do
+        echo "$installed_lines" | awk -F'==' -v pkg="$package_name" '$1==pkg {print $1}'
+    done | awk '!seen[$0]++'
+}
+
+installed_packages=$(eval "$PIP_CMD list --format=freeze" 2>/dev/null || true)
+package_names=$(collect_direct_sage_packages_to_remove "$installed_packages" | tr '\n' ' ')
+
+if [ -n "$package_names" ]; then
+    echo -e "${DIM}将卸载: $package_names${NC}"
+    eval "$PIP_CMD uninstall -y $package_names" >/dev/null 2>&1 || true
+    pkg_count=$(echo "$package_names" | wc -w)
+    echo -e "${GREEN}✅ 清理了 $pkg_count 个主仓历史安装包${NC}"
+    removed_count=$((removed_count + pkg_count))
 else
-    echo -e "${DIM}未检测到历史安装包${NC}"
+    echo -e "${DIM}未检测到需要清理的主仓安装包${NC}"
 fi
+echo -e "${DIM}保留独立包: isagellm / isage-benchmark / sage-pub-docs / zoo packages${NC}"
 
 # 清理 Python 缓存文件
 echo -e "${DIM}清理 __pycache__ 目录...${NC}"

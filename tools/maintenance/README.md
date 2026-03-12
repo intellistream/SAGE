@@ -65,10 +65,12 @@ tools/maintenance/
 
 ## 关于子仓库 / 独立仓库
 
-- `sage-common`、`sage-kernel`、`sage-cli`、`sage-tools`、`sage-studio` 等能力已按 polyrepo 方式独立维护。
+- 历史 split repos 属于主仓收敛过程中的过渡边界；新增核心能力应优先直接落在 `SAGE` 主仓。
+- `sage-tools` 等非核心能力仍可保持独立维护。
 - 不要再假设存在历史上的嵌套路径，例如 `packages/.../sage_db/sageVDB/`、`packages/.../sage_flow/sageFlow/` 或 `packages/sage-llm-core/...`。
 
-如果需要跨仓库协作，应直接在各自仓库中完成开发与发布，再回到 SAGE 元仓库更新版本约束。
+如果需要跨仓库协作，应优先判断该能力是否已经进入主仓收敛范围；若是，则直接在主仓实现，
+不要继续扩大核心 split-repo 面。
 
 ## 常见用法
 

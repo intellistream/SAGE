@@ -452,13 +452,6 @@ check_existing_sage() {
     _detect_sage_version() {
         local installed_packages="$1"
         local priority_packages=(
-            "isage-cli"
-            "isage-common"
-            "isage-platform"
-            "isage-kernel"
-            "isage-libs"
-            "isage-middleware"
-            "isage-tools"
             "isage"
         )
 
@@ -475,12 +468,16 @@ check_existing_sage() {
         echo "$installed_packages" | head -n1 | awk '{print $2}'
     }
 
+    _sage_package_filter_pattern() {
+        echo '^(isage($|-)|intsage($|-)|sage$)'
+    }
+
     _should_auto_uninstall() {
         [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" || "${AUTO_CONFIRM:-false}" = "true" || "${SAGE_AUTO_CONFIRM:-false}" = "true" ]]
     }
 
     # 检查pip包列表中的所有SAGE相关包变体
-    local installed_packages=$(_sage_pip_list | grep -E '^(sage|isage|intsage)(-|$)' || echo "")
+    local installed_packages=$(_sage_pip_list | grep -E "$(_sage_package_filter_pattern)" || echo "")
     if [ -n "$installed_packages" ]; then
         local version=$(_detect_sage_version "$installed_packages")
         echo -e "${WARNING} 检测到已安装的 SAGE v${version}"
@@ -505,9 +502,9 @@ check_existing_sage() {
         return 0
     fi
 
-    # 检查是否能导入sage.common（PEP 420 namespace，检查实际包）
-    if python3 -c "import sage.common" 2>/dev/null; then
-        local sage_version=$(python3 -c "import sage.common; print(sage.common.__version__)" 2>/dev/null || echo "unknown")
+    # 检查是否能导入主仓核心表面
+    if python3 -c "from sage._version import __version__; import sage.foundation, sage.stream, sage.runtime, sage.serving, sage.cli; print(__version__)" 2>/dev/null; then
+        local sage_version=$(python3 -c "from sage._version import __version__; print(__version__)" 2>/dev/null || echo "unknown")
         echo -e "${WARNING} 检测到已安装的 SAGE v${sage_version}"
 
         if _should_auto_uninstall; then
@@ -623,13 +620,14 @@ verify_installation() {
 
     local verify_output
     verify_output=$($python_cmd -c "
-# PEP 420 namespace - import actual packages, not the namespace
-import sage.common
-import sage.kernel
-import sage.libs
-import sage.middleware
-print(f'${CHECK} SAGE v{sage.common.__version__} 安装成功！')
-print(f'${CHECK} 核心包已安装: common, kernel, libs, middleware')
+from sage._version import __version__
+import sage.foundation
+import sage.stream
+import sage.runtime
+import sage.serving
+import sage.cli
+print(f'${CHECK} SAGE v{__version__} 安装成功！')
+print(f'${CHECK} 核心包已安装: foundation, stream, runtime, serving, cli')
 " 2>&1)
     local verify_status=$?
 
@@ -641,7 +639,7 @@ print(f'${CHECK} 核心包已安装: common, kernel, libs, middleware')
     else
         echo -e "${WARNING} 验证出现问题，但安装可能成功了"
         echo -e "${DIM}尝试使用以下命令手动验证：${NC}"
-        echo -e "${DIM}  $python_cmd -c \"import sage.common; print(sage.common.__version__)\"${NC}"
+        echo -e "${DIM}  $python_cmd -c \"from sage._version import __version__; print(__version__)\"${NC}"
         return 1
     fi
 }

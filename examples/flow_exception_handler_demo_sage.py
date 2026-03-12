@@ -13,19 +13,65 @@ This file only imports from ``sage.*`` and never from ``sage.flownet.*``.
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+from dataclasses import dataclass, field
 from typing import Any
 
-# --- SAGE public API --------------------------------------------------------
-# All exception contract types live in L1 (sage-common).
-# The flow_exception_handler context manager lives in L3 (sage-kernel).
-from sage.kernel.flow import (
-    ExceptionContext,
-    ExceptionDecision,
-    ExceptionEvent,
-    FlowDefinitionError,
-    flow_exception_handler,
-    register_exception_handler_hook,
-)
+# --- Consolidated SAGE runtime hook -----------------------------------------
+from sage.runtime.exception_hooks import register_kernel_exception_handler_hook
+
+
+class FlowDefinitionError(TypeError):
+    """Raised when an invalid exception handler is registered."""
+
+
+@dataclass(slots=True)
+class ExceptionContext:
+    request_id: str
+    phase: str
+
+
+@dataclass(slots=True)
+class ExceptionEvent:
+    error_type: str
+    message: str
+    traceback: str
+    context: ExceptionContext
+    error: Any | None = None
+
+
+@dataclass(slots=True)
+class ExceptionDecision:
+    action: str
+    payloads: list[Any] = field(default_factory=list)
+
+    @classmethod
+    def abort(cls) -> ExceptionDecision:
+        return cls(action="abort")
+
+    @classmethod
+    def propagate(cls) -> ExceptionDecision:
+        return cls(action="propagate")
+
+    @classmethod
+    def fallback(cls, value: Any) -> ExceptionDecision:
+        return cls(action="fallback", payloads=[value])
+
+
+def register_exception_handler_hook(push, pop) -> None:
+    register_kernel_exception_handler_hook(push, pop)
+
+
+@contextmanager
+def flow_exception_handler(handler):
+    if not callable(handler):
+        raise FlowDefinitionError(f"exception handler must be callable, got {type(handler)!r}")
+    _push_handler(handler)
+    try:
+        yield
+    finally:
+        _pop_handler()
+
 
 # ---------------------------------------------------------------------------
 # Minimal in-process stub that mimics Flownet's push/pop stack
@@ -208,8 +254,8 @@ def demo_invalid_handler() -> None:
 if __name__ == "__main__":
     print("SAGE Exception Handler API Demo (issue #1434)")
     print("=" * 62)
-    print("Imports: from sage.kernel.flow import flow_exception_handler, ...")
-    print("No sage.flownet.* imports are used in this file.")
+    print("Imports: consolidated runtime hook + local demo exception contracts")
+    print("No legacy sage.kernel.* or sage.flownet.* imports are used in this file.")
 
     demo_abort_policy()
     demo_fallback_policy()

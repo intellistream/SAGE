@@ -16,7 +16,7 @@
 - [ ] No compatibility shim / re-export / fallback added
 - [ ] Capability ownership is explicit for independent sub-repos (including `sagellm`); no in-repo re-embedding
 - [ ] If touching capability families (`neuromem`/`sageVDB`/`sageFlow`/`sageTSDB`/`sagellm`), ownership and rollout order are explicitly stated
-- [ ] Runtime/service-bound implementation is not introduced into `sage-libs`
+- [ ] Algorithm-only contracts remain separate from runtime/service-bound implementation
 - [ ] No new `ray` import/dependency (Flownet-first)
 - [ ] Any dependency addition is necessary for current layer responsibilities
 

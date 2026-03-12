@@ -9,7 +9,7 @@ tools: ['vscode', 'execute', 'read', 'agent', 'edit', 'search', 'web', 'todo', '
 
 ## Use when
 
-- Working in SAGE core (`packages/sage-*`, `tools/`, root workflows).
+- Working in SAGE core (`src/sage/*`, `tools/`, root workflows).
 - Refactoring cross-layer APIs or runtime-facing paths.
 
 ## Guardrails
@@ -20,9 +20,9 @@ tools: ['vscode', 'execute', 'read', 'agent', 'edit', 'search', 'web', 'todo', '
 - Do not run SAGE workflows inside Python venv; if `VIRTUAL_ENV` is set, deactivate and use Conda or an existing non-venv Python environment.
 - Never recommend or execute `--auto-venv`, `python -m venv`, or `virtualenv`.
 - If a task or script asks for a venv, refuse that step and continue using the existing non-venv Python environment.
-- `sage-libs` stays interface/algorithm-only; runtime/service code belongs in `sage-middleware`.
+- Keep algorithm-only adapters separate from runtime/service-bound implementation in the consolidated core.
 - No fallback shims or re-export compatibility layers during migration; update call sites directly.
-- Use `sage.common.config.ports.SagePorts` for ports.
+- Use `sage.foundation.config.ports.SagePorts` for ports.
 
 ## Workflow
 

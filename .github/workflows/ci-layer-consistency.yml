@@ -32,48 +32,10 @@ jobs:
       - name: Checkout SAGE
         uses: actions/checkout@v4
 
-      - name: Checkout referenced satellite repositories
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BASE_REF: ${{ github.base_ref }}
-          REF_NAME: ${{ github.ref_name }}
+      - name: Explain current layer-consistency scope
         run: |
-          set -euo pipefail
-          TARGET_BRANCH="${BASE_REF:-${REF_NAME:-main-dev}}"
-          echo "Target branch for satellite checkout: ${TARGET_BRANCH}"
-
-          repos=(
-            sage-common
-            sage-platform
-            sage-kernel
-            sage-libs
-            sage-middleware
-            sage-cli
-            sage-dev-tools
-            sage-studio
-            sagellm-protocol
-            sagellm-comm
-            sagellm-backend
-            sagellm-kv-cache
-            sagellm-compression
-            sagellm-core
-            sagellm-control-plane-benchmark
-            sagellm-control-plane
-            sagellm-gateway
-          )
-
-          for repo in "${repos[@]}"; do
-            echo "Cloning intellistream/${repo}..."
-            repo_url="https://x-access-token:${GH_TOKEN}@github.com/intellistream/${repo}.git"
-            branch_to_clone="main"
-            if git ls-remote --exit-code --heads "${repo_url}" "${TARGET_BRANCH}" > /dev/null 2>&1; then
-              branch_to_clone="${TARGET_BRANCH}"
-            fi
-            echo "  ↳ using branch: ${branch_to_clone}"
-            if ! git clone --depth 1 --branch "${branch_to_clone}" "${repo_url}" "../${repo}" 2>&1; then
-              echo "  ⚠️  Could not clone ${repo} (private or inaccessible), skipping"
-            fi
-          done
+          echo "SAGE main workspace now validates an in-tree core surface."
+          echo "No split core-layer satellite repositories are required for this gate."
 
       - name: Set up Python
         uses: actions/setup-python@v5

@@ -9,7 +9,7 @@ on:
       dry_run:
         description: "Dry run (build only, skip upload)"
         required: false
-        default: "false"
+        default: false
         type: boolean
 
 jobs:
@@ -47,7 +47,7 @@ jobs:
       run: python -m build
 
     - name: Publish to PyPI
-      if: ${{ github.event.inputs.dry_run != 'true' }}
+      if: ${{ inputs.dry_run != true }}
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
@@ -62,7 +62,7 @@ jobs:
   dispatch-downstream:
     name: Notify downstream packages
     needs: build-and-publish
-    if: ${{ github.event_name == 'push' || github.event.inputs.dry_run != 'true' }}
+    if: ${{ github.event_name == 'push' || inputs.dry_run != true }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -100,14 +100,15 @@ jobs:
 
     - name: Dispatch to downstream repos
       env:
-        GH_TOKEN: ${{ secrets.DISPATCH_PAT }}
+        GH_TOKEN: ${{ github.token }}
         PACKAGE: ${{ steps.pkg.outputs.package }}
         VERSION: ${{ steps.pkg.outputs.version }}
         TAG: ${{ github.ref_name }}
       run: |
-        # DOWNSTREAM_REPOS: space-separated list of org/repo targets
-        # Replace or extend this list per-repo (see SAGE release pipeline docs).
-        DOWNSTREAM_REPOS=""  # e.g. "intellistream/sage-platform intellistream/sage-kernel"
+        # DOWNSTREAM_REPOS: space-separated list of org/repo targets.
+        # The default token only supports the current repository. Replace GH_TOKEN
+        # with a PAT after scaffolding if cross-repo dispatch is required.
+        DOWNSTREAM_REPOS=""  # e.g. "intellistream/isage-rag-adapter intellistream/isage-rag-examples"
 
         for repo in $DOWNSTREAM_REPOS; do
           echo "Dispatching package-released to $repo (${PACKAGE} ${VERSION})"
@@ -117,5 +118,5 @@ jobs:
             -f "client_payload[package]=${PACKAGE}" \
             -f "client_payload[version]=${VERSION}" \
             -f "client_payload[tag]=${TAG}" \
-          && echo "  ✓ $repo" || echo "  ✗ $repo (dispatch failed — check DISPATCH_PAT)"
+          && echo "  ✓ $repo" || echo "  ✗ $repo (dispatch failed — check GH_TOKEN permissions)"
         done

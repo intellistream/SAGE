@@ -1,11 +1,6 @@
 {
   "version": "v1",
-  "description": "Canonical layer map for workspace labels and repository declarations.",
+  "description": "Canonical layer map for workspace labels and repository declarations. The main SAGE workspace now centers on in-tree core surfaces rather than split core-layer repos.",
   "declaration_optional_repos": [],
-  "repos": [
-    {"repo": "sage-common", "layer": "L1"},
-    {"repo": "sage-kernel", "layer": "L2"},
-    {"repo": "sage-cli", "layer": "L3"},
-    {"repo": "sage-studio", "layer": "L4"}
-  ]
+  "repos": []
 }

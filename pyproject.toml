@@ -17,36 +17,53 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    # L1 — base utilities, config, logging, protocols, platform abstractions + algorithm interfaces (sage.libs.*)
-    "isage-common>=0.2.5.0",
-    # L2 — streaming runtime, scheduler, flow DSL + pipeline middleware (sage.middleware.*)
-    "isage-kernel>=0.2.5.0",
-    # L2 — intent recognition for tool-use agents
-    "isage-libs-intent>=0.1.0.7",
-    # L3 — RAG pipelines (vector store backends migrated to isage-rag 0.3.0)
-    "isage-rag>=0.3.0",
-    # L3 — memory management engine for RAG / retrieval pipelines
-    "isage-neuromem>=0.2.1.4",
-    # L3 — unified CLI (sage command)
-    "isage-cli>=0.2.4.25",
-    # LLM Gateway — unified inference gateway and control plane
-    "isagellm>=0.5.4.3",
+    # External engine integration on interpreters where the engine family is published
+    "isagellm>=0.5.4.3; python_version < '3.13'",
 ]
 
 license = "MIT"
 
+[project.scripts]
+sage = "sage.cli.main:main"
+sage-edge = "sage.edge.server:main"
+
 [project.optional-dependencies]
+serving-edge = [
+    # In-tree edge aggregation shell
+    "fastapi>=0.115.0,<1.0.0",
+    "uvicorn[standard]>=0.34.0,<1.0.0",
+]
+capability-adapters = [
+    # Optional adapter — intent recognition for tool-use / orchestration flows
+    "isage-libs-intent>=0.1.0.7",
+    # Optional adapter — RAG pipelines and vector-store backends
+    "isage-rag>=0.3.0",
+    # Optional adapter — memory / retrieval persistence
+    "isage-neuromem>=0.2.1.4",
+]
+capability-tooluse = [
+    # Optional adapter — continual-learning / coreset selection for tool-use (SIAS)
+    "isage-sias>=0.1.0",
+]
 full = [
-    # L2 — continual-learning / coreset selection for tool-use (SIAS)
+    # In-tree edge aggregation shell
+    "fastapi>=0.115.0,<1.0.0",
+    "uvicorn[standard]>=0.34.0,<1.0.0",
+    # Optional adapters beyond the stream/runtime/serving core
+    "isage-libs-intent>=0.1.0.7",
+    "isage-rag>=0.3.0",
+    "isage-neuromem>=0.2.1.4",
     "isage-sias>=0.1.0",
     # L6 — dataset management for fine-tuning and benchmark workflows
     "isage-data>=0.2.3.2",
-    # L4 — visual workflow builder and LLM playground
-    "isage-studio>=0.2.4.23",
 ]
 dev = [
     # External developer workflow owner (independently released)
     "isage-dev-tools>=0.1.0",
+    # Edge integration runtime + test helpers
+    "fastapi>=0.115.0,<1.0.0",
+    "uvicorn[standard]>=0.34.0,<1.0.0",
+    "httpx>=0.27.0",
     # Testing
     "pytest>=7.4.0",
     "pytest-cov>=4.0.0",

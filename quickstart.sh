@@ -42,6 +42,16 @@ is_interactive_session() {
     [ -t 0 ] && [ -t 1 ]
 }
 
+run_core_surface_import_check() {
+    local python_cmd="${1:-${PYTHON_CMD:-python3}}"
+    "$python_cmd" -c "import importlib; [importlib.import_module(name) for name in ('sage.foundation', 'sage.stream', 'sage.runtime', 'sage.serving', 'sage.cli')]; print('✅ core surface imports OK')"
+}
+
+show_core_surface_verify_hint() {
+    local python_cmd="${1:-${PYTHON_CMD:-python3}}"
+    echo -e "  $python_cmd -c \"import importlib; [importlib.import_module(name) for name in ('sage.foundation', 'sage.stream', 'sage.runtime', 'sage.serving', 'sage.cli')]; print('✅ core surface imports OK')\"  ${DIM}# 快速验证主仓核心表面${NC}"
+}
+
 # 在参数解析后再处理 HF 配置，避免 --yes/CI 模式被提前交互阻塞
 configure_huggingface_network() {
     local auto_confirm="$1"
@@ -110,7 +120,7 @@ configure_huggingface_network() {
 }
 
 # ─── SAGE 工作区初始化函数 ───────────────────────────────────────────────────
-# 用于将所有独立 SAGE 子仓库 clone 到本地工作区目录。
+# 用于按当前 SAGE.code-workspace 克隆协同仓库到本地工作区目录。
 # 使用方法：./quickstart.sh --workspace [--dir <path>]
 _init_sage_workspace() {
     # 解析 --dir 参数
@@ -129,17 +139,28 @@ _init_sage_workspace() {
     echo -e "\n${BOLD}🚀 SAGE 工作区初始化${NC}"
     echo -e "${CYAN}目标目录: ${workspace_dir}${NC}\n"
 
-    # ── 独立子仓库列表（按层级 L1→L5）────────────────────────────────────────
-    local SAGE_REPOS=(
-        "intellistream/sage-common"        # L1
-        "intellistream/sage-platform"      # L2
-        "intellistream/sage-kernel"        # L3
-        "intellistream/sage-libs"          # L3
-        "intellistream/sage-middleware"    # L4
-        "intellistream/sage-cli"           # L5
-        "intellistream/sage-dev-tools"     # dev tooling
-        "intellistream/sage-examples"      # examples
-    )
+    # ── 当前工作区协同仓库列表（与 SAGE.code-workspace 保持一致）────────────
+    local workspace_file="$SAGE_ROOT/SAGE.code-workspace"
+    local SAGE_REPOS=()
+
+    if declare -f load_repos_from_workspace >/dev/null 2>&1; then
+        local repos_output
+        if repos_output=$(load_repos_from_workspace "$workspace_file" 2>/dev/null); then
+            while IFS= read -r repo_name; do
+                [ -z "$repo_name" ] && continue
+                SAGE_REPOS+=("intellistream/$repo_name")
+            done <<< "$repos_output"
+        fi
+    fi
+
+    if [ ${#SAGE_REPOS[@]} -eq 0 ]; then
+        SAGE_REPOS=(
+            "intellistream/sage-benchmark"
+            "intellistream/sage-docs"
+            "intellistream/sage-examples"
+            "intellistream/sage-tutorials"
+        )
+    fi
 
     mkdir -p "$workspace_dir"
 
@@ -173,10 +194,10 @@ _init_sage_workspace() {
     echo ""
     echo -e "${GREEN}✓ 完成: ${ok} 新克隆, ${skip} 已存在, ${fail} 失败${NC}"
     echo -e "\n${BOLD}下一步:${NC}"
-    echo -e "  cd $workspace_dir/<repo>"
-    echo -e "  ./quickstart.sh --dev --yes    # 安装 editable dev 依赖"
-    echo -e "\n  或安装 meta 包（仅依赖已发布版本）:"
-    echo -e "  pip install \"isage[dev]\"\n"
+    echo -e "  cd $workspace_dir/SAGE"
+    echo -e "  ./quickstart.sh --dev --yes            # 安装主仓开发环境"
+    echo -e "\n  或最小化本地 editable 安装:"
+    echo -e "  python -m pip install -e '.[dev]'\n"
     return $fail
 }
 
@@ -215,6 +236,14 @@ main() {
 
     # Phase 1: 参数解析（含默认值设置）
     parse_arguments "$@"
+
+    if [ -n "${VIRTUAL_ENV:-}" ]; then
+        echo ""
+        echo -e "${RED}${BOLD}❌ 检测到 Python venv: ${VIRTUAL_ENV}${NC}"
+        echo -e "${YELLOW}SAGE 主仓禁止在 venv/.venv 中执行安装或诊断流程。${NC}"
+        echo -e "${DIM}请先 deactivate 当前 venv，并改用现有 Conda 或其他非-venv Python 环境。${NC}"
+        exit 1
+    fi
 
     # 解析完成后再处理 HF 网络配置，避免 --yes/CI 触发早期交互
     local auto_confirm=$(get_auto_confirm)
@@ -441,9 +470,9 @@ main() {
 
     # 验证安装
     if run_comprehensive_verification; then
-        # C++扩展已在 sage-middleware 安装时自动构建和验证
+        # 原生/C++扩展会在相关安装阶段自动构建和验证
         if [ "$mode" = "standard" ] || [ "$mode" = "dev" ]; then
-            echo -e "${DIM}C++扩展已通过 sage-middleware 自动构建和验证${NC}"
+            echo -e "${DIM}原生/C++扩展已在安装流程中自动构建和验证（若当前模式包含相关组件）${NC}"
         fi
 
         # 自动安装代码质量和架构检查 Git hooks（所有模式）
@@ -614,17 +643,17 @@ main() {
 
         if [ "$sage_cli_ok" = true ]; then
             # 用 sage doctor 做层级检查（静默失败，不阻塞安装）
-            if $python_cmd -m sage.cli.main doctor check 2>/dev/null; then
+            if $python_cmd -m sage.cli.main doctor 2>/dev/null; then
                 :
             else
                 echo -e "${DIM}  💡 可运行 [sage doctor] 查看详细诊断${NC}"
             fi
         else
-            # 回退到简单 import 检查
-            if $python_cmd -c "import sage.common; print('✅ sage.common', sage.common.__version__)" 2>/dev/null; then
+            # 回退到主仓核心表面 import 检查
+            if run_core_surface_import_check "$python_cmd" >/dev/null 2>&1; then
                 echo -e "${GREEN}  ✅ 核心包验证通过${NC}"
             else
-                echo -e "${YELLOW}  ⚠️  core import 检查失败，请运行: sage doctor${NC}"
+                echo -e "${YELLOW}  ⚠️  主仓核心表面 import 检查失败，请运行: sage doctor${NC}"
             fi
         fi
 
@@ -636,7 +665,7 @@ main() {
             center_text "${ROCKET} 欢迎使用 SAGE！${ROCKET}" "$GREEN$BOLD"
         fi
         echo ""
-        echo -e "${DIM}  💡 验证安装: [bold]sage doctor[/bold] | 快速体验: [bold]sage demo hello[/bold]${NC}"
+        echo -e "${DIM}  💡 验证安装: [bold]sage doctor[/bold] | 快速体验: [bold]sage verify[/bold]${NC}"
         echo ""
 
         if [ "${SAGE_SET_SKIP_SMUDGE:-0}" = 1 ]; then
@@ -650,7 +679,7 @@ main() {
         echo -e "${YELLOW}安装可能成功，请手动验证：${NC}"
         local python_cmd="${PYTHON_CMD:-python3}"
         echo -e "  sage doctor           ${DIM}# 完整诊断（推荐）${NC}"
-        echo -e "  $python_cmd -c \"import sage.common; print(sage.common.__version__)\"  ${DIM}# 快速验证${NC}"
+        show_core_surface_verify_hint "$python_cmd"
     fi
 }
 
@@ -659,15 +688,6 @@ main() {
 # 这些包已从 SAGE workspace 独立出去，单独发布到 PyPI，按需安装即可。
 # ============================================================================
 offer_zoo_packages() {
-    local auto_confirm="${1:-false}"
-
-    # CI / --yes 模式 或 非交互终端 → 跳过
-    if [ "$auto_confirm" = "true" ] || \
-       [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" || -n "${GITLAB_CI:-}" || -n "${BUILDKITE:-}" ]] || \
-       ! is_interactive_session; then
-        return 0
-    fi
-
     # Zoo 包列表：格式 "pypi-name|中文描述"
     local zoo_packages=(
         "isage-rag|RAG 管道组件（文档加载、分块、检索、重排）"
@@ -682,45 +702,20 @@ offer_zoo_packages() {
     echo -e "${BLUE}🐾  Zoo 独立包（可选安装）${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${DIM}以下包已独立发布到 PyPI，不影响 SAGE 核心功能。${NC}"
-    echo -e "${DIM}按需选择是否安装（直接回车 = 跳过）：${NC}"
+    echo -e "${DIM}不再逐个交互询问；如需使用，请按需手动安装。${NC}"
     echo ""
 
-    local to_install=()
+    printf '  %-28s %s\n' "PyPI 包名" "说明"
+    printf '  %-28s %s\n' "----------------------------" "----------------------------------------"
     for entry in "${zoo_packages[@]}"; do
         local pkg="${entry%%|*}"
         local desc="${entry##*|}"
-        echo -ne "  ${YELLOW}?${NC} ${GREEN}${pkg}${NC}  ${DIM}${desc}${NC}  [y/N] "
-        read -r choice </dev/tty
-        choice="${choice//[[:space:]]/}"
-        if [[ "$choice" =~ ^[Yy] ]]; then
-            to_install+=("$pkg")
-        fi
+        printf '  %-28s %s\n' "$pkg" "$desc"
     done
 
-    if [ ${#to_install[@]} -eq 0 ]; then
-        echo ""
-        echo -e "${DIM}  已跳过所有 Zoo 包。可稍后通过 pip install <package> 按需安装。${NC}"
-        return 0
-    fi
-
     echo ""
-    echo -e "${BLUE}📦 安装选中的 Zoo 包...${NC}"
-    local all_ok=true
-    for pkg in "${to_install[@]}"; do
-        echo -ne "  安装 ${pkg}... "
-        if $PIP_CMD install "$pkg" --quiet 2>/dev/null; then
-            echo -e "${GREEN}✓${NC}"
-        else
-            echo -e "${YELLOW}⚠  失败，请手动运行: pip install ${pkg}${NC}"
-            all_ok=false
-        fi
-    done
-    echo ""
-    if [ "$all_ok" = true ]; then
-        echo -e "${CHECK} Zoo 包安装完成"
-    else
-        echo -e "${WARNING} 部分 Zoo 包安装失败，可稍后手动安装"
-    fi
+    echo -e "${DIM}安装方式示例: python -m pip install isage-rag${NC}"
+    echo -e "${DIM}可按需替换为上表中的任意包名。${NC}"
 }
 
 # 运行主函数

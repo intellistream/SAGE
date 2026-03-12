@@ -74,7 +74,7 @@ install_scientific_packages() {
 # 包含 ML、VDB、streaming、compression 等重型依赖
 install_optional_packages() {
     # ⚠️  已废弃 (deprecated since 2025)
-    # isage-middleware[ml/vdb/streaming/compression] 和 isage-kernel[ml] 等 extras
+    # 历史 split-package extras
     # 在 PyPI 上不存在，pip 会静默忽略——实际什么都不安装。
     #
     # 重 GPU/ML 依赖（torch/accelerate/peft）现已统一收归

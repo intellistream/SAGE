@@ -11,17 +11,20 @@ Unified configuration file for SAGE project.
 ## Quick Start
 
 ```bash
-# 1. Initialize config (interactive)
-sage cluster init
-
-# 2. Or edit directly
+# 1. Review or edit the unified config directly
 vi config/config.yaml
 
-# 3. Setup SSH keys to worker nodes
-sage cluster setup-ssh
+# 2. Inspect current local status
+sage status
 
-# 4. Start cluster
-sage cluster start
+# 3. Inspect runtime-visible nodes
+sage runtime nodes
+
+# 4. If you integrate an external sagellm gateway, inspect the launch contract
+sage serve gateway --json
+
+# 5. Record lightweight local index metadata when needed
+sage index ingest --source ./docs --index local-docs
 ```
 
 ## Configuration Sections
@@ -32,7 +35,7 @@ sage cluster start
 - `provider.head_ip` - Head node IP
 - `provider.worker_ips` - List of worker node IPs
 - `auth` - SSH authentication (key-based only)
-- `flownet` - Flownet runtime settings (ports, resources)
+- `flutty` - Flutty runtime settings (ports, resources)
 - `remote` - Remote environment (conda, paths)
 
 ### Services
@@ -44,7 +47,7 @@ sage cluster start
 
 ## Directory Structure
 
-```
+```text
 <project_root>/
 ├── config/              # Configuration (git tracked)
 │   ├── config.yaml      # Unified config file

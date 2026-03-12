@@ -19,9 +19,8 @@ numpy: ">=1.26.0,<2.3.0"
 # Independent SAGE ecosystem packages (PyPI)
 isage-vdb: ">=0.1.5"
 isage-tsdb: ">=0.1.5"
-isage-flow: ">=0.1.1"
-isage-flownet: ">=0.1.0"  # deprecated; use flutty instead
-flutty: ">=0.1.0"  # primary distributed runtime (replaces isage-flownet)
+isage-flow: ">=0.1.1"  # historical stream package; do not expand as separate long-term ownership
+flutty: ">=0.1.0"  # primary optional distributed runtime backend
 isage-refiner: ">=0.1.0"
 isage-neuromem: ">=0.2.1.1"
 isagellm: ">=0.5.1.2"
