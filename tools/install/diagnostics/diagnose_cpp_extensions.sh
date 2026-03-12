@@ -84,13 +84,6 @@ except Exception as e:
     print(f'❌ 主仓表面导入失败: {type(e).__name__}: {e}')
     sys.exit(1)
 PYEOF
-            except Exception as e:
-                print(f"   错误: {e}")
-except Exception as e:
-    print(f"❌ 无法检查扩展: {e}")
-    import traceback
-    traceback.print_exc()
-PYEOF
 
 echo ""
 echo "=================================================="

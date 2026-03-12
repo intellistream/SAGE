@@ -113,9 +113,9 @@ For cross-repo boundary refactor reviews, use the canonical ownership matrix:
 
 - [sage-docs architecture/layer-ownership](https://intellistream.github.io/sage-docs/architecture/layer-ownership/)
 
-This matrix defines current workspace L1-L4 ownership, forbidden dependency direction, violation examples, and
-remediation priority for Phase 1, including independent sub-repo coordination and `sagellm`
-capability boundaries.
+This matrix defines current workspace L1-L4 ownership, forbidden dependency direction, violation
+examples, and remediation priority for Phase 1, including independent sub-repo coordination and
+`sagellm` capability boundaries.
 
 ### Core Dependencies Architecture
 
@@ -125,7 +125,9 @@ SAGE follows a **minimalist core dependency strategy** with a **modular feature 
 - **Dev Dependencies** (`dev` extra): Testing tools, linters, and development utilities
 - **Feature Modules**: Functionality available through in-tree extras or independent PyPI packages
 
-**Key Principle**: We maintain **minimal core** to reduce bloat and installation time. Specialized functionality is available either through in-tree extras when it belongs to the SAGE product surface, or through independent packages when ownership should stay external.
+**Key Principle**: We maintain **minimal core** to reduce bloat and installation time. Specialized
+functionality is available either through in-tree extras when it belongs to the SAGE product
+surface, or through independent packages when ownership should stay external.
 
 ### Per-Layer Dependencies
 
@@ -184,8 +186,8 @@ plugin, service, or API surfaces rather than defining the core product boundary.
 ### Capability Packages
 
 Packages such as `isage-rag`, `isage-neuromem`, `isage-libs-intent`, and `isage-sias` remain
-important capability dependencies, but they are no longer used as separate main-repo layer labels
-in the workspace numbering.
+important capability dependencies, but they are no longer used as separate main-repo layer labels in
+the workspace numbering.
 
 Thin-wrapper rule: do not introduce new external packages that merely re-export SAGE-owned runtime,
 stream, or serving-boundary logic. If a package does not own substantial functionality, keep it
@@ -195,10 +197,9 @@ Current application of this rule: `sage-edge` has been folded back into the main
 `sage.edge`; treat the former split repo as retired instead of retaining it as a separate Zoo
 package.
 
-Immediate non-Zoo retirement candidates follow the same logic: historical split foundation,
-runtime, and CLI repos are increasingly just release channels for product surfaces that already
-belong to the main repo, and duplicate stream surfaces should not be expanded as a separate
-ownership line.
+Immediate non-Zoo retirement candidates follow the same logic: historical split foundation, runtime,
+and CLI repos are increasingly just release channels for product surfaces that already belong to the
+main repo, and duplicate stream surfaces should not be expanded as a separate ownership line.
 
 ### Consolidation Target (2026 direction)
 
@@ -209,8 +210,8 @@ Priority order:
 
 1. **Foundation in-tree**: keep centralized config, ports, user paths, model asset registry,
    logging, and shared contracts close to the main repo.
-1. **Stream/runtime in-tree**: keep `DataStream`, `LocalEnvironment`, `JobManager`, scheduling,
-   and service lifecycle as the execution core.
+1. **Stream/runtime in-tree**: keep `DataStream`, `LocalEnvironment`, `JobManager`, scheduling, and
+   service lifecycle as the execution core.
 1. **Serving boundary in-tree, engine out-of-tree**: keep OpenAI-compatible access, health/status,
    and integration contracts in SAGE, while leaving inference-engine internals in `isagellm`.
 1. **Edge shell in-tree**: keep edge aggregation as part of the SAGE serving contract instead of a
@@ -220,8 +221,8 @@ Priority order:
 
 Distributed-runtime rule: `FluttyEnvironment` should remain a first-class **optional** public API
 for cluster execution. The consolidation target is not “distributed-only SAGE”; it is “stream-first
-SAGE” with a strong local default plus Flutty-backed scale-out when needed, and no new
-Ray-oriented dependency path.
+SAGE” with a strong local default plus Flutty-backed scale-out when needed, and no new Ray-oriented
+dependency path.
 
 Inference-engine rule: do not absorb `isagellm` internals into `SAGE`. `isagellm` is itself an
 independent inference engine and should remain separately owned/released. SAGE may standardize the
@@ -230,38 +231,39 @@ integration boundary around it, but not re-home its backend/control-plane intern
 Migration rule: do not add compatibility shims for old repo boundaries during consolidation;
 instead, move ownership deliberately and update call sites directly.
 
-Retirement rule: do not delete historical split foundation/runtime repositories until both conditions
-are true: (1) main-repo call sites and install/verification workflows no longer rely on their
-implementation modules as hard dependencies, and (2) external example/tutorial/adapter repos no
-longer need those repos as transitional compatibility owners.
+Retirement rule: do not delete historical split foundation/runtime repositories until both
+conditions are true: (1) main-repo call sites and install/verification workflows no longer rely on
+their implementation modules as hard dependencies, and (2) external example/tutorial/adapter repos
+no longer need those repos as transitional compatibility owners.
 
 Zoo rule of thumb: if a repository is not an MCP-facing tool surface, not an independently valuable
 engine/runtime, and not a clearly optional adapter with substantial owned logic, it should default
 back into the main `SAGE` repo instead of living forever as a split package.
 
 Current status note: the main repo now owns the primary `sage.foundation`, `sage.stream`,
-`sage.runtime`, `sage.serving`, and `sage.cli` product surfaces directly. The local runtime path
-and scheduler / packet / job-manager primitives are now also owned in-tree, so the historical runtime split package is
-no longer a direct root dependency of `isage`. Remaining kernel/common usage is now primarily a
-compatibility and ecosystem-migration concern rather than a main-repo public-API dependency.
+`sage.runtime`, `sage.serving`, and `sage.cli` product surfaces directly. The local runtime path and
+scheduler / packet / job-manager primitives are now also owned in-tree, so the historical runtime
+split package is no longer a direct root dependency of `isage`. Remaining kernel/common usage is now
+primarily a compatibility and ecosystem-migration concern rather than a main-repo public-API
+dependency.
 
 Interpreter note: in Python 3.13 environments, root installation currently skips automatic
-`isagellm` resolution because upstream `isagellm-protocol` wheels are not yet available there.
-This does not block stream/runtime development in the main repo.
+`isagellm` resolution because upstream `isagellm-protocol` wheels are not yet available there. This
+does not block stream/runtime development in the main repo.
 
 ### Feature Modules
 
 When extras were removed, functionality migrated to independent packages:
 
-| Feature | Before | Now |
-| ------- | ------ | --- |
-| Embedding | `commons[embedding]` | → `isage-neuromem` |
-| Agentic | `libs[agentic]` | → `isage-agentic` |
-| RAG | `libs[rag]` | → `isage-rag` |
-| Evaluation | `libs[eval]` | → `isage-eval` |
-| Vector DB | `middleware[vdb]` | → `isage-vdb` |
-| Memory | `middleware[neuromem]` | → `isage-neuromem` |
-| Streaming | `middleware[streaming]` | → `isage-flow` |
+| Feature    | Before                  | Now                |
+| ---------- | ----------------------- | ------------------ |
+| Embedding  | `commons[embedding]`    | → `isage-neuromem` |
+| Agentic    | `libs[agentic]`         | → `isage-agentic`  |
+| RAG        | `libs[rag]`             | → `isage-rag`      |
+| Evaluation | `libs[eval]`            | → `isage-eval`     |
+| Vector DB  | `middleware[vdb]`       | → `isage-vdb`      |
+| Memory     | `middleware[neuromem]`  | → `isage-neuromem` |
+| Streaming  | `middleware[streaming]` | → `isage-flow`     |
 
 ### Installation Examples
 

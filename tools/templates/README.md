@@ -18,7 +18,8 @@ cd /path/to/target-repo
     --desc     "SAGE RAG components"
 ```
 
-Pass `--cpp` for repos that contain a C++ extension (for example, independently owned high-performance adapters):
+Pass `--cpp` for repos that contain a C++ extension (for example, independently owned
+high-performance adapters):
 
 ```bash
 init-repo.sh --pkg-name isage-anns --pkg-mod sage_anns --cpp

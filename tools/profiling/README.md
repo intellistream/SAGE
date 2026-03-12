@@ -15,12 +15,12 @@ This directory contains the profiling workloads and tooling to:
 
 ## Hot-Path Candidates
 
-| Surface | Path | Suspected Cost Driver |
-| ------- | ---- | --------------------- |
-| `sage.runtime` | `scheduler/` | Task dispatch loop — `make_decision()` called per-operator |
-| `sage.stream` / `sage.runtime` | `runtime/communication/` | `Packet` construction + routing / serialization overhead |
-| `isage-privacy` | `sage_privacy/dp_unlearning/` | NumPy noise generation over large vector batches |
-| Historical ingestion path | `foundation/io/` | Batch assembly + JSON decode in streaming ingestion |
+| Surface                        | Path                          | Suspected Cost Driver                                      |
+| ------------------------------ | ----------------------------- | ---------------------------------------------------------- |
+| `sage.runtime`                 | `scheduler/`                  | Task dispatch loop — `make_decision()` called per-operator |
+| `sage.stream` / `sage.runtime` | `runtime/communication/`      | `Packet` construction + routing / serialization overhead   |
+| `isage-privacy`                | `sage_privacy/dp_unlearning/` | NumPy noise generation over large vector batches           |
+| Historical ingestion path      | `foundation/io/`              | Batch assembly + JSON decode in streaming ingestion        |
 
 ## Quick Start
 

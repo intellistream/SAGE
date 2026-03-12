@@ -619,6 +619,7 @@ HF_TOKEN=***
 外部贡献者的 PR 默认无法访问主仓库的 Secrets（这是 GitHub 的安全特性）。你可以：
 
 1. **在自己的 fork 中配置 Secrets**（推荐用于测试）
+
 1. **使用本地 sagellm 或自托管 OpenAI-compatible endpoint 测试**：
 
    ```bash

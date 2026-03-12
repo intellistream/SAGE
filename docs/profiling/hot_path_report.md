@@ -18,5 +18,5 @@ python tools/profiling/cprofile_runner.py
 python tools/profiling/cprofile_runner.py --heavy
 ```
 
-Generated artifacts should describe the current consolidated `isage` package rather than the
-retired split-package layout.
+Generated artifacts should describe the current consolidated `isage` package rather than the retired
+split-package layout.

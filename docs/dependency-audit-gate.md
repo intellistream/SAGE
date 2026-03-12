@@ -68,8 +68,8 @@ The repo no longer treats the retired split-package layout as a set of direct de
 
 ### `full`
 
-- Packages: `fastapi`, `uvicorn`, `isage-libs-intent`, `isage-rag`, `isage-neuromem`,
-  `isage-sias`, `isage-data`
+- Packages: `fastapi`, `uvicorn`, `isage-libs-intent`, `isage-rag`, `isage-neuromem`, `isage-sias`,
+  `isage-data`
 - Callsite: `README.md`
 - Rationale: convenience install for the consolidated main package plus optional adapters.
 
@@ -85,8 +85,8 @@ The repo no longer treats the retired split-package layout as a set of direct de
 When `pyproject.toml` dependency declarations change:
 
 1. Update the matching section in this file.
-2. Keep at least one concrete callsite or workflow reference per dependency or dependency group.
-3. Run:
+1. Keep at least one concrete callsite or workflow reference per dependency or dependency group.
+1. Run:
 
 ```bash
 python3 tools/scripts/check_meta_dependency_audit.py --enforce-change-evidence --staged

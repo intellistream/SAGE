@@ -40,9 +40,9 @@ This direction also makes SAGE easier to position as a **SAGE Zoo member**: a re
 stream-oriented runtime + serving component that other systems can call through stable APIs instead
 of embedding internal implementation details.
 
-Important boundary: `isagellm` remains an **independent inference engine**. SAGE integrates with
-it as an external engine/service capability; SAGE should not absorb `isagellm` internals into the
-main repository.
+Important boundary: `isagellm` remains an **independent inference engine**. SAGE integrates with it
+as an external engine/service capability; SAGE should not absorb `isagellm` internals into the main
+repository.
 
 Preferred in-tree surface during consolidation:
 
@@ -155,8 +155,9 @@ Notes:
 - Historical split packages may still exist as transitional published compatibility channels.
 - The main repository now owns the preferred product surface directly: `sage.foundation` +
   `sage.stream` + `sage.runtime` + `sage.serving` + `sage.cli`.
-- Historical split foundation/runtime/CLI repos are therefore no longer the desired long-term product
-  boundary, even when some transitional imports still exist outside the main install contract.
+- Historical split foundation/runtime/CLI repos are therefore no longer the desired long-term
+  product boundary, even when some transitional imports still exist outside the main install
+  contract.
 
 Target product convergence is narrower than the historical workspace shape:
 
@@ -172,8 +173,8 @@ Optional       : RAG / memory / tool-use / benchmark adapters
 In other words, SAGE is moving toward a smaller, sharper center: **stream + runtime + serving +
 operations**, with distributed execution available as an optional scale-out mode.
 
-Repo-retirement gate: do not retire historical split repos solely based on packaging
-cleanup. The main repo has now removed direct historical runtime split-package dependency pins and owns its local
+Repo-retirement gate: do not retire historical split repos solely based on packaging cleanup. The
+main repo has now removed direct historical runtime split-package dependency pins and owns its local
 runtime path in-tree, but ecosystem compatibility imports, external repos, and remaining
 transitional release channels still need deliberate follow-up before those repos can be fully
 retired.
@@ -181,12 +182,13 @@ retired.
 See [SAGE Ecosystem](#sage-ecosystem) for all independent sub-repositories with CI status, PyPI
 packages, and categorized listings.
 
-📖 **[Architecture Guide](https://intellistream.github.io/sage-docs/architecture/)** -
-Canonical ownership boundaries and dependency rules for the meta repo
+📖 **[Architecture Guide](https://intellistream.github.io/sage-docs/architecture/)** - Canonical
+ownership boundaries and dependency rules for the meta repo
 
-📌 **[Layer Ownership Matrix v1 (Wave A)](https://intellistream.github.io/sage-docs/architecture/layer-ownership/)** - Canonical
-L1-L4 workspace ownership, independent sub-repo coordination boundary (including `sagellm`
-capabilities), forbidden directions, and boundary refactor review checklist
+📌
+**[Layer Ownership Matrix v1 (Wave A)](https://intellistream.github.io/sage-docs/architecture/layer-ownership/)**
+\- Canonical L1-L4 workspace ownership, independent sub-repo coordination boundary (including
+`sagellm` capabilities), forbidden directions, and boundary refactor review checklist
 
 ## Installation
 
@@ -222,8 +224,8 @@ pip install isage[dev]         # Development tools (includes isage-dev-tools, pr
 
 `isage` now ships the main product surface directly from this repository: `sage.foundation` +
 `sage.stream` + `sage.runtime` + `sage.serving` + `sage.cli`. The default local execution path no
-longer requires a separate historical runtime split package as a direct dependency. `isagellm` remains the external inference
-engine.
+longer requires a separate historical runtime split package as a direct dependency. `isagellm`
+remains the external inference engine.
 
 On Python 3.13+, the root package currently skips automatic `isagellm` installation because the
 required `isagellm-protocol` distribution is not yet published for that interpreter. Core SAGE
@@ -240,9 +242,9 @@ For a standard `pip install isage`, the product center is intentionally narrow:
 - **CLI** → `isage`: in-tree `sage` command surface
 - **Inference Engine** → `isagellm`: external engine; auto-installed on supported Python versions
 
-Compatibility note: transitional imports such as `sage.common`, `sage.platform`,
-`sage.middleware`, or `sage.kernel` may still appear in older repos or environments, but they are
-not part of the root package's direct dependency contract anymore.
+Compatibility note: transitional imports such as `sage.common`, `sage.platform`, `sage.middleware`,
+or `sage.kernel` may still appear in older repos or environments, but they are not part of the root
+package's direct dependency contract anymore.
 
 Edge aggregation now also lives in-tree as `sage.edge`; install `isage[serving-edge]` or
 `isage[full]` to use the `sage-edge` shell.
@@ -256,8 +258,8 @@ Policy note: optional adapters should justify their independence with real owned
 wrapper repos should be folded back into the main `SAGE` repository instead of expanding the default
 dependency surface.
 
-Current example: `sage.edge` has already been folded back into the main repo. The former
-`sage-edge` split repo should be treated as retired rather than as an independent Zoo package.
+Current example: `sage.edge` has already been folded back into the main repo. The former `sage-edge`
+split repo should be treated as retired rather than as an independent Zoo package.
 
 ```bash
 pip install 'isage[serving-edge]'         # in-tree edge shell（sage.edge / sage-edge）
@@ -300,18 +302,18 @@ sage index ingest --help       # Inspect lightweight index entrypoints
 The current main-repo `sage` command surface is intentionally small and grouped around the core
 product boundary:
 
-| Command | Purpose |
-| --- | --- |
-| `sage version` | Print installed SAGE version |
-| `sage status` | Show local config/data/state paths and gateway summary |
-| `sage doctor` | Run lightweight environment diagnostics |
-| `sage verify` | Smoke-check the in-tree core surface |
-| `sage runtime nodes` | List runtime-visible nodes |
-| `sage serve gateway --json` | Print the external `sagellm` gateway launch contract |
-| `sage serve gateway --probe --json` | Probe the configured gateway health endpoint |
-| `sage chat` | Start chat via `sagellm` gateway, direct CLI, or configured OpenAI-compatible backend |
-| `sage chat --ask "..."` | Run one-shot chat |
-| `sage index ingest --source ./docs --index local-docs` | Record lightweight local index metadata |
+| Command                                                | Purpose                                                                               |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `sage version`                                         | Print installed SAGE version                                                          |
+| `sage status`                                          | Show local config/data/state paths and gateway summary                                |
+| `sage doctor`                                          | Run lightweight environment diagnostics                                               |
+| `sage verify`                                          | Smoke-check the in-tree core surface                                                  |
+| `sage runtime nodes`                                   | List runtime-visible nodes                                                            |
+| `sage serve gateway --json`                            | Print the external `sagellm` gateway launch contract                                  |
+| `sage serve gateway --probe --json`                    | Probe the configured gateway health endpoint                                          |
+| `sage chat`                                            | Start chat via `sagellm` gateway, direct CLI, or configured OpenAI-compatible backend |
+| `sage chat --ask "..."`                                | Run one-shot chat                                                                     |
+| `sage index ingest --source ./docs --index local-docs` | Record lightweight local index metadata                                               |
 
 ```bash
 sage verify
@@ -321,8 +323,10 @@ sage chat --ask "Hello, SAGE!"
 sage index ingest --source ./docs --index local-docs
 ```
 
-📖 **Detailed guides**: [Installation Guide](https://intellistream.github.io/sage-docs/guides/installation/) |
-[Troubleshooting](https://intellistream.github.io/sage-docs/guides/troubleshooting/) | [Validation](https://intellistream.github.io/sage-docs/guides/validation/) |
+📖 **Detailed guides**:
+[Installation Guide](https://intellistream.github.io/sage-docs/guides/installation/) |
+[Troubleshooting](https://intellistream.github.io/sage-docs/guides/troubleshooting/) |
+[Validation](https://intellistream.github.io/sage-docs/guides/validation/) |
 [Optimization Tips](tools/install/docs/INSTALLATION_OPTIMIZATION.md)
 
 ⚠️ **Known Issues**: If you encounter transformers version conflicts when installing multiple SAGE
@@ -339,7 +343,8 @@ cp .env.template .env    # Copy template
 
 ## 📚 Tutorials
 
-Complete tutorials covering the current workspace tiers of SAGE (L1-L4) plus historical capability topics:
+Complete tutorials covering the current workspace tiers of SAGE (L1-L4) plus historical capability
+topics:
 
 ```bash
 # Clone tutorials repository
@@ -374,7 +379,8 @@ See `sage-tutorials/README.md` for complete learning paths.
   - Will be published as `isage-examples` on PyPI
 - **Tutorials**: [intellistream/sage-tutorials](https://github.com/intellistream/sage-tutorials)
   - Layered tutorials from L1 to L5, quick-start learning paths
-- **Architecture**: [sage-docs architecture guide](https://intellistream.github.io/sage-docs/architecture/)
+- **Architecture**:
+  [sage-docs architecture guide](https://intellistream.github.io/sage-docs/architecture/)
 
 ## Contributing
 
@@ -389,7 +395,8 @@ git commit -m "feat(kernel): add new feature"
 git push -u origin feature/my-feature
 ```
 
-**Resources**: [Quick Reference](https://intellistream.github.io/sage-docs/reference/quick-reference/) |
+**Resources**:
+[Quick Reference](https://intellistream.github.io/sage-docs/reference/quick-reference/) |
 [GitHub Issues](https://github.com/intellistream/SAGE/issues) |
 [Discussions](https://github.com/intellistream/SAGE/discussions)
 
@@ -416,7 +423,8 @@ make docs           # Build documentation
 
 ## SAGE Ecosystem
 
-📦 **[sage-docs package guide](https://intellistream.github.io/sage-docs/guides/packages/)** — 独立能力包与安装索引
+📦 **[sage-docs package guide](https://intellistream.github.io/sage-docs/guides/packages/)** —
+独立能力包与安装索引
 
 ### 🧠 SAGE — Streaming AI Framework
 
@@ -474,8 +482,8 @@ Independent sub-repositories that remain justified are organized by category:
   [![CI](https://github.com/intellistream/sage-amms/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-amms/actions/workflows/build.yml)
   [![PyPI](https://badge.fury.io/py/isage-amms.svg)](https://pypi.org/project/isage-amms/)
   [![Stars](https://img.shields.io/github/stars/intellistream/sage-amms?style=social)](https://github.com/intellistream/sage-amms/stargazers)
-- **[flutty](https://github.com/intellistream/flutty)** — Optional distributed execution backend
-  for SAGE stream runtime
+- **[flutty](https://github.com/intellistream/flutty)** — Optional distributed execution backend for
+  SAGE stream runtime
   [![PyPI](https://badge.fury.io/py/flutty.svg)](https://pypi.org/project/flutty/)
 
 ### Data & Benchmarks
@@ -520,7 +528,8 @@ Independent sub-repositories that remain justified are organized by category:
   [![CI](https://github.com/intellistream/sage-dev-tools/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-dev-tools/actions/workflows/ci.yml)
   [![PyPI](https://badge.fury.io/py/isage-dev-tools.svg)](https://pypi.org/project/isage-dev-tools/)
   [![Stars](https://img.shields.io/github/stars/intellistream/sage-dev-tools?style=social)](https://github.com/intellistream/sage-dev-tools/stargazers)
-- Historical split repos remain retirement targets and are intentionally omitted from the recommended active ecosystem list.
+- Historical split repos remain retirement targets and are intentionally omitted from the
+  recommended active ecosystem list.
 
 ______________________________________________________________________
 

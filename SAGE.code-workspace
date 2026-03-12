@@ -19,6 +19,85 @@
     {
       "name": "sage-examples  [examples]",
       "path": "../sage-examples"
+    },
+    {
+      "name": "neuromem  [capability]",
+      "path": "../neuromem"
+    },
+    {
+      "name": "sage-agentic  [capability]",
+      "path": "../sage-agentic"
+    },
+    {
+      "name": "sage-agentic-tooluse  [capability]",
+      "path": "../sage-agentic-tooluse"
+    },
+    {
+      "name": "sage-agentic-tooluse-sias  [capability]",
+      "path": "../sage-agentic-tooluse-sias"
+    },
+    {
+      "name": "sage-agentic-tooluse-benchmark  [benchmark]",
+      "path": "../sage-agentic-tooluse-benchmark"
+    },
+    {
+      "name": "sage-memory-benchmark  [benchmark]",
+      "path": "../sage-memory-benchmark"
+    },
+    {
+      "name": "sage-rag-benchmark  [benchmark]",
+      "path": "../sage-rag-benchmark"
+    },
+    {
+      "name": "sage-refiner-benchmark  [benchmark]",
+      "path": "../sage-refiner-benchmark"
+    },
+    {
+      "name": "sage-eval  [capability]",
+      "path": "../sage-eval"
+    },
+    {
+      "name": "sage-finetune  [capability]",
+      "path": "../sage-finetune"
+    },
+    {
+      "name": "sage-libs-intent  [capability]",
+      "path": "../sage-libs-intent"
+    },
+    {
+      "name": "sage-mcp  [tooling]",
+      "path": "../sage-mcp"
+    },
+    {
+      "name": "sage-privacy  [capability]",
+      "path": "../sage-privacy"
+    },
+    {
+      "name": "sage-rag  [capability]",
+      "path": "../sage-rag"
+    },
+    {
+      "name": "sage-safety  [capability]",
+      "path": "../sage-safety"
+    },
+    {
+      "name": "sage-sias  [capability]",
+      "path": "../sage-sias"
+    },
+    {
+      "name": "sage-tools  [tooling]",
+      "path": "../sage-tools"
+    },
+    {
+      "name": "sageData  [data]",
+      "path": "../sageData"
+    },
+    {
+      "name": "sageRefiner  [capability]",
+      "path": "../sageRefiner"
+    },
+    {
+      "path": "../.github"
     }
   ],
   "settings": {
