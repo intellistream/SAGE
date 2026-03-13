@@ -37,10 +37,6 @@
       "path": "../sage-agentic-tooluse-benchmark"
     },
     {
-      "name": "sage-memory-benchmark  [benchmark]",
-      "path": "../sage-memory-benchmark"
-    },
-    {
       "name": "sage-rag-benchmark  [benchmark]",
       "path": "../sage-rag-benchmark"
     },
