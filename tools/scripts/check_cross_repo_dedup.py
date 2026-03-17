@@ -241,9 +241,12 @@ def main() -> int:
         ]
         flownet_root = None
         for candidate in candidates:
-            if candidate.exists():
-                flownet_root = candidate
-                break
+            try:
+                if candidate.exists():
+                    flownet_root = candidate
+                    break
+            except PermissionError:
+                continue
 
         if flownet_root is None:
             message = (
