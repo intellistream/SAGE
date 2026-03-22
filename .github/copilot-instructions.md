@@ -43,7 +43,7 @@
 
 ## High-signal paths to inspect first
 - Root workflow/docs: `README.md`, `DEVELOPER.md`, `CONTRIBUTING.md`, `quickstart.sh`, `pytest.ini`.
-- Quality/hooks: `tools/pre-commit-config.yaml`, `tools/hooks/check_docs_location.sh`.
+- Quality/hooks: `.pre-commit-config.yaml`, `tools/hooks/check_docs_location.sh`.
 - Meta-package: `pyproject.toml` — version pins for all external dependencies.
 - In-tree surfaces: `src/sage/foundation/`, `src/sage/stream/`, `src/sage/runtime/`, `src/sage/serving/`.
 

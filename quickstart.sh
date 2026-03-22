@@ -563,7 +563,7 @@ main() {
 
                 if [ "$precommit_available" = true ] && [ -d ".git" ]; then
                     echo -e "${DIM}   使用 pre-commit 回退安装 hooks...${NC}"
-                    if eval "$precommit_cmd install --config tools/config/pre-commit-config.yaml" 2>&1; then
+                    if eval "$precommit_cmd install --config .pre-commit-config.yaml" 2>&1; then
                         echo -e "${GREEN}✅ Git hooks 已安装（pre-commit 回退路径）${NC}"
                     else
                         echo -e "${YELLOW}⚠️  pre-commit 回退安装失败${NC}"

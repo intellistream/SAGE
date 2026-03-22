@@ -40,7 +40,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pre-commit
-          key: pre-commit-${{ runner.os }}-${{ hashFiles('tools/config/pre-commit-config.yaml') }}
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Install tools (no SAGE)
         run: |
@@ -67,14 +67,14 @@ jobs:
             echo "No Python files changed, skipping"
             exit 0
           fi
-          echo "$CHANGED" | xargs pre-commit run --config tools/config/pre-commit-config.yaml --files
+          echo "$CHANGED" | xargs pre-commit run --config .pre-commit-config.yaml --files
 
       - name: Run pre-commit (all files)
         if: github.event_name != 'pull_request'
         env:
           SKIP: shellcheck  # Skip shellcheck-py to avoid network issues, use system shellcheck instead
         run: |
-          pre-commit run --all-files --config tools/config/pre-commit-config.yaml
+          pre-commit run --all-files --config .pre-commit-config.yaml
 
       - name: Cross-repo dedup check - SAGE vs sageFlownet (Issue #1439)
         run: |
