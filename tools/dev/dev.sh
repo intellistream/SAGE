@@ -139,7 +139,7 @@ cmd_lint() {
     print_header "Running linters"
 
     print_info "Running ruff..."
-    ruff check packages/ examples/ scripts/ || print_warning "Ruff found issues"
+    ruff check packages/ src/ scripts/ || print_warning "Ruff found issues"
 
     print_info "Running mypy..."
     mypy packages/ --ignore-missing-imports || print_warning "Mypy found issues"
@@ -155,10 +155,10 @@ cmd_format() {
     print_header "Formatting code"
 
     print_info "Running black..."
-    black packages/ examples/ scripts/ --line-length 100
+    black packages/ src/ scripts/ --line-length 100
 
     print_info "Running isort..."
-    isort packages/ examples/ scripts/ --profile black --line-length 100
+    isort packages/ src/ scripts/ --profile black --line-length 100
 
     print_success "Code formatted"
 }
@@ -168,10 +168,10 @@ cmd_check() {
     print_header "Checking code format"
 
     print_info "Checking with black..."
-    black packages/ examples/ scripts/ --check --line-length 100
+    black packages/ src/ scripts/ --check --line-length 100
 
     print_info "Checking with isort..."
-    isort packages/ examples/ scripts/ --check --profile black --line-length 100
+    isort packages/ src/ scripts/ --check --profile black --line-length 100
 
     print_success "Format check complete"
 }

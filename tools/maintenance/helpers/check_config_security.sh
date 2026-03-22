@@ -5,7 +5,7 @@
 set -e
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-CONFIG_DIR="$REPO_ROOT/examples/config"
+CONFIG_DIR="$REPO_ROOT/config"
 
 echo "🔍 检查配置文件中的敏感信息..."
 echo "配置目录: $CONFIG_DIR"
