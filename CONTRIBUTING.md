@@ -176,6 +176,19 @@ feat | fix | refactor | docs | test | perf | ci | chore | build | deps | securit
 
 > PR 必须通过 CI；建议至少 1 名维护者 Review 才可合并（团队策略可调整）。
 
+### 边界变更 PR 检查清单
+
+涉及 `src/sage/**` 或 `tools/**` 的变更，PR 描述中至少要覆盖以下 5 项：
+
+1. 是否新增了 `src/sage/foundation|runtime|stream|serving|edge` 对 `tools` 或 `sage.tools` 的依赖。
+1. 是否把用户安装后必须存在的实现错误地留在 `tools/`。
+1. 是否把仅供安装、维护、CI、hooks、审计使用的逻辑错误地放进 `src/sage`。
+1. 是否说明了迁移触发条件、调用点证据、打包影响和验证范围。
+1. 是否评估了回滚条件：分层方向被破坏、默认依赖膨胀、或 `quickstart.sh` / `sage verify` / 核心导入面失败。
+
+本地可直接运行 `pre-commit run release-tools-boundary-check --all-files`，或执行
+`pre-commit run --all-files` 复核边界守护结果。
+
 ## 分支与工作流
 
 ### 主要分支说明

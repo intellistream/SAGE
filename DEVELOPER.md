@@ -129,6 +129,34 @@ SAGE follows a **minimalist core dependency strategy** with a **modular feature 
 functionality is available either through in-tree extras when it belongs to the SAGE product
 surface, or through independent packages when ownership should stay external.
 
+### Tools vs Release Package Boundary Rules
+
+The root package only publishes code discovered from `src/` in `pyproject.toml`, so ownership
+decisions must follow the release boundary instead of repository convenience.
+
+1. Code that is imported by the public `sage.foundation`, `sage.stream`, `sage.runtime`,
+   `sage.serving`, or `sage.edge` runtime surface must live under `src/sage`.
+1. Code used only by `quickstart.sh`, `manage.sh`, Git hooks, CI checks, maintenance commands, or
+   one-shot migration flows must stay under `tools/`.
+1. Do not add imports from `src/sage/foundation`, `src/sage/runtime`, `src/sage/stream`,
+   `src/sage/serving`, or `src/sage/edge` into `tools` or `sage.tools`, and do not hard-code
+   repository-relative `tools/` paths from those runtime layers.
+1. Install bootstrap, cleanup, repo-governance, documentation checks, hook management, and
+   dependency audit helpers are repository tooling and must remain in `tools/`.
+1. Move a `tools/` implementation into `src/sage` only when it is required by a published user path
+   after install and is reused as product behavior rather than as repository maintenance.
+1. Do not migrate test harnesses, validation reports, sample hook files, or developer-only shell
+   helpers into `src/sage`, even if they are frequently invoked.
+1. Roll back a boundary migration if it introduces upward/development dependencies, expands default
+   release dependencies without product justification, or breaks `quickstart.sh`, `sage verify`, or
+   the core import surface.
+1. Every PR that moves code across the boundary must include evidence for call sites, packaging
+   impact, and validation scope in the description so reviewers can verify the ownership change.
+
+The automated guard is `python3 tools/maintenance/checks/check_release_tools_boundary.py`, wired
+into pre-commit as `release-tools-boundary-check`. It blocks `CRITICAL`/`HIGH` violations and keeps
+new misplaced runtime-layer files as `MEDIUM` warnings until they are intentionally promoted.
+
 ### Per-Layer Dependencies
 
 Current workspace numbering is normalized to the actively maintained main repos:

@@ -96,6 +96,14 @@ repos:
     pass_filenames: false
     always_run: false
     stages: [pre-commit]
+  - id: release-tools-boundary-check
+    name: check release package vs tools boundary
+    entry: python3 tools/maintenance/checks/check_release_tools_boundary.py
+    language: system
+    pass_filenames: false
+    always_run: false
+    stages: [pre-commit, manual]
+    files: ^(src/sage/(foundation|runtime|stream|serving|edge)/|tools/|quickstart\.sh|manage\.sh|\.pre-commit-config\.yaml)$
           # Check for files in wrong locations under the current meta-repo layout
           # - id: dependency-version-conflicts
           #   name: check dependency version conflicts
