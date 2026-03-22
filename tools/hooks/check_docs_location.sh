@@ -45,7 +45,6 @@ allowed_patterns=(
     "^LICENSE\.md$"
     "^DEVELOPER\.md$"
     "^docs/dependency-audit-gate\.md$"
-    "^docs/profiling/.*\.md$"
     "^docs/layer-manifest\.json$"
     "^docker/.*\.md$"
     "^src/.*/docs/"

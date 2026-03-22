@@ -1,6 +1,0 @@
-# Generated profiling artifacts — large, machine-specific
-*.prof
-flamegraph/
-full_summary.json
-hot_path_summary.txt
-hot_path_report.md
