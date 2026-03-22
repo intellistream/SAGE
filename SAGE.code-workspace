@@ -5,91 +5,8 @@
       "path": "."
     },
     {
-      "name": "sage-benchmark  [benchmark]",
-      "path": "../sage-benchmark"
-    },
-    {
-      "name": "sage-docs  [docs]",
-      "path": "../sage-docs"
-    },
-    {
-      "name": "sage-tutorials  [tutorials]",
-      "path": "../sage-tutorials"
-    },
-    {
-      "name": "sage-examples  [examples]",
-      "path": "../sage-examples"
-    },
-    {
-      "name": "sage-agentic  [capability]",
-      "path": "../sage-agentic"
-    },
-    {
-      "name": "sage-agentic-tooluse  [capability]",
-      "path": "../sage-agentic-tooluse"
-    },
-    {
-      "name": "sage-agentic-tooluse-sias  [capability]",
-      "path": "../sage-agentic-tooluse-sias"
-    },
-    {
-      "name": "sage-agentic-tooluse-benchmark  [benchmark]",
-      "path": "../sage-agentic-tooluse-benchmark"
-    },
-    {
-      "name": "sage-rag-benchmark  [benchmark]",
-      "path": "../sage-rag-benchmark"
-    },
-    {
-      "name": "sage-refiner-benchmark  [benchmark]",
-      "path": "../sage-refiner-benchmark"
-    },
-    {
-      "name": "sage-eval  [capability]",
-      "path": "../sage-eval"
-    },
-    {
-      "name": "sage-finetune  [capability]",
-      "path": "../sage-finetune"
-    },
-    {
-      "name": "sage-libs-intent  [capability]",
-      "path": "../sage-libs-intent"
-    },
-    {
-      "name": "sage-mcp  [tooling]",
-      "path": "../sage-mcp"
-    },
-    {
-      "name": "sage-privacy  [capability]",
-      "path": "../sage-privacy"
-    },
-    {
-      "name": "sage-rag  [capability]",
-      "path": "../sage-rag"
-    },
-    {
-      "name": "sage-safety  [capability]",
-      "path": "../sage-safety"
-    },
-    {
-      "name": "sage-sias  [capability]",
-      "path": "../sage-sias"
-    },
-    {
-      "name": "sage-tools  [tooling]",
-      "path": "../sage-tools"
-    },
-    {
-      "name": "sageData  [data]",
-      "path": "../sageData"
-    },
-    {
-      "name": "sageRefiner  [capability]",
-      "path": "../sageRefiner"
-    },
-    {
-      "path": "../.github"
+      "name": "SAGE-Pub  [docs]",
+      "path": "../SAGE-Pub"
     }
   ],
   "settings": {
@@ -111,7 +28,7 @@
       "**/.mypy_cache": true,
       "**/*.egg-info": true,
       ".sage/build": true,
-      ".sage/cache": true,
+      ".sage/cache": true
     },
     "search.exclude": {
       "**/node_modules": true,
@@ -119,21 +36,21 @@
       ".sage/build": true,
       ".sage/cache": true,
       "**/dist": true,
-      "**/*.egg-info": true,
+      "**/*.egg-info": true
     },
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit",
+      "source.organizeImports": "explicit"
     },
     "[python]": {
       "editor.defaultFormatter": "charliermarsh.ruff",
-      "editor.formatOnSave": true,
+      "editor.formatOnSave": true
     },
     "ruff.configurationPreference": "filesystemFirst",
     "ruff.configuration": "${workspaceFolder:SAGE  [meta]}/tools/ruff.toml",
     "git.enableSmartCommit": true,
     "git.confirmSync": false,
-    "python-envs.workspaceSearchPaths": [],
+    "python-envs.workspaceSearchPaths": []
   },
   "extensions": {
     "recommendations": [
@@ -146,8 +63,8 @@
       "redhat.vscode-yaml",
       "tamasfe.even-better-toml",
       "yzhang.markdown-all-in-one",
-      "DavidAnson.vscode-markdownlint",
-    ],
+      "DavidAnson.vscode-markdownlint"
+    ]
   },
   "launch": {
     "version": "0.2.0",
@@ -172,7 +89,7 @@
           "--help"
         ],
         "console": "integratedTerminal",
-        "cwd": "${workspaceFolder:SAGE  [meta]}",
+        "cwd": "${workspaceFolder:SAGE  [meta]}"
       },
       {
         "name": "Pytest: Current File",
@@ -185,9 +102,9 @@
           "--tb=short"
         ],
         "console": "integratedTerminal",
-        "cwd": "${workspaceFolder:SAGE  [meta]}",
-      },
-    ],
+        "cwd": "${workspaceFolder:SAGE  [meta]}"
+      }
+    ]
   },
   "tasks": {
     "version": "2.0.0",
@@ -200,7 +117,7 @@
         "problemMatcher": [],
         "options": {
           "cwd": "${workspaceFolder:SAGE  [meta]}"
-        },
+        }
       },
       {
         "label": "Run Tests",
@@ -210,7 +127,7 @@
         "problemMatcher": [],
         "options": {
           "cwd": "${workspaceFolder:SAGE  [meta]}"
-        },
+        }
       },
       {
         "label": "Code Quality Check",
@@ -220,7 +137,7 @@
         "problemMatcher": [],
         "options": {
           "cwd": "${workspaceFolder:SAGE  [meta]}"
-        },
+        }
       },
       {
         "label": "Code Quality Fix",
@@ -230,7 +147,7 @@
         "problemMatcher": [],
         "options": {
           "cwd": "${workspaceFolder:SAGE  [meta]}"
-        },
+        }
       },
       {
         "label": "Build Docs",
@@ -239,8 +156,8 @@
         "group": "build",
         "problemMatcher": [],
         "options": {
-          "cwd": "${workspaceFolder:sage-docs  [L6]}"
-        },
+          "cwd": "${workspaceFolder:SAGE-Pub  [docs]}"
+        }
       },
       {
         "label": "Serve Docs",
@@ -250,9 +167,9 @@
         "problemMatcher": [],
         "isBackground": true,
         "options": {
-          "cwd": "${workspaceFolder:sage-docs  [L6]}"
-        },
-      },
-    ],
-  },
+          "cwd": "${workspaceFolder:SAGE-Pub  [docs]}"
+        }
+      }
+    ]
+  }
 }

@@ -14,6 +14,7 @@
 
 ## Critical repo conventions
 - No manual dependency drift: update external sub-package version pins in the root `pyproject.toml` only after the sub-package is published to PyPI.
+- Branch policy: use `main` as the only working/integration branch. Do not create, target, or reference `main-dev` in workflows, docs, scripts, or PR guidance.
 - NEVER create any new Python virtual environment (`venv`/`.venv`) in this repo under any circumstance.
 - Do not use an active Python venv for SAGE install/run/test flows; if `VIRTUAL_ENV` is set, exit and switch to Conda or a pre-configured non-venv Python environment.
 - Never suggest or invoke `--auto-venv`, `python -m venv`, or `virtualenv` in SAGE workflows.

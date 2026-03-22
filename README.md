@@ -117,7 +117,7 @@ env.submit()
 
 ```bash
 git clone https://github.com/intellistream/SAGE.git && cd SAGE
-git checkout main-dev
+git checkout main
 ./quickstart.sh --dev --yes
 
 # Tutorials are now in a separate repository

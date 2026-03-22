@@ -43,8 +43,8 @@ ______________________________________________________________________
 git clone https://github.com/intellistream/SAGE.git
 cd SAGE
 
-# Switch to development branch
-git checkout main-dev
+# Use canonical branch
+git checkout main
 
 # One-command setup for contributors (recommended)
 ./quickstart.sh --dev --yes
@@ -81,11 +81,11 @@ git checkout main-dev
 
 ### Initial Setup
 
-1. Clone and switch to development branch
+1. Clone and switch to canonical branch
 
    ```bash
    git clone https://github.com/intellistream/SAGE.git && cd SAGE
-   git checkout main-dev
+   git checkout main
    ```
 
 1. Install development environment
