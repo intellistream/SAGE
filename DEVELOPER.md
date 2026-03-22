@@ -653,7 +653,7 @@ We follow [Semantic Versioning](https://semver.org/):
 
 1. **Update version numbers**
 
-   - Update version in `setup.py` or `pyproject.toml`
+   - Update version in `pyproject.toml`
    - Update version in `__init__.py` files
 
 1. **Run validation**

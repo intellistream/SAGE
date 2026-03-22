@@ -6,7 +6,6 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - 'pyproject.toml'
-      - 'setup.py'
       - 'src/**'
       - 'tools/install/**'
       - '.github/workflows/ci-pr-install.yml'

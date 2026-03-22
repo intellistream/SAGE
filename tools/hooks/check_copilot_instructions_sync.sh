@@ -19,7 +19,7 @@
 #   - Installation: quickstart.sh, manage.sh, tools/install/*.sh
 #   - CI/CD: .github/workflows/*.yml
 #   - Config: pre-commit / ruff / project packaging / cluster config
-#   - Meta package layout: pyproject.toml, setup.py, src/sage/_version.py
+#   - Meta package layout: pyproject.toml, src/sage/_version.py
 #
 # Exit codes:
 #   0 - OK (allow commit, warnings only)
@@ -59,7 +59,6 @@ CRITICAL_PATTERNS=(
 
     # Meta Package & Config
     "^pyproject\.toml$|架构|Meta package 依赖与打包配置"
-    "^setup\.py$|架构|Meta package 安装入口"
     "^src/sage/_version\.py$|架构|Meta package 版本定义"
     "^config/config\.yaml$|配置|主配置文件结构"
     "^config/cluster\.yaml$|配置|集群配置文件结构"

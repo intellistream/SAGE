@@ -233,7 +233,6 @@ repos:
         "SAGE.code-workspace"
         "SAGE_ZOO.md"
         "pyproject.toml"  # isage meta-package
-        "setup.py"        # isage meta-package
       )
 
       # Allowed directories in project root (whitelist)
@@ -377,7 +376,7 @@ repos:
     language: system
     pass_filenames: false
           # Trigger on: doc files, installation scripts, CI/CD, config, ports, CLI, LLM/Gateway
-    files: ^(\.github/(copilot-instructions\.md|agents/my-agent\.agent\.md|workflows/.*\.yml)|quickstart\.sh|manage\.sh|Makefile|pyproject\.toml|setup\.py|tools/((config/)?pre-commit-config\.yaml|(config/)?ruff\.toml|install/.*\.sh)|config/(config|cluster)\.yaml)
+    files: ^(\.github/(copilot-instructions\.md|agents/my-agent\.agent\.md|workflows/.*\.yml)|quickstart\.sh|manage\.sh|Makefile|pyproject\.toml|tools/((config/)?pre-commit-config\.yaml|(config/)?ruff\.toml|install/.*\.sh)|config/(config|cluster)\.yaml)
     stages: [pre-commit, manual]
     description: Warn if critical project files change without updating copilot instructions
 # To install pre-commit hooks:
