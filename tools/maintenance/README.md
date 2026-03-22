@@ -59,7 +59,6 @@ tools/maintenance/
    ├── check_config_security.sh
    ├── common.sh
    ├── pre_install_cleanup.sh
-   ├── prepare_branch_checkout.sh
    ├── quick_cleanup.sh
    └── sage-jobmanager.sh
 ```

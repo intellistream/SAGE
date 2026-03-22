@@ -76,37 +76,6 @@ is_working_tree_clean() {
 }
 
 # ============================================================================
-# Submodule 辅助函数
-# ============================================================================
-
-# 获取所有 submodule 路径
-get_submodules() {
-    git config --file .gitmodules --get-regexp path | awk '{ print $2 }'
-}
-
-# 检查 submodule 是否已初始化
-is_submodule_initialized() {
-    local submodule_path="$1"
-    [ -d "$submodule_path/.git" ] || [ -f "$submodule_path/.git" ]
-}
-
-# 获取 submodule 的配置分支
-get_submodule_branch() {
-    local submodule_path="$1"
-    git config --file .gitmodules --get "submodule.${submodule_path}.branch" || echo "main-dev"
-}
-
-# 获取 submodule 的当前分支
-get_submodule_current_branch() {
-    local submodule_path="$1"
-    if is_submodule_initialized "$submodule_path"; then
-        (cd "$submodule_path" && git rev-parse --abbrev-ref HEAD 2>/dev/null) || echo "N/A"
-    else
-        echo "未初始化"
-    fi
-}
-
-# ============================================================================
 # 确认提示
 # ============================================================================
 

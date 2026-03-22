@@ -14,8 +14,9 @@ Options:
   --all               Install all available hooks (default)
 
 Available hooks:
-  - post-checkout: Automatically sync submodule branches
-  - post-submodule-update: Generate SUBMODULE.md markers
+  - post-checkout: Periodic local cleanup reminder after branch switches
+  - pre-commit: Run the repository pre-commit suite on all files
+  - pre-push: Block direct pushes to main
 EOF
 }
 

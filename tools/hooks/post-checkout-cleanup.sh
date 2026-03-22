@@ -6,7 +6,7 @@
 #
 # 常见场景：
 # - 在 feature 分支中移动/删除了目录
-# - 切换回 main-dev 分支
+# - 切换回 main 或其他长期分支
 # - Git 不会自动删除这些目录，导致 untracked files
 #
 # 这个 hook 会自动检测并清理这些目录
@@ -33,7 +33,7 @@ CLEANUP_PATTERNS=(
   "src/sage/common/components/sage_llm"
   "src/sage/common/components/sageLLM"
   "src/sage/llm/sageLLM"
-  "src/sage/data"  # 旧的子模块残留
+  "src/sage/data"  # 历史目录迁移后的残留
   # 可以添加更多需要自动清理的路径
 )
 

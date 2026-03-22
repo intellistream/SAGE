@@ -33,13 +33,6 @@ else
     echo "ℹ️  Watchman not found, skipping fsmonitor (optional optimization)"
 fi
 
-# Configure submodule settings
-git config submodule.recurse true
-echo "✅ Set submodule.recurse to true"
-
-git config fetch.recurseSubmodules on-demand
-echo "✅ Set fetch.recurseSubmodules to on-demand"
-
 # Configure credential caching (15 minutes)
 git config credential.helper 'cache --timeout=900'
 echo "✅ Set credential cache timeout to 15 minutes"
@@ -52,5 +45,4 @@ echo "   diff.renameLimit: $(git config diff.renameLimit)"
 echo "   merge.renameLimit: $(git config merge.renameLimit)"
 echo "   core.preloadindex: $(git config core.preloadindex)"
 echo "   pack.threads: $(git config pack.threads)"
-echo "   submodule.recurse: $(git config submodule.recurse)"
 echo ""

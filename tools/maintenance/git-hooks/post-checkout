@@ -15,18 +15,6 @@ if [[ -z "${repo_root}" ]]; then
   exit 0
 fi
 
-script_path="$repo_root/tools/maintenance/helpers/manage_submodule_branches.sh"
-if [[ ! -x "$script_path" ]]; then
-  echo "[post-checkout] manage_submodule_branches.sh not executable; skipping submodule sync." >&2
-  exit 0
-fi
-
-# Run the switch command to align submodule branches with the current checkout.
-"$script_path" switch || {
-  echo "[post-checkout] Failed to synchronize submodule branches" >&2
-  exit 0
-}
-
 # 定期清理提醒（每30天）
 cleanup_reminder_file="$repo_root/.sage/.last_cleanup_reminder"
 current_time=$(date +%s)

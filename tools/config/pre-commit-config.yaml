@@ -213,7 +213,6 @@ repos:
         ".env.template"
         ".github_token"
         ".gitignore"
-        ".gitmodules"
         ".pre-commit-config.yaml"
         ".pypirc"
         ".pyrightconfig.json"

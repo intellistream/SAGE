@@ -194,7 +194,7 @@ def main() -> int:
     parser.add_argument(
         "--refspec",
         default=None,
-        help="Git diff refspec (e.g. origin/main-dev...HEAD)",
+        help="Git diff refspec (e.g. origin/main...HEAD)",
     )
     parser.add_argument(
         "--staged",

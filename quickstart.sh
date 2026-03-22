@@ -576,7 +576,7 @@ main() {
             fi
         fi
 
-        # 开发模式下额外设置 Git hooks（用于 submodule 管理）
+        # 开发模式下额外设置本地 Git hooks
         if [ "$mode" = "dev" ]; then
             echo ""
             echo -e "${INFO} 设置额外的 Git hooks（开发模式）..."
@@ -587,7 +587,7 @@ main() {
             fi
 
             # 配置 Git 设置
-            echo -e "${DIM}   配置 Git 设置（rename limit, submodules）...${NC}"
+            echo -e "${DIM}   配置 Git 设置（rename limit, repository performance）...${NC}"
             if [ -x "$SAGE_ROOT/tools/git-tools/configure-git.sh" ]; then
                 if "$SAGE_ROOT/tools/git-tools/configure-git.sh" >/dev/null 2>&1; then
                     echo -e "${GREEN}   ✅ Git 配置完成${NC}"
