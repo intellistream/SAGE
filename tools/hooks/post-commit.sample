@@ -12,8 +12,8 @@ set -e
 
 # ==================== 配置区域 ====================
 
-# sage-pypi-publisher 仓库路径
-PUBLISHER_PATH="${HOME}/sage-pypi-publisher"
+# wheelwright 仓库路径
+PUBLISHER_PATH="${HOME}/wheelwright"
 
 # 是否启用自动发布 (true/false)
 AUTO_PUBLISH_ENABLED=false
@@ -49,8 +49,8 @@ fi
 
 # 检查 publisher 是否存在
 if [ ! -d "$PUBLISHER_PATH" ]; then
-    echo "⚠️  sage-pypi-publisher not found at $PUBLISHER_PATH"
-    echo "   Clone it: git clone https://github.com/intellistream/sage-pypi-publisher.git ~/sage-pypi-publisher"
+    echo "⚠️  wheelwright not found at $PUBLISHER_PATH"
+    echo "   Clone it: git clone https://github.com/intellistream/wheelwright.git ~/wheelwright"
     exit 0
 fi
 
