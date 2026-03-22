@@ -56,6 +56,7 @@ tools/maintenance/
 ├── fix-types-helper.sh      # 类型问题辅助脚本
 ├── git-hooks/               # Hook 模板
 └── helpers/                 # 内部辅助脚本
+  ├── configure_git.sh
    ├── check_config_security.sh
    ├── common.sh
    ├── pre_install_cleanup.sh
@@ -119,6 +120,7 @@ bash tools/maintenance/check_docs.sh
 1. 当前 README 仅描述现存且仍受支持的维护命令。
 1. 若遇到环境或仓库状态问题，先运行 `doctor`。
 1. SAGE 为 polyrepo 架构，跨仓库开发请在对应独立仓库中进行，不要把子仓库实现重新放回元仓库。
+1. `configure_git.sh` 是供安装流程调用的内部 helper，不再单独保留 `tools/git-tools/` 目录。
 
 ## 相关文档
 

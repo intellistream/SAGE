@@ -164,7 +164,7 @@ dev_reports/
 # 注意：通过 .env 文件配置这些工具使用统一缓存目录
 # RUFF_CACHE_DIR=.sage/cache/ruff
 # MYPY_CACHE_DIR=.sage/cache/mypy
-# pytest cache_dir 在 tools/pytest.ini 中配置
+# pytest cache_dir 在 pytest.ini 中配置
 
 # 如果有遗留的分散缓存目录，也要忽略
 **/.pytest_cache/

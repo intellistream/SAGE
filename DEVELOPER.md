@@ -387,7 +387,7 @@ RUFF_CACHE_DIR=.sage/cache/ruff
 MYPY_CACHE_DIR=.sage/cache/mypy
 ```
 
-**Pytest cache** is configured in `tools/config/pytest.ini`:
+**Pytest cache** is configured in `pytest.ini`:
 
 ```ini
 cache_dir = .sage/cache/pytest

@@ -588,8 +588,8 @@ main() {
 
             # 配置 Git 设置
             echo -e "${DIM}   配置 Git 设置（rename limit, repository performance）...${NC}"
-            if [ -x "$SAGE_ROOT/tools/git-tools/configure-git.sh" ]; then
-                if "$SAGE_ROOT/tools/git-tools/configure-git.sh" >/dev/null 2>&1; then
+            if [ -x "$SAGE_ROOT/tools/maintenance/helpers/configure_git.sh" ]; then
+                if "$SAGE_ROOT/tools/maintenance/helpers/configure_git.sh" >/dev/null 2>&1; then
                     echo -e "${GREEN}   ✅ Git 配置完成${NC}"
                 else
                     echo -e "${YELLOW}   ⚠️  Git 配置失败，但不影响使用${NC}"
