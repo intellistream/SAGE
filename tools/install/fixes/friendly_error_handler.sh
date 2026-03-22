@@ -47,7 +47,6 @@ declare -A ERROR_EXPLANATIONS=(
     ["network_timeout"]="网络连接超时"
     ["permission_denied"]="权限不足"
     ["python_version_incompatible"]="Python版本不兼容"
-    ["vllm_install_fail"]="vLLM 安装失败"
     ["cuda_not_found"]="CUDA 环境未找到"
 )
 
@@ -60,7 +59,6 @@ declare -A ERROR_CAUSES=(
     ["network_timeout"]="网络连接不稳定或PyPI服务器访问缓慢"
     ["permission_denied"]="当前用户没有足够权限安装包到系统目录"
     ["python_version_incompatible"]="当前Python版本与某些包的要求不匹配"
-    ["vllm_install_fail"]="vLLM需要特定的CUDA和Python环境，安装要求较为严格"
     ["cuda_not_found"]="系统未正确安装NVIDIA CUDA工具包或驱动"
 )
 
@@ -73,7 +71,6 @@ declare -A ERROR_SOLUTIONS=(
     ["network_timeout"]="检查网络连接|使用国内镜像：pip install -i https://pypi.tuna.tsinghua.edu.cn/simple/|重试安装命令"
     ["permission_denied"]="使用虚拟环境：python -m venv venv && source venv/bin/activate|添加 --user 参数：pip install --user|使用sudo（不推荐）"
     ["python_version_incompatible"]="使用conda安装兼容版本：conda install python=3.11|检查包的Python版本要求|升级或降级Python版本"
-    ["vllm_install_fail"]="确保CUDA >= 11.8|使用预编译版本而非源码编译|检查GPU计算能力是否支持"
     ["cuda_not_found"]="安装NVIDIA驱动|安装CUDA工具包|设置CUDA环境变量"
 )
 
@@ -102,8 +99,6 @@ detect_error_type() {
         error_type="permission_denied"
     elif [[ "$error_lower" =~ python.*version|unsupported.*python ]]; then
         error_type="python_version_incompatible"
-    elif [[ "$error_lower" =~ vllm.*install.*fail|vllm.*error ]]; then
-        error_type="vllm_install_fail"
     elif [[ "$error_lower" =~ cuda.*not.*found|nvidia.*driver ]]; then
         error_type="cuda_not_found"
     fi

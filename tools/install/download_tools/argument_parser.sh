@@ -52,6 +52,22 @@ set_hooks_profile_value() {
     esac
 }
 
+set_install_mode_value() {
+    local value="${1,,}"
+    case "$value" in
+        "dev"|"standard"|"full")
+            INSTALL_MODE="$value"
+            ;;
+        "non-dev"|"nondev")
+            INSTALL_MODE="standard"
+            ;;
+        *)
+            echo -e "${CROSS} 无效的安装模式: $1 (可选: standard, full, dev)"
+            exit 1
+            ;;
+    esac
+}
+
 set_mirror_source_value() {
     local raw_value="$1"
     local value="${raw_value,,}"
@@ -95,10 +111,11 @@ DOCTOR_ONLY=false
 FIX_ENVIRONMENT=false
 VERIFY_DEPS=false
 VERIFY_DEPS_STRICT=false
-AUTO_VENV=false  # 新增：自动创建虚拟环境
 SKIP_HOOKS=false
 HOOKS_MODE="auto"
 SETUP_WORKSPACE=false  # 新增：设置 workspace 依赖
+CLONE_SATELLITE_REPOS=false  # 新增：克隆附属仓库
+CLONE_SATELLITE_REPOS_EXPLICIT=false  # 是否由用户显式指定克隆策略
 HOOKS_PROFILE="lightweight"
 USE_PIP_MIRROR=true  # 默认启用pip镜像自动检测（中国用户自动使用清华源）
 MIRROR_SOURCE="auto"
@@ -138,12 +155,11 @@ detect_current_environment() {
         fi
     fi
 
-    # 检测虚拟环境
+    # 检测 Python venv（策略：不作为推荐环境，仅用于识别并后续 fail-fast）
     if [ -n "${VIRTUAL_ENV:-}" ]; then
         if [ "$in_conda" = false ] && [ "$in_conda_base" = false ]; then
-            env_type="venv"
-            env_name=$(basename "${VIRTUAL_ENV:-}")
-            in_venv=true
+            env_type="system"
+            env_name=""
         fi
     fi
 
@@ -159,8 +175,8 @@ get_smart_environment_recommendation() {
     local in_venv=$(echo "$env_info" | cut -d'|' -f4)
     local in_conda_base=$(echo "$env_info" | cut -d'|' -f5)
 
-    if [ "$in_conda" = true ] || [ "$in_venv" = true ]; then
-        # 用户已经在虚拟环境中（非 base），推荐直接使用
+    if [ "$in_conda" = true ]; then
+        # 用户已经在 conda 环境中（非 base），推荐直接使用
         echo "pip|$env_type|$env_name"
     elif [ "$in_conda_base" = true ]; then
         # 用户在 conda base 环境中，不推荐使用，推荐创建新环境
@@ -226,31 +242,23 @@ show_installation_menu() {
     # 选择安装模式
     while true; do
         echo -e "${BOLD}1. 选择安装模式：${NC}"
-        echo -e "  ${GRAY}1)${NC} 最小安装    - 核心包 ${DIM}(~80包, 生产部署/容器镜像)${NC}"
-        echo -e "  ${GREEN}2)${NC} 开发安装    - 核心+开发工具 ${DIM}(~120包, 日常开发)${NC}"
-        echo -e "  ${YELLOW}3)${NC} 完整安装    - 开发+所有可选依赖 ${DIM}(~200+包, 推荐)${NC}"
+        echo -e "  ${YELLOW}1)${NC} standard 安装 - 仅 SAGE 核心子包 ${DIM}(~200+包, 轻量, 无 torch/CUDA)${NC}"
+        echo -e "  ${CYAN}2)${NC} full 安装     - standard + 扩展能力集 ${DIM}(~220+包, 不强制 torch/CUDA)${NC}"
+        echo -e "  ${GREEN}3)${NC} dev 安装      - full + 开发工具 + 本地 editable ${DIM}(~230+包, 日常开发)${NC}"
         echo ""
         read -p "请选择安装模式 [1-3，默认3]: " mode_choice
 
         case "${mode_choice:-3}" in
             1)
-                INSTALL_MODE="minimal"
-                echo ""
-                echo -e "${DIM}💡 最小安装不含 ML/VDB/streaming 等功能${NC}"
-                echo -e "${DIM}   如需这些功能，可稍后运行:${NC}"
-                echo -e "${DIM}   pip install isage-middleware[ml,vdb,streaming,compression]${NC}"
+                INSTALL_MODE="standard"
                 break
                 ;;
             2)
-                INSTALL_MODE="dev"
-                echo ""
-                echo -e "${DIM}💡 开发安装不含 ML/VDB/streaming 等可选依赖${NC}"
-                echo -e "${DIM}   如需这些功能，可稍后运行:${NC}"
-                echo -e "${DIM}   pip install isage-middleware[ml,vdb,streaming,compression]${NC}"
+                INSTALL_MODE="full"
                 break
                 ;;
             3)
-                INSTALL_MODE="full"
+                INSTALL_MODE="dev"
                 break
                 ;;
             *)
@@ -273,8 +281,6 @@ show_installation_menu() {
         echo -e "${INFO} 检测到您当前在 conda 环境中: ${GREEN}$current_env_name${NC}"
     elif [ "$current_env_type" = "conda_base" ]; then
         echo -e "${INFO} 检测到您当前在 conda ${YELLOW}base${NC} 环境中 ${DIM}(不推荐用于开发)${NC}"
-    elif [ "$current_env_type" = "venv" ] && [ -n "$current_env_name" ]; then
-        echo -e "${INFO} 检测到您当前在虚拟环境中: ${GREEN}$current_env_name${NC}"
     elif [ "$current_env_type" = "system" ]; then
         echo -e "${INFO} 检测到您当前在系统 Python 环境中"
     fi
@@ -292,10 +298,10 @@ show_installation_menu() {
         fi
 
         if [ "$recommended_env" = "pip" ]; then
-            # 推荐使用当前环境（仅当在真正的虚拟环境中，非 base）
+            # 推荐使用当前环境（仅当在当前 conda 环境中，非 base）
             if [ "$current_env_type" = "system" ]; then
-                # 在系统环境中，不推荐使用，建议创建虚拟环境
-                echo -e "  ${PURPLE}1)${NC} 使用当前系统环境 ${DIM}(不推荐，建议使用虚拟环境)${NC}"
+                # 在系统环境中，不推荐使用，建议创建 conda 环境
+                echo -e "  ${PURPLE}1)${NC} 使用当前系统环境 ${DIM}(不推荐，建议使用 conda 环境)${NC}"
                 if [ "$conda_available" = true ]; then
                     echo -e "  ${GREEN}2)${NC} 创建新的 Conda 环境 ${DIM}(推荐)${NC}"
                     local default_choice=2
@@ -314,8 +320,8 @@ show_installation_menu() {
                     local default_choice=1
                 fi
             else
-                # 在真正的虚拟环境中，推荐使用当前环境
-                echo -e "  ${GREEN}1)${NC} 使用当前环境 ${DIM}(推荐，已在虚拟环境中)${NC}"
+                # 在 conda 环境中，推荐使用当前环境
+                echo -e "  ${GREEN}1)${NC} 使用当前环境 ${DIM}(推荐，已在 Conda 环境中)${NC}"
                 if [ "$conda_available" = true ]; then
                     echo -e "  ${PURPLE}2)${NC} 创建新的 Conda 环境"
                 else
@@ -412,6 +418,31 @@ show_installation_menu() {
     done
 
     echo ""
+
+    # 询问是否克隆附属仓库
+    echo -e "${BOLD}3. 克隆附属仓库？${NC}"
+    echo -e "  ${DIM}包括: sage-examples, sage-tutorials, sagellm, sage-benchmark 等${NC}"
+    echo ""
+    local clone_prompt="[y/N]"
+    local clone_default="N"
+    if [ "$INSTALL_MODE" = "dev" ]; then
+        clone_prompt="[Y/n]"
+        clone_default="Y"
+        echo -e "  ${INFO} dev 模式默认克隆附属仓库（便于本地 editable 开发）"
+    fi
+
+    read -p "是否克隆 SAGE 附属仓库？${clone_prompt}: " -n 1 -r clone_choice
+    echo ""
+    local clone_choice_normalized="${clone_choice:-$clone_default}"
+    if [[ "$clone_choice_normalized" =~ ^[Yy]$ ]]; then
+        CLONE_SATELLITE_REPOS=true
+        echo -e "${GREEN}✅ 将克隆附属仓库${NC}"
+    else
+        CLONE_SATELLITE_REPOS=false
+        echo -e "${DIM}跳过克隆（可稍后手动克隆）${NC}"
+    fi
+
+    echo ""
 }
 
 # 显示参数帮助信息
@@ -428,33 +459,33 @@ show_parameter_help() {
 
     echo -e "${BLUE}📦 安装模式：${NC}"
     echo ""
-    echo -e "  ${BOLD}--minimal, -m${NC}                               ${GRAY}最小安装${NC}"
-    echo -e "    ${DIM}包含: L1-L5 核心包，无开发工具，无可选依赖${NC}"
-    echo -e "    ${DIM}大小: ~80 个包（约 200MB）${NC}"
-    echo -e "    ${DIM}适合: 生产部署、容器镜像、CI/CD 基础镜像${NC}"
-    echo -e "    ${DIM}缺少功能需手动安装: pip install isage-middleware[ml,vdb,...]${NC}"
+    echo -e "  ${BOLD}--install-mode <standard|full|dev>, --mode <standard|full|dev>${NC} ${GREEN}显式指定安装模式${NC}"
+    echo -e "    ${DIM}推荐写法，语义清晰，便于脚本自动化${NC}"
+    echo ""
+    echo -e "  ${BOLD}--standard, -s${NC}                              ${YELLOW}standard 安装${NC}"
+    echo -e "    ${DIM}包含: SAGE 核心子包，依赖从 PyPI 解析，不含 torch/CUDA${NC}"
+    echo -e "    ${DIM}大小: ~200+ 个包（轻量，无 GPU 依赖）${NC}"
+    echo -e "    ${DIM}适合: 仅使用 SAGE 核心功能、CI 环境、轻量部署${NC}"
+    echo ""
+    echo -e "  ${BOLD}--full, -f${NC}                                  ${CYAN}full 安装${NC}"
+    echo -e "    ${DIM}包含: standard + 扩展能力集（.[full]）${NC}"
+    echo -e "    ${DIM}大小: ~220+ 个包（不强制安装 PyTorch/CUDA）${NC}"
+    echo -e "    ${DIM}适合: 学习示例、完整功能体验、研究实验${NC}"
     echo ""
     echo -e "  ${BOLD}--dev, -d${NC}                                   ${GREEN}开发安装${NC}"
-    echo -e "    ${DIM}包含: 最小安装 + 开发工具 (pytest, ruff, mypy, pre-commit)${NC}"
-    echo -e "    ${DIM}大小: ~120 个包（约 350MB）${NC}"
+    echo -e "    ${DIM}包含: full + 开发工具 (pytest, ruff, mypy, pre-commit) + 本地 editable${NC}"
+    echo -e "    ${DIM}自动将 SAGE.code-workspace 中检测到的附属仓库安装为 editable${NC}"
+    echo -e "    ${DIM}大小: ~230+ 个包（开发模式默认）${NC}"
     echo -e "    ${DIM}适合: 日常开发、贡献 SAGE 框架源码${NC}"
-    echo -e "    ${DIM}可选功能需手动安装: pip install isage-middleware[ml,vdb,...]${NC}"
-    echo ""
-    echo -e "  ${BOLD}--full, -f${NC}                                  ${YELLOW}完整安装 (默认)${NC}"
-    echo -e "    ${DIM}包含: 开发安装 + 所有可选依赖 (ML, VDB, streaming, etc.)${NC}"
-    echo -e "    ${DIM}大小: ~200+ 个包（约 1GB，含 PyTorch）${NC}"
-    echo -e "    ${DIM}适合: 学习示例、完整功能体验、研究实验${NC}"
+    echo -e "    ${DIM}兼容别名: --non-dev / --nondev 等同于 standard${NC}"
     echo ""
 
     echo -e "${BLUE}🔧 安装环境：${NC}"
     echo ""
     echo -e "  ${BOLD}--pip, -pip${NC}                                  ${PURPLE}使用当前环境${NC}"
     echo -e "  ${BOLD}--conda, -conda${NC}                              ${GREEN}创建conda环境${NC}"
-    echo -e "  ${BOLD}--auto-venv${NC}                                  ${YELLOW}自动创建虚拟环境${NC}"
-    echo -e "    ${DIM}检测系统环境时自动创建 .sage/venv 虚拟环境${NC}"
-    echo -e "    ${DIM}优先使用 conda (如可用)，否则使用 Python venv${NC}"
     echo ""
-    echo -e "  ${DIM}💡 不指定时自动智能选择: 虚拟环境→pip，系统环境→conda${NC}"
+    echo -e "  ${DIM}💡 不指定时自动智能选择: Conda环境→pip，系统环境→conda${NC}"
     echo ""
 
     echo -e "${BLUE}⚡ 其他选项：${NC}"
@@ -478,8 +509,20 @@ show_parameter_help() {
     echo -e "    ${DIM}稍后可手动运行 'sage-dev maintain hooks install'${NC}"
     echo ""
     echo -e "  ${BOLD}--workspace${NC}                              ${GREEN}设置 workspace 依赖${NC}"
-    echo -e "    ${DIM}克隆 SAGE-Pub 仓库${NC}"
+    echo -e "    ${DIM}克隆 sage-docs 和 sage-team-info 仓库${NC}"
     echo -e "    ${DIM}用于 VS Code 多文件夹编辑（SAGE.code-workspace）${NC}"
+    echo ""
+    echo -e "  ${BOLD}--setup-conda${NC}                            ${GREEN}引导安装 Conda 环境${NC}"
+    echo -e "    ${DIM}检测 conda 是否已安装，未安装时提供 Miniforge3 自动下载${NC}"
+    echo -e "    ${DIM}已安装时引导创建并激活专用 '${SAGE_CONDA_ENV_NAME:-sage}' 环境${NC}"
+    echo -e "    ${DIM}首次在新机器上配置开发环境时推荐使用${NC}"
+    echo ""
+    echo -e "  ${BOLD}--clone-satellites${NC}                       ${GREEN}克隆附属仓库${NC}"
+    echo -e "    ${DIM}克隆所有 SAGE 附属仓库（examples, tutorials, benchmark 等）${NC}"
+    echo -e "    ${DIM}支持别名: --clone-repos, --satellites${NC}"
+    echo ""
+    echo -e "  ${BOLD}--no-clone-satellites${NC}                    ${YELLOW}跳过克隆附属仓库${NC}"
+    echo -e "    ${DIM}支持别名: --skip-satellites, --no-repos${NC}"
     echo ""
     echo -e "  ${BOLD}--hooks-mode <auto|background|sync>${NC}      ${GREEN}控制 hooks 安装方式${NC}"
     echo -e "    ${DIM}auto: 交互式安装后台运行，其余场景同步${NC}"
@@ -548,16 +591,22 @@ show_parameter_help() {
     echo ""
 
     echo -e "${BLUE}💡 使用示例：${NC}"
+    echo -e "  ./quickstart.sh --setup-conda                    ${DIM}# 首次使用：引导安装 Conda / 创建 sage 环境${NC}"
     echo -e "  ./quickstart.sh                                  ${DIM}# 交互式安装（推荐）${NC}"
-    echo -e "  ./quickstart.sh --yes                            ${DIM}# 完整安装 + 跳过确认（默认模式）${NC}"
-    echo -e "  ./quickstart.sh --dev --yes                      ${DIM}# 开发安装 + 跳过确认${NC}"
-    echo -e "  ./quickstart.sh --minimal --pip --yes            ${DIM}# 最小安装 + 当前环境 + 跳过确认${NC}"
-    echo -e "  ./quickstart.sh --full --conda                   ${DIM}# 完整安装 + 创建conda环境${NC}"
+    echo -e "  ./quickstart.sh --yes                            ${DIM}# dev 安装 + 跳过确认（默认）${NC}"
+    echo -e "  ./quickstart.sh --full --yes                     ${DIM}# full 安装 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh --dev --yes                      ${DIM}# dev 安装 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh --install-mode full --yes        ${DIM}# 显式 full 模式 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh --install-mode dev --yes         ${DIM}# 显式 dev 模式 + 跳过确认${NC}"
+    echo -e "  ./quickstart.sh --mode standard --pip            ${DIM}# 显式 standard 模式 + 当前环境${NC}"
+    echo -e "  ./quickstart.sh --standard --conda               ${DIM}# standard 安装 + 创建conda环境${NC}"
+    echo -e "  ./quickstart.sh --clone-satellites --yes         ${DIM}# dev 安装(默认) + 克隆附属仓库${NC}"
     echo ""
     echo -e "${PURPLE}📝 注意：${NC}"
-    echo -e "  ${DIM}• quickstart.sh 默认使用 full 模式（包含所有功能）${NC}"
-    echo -e "  ${DIM}• minimal/dev 模式缺少的功能会在运行时给出安装提示${NC}"
-    echo -e "  ${DIM}• pip 安装: pip install isage (等同于 minimal 模式)${NC}"
+    echo -e "  ${DIM}• quickstart.sh 默认使用 dev 模式（包含开发工具与本地 editable）${NC}"
+    echo -e "  ${DIM}• dev 模式会在 standard 基础上额外安装开发工具，并尽量切换为本地 editable${NC}"
+    echo -e "  ${DIM}• pip 安装: pip install isage (等同于 standard 模式)${NC}"
+    echo -e "  ${DIM}• 克隆要求网络连接到 GitHub，多个仓库可能需要几十秒${NC}"
     echo ""
 }
 
@@ -565,23 +614,26 @@ show_parameter_help() {
 
 
 # 解析安装模式参数
-# 简化为三种模式: minimal, dev, full (默认)
+# 三种显式模式：--standard / --full / --dev
 parse_install_mode() {
     local param="$1"
     case "$param" in
-        # 最小安装：核心包，无开发工具，无可选依赖
-        "--minimal"|"-m"|"-minimal"|"--core"|"--c"|"-core"|"-c")
-            INSTALL_MODE="minimal"
+        "--standard"|"-s")
+            INSTALL_MODE="standard"
             return 0
             ;;
-        # 开发安装：核心 + 开发工具
-        "--dev"|"-d"|"-dev"|"--d"|"--standard"|"--s"|"-standard"|"-s")
+        # full 安装：核心 + torch/accelerate/peft
+        "--full"|"-f")
+            INSTALL_MODE="full"
+            return 0
+            ;;
+        # 开发安装：full + 开发工具 + 本地 editable
+        "--dev"|"-d")
             INSTALL_MODE="dev"
             return 0
             ;;
-        # 完整安装：核心 + 开发工具 + 所有可选依赖
-        "--full"|"-f"|"-full"|"--f")
-            INSTALL_MODE="full"
+        "--non-dev"|"--nondev")
+            INSTALL_MODE="standard"
             return 0
             ;;
         *)
@@ -600,11 +652,6 @@ parse_install_environment() {
             ;;
         "--pip"|"-pip")
             INSTALL_ENVIRONMENT="pip"
-            return 0
-            ;;
-        "--auto-venv")
-            AUTO_VENV=true
-            export SAGE_AUTO_VENV=true
             return 0
             ;;
         *)
@@ -755,6 +802,26 @@ parse_force_rebuild_option() {
     esac
 }
 
+# 解析克隆附属仓库参数
+parse_clone_satellites_option() {
+    local param="$1"
+    case "$param" in
+        "--clone-satellites"|"--clone-repos"|"--satellites")
+            CLONE_SATELLITE_REPOS=true
+            CLONE_SATELLITE_REPOS_EXPLICIT=true
+            return 0
+            ;;
+        "--no-clone-satellites"|"--skip-satellites"|"--no-repos")
+            CLONE_SATELLITE_REPOS=false
+            CLONE_SATELLITE_REPOS_EXPLICIT=true
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # 主参数解析函数
 parse_arguments() {
     local unknown_params=()
@@ -774,6 +841,16 @@ parse_arguments() {
         if [[ "$param" == "--skip-hooks" ]]; then
             SKIP_HOOKS=true
             shift
+        elif [[ "$param" == --install-mode=* ]] || [[ "$param" == --mode=* ]]; then
+            set_install_mode_value "${param#*=}"
+            shift
+        elif [[ "$param" == "--install-mode" ]] || [[ "$param" == "--mode" ]]; then
+            if [[ $# -lt 2 ]]; then
+                echo -e "${CROSS} $param 需要一个值 (dev|standard)"
+                exit 1
+            fi
+            set_install_mode_value "$2"
+            shift 2
         elif [[ "$param" == "--workspace" ]]; then
             SETUP_WORKSPACE=true
             shift
@@ -841,6 +918,9 @@ parse_arguments() {
         elif parse_force_rebuild_option "$param"; then
             # 强制重新编译参数
             shift
+        elif parse_clone_satellites_option "$param"; then
+            # 克隆附属仓库参数
+            shift
         else
             # 未知参数
             unknown_params+=("$param")
@@ -894,8 +974,15 @@ set_defaults_and_show_tips() {
 
     # 设置安装模式默认值
     if [ -z "$INSTALL_MODE" ]; then
-        INSTALL_MODE="full"
-        echo -e "${INFO} 未指定安装模式，使用默认: ${YELLOW}完整安装${NC}"
+        INSTALL_MODE="dev"
+        echo -e "${INFO} 未指定安装模式，使用默认: ${GREEN}dev 安装${NC}"
+        has_defaults=true
+    fi
+
+    # dev 模式下默认克隆附属仓库（除非用户显式指定了克隆策略）
+    if [ "$INSTALL_MODE" = "dev" ] && [ "$CLONE_SATELLITE_REPOS_EXPLICIT" = "false" ] && [ "$CLONE_SATELLITE_REPOS" = "false" ]; then
+        CLONE_SATELLITE_REPOS=true
+        echo -e "${INFO} dev 模式默认启用附属仓库克隆"
         has_defaults=true
     fi
 
@@ -913,7 +1000,12 @@ set_defaults_and_show_tips() {
         elif [ "$recommended_env" = "conda" ]; then
             echo -e "${INFO} 检测到系统环境，推荐默认: ${GREEN}创建conda环境${NC}"
         else
-            echo -e "${INFO} 未指定安装环境，使用默认: ${PURPLE}系统Python环境${NC}"
+            # conda 未安装 + 系统 Python：交互式引导，而非静默回落
+            if declare -f check_conda_environment >/dev/null 2>&1; then
+                check_conda_environment || true
+            else
+                echo -e "${INFO} 未指定安装环境，使用默认: ${PURPLE}系统Python环境${NC}"
+            fi
         fi
         has_defaults=true
     fi
@@ -930,13 +1022,16 @@ show_install_configuration() {
     echo -e "${BLUE}📋 安装配置：${NC}"
     case "$INSTALL_MODE" in
         "standard")
-            echo -e "  ${BLUE}安装模式:${NC} ${GREEN}标准安装${NC}"
+            echo -e "  ${BLUE}安装模式:${NC} ${YELLOW}standard 安装${NC} ${DIM}(核心子包, 无 torch/CUDA)${NC}"
             ;;
-        "core")
-            echo -e "  ${BLUE}安装模式:${NC} ${GRAY}核心运行时${NC}"
+        "full")
+            echo -e "  ${BLUE}安装模式:${NC} ${CYAN}full 安装${NC} ${DIM}(standard + 扩展能力集，不强制 torch/CUDA)${NC}"
             ;;
         "dev")
-            echo -e "  ${BLUE}安装模式:${NC} ${YELLOW}开发者安装${NC}"
+            echo -e "  ${BLUE}安装模式:${NC} ${GREEN}开发者安装${NC} ${DIM}(full + 开发工具 + 本地 editable)${NC}"
+            ;;
+        *)
+            echo -e "  ${BLUE}安装模式:${NC} ${YELLOW}standard 安装${NC}"
             ;;
     esac
 
@@ -985,6 +1080,13 @@ show_install_configuration() {
     if [ "$CLEAN_PIP_CACHE" = false ]; then
         echo -e "  ${BLUE}特殊选项:${NC} ${YELLOW}跳过 pip 缓存清理${NC}"
     fi
+
+    if [ "$CLONE_SATELLITE_REPOS" = true ]; then
+        echo -e "  ${BLUE}附属仓库:${NC} ${GREEN}克隆所有仓库${NC}"
+    else
+        echo -e "  ${BLUE}附属仓库:${NC} ${YELLOW}跳过克隆${NC}"
+    fi
+
     echo ""
 }
 
@@ -1076,6 +1178,10 @@ should_use_pip_mirror() {
 
 get_setup_workspace() {
     echo "$SETUP_WORKSPACE"
+}
+
+should_clone_satellite_repos() {
+    echo "$CLONE_SATELLITE_REPOS"
 }
 
 get_mirror_source_value() {

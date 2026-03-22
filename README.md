@@ -3,44 +3,11 @@
 > A declarative, composable framework for building transparent LLM-powered systems through dataflow
 > abstractions.
 
-> 📚 **Documentation Note**: Links referencing `docs-public/` point to the
-> [SAGE-Pub](https://github.com/intellistream/SAGE-Pub) repository, which contains comprehensive
-> documentation. Clone it separately if needed:
-> `git clone https://github.com/intellistream/SAGE-Pub.git`
-
 ## 🚀 Quick Start
-
-### Try SAGE Studio
-
-**Option 1: HUST Campus Network Access** 🎓
-
-Our team maintains a live deployment accessible within HUST campus network:
-
-```
-🌐 Contact team for access URL
-```
-
-**Requirements**: HUST campus network or VPN connection
-
-Experience SAGE's visual pipeline editor and AI-powered chat assistant with RAG capabilities!
-
-**Option 2: Local Installation**
-
-```bash
-# 1. Install SAGE Studio (independent package)
-pip install isage-studio
-
-# 2. Start SAGE Studio
-sage-studio start
-# Visit http://localhost:4200
-```
-
-> 💡 **Note**: SAGE Studio is an independent package. For SAGE core framework installation, see
-> [Installation](#installation) section below.
 
 ______________________________________________________________________
 
-[![Build & Test](https://github.com/intellistream/SAGE/actions/workflows/build-test.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/build-test.yml)
+[![Build & Test](https://github.com/intellistream/SAGE/actions/workflows/ci-build-test.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/ci-build-test.yml)
 [![codecov](https://codecov.io/gh/intellistream/SAGE/branch/main/graph/badge.svg)](https://codecov.io/gh/intellistream/SAGE)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
@@ -48,35 +15,51 @@ ______________________________________________________________________
 [![GitHub Issues](https://img.shields.io/github/issues/intellistream/SAGE)](https://github.com/intellistream/SAGE/issues)
 [![GitHub Stars](https://img.shields.io/github/stars/intellistream/SAGE?style=social)](https://github.com/intellistream/SAGE/stargazers)
 
-[![WeChat Group](https://img.shields.io/badge/WeChat-%E5%8A%A0%E5%85%A5%E5%BE%AE%E4%BF%A1%E7%BE%A4-brightgreen?style=flat&logo=wechat)](./docs/COMMUNITY.md)
-[![QQ Group](https://img.shields.io/badge/%E3%80%90IntelliStream%E8%AF%BE%E9%A2%98%E7%BB%84%E8%AE%A8%E8%AE%BAQQ%E7%BE%A4%E3%80%91-blue?style=flat&logo=tencentqq)](https://qm.qq.com/q/bcnuyQVcvm)
-[![Slack](https://img.shields.io/badge/Slack-Join%20Slack-purple?style=flat&logo=slack)](https://join.slack.com/t/intellistream/shared_invite/zt-2qayp8bs7-v4F71ge0RkO_rn34hBDWQg)
-
 **SAGE** is a high-performance streaming framework for building AI-powered data processing
 pipelines. Transform complex LLM reasoning workflows into transparent, scalable, and maintainable
 systems through declarative dataflow abstractions.
 
-## Why Choose SAGE?
+## 2026 Focus Reset
 
-## Project Team & Collaboration
+SAGE is being refocused into a **stream-first inference service system** instead of a broad
+collection of loosely coupled apps.
 
-See `docs-public/docs_src/dev-notes/cross-layer/team-management.md` for the current team
-coordination entrypoint (team management + incubation policy).
+- **Keep the stream core**: `DataStream` + declarative pipeline composition remain the product
+  identity
+- **Keep the execution core**: `LocalEnvironment`, `JobManager`, scheduling, service runtime
+- **Keep the serving integration plane**: OpenAI-compatible gateway access, model lifecycle entry,
+  and control-plane integration contracts
+- **Keep distributed execution optional**: `FluttyEnvironment` remains the Flutty-first optional
+  distributed runtime entry, instead of falling back to new Ray-based paths
+- **Keep the operating substrate**: centralized ports, XDG user paths, model registry, logs,
+  health/status surfaces
+- **De-emphasize apps**: UI-first repos are no longer the product center; optional apps should sit
+  outside the core or be retired
 
-**Production-Ready**: Built for enterprise-scale applications with distributed processing, fault
-tolerance, and comprehensive monitoring out of the box.
+This direction also makes SAGE easier to position as a **SAGE Zoo member**: a reusable
+stream-oriented runtime + serving component that other systems can call through stable APIs instead
+of embedding internal implementation details.
 
-**Developer Experience**: Write complex AI pipelines in just a few lines of code with intuitive
-declarative APIs that eliminate boilerplate.
+Important boundary: `isagellm` remains an **independent inference engine**. SAGE integrates with it
+as an external engine/service capability; SAGE should not absorb `isagellm` internals into the main
+repository.
 
-**Performance**: Optimized for high-throughput streaming workloads with intelligent memory
-management and parallel execution capabilities.
+Preferred in-tree surface during consolidation:
 
-**Transparency**: Built-in observability and debugging tools provide complete visibility into
-execution paths and performance characteristics.
+- `from sage.stream import DataStream`
+- `from sage.runtime import LocalEnvironment, FluttyEnvironment, JobManager`
+- `from sage.foundation import SagePorts, SageUserPaths`
+- `from sage.serving import SageServeConfig, build_sagellm_gateway_command, probe_gateway`
 
-**Flexible Deployment**: Full support for CPU-only compute nodes alongside GPU nodes, with
-intelligent resource-aware scheduling for hybrid clusters.
+## Key Features
+
+- **Stream-First**: Dataflow is the primary abstraction, not an afterthought
+- **Production-Ready**: Local-first execution, optional distributed processing, fault tolerance,
+  comprehensive monitoring
+- **Developer Experience**: Complex AI pipelines in just a few lines of code
+- **High Performance**: Optimized streaming with intelligent memory management
+- **Observable**: Built-in visibility into execution and performance
+- **Flexible**: CPU-only or GPU nodes with intelligent resource scheduling
 
 ## Quick Start
 
@@ -97,20 +80,17 @@ def traditional_rag(query):
 SAGE transforms this into a **declarative, composable workflow**:
 
 ```python
-from sage.kernel.api.local_environment import LocalEnvironment
-from sage.libs.io.source import FileSource
-from sage.middleware.operators.rag import DenseRetriever, QAPromptor
+from sage.runtime import LocalEnvironment
+from sage.libs.foundation.io.source import FileSource
 from sage.middleware.operators.llm import SageLLMGenerator  # ✅ Recommended
-from sage.libs.io.sink import TerminalSink
+from sage.libs.foundation.io.sink import TerminalSink
 
 # Create execution environment
 env = LocalEnvironment("rag_pipeline")
 
 # Build declarative pipeline with sageLLM (recommended)
 (
-    env.from_source(FileSource, {"file_path": "questions.txt"})
-    .map(DenseRetriever, {"model": "sentence-transformers/all-MiniLM-L6-v2"})
-    .map(QAPromptor, {"template": "Answer based on context: {context}\nQ: {query}\nA:"})
+    env.from_source(FileSource, {"data_path": "questions.txt"})
     .map(SageLLMGenerator, {
         "model_path": "Qwen/Qwen2.5-7B-Instruct",
         "backend_type": "auto",  # auto/cuda/ascend/mock
@@ -123,135 +103,102 @@ env.submit()
 ```
 
 > 💡 **LLM Engine**: SAGE uses `sageLLM` as the default inference engine. For OpenAI-compatible APIs,
-> use `OpenAIGenerator`. See
-> [Migration Guide](./docs-public/docs_src/dev-notes/migration/VLLM_TO_SAGELLM_MIGRATION.md) if
-> migrating from vLLM.
+> use `OpenAIGenerator`. See [CHANGELOG](./CHANGELOG.md) for legacy migration notes.
 
-**Try it yourself:**
+### Current API quick reference
+
+- `sage.libs.foundation.io.source`: `FileSource`, `TextFileSource`, `CSVFileSource`,
+  `JSONFileSource`
+- `sage.libs.foundation.io.sink`: `TerminalSink`, `FileSink`
+- `sage.middleware.operators.rag`: `RAGDocument`, `RAGQuery`, `RAGResponse`
+- `sage.middleware.operators.llm`: `SageLLMGenerator`
+
+### Try it yourself
 
 ```bash
 git clone https://github.com/intellistream/SAGE.git && cd SAGE
 git checkout main-dev
 ./quickstart.sh --dev --yes
 
-# Examples are now in a separate repository
-git clone https://github.com/intellistream/sage-examples.git
-python sage-examples/tutorials/hello_world.py
+# Tutorials are now in a separate repository
+git clone https://github.com/intellistream/sage-tutorials.git
+python sage-tutorials/L1-common/hello_world.py
 ```
 
-**For CPU-only deployment:**
+### For CPU-only verification
 
 ```bash
-# Start JobManager for distributed task execution
-sage jobmanager start
+# Verify the in-tree core surface
+sage verify
 
-# Run CPU node demo (no GPU required)
-git clone https://github.com/intellistream/sage-examples.git
-python sage-examples/tutorials/L3-kernel/cpu_node_demo.py
+# Run a real one-shot chat via sagellm (gateway or direct CLI)
+sage chat --ask "Hello, SAGE!"
+
+# Explore tutorials separately if needed
+git clone https://github.com/intellistream/sage-tutorials.git
+python sage-tutorials/L1-common/hello_world.py
 ```
 
-## Architecture Excellence
+## Architecture
 
-### System Architecture
+Current baseline is a **4-tier workspace architecture (L1-L4)**:
 
-SAGE is built on a **layered modular architecture** with 8 core packages organized across 5 layers:
-
-```
-L5: sage-cli, sage-tools                  # Interface Layer (CLI & Dev Tools)
-L4: sage-middleware                       # Middleware Layer (Operators, C++ Extensions)
-L3: sage-kernel, sage-libs                # Core Layer (Engine & Algorithm Library)
-L2: sage-platform                         # Platform Layer (Queue, Storage)
-L1: sage-common                           # Foundation Layer (Config, Types, Utilities)
+```text
+L4: application repos (optional)      # App / UI / benchmark
+L3: sage.cli                          # CLI entrypoint        (in-tree)
+L2: sage.runtime + sage.stream        # Runtime / scheduler   (in-tree)
+L1: sage.foundation                   # Foundation            (in-tree)
 ```
 
-**Independent Repositories** (not in SAGE core):
+Notes:
 
-- **sage-benchmark**: https://github.com/intellistream/sage-benchmark (PyPI: `isage-benchmark`)
-- **sage-examples**: https://github.com/intellistream/sage-examples (Tutorials & Applications)
-- **sage-studio**: https://github.com/intellistream/sage-studio (PyPI: `isage-studio`)
-- **sageLLM**: LLM inference engine (PyPI: `isagellm`)
-- **SageEdge**: Edge aggregator for distributed deployment (PyPI: `isage-edge`)
+- Historical split packages may still exist as transitional published compatibility channels.
+- The main repository now owns the preferred product surface directly: `sage.foundation` +
+  `sage.stream` + `sage.runtime` + `sage.serving` + `sage.cli`.
+- Historical split foundation/runtime/CLI repos are therefore no longer the desired long-term
+  product boundary, even when some transitional imports still exist outside the main install
+  contract.
 
-**Optional Dependencies** (independent PyPI packages):
+Target product convergence is narrower than the historical workspace shape:
 
-*sage-middleware optional dependencies:*
-
-| Package      | PyPI             | Category      | Description                                 |
-| ------------ | ---------------- | ------------- | ------------------------------------------- |
-| **SageVDB**  | `isage-vdb`      | `[vdb]`       | High-performance C++ vector database        |
-| **NeuroMem** | `isage-neuromem` | `[neuromem]`  | Brain-inspired memory system (VDB/KV/Graph) |
-| **SageFlow** | `isage-flow`     | `[streaming]` | Vector-native stream processing engine      |
-| **SageTSDB** | `isage-tsdb`     | `[streaming]` | Time-series database with C++ core          |
-
-*sage-libs optional dependencies (L3 algorithm libraries):*
-
-| Package         | PyPI            | Category   | Description                                                 |
-| --------------- | --------------- | ---------- | ----------------------------------------------------------- |
-| **SageANNS**    | `isage-anns`    | `[anns]`   | Approximate nearest neighbor search algorithms              |
-| **SageAMMs**    | `isage-amms`    | `[amms]`   | Approximate matrix multiplication                           |
-| **SageRefiner** | `isage-refiner` | `[libs]`\* | Context compression for RAG (LongRefiner, REFORM, Provence) |
-
-> \* SageRefiner is an L3 algorithm library, also available via `isage-middleware[libs]`
-
-```bash
-# Install with specific optional dependencies
-pip install isage-middleware[vdb]           # Vector database support
-pip install isage-middleware[streaming]     # Stream processing + time-series
-pip install isage-libs[anns]                # ANNS algorithms
-pip install isage-libs[amms]                # AMM algorithms
+```text
+SAGE Inference Service System
+L3 Interface   : CLI + OpenAI-compatible service entry + external integration surface
+L2 Runtime     : LocalEnvironment + DataStream + JobManager + scheduler + execution services
+Optional Dist. : FluttyEnvironment (Flutty-backed distributed execution)
+L1 Foundation  : config + ports + user paths + model registry + logging
+Optional       : RAG / memory / tool-use / benchmark adapters
 ```
 
-**Key Architectural Principles:**
+In other words, SAGE is moving toward a smaller, sharper center: **stream + runtime + serving +
+operations**, with distributed execution available as an optional scale-out mode.
 
-- **Unidirectional Dependencies**: Clean layer-to-layer dependencies (no upward dependencies)
-- **Separation of Concerns**: Each package has a clear, focused responsibility
-- **Pluggable Components**: Modular design allows easy component replacement
-- **Production Ready**: Built-in fault tolerance, monitoring, and distributed execution
+Repo-retirement gate: do not retire historical split repos solely based on packaging cleanup. The
+main repo has now removed direct historical runtime split-package dependency pins and owns its local
+runtime path in-tree, but ecosystem compatibility imports, external repos, and remaining
+transitional release channels still need deliberate follow-up before those repos can be fully
+retired.
 
-📖 **[Complete Architecture Guide](./docs-public/docs_src/dev-notes/package-architecture.md)** -
-Detailed package descriptions, dependency rules, and design principles
+See [SAGE Ecosystem](#sage-ecosystem) for all independent sub-repositories with CI status, PyPI
+packages, and categorized listings.
 
-### Modular Design
+📖 **[Architecture Guide](https://intellistream.github.io/sage-docs/architecture/)** - Canonical
+ownership boundaries and dependency rules for the meta repo
 
-**8 Core Packages**, each with clear responsibilities:
-
-- **sage** (meta): Meta-package that installs all SAGE components
-- **sage-common** (L1): Foundation utilities, configuration, logging
-- **sage-platform** (L2): Platform services - queue, storage abstractions
-- **sage-kernel** (L3): Distributed execution engine and runtime
-- **sage-libs** (L3): Algorithm library, RAG tools, Agent framework
-- **sage-middleware** (L4): Domain operators and middleware components
-- **sage-cli** (L5): Unified command-line interface (`sage` command)
-- **sage-tools** (L5): Development tools and testing framework (`sage-dev` command)
-
-**Independent Repositories:**
-
-- **sage-examples**: Tutorials, examples, and production applications
-  - Repository: [intellistream/sage-examples](https://github.com/intellistream/sage-examples)
-  - Includes: tutorials, RAG examples, application demos
-- **sage-benchmark**: Evaluation framework (PyPI: `isage-benchmark`)
-  - Repository: [intellistream/sage-benchmark](https://github.com/intellistream/sage-benchmark)
-- **sage-studio**: Visual workflow builder (PyPI: `isage-studio`)
-  - Repository: [intellistream/sage-studio](https://github.com/intellistream/sage-studio)
-- **sageLLM**: LLM inference engine (PyPI: `isagellm`)
-
-> 💡 **Note**: All PyPI packages use `isage-` prefix (e.g., `pip install isage-vdb`) because `sage`
-> is already taken on PyPI.
-
-### Production Features
-
-- **Distributed Execution** with automatic load balancing
-- **Fault Tolerance** and error recovery
-- **Observability** with metrics and monitoring
-- **Extensible Integration** for databases, queues, and AI services
+📌
+**[Layer Ownership Matrix v1 (Wave A)](https://intellistream.github.io/sage-docs/architecture/layer-ownership/)**
+\- Canonical L1-L4 workspace ownership, independent sub-repo coordination boundary (including
+`sagellm` capabilities), forbidden directions, and boundary refactor review checklist
 
 ## Installation
 
-**Quickstart (Recommended)**
+### Quickstart (Recommended)
 
 ```bash
 git clone https://github.com/intellistream/SAGE.git && cd SAGE
-./quickstart.sh --dev --yes    # Interactive mode: ./quickstart.sh
+./quickstart.sh --dev --yes         # 开发模式：尽量本地 editable
+# 或
+./quickstart.sh --standard --yes    # 标准模式：子包依赖默认从 PyPI 安装
 ```
 
 ⚡ **Auto-Acceleration**: Network optimization is now **enabled by default**:
@@ -261,28 +208,129 @@ git clone https://github.com/intellistream/SAGE.git && cd SAGE
 - ⏱️ **3-5x faster** installation: 12-18 min (vs 35-45 min)
 - 🔧 Disable: `./quickstart.sh --no-mirror --dev --yes`
 
-**PyPI Install**
+### Install Mode Semantics
+
+- `standard`：本地安装仓库根目录下的 `isage` meta 包，子仓依赖按根 `pyproject.toml` 版本从 PyPI 解析。
+- `dev`：先完成 `standard` 安装，再尽量将同级工作区中的本地 SAGE 子仓库切换为 editable (`-e`)。
+
+### PyPI Install
 
 ```bash
-pip install isage[standard]    # Recommended
-pip install isage[core]        # Minimal runtime
-pip install isage[full]        # Full features + Web UI
-pip install isage[dev]         # Development tools
+pip install isage              # Core framework
+pip install isage[dev]         # Development tools (includes isage-dev-tools, pre-commit, pytest, etc.)
 ```
 
-**Verification & Troubleshooting**
+**What's included in `pip install isage`**
+
+`isage` now ships the main product surface directly from this repository: `sage.foundation` +
+`sage.stream` + `sage.runtime` + `sage.serving` + `sage.cli`. The default local execution path no
+longer requires a separate historical runtime split package as a direct dependency. `isagellm`
+remains the external inference engine.
+
+On Python 3.13+, the root package currently skips automatic `isagellm` installation because the
+required `isagellm-protocol` distribution is not yet published for that interpreter. Core SAGE
+stream/runtime development still installs normally; engine integration can be enabled later on a
+supported interpreter once upstream wheels are available.
+
+**Core + engine integration only** 🧩
+
+For a standard `pip install isage`, the product center is intentionally narrow:
+
+- **Foundation** → `isage`: in-tree config, ports, paths, contracts
+- **Stream + Runtime** → `isage`: main public API and local runtime owned in-tree
+- **Distributed scale-out** → `flutty`: optional backend used through `FluttyEnvironment`
+- **CLI** → `isage`: in-tree `sage` command surface
+- **Inference Engine** → `isagellm`: external engine; auto-installed on supported Python versions
+
+Compatibility note: transitional imports such as `sage.common`, `sage.platform`, `sage.middleware`,
+or `sage.kernel` may still appear in older repos or environments, but they are not part of the root
+package's direct dependency contract anymore.
+
+Edge aggregation now also lives in-tree as `sage.edge`; install `isage[serving-edge]` or
+`isage[full]` to use the `sage-edge` shell.
+
+**Optional adapter packages** 🦁
+
+These packages are no longer part of the default `isage` install. They remain independent optional
+adapters and can be installed explicitly or via `isage[full]` when needed.
+
+Policy note: optional adapters should justify their independence with real owned functionality. Thin
+wrapper repos should be folded back into the main `SAGE` repository instead of expanding the default
+dependency surface.
+
+Current example: `sage.edge` has already been folded back into the main repo. The former `sage-edge`
+split repo should be treated as retired rather than as an independent Zoo package.
+
+```bash
+pip install 'isage[serving-edge]'         # in-tree edge shell（sage.edge / sage-edge）
+pip install 'isage[capability-adapters]'  # intent / rag / neuromem adapters
+pip install 'isage[capability-tooluse]'   # SIAS tool-use adapter
+pip install 'isage[full]'                 # all optional adapters + data package
+
+sage-edge --port 8899            # 挂载外部 sagellm gateway 的 edge shell
+pip install isage-rag              # RAG 管道（文档加载 / 分块 / 检索 / 重排）
+pip install isage-neuromem         # 记忆 / 检索持久化
+pip install isage-libs-intent      # 意图识别（关键词 + LLM）
+pip install isage-eval             # 评估框架（指标 / LLM 评判）
+pip install isage-finetune         # LLM 微调 / Agent training（LoRA / SFT / RL / Reward Model）
+pip install isage-agentic-tooluse  # Agent 工具选择（Hybrid/DFS/Gorilla）
+pip install 'isage-tools[mcp]'     # 独立工具仓库；当前已注册到 sage-mcp
+pip install 'isage-mcp[all]'       # 聚合 MCP Server（当前默认聚合 isage-tools）
+```
+
+Example: install full core SAGE stack
+
+```bash
+pip install isage
+```
+
+See [Dependency Management](./DEVELOPER.md#dependency-management) in DEVELOPER.md for detailed
+guidance.
+
+### Verification & Troubleshooting
 
 ```bash
 sage doctor                    # Check installation
+sage verify                    # Verify in-tree core surface
+sage chat --help               # Inspect chat entrypoints
+sage index ingest --help       # Inspect lightweight index entrypoints
 ./quickstart.sh --doctor       # Diagnose issues
 ```
 
-📖 **Detailed guides**: [Installation Guide](docs/INSTALLATION_GUIDE.md) |
-[Troubleshooting](docs/TROUBLESHOOTING.md) | [Validation](docs/INSTALLATION_VALIDATION.md) |
+### CLI Command Reference
+
+The current main-repo `sage` command surface is intentionally small and grouped around the core
+product boundary:
+
+| Command                                                | Purpose                                                                               |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `sage version`                                         | Print installed SAGE version                                                          |
+| `sage status`                                          | Show local config/data/state paths and gateway summary                                |
+| `sage doctor`                                          | Run lightweight environment diagnostics                                               |
+| `sage verify`                                          | Smoke-check the in-tree core surface                                                  |
+| `sage runtime nodes`                                   | List runtime-visible nodes                                                            |
+| `sage serve gateway --json`                            | Print the external `sagellm` gateway launch contract                                  |
+| `sage serve gateway --probe --json`                    | Probe the configured gateway health endpoint                                          |
+| `sage chat`                                            | Start chat via `sagellm` gateway, direct CLI, or configured OpenAI-compatible backend |
+| `sage chat --ask "..."`                                | Run one-shot chat                                                                     |
+| `sage index ingest --source ./docs --index local-docs` | Record lightweight local index metadata                                               |
+
+```bash
+sage verify
+sage runtime nodes
+sage serve gateway --json
+sage chat --ask "Hello, SAGE!"
+sage index ingest --source ./docs --index local-docs
+```
+
+📖 **Detailed guides**:
+[Installation Guide](https://intellistream.github.io/sage-docs/guides/installation/) |
+[Troubleshooting](https://intellistream.github.io/sage-docs/guides/troubleshooting/) |
+[Validation](https://intellistream.github.io/sage-docs/guides/validation/) |
 [Optimization Tips](tools/install/docs/INSTALLATION_OPTIMIZATION.md)
 
 ⚠️ **Known Issues**: If you encounter transformers version conflicts when installing multiple SAGE
-packages, see [Dependency Fix Guide](docs-public/docs_src/getting-started/DEPENDENCY_FIX.md)
+packages, prefer checking [DEVELOPER.md](./DEVELOPER.md) and the package-specific READMEs first.
 
 ## Environment Configuration
 
@@ -293,61 +341,46 @@ cp .env.template .env    # Copy template
 
 📖 **API key setup**: See [.env.template](./.env.template) for all available options
 
-## Use Cases
-
-**RAG Applications**: Build production-ready retrieval-augmented generation systems with multi-modal
-support and advanced reasoning capabilities.
-
-**Real-Time Analytics**: Process streaming data with AI-powered insights, anomaly detection, and
-automated decision making.
-
-**Data Pipeline Orchestration**: Coordinate complex ETL workflows that seamlessly integrate AI
-components with traditional data processing.
-
-**Multi-Modal Processing**: Handle text, images, audio, and structured data in unified pipelines
-with consistent APIs. **🆕 Advanced multimodal fusion** enables intelligent combination of different
-data modalities for enhanced AI understanding and generation.
-
-**Distributed AI Inference**: Scale AI model serving across multiple nodes with automatic load
-balancing and fault tolerance.
-
 ## 📚 Tutorials
 
-Complete tutorials covering all layers of SAGE (L1-L5):
+Complete tutorials covering the current workspace tiers of SAGE (L1-L4) plus historical capability
+topics:
 
 ```bash
-# Clone repository
-git clone https://github.com/intellistream/SAGE.git
-cd SAGE
+# Clone tutorials repository
+git clone https://github.com/intellistream/sage-tutorials.git
+cd sage-tutorials
 
 # Start learning (30 seconds)
-python tutorials/hello_world.py
+python L1-common/hello_world.py
 
 # Follow the quick start guide
-cat tutorials/QUICK_START.md
+cat QUICK_START.md
 ```
 
 **Tutorial Structure**:
 
-- `tutorials/L1-common/` - Foundation layer (config, logging, unified client)
-- `tutorials/L2-platform/` - Platform services (scheduler, storage)
-- `tutorials/L3-kernel/` - Execution engine (batch, stream, operators)
-- `tutorials/L3-libs/` - RAG, Agents, Algorithms
-- `tutorials/L4-middleware/` - Domain operators (vector DB, time-series)
-- `tutorials/L5-cli/` - CLI and development tools
+- `sage-tutorials/L1-common/` - Foundation layer (config, logging, unified client)
+- `sage-tutorials/L2-platform/` - Platform services (scheduler, storage)
+- `sage-tutorials/L3-kernel/` - Execution engine (batch, stream, operators)
+- `sage-tutorials/L3-libs/` - RAG, Agents, Algorithms
+- `sage-tutorials/L4-middleware/` - Domain operators (vector DB, time-series)
+- `sage-tutorials/L5-apps/` - Applications and integration demos
 
-See `tutorials/README.md` for complete learning paths.
+See `sage-tutorials/README.md` for complete learning paths.
 
 ## Documentation & Resources
 
 - **Documentation**:
-  [https://intellistream.github.io/SAGE-Pub/](https://intellistream.github.io/SAGE-Pub/)
+  [https://intellistream.github.io/sage-docs/](https://intellistream.github.io/sage-docs/)
 - **Examples & Applications**:
   [intellistream/sage-examples](https://github.com/intellistream/sage-examples)
-  - Tutorials, RAG examples, and production applications
+  - RAG examples and production applications
   - Will be published as `isage-examples` on PyPI
+- **Tutorials**: [intellistream/sage-tutorials](https://github.com/intellistream/sage-tutorials)
+  - Layered tutorials from L1 to L5, quick-start learning paths
 - **Architecture**:
-  [docs-public/docs_src/dev-notes/package-architecture.md](./docs-public/docs_src/dev-notes/package-architecture.md)
+  [sage-docs architecture guide](https://intellistream.github.io/sage-docs/architecture/)
 
 ## Contributing
 
@@ -362,7 +395,8 @@ git commit -m "feat(kernel): add new feature"
 git push -u origin feature/my-feature
 ```
 
-**Resources**: [Quick Reference](./docs/QUICK_REFERENCE.md) |
+**Resources**:
+[Quick Reference](https://intellistream.github.io/sage-docs/reference/quick-reference/) |
 [GitHub Issues](https://github.com/intellistream/SAGE/issues) |
 [Discussions](https://github.com/intellistream/SAGE/discussions)
 
@@ -385,18 +419,186 @@ sage-dev test       # Run tests
 make docs           # Build documentation
 ```
 
-📖 **Complete reference**: [docs/dev-notes/DEV_COMMANDS.md](./docs/dev-notes/DEV_COMMANDS.md)
+📖 **Complete reference**: [DEVELOPER.md](./DEVELOPER.md)
 
 ## SAGE Ecosystem
 
-SAGE has a growing ecosystem of independent projects:
+📦 **[sage-docs package guide](https://intellistream.github.io/sage-docs/guides/packages/)** —
+独立能力包与安装索引
 
-- **[SAGE Studio](https://github.com/intellistream/sage-studio)** - Visual workflow builder and LLM
-  playground for creating AI pipelines with drag-and-drop interface
-- **[SAGE Benchmark](https://github.com/intellistream/sage-benchmark)** - Comprehensive evaluation
-  framework for RAG, agents, control plane, and memory systems
+### 🧠 SAGE — Streaming AI Framework
 
-These projects depend on SAGE core packages and can be installed separately via PyPI.
+[![CI](https://github.com/intellistream/SAGE/actions/workflows/ci-build-test.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/ci-build-test.yml)
+[![PyPI](https://badge.fury.io/py/isage.svg)](https://pypi.org/project/isage/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
+[![Stars](https://img.shields.io/github/stars/intellistream/SAGE?style=social)](https://github.com/intellistream/SAGE/stargazers)
+
+**SAGE** is now centered on an in-tree core product surface rather than on a broad split-repo zoo.
+
+### Core Product Surface (owned in-tree)
+
+- **`sage.foundation`** — config, ports, paths, logging, and shared contracts
+- **`sage.stream`** — `DataStream`, transformations, operators, and flow composition
+- **`sage.runtime`** — environments, scheduling, job management, and execution lifecycle
+- **`sage.serving` / `sage.edge`** — serving integration boundary and edge aggregation shell
+- **`sage.cli`** — main `sage` command surface
+
+Legacy split repos and duplicate stream surfaces should be treated as consolidation/retirement
+targets rather than as Zoo members.
+
+Independent sub-repositories that remain justified are organized by category:
+
+### Application & UI
+
+- **[sage-examples](https://github.com/intellistream/sage-examples)** — Tutorials and application
+  examples
+  [![CI](https://github.com/intellistream/sage-examples/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-examples/actions/workflows/tests.yml)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-examples?style=social)](https://github.com/intellistream/sage-examples/stargazers)
+
+### Algorithms & Libraries
+
+- **[sage-agentic](https://github.com/intellistream/sage-agentic)** — ReAct, PlanExecute agents and
+  agentic workflows
+  [![CI](https://github.com/intellistream/sage-agentic/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-agentic/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-agentic.svg)](https://pypi.org/project/isage-agentic/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-agentic?style=social)](https://github.com/intellistream/sage-agentic/stargazers)
+- **[sage-rag](https://github.com/intellistream/sage-rag)** — Retrieval-augmented generation
+  components
+  [![CI](https://github.com/intellistream/sage-rag/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-rag/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-rag.svg)](https://pypi.org/project/isage-rag/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-rag?style=social)](https://github.com/intellistream/sage-rag/stargazers)
+- **[sageVDB](https://github.com/intellistream/sageVDB)** — High-performance vector database
+  (FAISS-compatible API)
+  [![CI](https://github.com/intellistream/sageVDB/actions/workflows/ci-tests.yml/badge.svg?branch=main)](https://github.com/intellistream/sageVDB/actions/workflows/ci-tests.yml)
+  [![PyPI](https://badge.fury.io/py/isage-vdb.svg)](https://pypi.org/project/isage-vdb/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sageVDB?style=social)](https://github.com/intellistream/sageVDB/stargazers)
+- **[sageRefiner](https://github.com/intellistream/sageRefiner)** — Query and response refinement
+  algorithms
+  [![CI](https://github.com/intellistream/sageRefiner/actions/workflows/ci-tests.yml/badge.svg?branch=main)](https://github.com/intellistream/sageRefiner/actions/workflows/ci-tests.yml)
+  [![PyPI](https://badge.fury.io/py/isage-refiner.svg)](https://pypi.org/project/isage-refiner/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sageRefiner?style=social)](https://github.com/intellistream/sageRefiner/stargazers)
+- **[sage-amms](https://github.com/intellistream/sage-amms)** — Approximate matrix multiplication
+  service
+  [![CI](https://github.com/intellistream/sage-amms/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-amms/actions/workflows/build.yml)
+  [![PyPI](https://badge.fury.io/py/isage-amms.svg)](https://pypi.org/project/isage-amms/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-amms?style=social)](https://github.com/intellistream/sage-amms/stargazers)
+- **[flutty](https://github.com/intellistream/flutty)** — Optional distributed execution backend for
+  SAGE stream runtime
+  [![PyPI](https://badge.fury.io/py/flutty.svg)](https://pypi.org/project/flutty/)
+
+### Data & Benchmarks
+
+- **[sageData](https://github.com/intellistream/sageData)** — Unified dataset management for SAGE
+  subsystems
+  [![CI](https://github.com/intellistream/sageData/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sageData/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-data.svg)](https://pypi.org/project/isage-data/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sageData?style=social)](https://github.com/intellistream/sageData/stargazers)
+- **[sage-benchmark](https://github.com/intellistream/sage-benchmark)** — Comprehensive evaluation
+  framework for RAG, agents, memory, and control plane
+  [![CI](https://github.com/intellistream/sage-benchmark/actions/workflows/ci-benchmarks.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-benchmark/actions/workflows/ci-benchmarks.yml)
+  [![PyPI](https://badge.fury.io/py/isage-benchmark.svg)](https://pypi.org/project/isage-benchmark/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-benchmark?style=social)](https://github.com/intellistream/sage-benchmark/stargazers)
+- **[sage-eval](https://github.com/intellistream/sage-eval)** — Evaluation metrics, profilers, and
+  LLM judges
+  [![CI](https://github.com/intellistream/sage-eval/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-eval/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-eval.svg)](https://pypi.org/project/isage-eval/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-eval?style=social)](https://github.com/intellistream/sage-eval/stargazers)
+
+### Model Optimization & Safety
+
+- **[sage-finetune](https://github.com/intellistream/sage-finetune)** — Model fine-tuning, agent
+  training, and adaptation
+  [![CI](https://github.com/intellistream/sage-finetune/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-finetune/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-finetune.svg)](https://pypi.org/project/isage-finetune/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-finetune?style=social)](https://github.com/intellistream/sage-finetune/stargazers)
+- **[sage-privacy](https://github.com/intellistream/sage-privacy)** — Differential privacy and PII
+  handling
+  [![CI](https://github.com/intellistream/sage-privacy/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-privacy/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-privacy.svg)](https://pypi.org/project/isage-privacy/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-privacy?style=social)](https://github.com/intellistream/sage-privacy/stargazers)
+- **[sage-safety](https://github.com/intellistream/sage-safety)** — Safety filters and guardrails
+  [![CI](https://github.com/intellistream/sage-safety/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-safety/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-safety.svg)](https://pypi.org/project/isage-safety/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-safety?style=social)](https://github.com/intellistream/sage-safety/stargazers)
+
+### Developer Tooling
+
+- **[sage-dev-tools](https://github.com/intellistream/sage-dev-tools)** — Development CLI and
+  quality tooling
+  [![CI](https://github.com/intellistream/sage-dev-tools/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-dev-tools/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isage-dev-tools.svg)](https://pypi.org/project/isage-dev-tools/)
+  [![Stars](https://img.shields.io/github/stars/intellistream/sage-dev-tools?style=social)](https://github.com/intellistream/sage-dev-tools/stargazers)
+- Historical split repos remain retirement targets and are intentionally omitted from the
+  recommended active ecosystem list.
+
+______________________________________________________________________
+
+### ⚡ sageLLM — LLM Inference Engine
+
+[![CI](https://github.com/intellistream/sagellm/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm/actions/workflows/ci.yml)
+[![PyPI](https://badge.fury.io/py/isagellm.svg)](https://pypi.org/project/isagellm/)
+[![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+
+sageLLM is a modular, high-performance LLM inference engine. All repositories are 🔒 private and
+published to PyPI.
+
+### Core Engine
+
+- **[sagellm-core](https://github.com/intellistream/sagellm-core)** — Core inference engine
+  [![CI](https://github.com/intellistream/sagellm-core/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-core/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-core.svg)](https://pypi.org/project/isagellm-core/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+- **[sagellm-backend](https://github.com/intellistream/sagellm-backend)** — Backend drivers (CUDA,
+  Ascend)
+  [![CI](https://github.com/intellistream/sagellm-backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-backend/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-backend.svg)](https://pypi.org/project/isagellm-backend/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+- **[sagellm-protocol](https://github.com/intellistream/sagellm-protocol)** — Wire protocol and
+  serialization
+  [![CI](https://github.com/intellistream/sagellm-protocol/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-protocol/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-protocol.svg)](https://pypi.org/project/isagellm-protocol/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+
+### Gateway & Control
+
+- **[sagellm-gateway](https://github.com/intellistream/sagellm-gateway)** — OpenAI-compatible API
+  gateway
+  [![CI](https://github.com/intellistream/sagellm-gateway/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-gateway/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-gateway.svg)](https://pypi.org/project/isagellm-gateway/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+- **[sagellm-control-plane](https://github.com/intellistream/sagellm-control-plane)** — Scheduling
+  and resource management
+  [![CI](https://github.com/intellistream/sagellm-control-plane/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-control-plane/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-control-plane.svg)](https://pypi.org/project/isagellm-control-plane/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+
+### Optimization
+
+- **[sagellm-kv-cache](https://github.com/intellistream/sagellm-kv-cache)** — KV cache management
+  [![CI](https://github.com/intellistream/sagellm-kv-cache/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-kv-cache/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-kv-cache.svg)](https://pypi.org/project/isagellm-kv-cache/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+- **[sagellm-comm](https://github.com/intellistream/sagellm-comm)** — Communication layer
+  [![CI](https://github.com/intellistream/sagellm-comm/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-comm/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-comm.svg)](https://pypi.org/project/isagellm-comm/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+- **[sagellm-compression](https://github.com/intellistream/sagellm-compression)** — Compression
+  algorithms
+  [![CI](https://github.com/intellistream/sagellm-compression/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-compression/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-compression.svg)](https://pypi.org/project/isagellm-compression/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+
+### Tooling & Benchmarks
+
+- **[sagellm-benchmark](https://github.com/intellistream/sagellm-benchmark)** — Performance
+  benchmarks
+  [![CI](https://github.com/intellistream/sagellm-benchmark/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-benchmark/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-benchmark.svg)](https://pypi.org/project/isagellm-benchmark/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+- **[sagellm-dev-tools](https://github.com/intellistream/sagellm-dev-tools)** — Development tooling
+  [![CI](https://github.com/intellistream/sagellm-dev-tools/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sagellm-dev-tools/actions/workflows/ci.yml)
+  [![PyPI](https://badge.fury.io/py/isagellm-dev-tools.svg)](https://pypi.org/project/isagellm-dev-tools/)
+  [![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
 
 ## Community
 

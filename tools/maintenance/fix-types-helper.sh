@@ -123,9 +123,9 @@ format_first() {
 
     echo ""
     echo_info "现在运行 mypy 检查类型错误..."
-    python -m mypy packages/sage-common/src/sage/common/core/functions/ \
-                    packages/sage-kernel/src/sage/kernel/api/ \
-                    packages/sage-kernel/src/sage/kernel/runtime/ \
+    python -m mypy src/sage/foundation/ \
+                    src/sage/stream/ \
+                    src/sage/runtime/ \
                     --ignore-missing-imports 2>&1 | tee /tmp/mypy_after_format.txt
 
     ERROR_COUNT=$(grep -c "error:" /tmp/mypy_after_format.txt || echo "0")

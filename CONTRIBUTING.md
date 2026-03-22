@@ -1,8 +1,8 @@
 ﻿
 
-> 本地代码质量/测试请使用 `sage-dev quality` 或 `sage-dev test`，CI/CD 由 GitHub Workflows 自动完成。
-
 # SAGE 贡献指南
+
+> 本地代码质量/测试请使用 `sage-dev quality` 或 `sage-dev test`，CI/CD 由 GitHub Workflows 自动完成。
 
 > 本文档帮助你高效、规范地向 SAGE 贡献代码与文档。请在提交 Pull Request 前完整阅读。若英文协作者需要，可参考文末的 English Quick Guide。
 
@@ -16,7 +16,7 @@
 - **[.pre-commit-config.yaml](.pre-commit-config.yaml)** - Pre-commit 钩子配置（链接到
   `tools/pre-commit-config.yaml`）
 - **[docs/images/architecture.svg](docs/images/architecture.svg)** - 系统架构图
-- **[docs-public/docs_src/dev-notes/](docs-public/docs_src/dev-notes/)** - 开发笔记和修复总结
+- **[docs/](docs/)** - 元仓库架构与治理文档
 
 **快速开始开发**:
 
@@ -61,11 +61,19 @@ git pull --ff-only origin main-dev
 # 安装开发环境 (默认 dev 模式 + conda)
 ./quickstart.sh --dev --yes
 
-# 或核心安装（仅核心包）
-./quickstart.sh --core --yes
+# 标准模式安装
+./quickstart.sh --standard --yes
+```
 
-# 标准模式 + 安装 VLLM 支持
-./quickstart.sh --standard --vllm --yes
+安装完成后，优先使用当前主仓维护的 `sage` 命令表面做最小验证：
+
+```bash
+sage verify
+sage status
+sage runtime nodes
+sage serve gateway --json
+sage chat --ask "Hello, SAGE!"
+sage index ingest --source ./docs --index local-docs
 ```
 
 ### 第二步：创建功能分支（勿在 main-dev 直接开发）
@@ -77,7 +85,7 @@ git pull --ff-only origin main-dev
 
 # 示例
 git checkout -b fix/ci-cache-permissions
-git checkout -b feat/vllm-integration
+git checkout -b feat/sagellm-integration
 git checkout -b refactor/jobmanager-architecture
 ```
 
@@ -115,7 +123,7 @@ bash -n path/to/script.sh
 
 # 可选：若已安装 black / mypy（dev 模式会安装）
 black --check .
-mypy packages/sage-kernel || true
+mypy src || true
 ```
 
 ### 第五步：提交代码（使用规范化提交信息）
@@ -145,7 +153,7 @@ git push -u origin <branch-name>
 
 PR 描述建议模板：
 
-```
+```md
 ### 变更类型
 feat | fix | refactor | docs | test | perf | ci | chore | build | deps | security
 
@@ -179,7 +187,7 @@ feat | fix | refactor | docs | test | perf | ci | chore | build | deps | securit
 
 ### 分支命名规范
 
-```
+```text
 feat/<topic>           新功能
 fix/<issue-or-bug>     缺陷修复
 refactor/<area>        重构
@@ -200,7 +208,7 @@ revert/<hash-fragment> 回滚
 
 ### 基本格式
 
-```
+```text
 <type>(scope): summary
 
 <body 可选，多段换行>
@@ -215,17 +223,17 @@ revert/<hash-fragment> 回滚
 
 范围(scope) 建议与实际包/模块对应：
 
-```
-sage-common | sage-kernel | sage-libs | sage-middleware | sage-tools | quickstart | docs | tests | ci | infra
+```text
+foundation | runtime | stream | cli | tools | quickstart | docs | tests | ci | infra
 ```
 
-允许复合：`feat(sage-kernel,quickstart): ...`
+允许复合：`feat(runtime,quickstart): ...`
 
 ### 提交信息示例
 
 #### 修复问题
 
-```
+```text
 fix(ci): avoid apt permission error in GitHub Actions
 
 Cause: post-job cache save failed due to /var/cache/apt permissions
@@ -236,16 +244,16 @@ Closes: #123
 
 #### 新功能
 
-```
-feat(quickstart): add optional VLLM installation flag
+```text
+feat(quickstart): improve sagellm-first startup guidance
 
-Add --vllm flag to quickstart; auto-verifies vllm after install.
-Docs updated.
+Use sagellm run/chat as default onboarding flow.
+Keep serve mode as optional path.
 ```
 
 #### 测试修复
 
-```
+```text
 fix(tests): stabilize example + issues integration tests
 
 Replace legacy shell script with python-based IssuesTestSuite.
@@ -284,7 +292,7 @@ Reduce flakiness via timeout + category filtering.
    # 注意：quick_examples 标记可能在 sage-examples 仓库中
    pytest --maxfail=1 --durations=10
    black --check . && isort --check-only . || true
-   mypy packages/sage-kernel || true
+   mypy src || true
    ```
 
 ## 代码与文档质量
@@ -350,11 +358,11 @@ pre-commit run --all-files
 
 ### ⚠️ PEP 420 Namespace Packages - CRITICAL
 
-**SAGE 使用 PEP 420 原生命名空间包（Python 3.3+）**
+#### SAGE 使用 PEP 420 原生命名空间包（Python 3.3+）
 
 **禁止操作**：
 
-- ❌ **NEVER** 创建或提交 `packages/*/src/sage/__init__.py`
+- ❌ **NEVER** 创建或提交 `src/sage/__init__.py`
 - ❌ **NEVER** 在 `sage/` 命名空间层添加任何代码
 - ❌ **NEVER** 使用 `pkgutil.extend_path()` 或 `pkg_resources.declare_namespace()`
 
@@ -377,16 +385,73 @@ pre-commit run --all-files
 # 自动检查（pre-commit hook）
 tools/scripts/validate_pep420_compliance.sh
 
-# 集成测试
-python3 tools/scripts/verify_pep420_integration.py
-
 # 手动验证
 python3 -c "import sage; assert sage.__file__ is None"  # 应该成功
 ```
 
-**详细文档**：`docs-public/docs_src/dev-notes/cross-layer/pep420-namespace-migration.md`
+**详细文档**：请参考 `CONTRIBUTING.md` 与 `DEVELOPER.md` 中的 PEP 420 约束说明。
 
 **CI 检查**：所有 PR 会自动运行 PEP 420 合规性检查（`.github/workflows/ci-pep420-compliance.yml`）
+
+### 🚨 Flownet 跨仓库迁移：Move-Then-Delete 规则
+
+**SAGE 与 sageFlownet 之间的代码迁移必须遵循 "先移动、立即删除" 原则。**
+
+迁移边界权威文档： `sage-docs/docs_src/concepts/architecture/design-decisions/flownet-migration-boundary.md`
+（sage-docs 仓库）
+
+#### ❌ 禁止操作
+
+```python
+# ❌ 错误：在 Flownet 中保留 try-except fallback stub
+try:
+    from sage.kernel.scheduler.schema import ResourceSpec
+except ImportError:
+    class ResourceSpec:  # 禁止：这是重复定义
+        cpu: float = 0.0
+        ...
+```
+
+```python
+# ❌ 错误：在 Flownet 中重新定义已迁移到 SAGE 的类
+class PlacementSchema:  # 禁止：SAGE L3 是单一来源
+    resource: ResourceSpec = ...
+```
+
+#### ✅ 正确做法
+
+```python
+# ✅ 正确：直接从 SAGE 规范位置导入，快速失败
+from sage.kernel.scheduler.schema import ResourceSpec, PlacementSchema, PlacementStrategy
+```
+
+#### 已迁移的规范符号（不得在 Flownet 中重定义）
+
+| 符号                                                                                                                 | SAGE 规范位置                      |
+| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `ExceptionAction`, `ExceptionContext`, `ExceptionDecision`, `ExceptionEvent`, `FlowException`, `FlowDefinitionError` | `sage.common.core.flow_exceptions` |
+| `ResourceSpec`, `PlacementSchema`, `PlacementStrategy`                                                               | `sage.kernel.scheduler.schema`     |
+| `ContextSlot`                                                                                                        | `sage.common.utils.context`        |
+
+#### PR 提交要求
+
+每个涉及跨仓库迁移的 PR 必须在描述中**明确声明**：
+
+1. **迁移了什么**：符号名称 + 源文件路径
+1. **保留了什么**：Flownet 保留的运行时实现（及原因）
+1. **删除了什么**：旧代码 / stub 已从源仓库移除
+
+#### CI 检查
+
+```bash
+# 本地运行 cross-repo dedup 检查
+python3 tools/scripts/check_cross_repo_dedup.py --verbose
+
+# 集成到 pre-commit（自动在提交时运行）
+pre-commit run cross-repo-dedup-check --all-files
+```
+
+**违规后果**：CI 将失败，需要移除 Flownet 中的 stub 类或 try-except fallback，改为直接导入 SAGE 规范版本。
 
 - 添加适当的文档字符串
 - 避免循环内重复 I/O；优先使用批量操作
@@ -407,7 +472,7 @@ python3 -c "import sage; assert sage.__file__ is None"  # 应该成功
 | 安装（交互式） | `./quickstart.sh`                                  | 未传参进入菜单             |
 | 核心安装       | `./quickstart.sh --core --yes`                     | 仅核心包                   |
 | 开发者安装     | `./quickstart.sh --dev --yes`                      | 安装开发依赖（可编辑模式） |
-| 启用 VLLM      | `./quickstart.sh --standard --vllm --yes`          | 额外安装 vllm              |
+| 标准安装       | `./quickstart.sh --standard --yes`                 | 标准功能集合               |
 | 核心测试       | `sage-dev project test --coverage`                 | 运行核心测试集             |
 | 单个测试       | `pytest -k <keyword>`                              | 关键字过滤                 |
 | 版本查看       | `python -c "import sage; print(sage.__version__)"` | 确认安装                   |
@@ -476,7 +541,7 @@ grep -i FAIL /tmp/test.log || true
 
 ### 7. 安装脚本卡住或没有输出
 
-```
+```bash
 bash -x ./quickstart.sh --dev --yes
 ```
 
@@ -494,8 +559,7 @@ bash -x ./quickstart.sh --dev --yes
 使用 GitHub CLI（推荐）：
 
 ```bash
-gh secret set OPENAI_API_KEY -b "your-openai-or-dashscope-key"
-gh secret set HF_TOKEN -b "your-huggingface-token"
+gh secret set SAGE_UNIFIED_API_KEY -b "token-abc123"
 ```
 
 ### 完整配置（可选）
@@ -510,8 +574,8 @@ gh secret set SILICONCLOUD_API_KEY -b "your-key"
 gh secret set JINA_API_KEY -b "your-key"
 gh secret set WEB_SEARCH_API_KEY -b "your-key"
 
-# vLLM 本地服务（如果不需要认证可以留空）
-gh secret set VLLM_API_KEY -b "token-abc123"
+# 本地/自建推理服务认证（可选）
+gh secret set SAGE_UNIFIED_API_KEY -b "token-abc123"
 
 # Hugging Face
 gh secret set HF_TOKEN -b "hf_xxx..."
@@ -523,13 +587,13 @@ gh secret set HF_TOKEN -b "hf_xxx..."
 1. 点击 `New repository secret`
 1. 添加以下 secrets：
 
-| Name                 | Value                                 | Required |
-| -------------------- | ------------------------------------- | -------- |
-| `OPENAI_API_KEY`     | 你的 OpenAI/DashScope API key         | ✅ 是    |
-| `HF_TOKEN`           | 你的 Hugging Face token               | ✅ 是    |
-| `ALIBABA_API_KEY`    | 阿里云 API key                        | ⭕ 可选  |
-| `VLLM_API_KEY`       | vLLM 服务 token（默认: token-abc123） | ⭕ 可选  |
-| `WEB_SEARCH_API_KEY` | Web 搜索服务 key                      | ⭕ 可选  |
+| Name                   | Value                                    | Required |
+| ---------------------- | ---------------------------------------- | -------- |
+| `OPENAI_API_KEY`       | 你的 OpenAI/DashScope API key            | ⭕ 可选  |
+| `HF_TOKEN`             | 你的 Hugging Face token                  | ⭕ 可选  |
+| `ALIBABA_API_KEY`      | 阿里云 API key                           | ⭕ 可选  |
+| `SAGE_UNIFIED_API_KEY` | 统一推理服务 token（默认: token-abc123） | ✅ 是    |
+| `WEB_SEARCH_API_KEY`   | Web 搜索服务 key                         | ⭕ 可选  |
 
 ### 验证配置
 
@@ -542,7 +606,7 @@ git push
 
 查看 CI 日志，应该能看到：
 
-```
+```text
 ✅ .env 文件创建完成
 📋 验证 .env 文件内容（隐藏敏感信息）:
 OPENAI_API_KEY=***
@@ -555,10 +619,13 @@ HF_TOKEN=***
 外部贡献者的 PR 默认无法访问主仓库的 Secrets（这是 GitHub 的安全特性）。你可以：
 
 1. **在自己的 fork 中配置 Secrets**（推荐用于测试）
-1. **使用 mock 模式测试**（大多数测试支持）：
+
+1. **使用本地 sagellm 或自托管 OpenAI-compatible endpoint 测试**：
+
    ```bash
    SAGE_TEST_MODE=true pytest
    ```
+
 1. **等待维护者审核后触发 CI**（维护者可手动触发带 Secrets 的 CI）
 
 ### ⚠️ 安全注意事项
@@ -572,7 +639,7 @@ HF_TOKEN=***
 
 若发现安全问题（例如：任意代码执行 / 信息泄露 / 供应链风险），请不要直接公开 Issue，可通过以下方式私下披露：
 
-- 邮件：security@intellistream.cn （示例；若需调整请维护者更新）
+- 邮件：[security@intellistream.cn](mailto:security@intellistream.cn) （示例；若需调整请维护者更新）
 - 标题建议：`[SECURITY] <简要描述>`
 
 请包含：影响版本、复现步骤、预期 vs 实际、安全影响评估。我们将在确认后尽快回应并在修复后发布公告。
@@ -592,7 +659,7 @@ HF_TOKEN=***
 2. Create branch: git checkout -b feat/<topic>
 3. Keep updated: git fetch && git rebase origin/main-dev
 4. Test: sage-dev project test --coverage && sage-dev quality
-5. Commit: feat(sage-kernel): add xyz
+5. Commit: feat(runtime): add xyz
 6. Push & PR: include background / solution / tests / impact
 ```
 

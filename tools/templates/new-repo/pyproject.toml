@@ -1,0 +1,60 @@
+# pyproject.toml template for SAGE Python packages
+#
+# Replace ALL occurrences of:
+#   MY_PKG_NAME   → PyPI package name  (e.g. isage-rag)
+#   my_pkg        → Python import name (e.g. sage_rag)
+#   "Short description of the package."
+#
+# Version source of truth: src/my_pkg/_version.py (see _version.py template).
+# Do NOT hardcode version here.
+
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "MY_PKG_NAME"
+dynamic = ["version"]
+description = "Short description of the package."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "IntelliStream Team" }]
+license = { text = "Apache-2.0" }
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+  # declare runtime deps here
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0.0",
+  "pytest-cov>=4.0.0",
+  "ruff>=0.8.0",
+  "pre-commit>=3.0.0",
+]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+my_pkg = ["py.typed"]
+
+[tool.setuptools.dynamic]
+version = { attr = "my_pkg._version.__version__" }
+
+[tool.ruff]
+line-length = 100
+extend = "../../tools/ruff.toml"  # inherit SAGE root config (adjust relative path as needed)
+
+[tool.pytest.ini_options]
+# See pytest.ini for full config (pytest.ini takes precedence if present)
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --tb=short --color=yes"

@@ -61,7 +61,7 @@ SAGE 项目使用多个 Git 子模块来组织代码。这些工具帮助：
 
 **输出**:
 
-```
+```text
 📝 处理子模块: sageData
    路径: packages/sage-benchmark/src/sage/data
    仓库: sageData
@@ -241,16 +241,14 @@ git diff
 
 ### 子模块列表
 
-当前 SAGE 项目的子模块:
+当前 SAGE 项目的历史子模块/外部能力来源:
 
-1. `docs-public` - 公共文档
-1. `packages/sage-llm-core/src/sage/llm` - LLM 组件
-1. `packages/sage-middleware/src/sage/middleware/components/sage_db/sageVDB` - 数据库组件
-1. `packages/sage-middleware/src/sage/middleware/components/sage_flow/sageFlow` - 流处理组件
-1. `packages/sage-middleware/src/sage/middleware/components/sage_mem/neuromem` - 内存组件
-1. `packages/sage-middleware/src/sage/middleware/components/sage_tsdb/sageTSDB` - 时序数据库
-1. `packages/sage-benchmark/src/sage/data` - 数据集
-1. `packages/sage-libs/src/sage/libs/libamm` - LibAMM 库
+1. `isagellm` / `sagellm` - 外部推理与网关能力
+1. `isage-vdb` - 外部向量数据库组件
+1. `isage-flow` / `flutty` - 外部分布式/流运行时能力
+1. `isage-neuromem` - 外部记忆组件
+1. `sage-benchmark` / `isage-data` - 数据与基准仓库
+1. 其他独立适配器仓库 - 按 capability adapter 方式接入
 
 ## 📚 相关文档
 

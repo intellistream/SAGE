@@ -1,104 +1,128 @@
 #!/bin/bash
 # SAGE Documentation Quality Check Script
-# This script runs comprehensive documentation quality checks
+# Basic documentation checks for the current SAGE meta-repo layout
 
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+cd "$PROJECT_ROOT"
 
 echo "======================================================================"
 echo "📚 SAGE Documentation Quality Check"
 echo "======================================================================"
 echo ""
 
-# Colors
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+doc_roots=(README.md DEVELOPER.md CONTRIBUTING.md CHANGELOG.md)
+[[ -d docs ]] && doc_roots+=(docs)
+[[ -d examples ]] && doc_roots+=(examples)
 
-cd "$PROJECT_ROOT"
+collect_markdown_files() {
+    find "${doc_roots[@]}" -type f \( -name "*.md" -o -name "README*" \) 2>/dev/null | \
+        grep -vE '(/\.git/|node_modules|dist|build/_deps|/\.sage/|/site/|/\.pytest_cache/)' || true
+}
 
-# 1. Check dev-notes documentation
-echo "1️⃣  Checking dev-notes documentation..."
-if python tools/devnotes_checker.py --all; then
-    echo -e "${GREEN}✅ Dev-notes check passed${NC}"
-else
-    echo -e "${RED}❌ Dev-notes check failed${NC}"
-    exit 1
-fi
+MD_FILES=$(collect_markdown_files)
+
+echo "1️⃣  Collecting documentation files..."
+TOTAL_MD=$(printf '%s\n' "$MD_FILES" | sed '/^$/d' | wc -l)
+echo "   Found $TOTAL_MD markdown/doc files"
 echo ""
 
-# 2. Check package README quality
-echo "2️⃣  Checking package README quality..."
-if python tools/package_readme_checker.py --all; then
-    echo -e "${GREEN}✅ Package README check passed${NC}"
-else
-    echo -e "${YELLOW}⚠️  Some packages have low README quality${NC}"
-fi
-echo ""
-
-# 3. Check for broken links (basic check)
-echo "3️⃣  Checking for common documentation issues..."
-
-# Check for placeholder text
-echo "   Checking for placeholder text..."
-PLACEHOLDERS=$(grep -r "{[A-Z_]*}" docs/ packages/*/README.md 2>/dev/null | grep -v ".git" | grep -v "node_modules" || true)
+echo "2️⃣  Checking for placeholder text..."
+PLACEHOLDERS=$(printf '%s\n' "$MD_FILES" | xargs -r grep -nE '\{[A-Z_][A-Z0-9_]*\}' 2>/dev/null || true)
 if [ -z "$PLACEHOLDERS" ]; then
-    echo -e "   ${GREEN}✅ No placeholders found${NC}"
+    echo -e "   ${GREEN}✅ No placeholder text found${NC}"
 else
-    echo -e "   ${YELLOW}⚠️  Found placeholder text:${NC}"
-    echo "$PLACEHOLDERS" | head -5
+    echo -e "   ${YELLOW}⚠️  Placeholder text detected:${NC}"
+    echo "$PLACEHOLDERS" | head -10
 fi
+echo ""
 
-# Check for TODO/FIXME in documentation
-echo "   Checking for TODO/FIXME markers..."
-TODOS=$(grep -r "TODO\|FIXME" docs/ examples/*/README.md packages/*/README.md 2>/dev/null | grep -v ".git" | grep -v "node_modules" | wc -l || true)
-echo "   Found $TODOS TODO/FIXME markers"
+echo "3️⃣  Checking for TODO/FIXME markers..."
+TODOS=$(printf '%s\n' "$MD_FILES" | xargs -r grep -nEi 'TODO|FIXME' 2>/dev/null || true)
+TODO_COUNT=$(printf '%s\n' "$TODOS" | sed '/^$/d' | wc -l)
+echo "   Found $TODO_COUNT TODO/FIXME markers"
+if [ -n "$TODOS" ]; then
+    echo "$TODOS" | head -10
+fi
+echo ""
 
-# Check for very short README files (< 10 lines)
-echo "   Checking for short README files..."
-SHORT_READMES=$(find packages/ examples/ -name "README.md" -type f -exec sh -c 'lines=$(wc -l < "$1"); if [ "$lines" -lt 10 ]; then echo "$1: $lines lines"; fi' _ {} \; 2>/dev/null | grep -v "pytest_cache\|node_modules\|build\|vendor" || true)
+echo "4️⃣  Checking for short README files..."
+SHORT_READMES=$(find . -type f -name 'README*.md' 2>/dev/null | \
+    grep -vE '(/\.git/|node_modules|/\.sage/|dist|build)' | \
+    while read -r file; do
+        lines=$(wc -l < "$file")
+        if [ "$lines" -lt 10 ]; then
+            echo "$file: $lines lines"
+        fi
+    done || true)
 if [ -z "$SHORT_READMES" ]; then
-    echo -e "   ${GREEN}✅ No unusually short READMEs${NC}"
+    echo -e "   ${GREEN}✅ No unusually short README files${NC}"
 else
     echo -e "   ${YELLOW}⚠️  Short README files found:${NC}"
-    echo "$SHORT_READMES" | head -5
+    echo "$SHORT_READMES" | head -10
 fi
-
 echo ""
 
-# 4. Statistics
-echo "4️⃣  Documentation statistics:"
-TOTAL_MD=$(find . -name "*.md" -type f 2>/dev/null | grep -v ".git\|node_modules\|build/_deps\|vendors/vllm\|.sage" | wc -l)
-DEV_NOTES=$(find docs/dev-notes -name "*.md" -type f 2>/dev/null | wc -l)
-PACKAGE_READMES=$(find packages/ -maxdepth 2 -name "README.md" -type f 2>/dev/null | wc -l)
-EXAMPLE_READMES=$(find examples/ -name "README.md" -type f 2>/dev/null | wc -l)
+echo "5️⃣  Computing statistics..."
+ROOT_READMES=$(find . -maxdepth 2 -type f -name 'README*.md' 2>/dev/null | wc -l)
+DOCS_COUNT=0
+EXAMPLE_DOCS_COUNT=0
+[[ -d docs ]] && DOCS_COUNT=$(find docs -type f -name '*.md' | wc -l)
+[[ -d examples ]] && EXAMPLE_DOCS_COUNT=$(find examples -type f -name '*.md' | wc -l)
 
 echo "   Total markdown files: $TOTAL_MD"
-echo "   Dev-notes documents: $DEV_NOTES"
-echo "   Package READMEs: $PACKAGE_READMES"
-echo "   Example READMEs: $EXAMPLE_READMES"
+echo "   Root/near-root READMEs: $ROOT_READMES"
+echo "   docs markdown: $DOCS_COUNT"
+echo "   example markdown: $EXAMPLE_DOCS_COUNT"
 echo ""
 
-# 5. Generate report
-echo "5️⃣  Generating quality report..."
-REPORT_FILE="docs/dev-notes/ci-cd/DOCUMENTATION_CHECK_REPORT_$(date +%Y%m%d).md"
+echo "6️⃣  Generating report..."
+REPORT_DIR="artifacts/reports"
+mkdir -p "$REPORT_DIR"
+REPORT_FILE="$REPORT_DIR/DOCUMENTATION_CHECK_REPORT_$(date +%Y%m%d).md"
 
-python tools/package_readme_checker.py --all --report --output "$REPORT_FILE"
-echo -e "${GREEN}✅ Report generated: $REPORT_FILE${NC}"
+cat > "$REPORT_FILE" <<EOF
+# Documentation Check Report
+
+- Date: $(date '+%Y-%m-%d %H:%M:%S')
+- Repository: SAGE
+- Total markdown files: $TOTAL_MD
+- TODO/FIXME count: $TODO_COUNT
+
+## Statistics
+
+- Root/near-root READMEs: $ROOT_READMES
+- docs markdown files: $DOCS_COUNT
+- example markdown files: $EXAMPLE_DOCS_COUNT
+
+## Placeholder Findings
+
+$(if [ -n "$PLACEHOLDERS" ]; then echo '```'; echo "$PLACEHOLDERS" | head -50; echo '```'; else echo 'None'; fi)
+
+## TODO/FIXME Findings
+
+$(if [ -n "$TODOS" ]; then echo '```'; echo "$TODOS" | head -50; echo '```'; else echo 'None'; fi)
+
+## Short README Findings
+
+$(if [ -n "$SHORT_READMES" ]; then echo '```'; echo "$SHORT_READMES" | head -50; echo '```'; else echo 'None'; fi)
+EOF
+
+echo -e "   ${GREEN}✅ Report generated: $REPORT_FILE${NC}"
 echo ""
-
 echo "======================================================================"
 echo "📊 Documentation Check Complete"
 echo "======================================================================"
 echo ""
 echo "Summary:"
-echo "  - Dev-notes: ✅ Passed"
-echo "  - Package READMEs: Check output above"
 echo "  - Total docs: $TOTAL_MD files"
-echo ""
-echo "For detailed results, see:"
-echo "  - $REPORT_FILE"
+echo "  - TODO/FIXME: $TODO_COUNT"
+echo "  - Report: $REPORT_FILE"
 echo ""

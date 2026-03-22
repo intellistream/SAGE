@@ -3,31 +3,23 @@
 Welcome to the sage-development guide! This document will help you get started with contributing to
 SAGE.
 
-## ⚠️ 重要：安装一致性
+## ⚠️ Installation Note
 
-**在开始之前，请务必阅读 [安装一致性指南](docs-public/docs_src/dev-notes/l2-platform/INSTALLATION_CONSISTENCY.md)**
-
-为了避免 "CI/CD 通过但本地失败" 的问题，所有开发者**必须**使用 `quickstart.sh` 进行安装。不要手动运行 `pip install` 命令。
-
-```bash
-# ✅ 正确的安装方式
-./quickstart.sh --dev --yes
-
-# ❌ 不要使用
-pip install isage
-pip install -e .
-```
-
-详细说明请参阅：[docs-public/docs_src/dev-notes/l2-platform/INSTALLATION_CONSISTENCY.md](docs-public/docs_src/dev-notes/l2-platform/INSTALLATION_CONSISTENCY.md)
+Use `./quickstart.sh` for installation to ensure consistency across all environments.
 
 ______________________________________________________________________
 
 ## Table of Contents
 
 - [Development Setup](#development-setup)
-  - [Prerequisites](#prerequisites)
-  - [Initial Setup](#initial-setup)
-  - [Submodule Management](#submodule-management)
+- [Prerequisites](#prerequisites)
+- [Initial Setup](#initial-setup)
+- [Dependency Management](#dependency-management)
+- [Layer Ownership Matrix](#layer-ownership-matrix-wave-a-baseline)
+- [Core Dependencies Architecture](#core-dependencies-architecture)
+- [Per-Layer Dependencies](#per-layer-dependencies)
+- [Capability Packages](#capability-packages)
+- [Installation Examples](#installation-examples)
 - [Development Workflow](#development-workflow)
 - [Code Quality](#code-quality)
 - [Testing](#testing)
@@ -63,131 +55,263 @@ git checkout main-dev
 - ✅ 安装所有开发依赖（pytest, pre-commit, 代码检查工具等）
 - ✅ 配置 Git hooks（自动代码质量检查）
 - ✅ 安装 sage-dev 工具（用于维护和测试）
+- ✅ 尽量将同级工作区本地子仓库安装为 editable（`-e`，若仓库存在）
 
-> 💡 **注意**: 文档已迁移到独立的 [SAGE-Pub](https://github.com/intellistream/SAGE-Pub) 仓库。
+**`--standard` 模式会自动：**
 
-> 💡 **不确定该选哪种模式？** 请参考
-> [README.md 中的安装模式决策树](./README.md#-%E5%BA%94%E8%AF%A5%E9%80%89%E6%8B%A9%E5%93%AA%E7%A7%8D%E5%AE%89%E8%A3%85%E6%A8%A1%E5%BC%8F)
-> 了解 core/standard/full/dev 的区别。
+- ✅ 安装本地根目录 `isage` meta 包
+- ✅ 子包依赖按版本约束从 PyPI 解析（稳定/发布导向）
+
+### Current `sage` CLI Surface
+
+主仓当前维护的 `sage` 命令表面刻意保持精简，仅覆盖核心产品边界：
+
+- `sage version`
+- `sage status`
+- `sage doctor`
+- `sage verify`
+- `sage runtime nodes`
+- `sage serve gateway --json`
+- `sage serve gateway --probe --json`
+- `sage chat`
+- `sage chat --ask "Hello, SAGE!"`
+- `sage index ingest --source ./docs --index local-docs`
+
+> 💡 **注意**: 用户文档已迁移到独立的 [sage-docs](https://github.com/intellistream/sage-docs) 仓库。
 
 ### Initial Setup
 
-1. **Clone the repository**
+1. Clone and switch to development branch
 
    ```bash
-   git clone https://github.com/intellistream/SAGE.git
-   cd SAGE
-   ```
-
-1. **Switch to development branch**
-
-   ```bash
+   git clone https://github.com/intellistream/SAGE.git && cd SAGE
    git checkout main-dev
    ```
 
-1. **(Recommended) Setup workspace dependencies**
-
-   If you plan to use the `SAGE.code-workspace` for multi-folder editing in VS Code:
-
-   **Option 1: During installation (recommended)**
+1. Install development environment
 
    ```bash
-   # Automatically setup workspace during installation
-   ./quickstart.sh --dev --yes --workspace
-   ```
-
-   **Option 2: After installation**
-
-   ```bash
-   # Standalone script
-   ./tools/scripts/setup_workspace_deps.sh
-   ```
-
-   This will:
-
-   - ✅ Clone `SAGE-Pub` repository (documentation)
-
-   **Or manually:**
-
-   ```bash
-   # Clone SAGE-Pub (documentation repository)
-   cd ..
-   git clone git@github.com:intellistream/SAGE-Pub.git
-   cd SAGE-Pub && git checkout main-dev && cd ../SAGE
-   ```
-
-   > 💡 **Note**:
-   >
-   > - `SAGE-Pub` is an independent repository for SAGE documentation
-   > - If you skip these, VS Code may show warnings which you can safely ignore
-
-1. **Recommended: Use quickstart with dev mode**
-
-   ```bash
-   # This is the easiest way for contributors
    ./quickstart.sh --dev --yes
    ```
 
-   **Or, if you prefer manual setup:**
-
-   a. **Install development dependencies**
-
-   ```bash
-   pip install -e ".[dev]"
-   ```
-
-   b. **Initialize the developer CLI**
-
-   ```bash
-   sage-dev --help                # 验证 CLI 可用
-   sage-dev maintain hooks install
-   sage-dev maintain doctor
-   ```
-
-   These commands ensure Git hooks are installed and run the built-in maintenance doctor.
-
-1. **Verify the setup**
-
-   ```bash
-   sage-dev quality check --check-only --all-files
-
-   # Check project health
-   ./tools/maintenance/sage-maintenance.sh doctor
-   ```
-
-### Repository Management
-
-**SAGE-Pub Documentation**: The comprehensive documentation is maintained in a separate repository.
-See [Setup workspace dependencies](#1-recommended-setup-workspace-dependencies) for cloning
-instructions.
-
-**Git Workflow**: Use feature branches for development, submit PRs to `main-dev` branch.
-
-For more details, see [tools/maintenance/README.md](tools/maintenance/README.md).
-
-> **💡 提示：** 使用 `./quickstart.sh --dev --yes` 会自动处理所有 submodule 相关操作，无需手动运行上述命令。
-
-### Alternative: Manual Setup
-
-If you prefer manual setup:
+> 💡 For multi-folder VS Code editing, clone the `sage-docs` repository in the parent directory.
 
 ```bash
-# Install in development mode
-pip install -e ".[dev]"
-
-# Install pre-commit hooks
-pip install pre-commit
 pre-commit install
 
 # Install development tools
 pip install black isort ruff mypy pytest pytest-cov
 ```
 
+______________________________________________________________________
+
+## Dependency Management
+
+### Layer Ownership Matrix (Wave A Baseline)
+
+For cross-repo boundary refactor reviews, use the canonical ownership matrix:
+
+- [sage-docs architecture/layer-ownership](https://intellistream.github.io/sage-docs/architecture/layer-ownership/)
+
+This matrix defines current workspace L1-L4 ownership, forbidden dependency direction, violation
+examples, and remediation priority for Phase 1, including independent sub-repo coordination and
+`sagellm` capability boundaries.
+
+### Core Dependencies Architecture
+
+SAGE follows a **minimalist core dependency strategy** with a **modular feature model**:
+
+- **Core Dependencies** (`dependencies`): Only packages necessary for base functionality
+- **Dev Dependencies** (`dev` extra): Testing tools, linters, and development utilities
+- **Feature Modules**: Functionality available through in-tree extras or independent PyPI packages
+
+**Key Principle**: We maintain **minimal core** to reduce bloat and installation time. Specialized
+functionality is available either through in-tree extras when it belongs to the SAGE product
+surface, or through independent packages when ownership should stay external.
+
+### Per-Layer Dependencies
+
+Current workspace numbering is normalized to the actively maintained main repos:
+
+#### L1. `sage.foundation` (Foundation)
+
+**Core**:
+
+- `pyyaml>=6.0` - Configuration files
+- `psutil>=6.1.0` - System information
+- `dill>=0.3.8` - Object serialization
+- `numpy>=1.26.0,<2.3.0` - Numerical computation
+- `pydantic>=2.10.0,<3.0.0` - Data validation
+- `platformdirs>=4.0.0` - User paths
+
+**Also owns now**: former platform abstractions and the shared interface surface that used to live
+in historical split algorithm packages.
+
+#### L2. `sage.runtime` / `sage.stream` (Runtime / Scheduler)
+
+**Core**:
+
+- `flutty>=0.1.0` - optional distributed runtime backend
+- `fastapi>=0.115.0,<1.0.0` - Kernel HTTP service
+- `grpcio>=1.74.0,<2.0.0` - RPC communication
+- `msgpack>=1.1.0,<2.0.0` - Serialization
+- `openai>=1.52.0` / `httpx>=0.28.0` - absorbed middleware runtime operators
+
+**Also owns now**: former runtime-bound adapter/operator responsibilities.
+
+#### L3. `sage.cli` (Core user entrypoint)
+
+**Core**:
+
+- `typer>=0.15.0` - CLI framework
+- `rich>=13.0.0` - Pretty output
+- `click>=8.0.0` - Command parsing
+- `jinja2>=3.1.0` - Templates
+- `isage-dev-tools>=0.1.0` - Dev utilities
+
+**Role**: top layer of the core workspace stack; applications should extend it rather than sit as
+peers.
+
+#### L4. Optional applications (benchmarks, docs-facing apps, experimental UIs)
+
+**Typical deps**:
+
+- `isage>=...` - full framework integration
+- `fastapi>=...` / frontend stacks - application API & UI
+- app-specific packages such as `isagellm`, `isage-agentic`, `isage-neuromem`
+
+**Note**: optional apps are above `sage-cli`, not the same layer, because they extend the core via
+plugin, service, or API surfaces rather than defining the core product boundary.
+
+### Capability Packages
+
+Packages such as `isage-rag`, `isage-neuromem`, `isage-libs-intent`, and `isage-sias` remain
+important capability dependencies, but they are no longer used as separate main-repo layer labels in
+the workspace numbering.
+
+Thin-wrapper rule: do not introduce new external packages that merely re-export SAGE-owned runtime,
+stream, or serving-boundary logic. If a package does not own substantial functionality, keep it
+in-tree.
+
+Current application of this rule: `sage-edge` has been folded back into the main repo as
+`sage.edge`; treat the former split repo as retired instead of retaining it as a separate Zoo
+package.
+
+Immediate non-Zoo retirement candidates follow the same logic: historical split foundation, runtime,
+and CLI repos are increasingly just release channels for product surfaces that already belong to the
+main repo, and duplicate stream surfaces should not be expanded as a separate ownership line.
+
+### Consolidation Target (2026 direction)
+
+The product direction is now to converge the highest-value capabilities into the main `SAGE`
+repository and reduce dependency on UI-first or thin-wrapper repos.
+
+Priority order:
+
+1. **Foundation in-tree**: keep centralized config, ports, user paths, model asset registry,
+   logging, and shared contracts close to the main repo.
+1. **Stream/runtime in-tree**: keep `DataStream`, `LocalEnvironment`, `JobManager`, scheduling, and
+   service lifecycle as the execution core.
+1. **Serving boundary in-tree, engine out-of-tree**: keep OpenAI-compatible access, health/status,
+   and integration contracts in SAGE, while leaving inference-engine internals in `isagellm`.
+1. **Edge shell in-tree**: keep edge aggregation as part of the SAGE serving contract instead of a
+   long-lived thin wrapper repository.
+1. **Capabilities as adapters**: RAG, memory, tool-use, evaluation, and benchmark modules should be
+   optional adapters unless they clearly strengthen the inference-service core.
+
+Distributed-runtime rule: `FluttyEnvironment` should remain a first-class **optional** public API
+for cluster execution. The consolidation target is not “distributed-only SAGE”; it is “stream-first
+SAGE” with a strong local default plus Flutty-backed scale-out when needed, and no new Ray-oriented
+dependency path.
+
+Inference-engine rule: do not absorb `isagellm` internals into `SAGE`. `isagellm` is itself an
+independent inference engine and should remain separately owned/released. SAGE may standardize the
+integration boundary around it, but not re-home its backend/control-plane internals.
+
+Migration rule: do not add compatibility shims for old repo boundaries during consolidation;
+instead, move ownership deliberately and update call sites directly.
+
+Retirement rule: do not delete historical split foundation/runtime repositories until both
+conditions are true: (1) main-repo call sites and install/verification workflows no longer rely on
+their implementation modules as hard dependencies, and (2) external example/tutorial/adapter repos
+no longer need those repos as transitional compatibility owners.
+
+Zoo rule of thumb: if a repository is not an MCP-facing tool surface, not an independently valuable
+engine/runtime, and not a clearly optional adapter with substantial owned logic, it should default
+back into the main `SAGE` repo instead of living forever as a split package.
+
+Current status note: the main repo now owns the primary `sage.foundation`, `sage.stream`,
+`sage.runtime`, `sage.serving`, and `sage.cli` product surfaces directly. The local runtime path and
+scheduler / packet / job-manager primitives are now also owned in-tree, so the historical runtime
+split package is no longer a direct root dependency of `isage`. Remaining kernel/common usage is now
+primarily a compatibility and ecosystem-migration concern rather than a main-repo public-API
+dependency.
+
+Interpreter note: in Python 3.13 environments, root installation currently skips automatic
+`isagellm` resolution because upstream `isagellm-protocol` wheels are not yet available there. This
+does not block stream/runtime development in the main repo.
+
+### Feature Modules
+
+When extras were removed, functionality migrated to independent packages:
+
+| Feature    | Before                  | Now                |
+| ---------- | ----------------------- | ------------------ |
+| Embedding  | `commons[embedding]`    | → `isage-neuromem` |
+| Agentic    | `libs[agentic]`         | → `isage-agentic`  |
+| RAG        | `libs[rag]`             | → `isage-rag`      |
+| Evaluation | `libs[eval]`            | → `isage-eval`     |
+| Vector DB  | `middleware[vdb]`       | → `isage-vdb`      |
+| Memory     | `middleware[neuromem]`  | → `isage-neuromem` |
+| Streaming  | `middleware[streaming]` | → `isage-flow`     |
+
+### Installation Examples
+
+#### Minimal (core only)
+
+```bash
+pip install isage
+```
+
+### Standard (recommended for most users)
+
+```bash
+pip install isage                # Meta package with all core layers
+```
+
+Then add features as needed:
+
+```bash
+pip install isage-agentic        # For agents
+pip install isage-rag            # For RAG
+pip install isage-vdb            # For vector search
+pip install isage-neuromem       # For memory / retrieval persistence
+pip install isage-libs-intent    # For intent / orchestration adapters
+```
+
+#### Development (with all tools)
+
+```bash
+cd /path/to/SAGE
+./quickstart.sh --dev --yes       # Installs core + dev tools + editable-first local deps
+./quickstart.sh --standard --yes  # Installs core + dependencies from PyPI (stable path)
+```
+
+______________________________________________________________________
+
 ## Development Workflow
 
 ### Using the sage-dev CLI
 
-The `sage-dev` CLI (provided by `packages/sage-tools`) offers the same development workflows:
+The `sage-dev` CLI (provided by the independently released `isage-dev-tools` package) offers the
+same development workflows:
+
+> **💡 Note**: Additional development utilities are available via `sage-dev-tools` (automatically
+> installed in `--dev` mode):
+>
+> - Work report generation: `sage-dev-tools report --period weekly`
+> - Cluster code sync: `sage-dev-tools maintenance sync-cluster`
+> - See: [sage-dev-tools](https://github.com/intellistream/sage-dev-tools)
 
 ```bash
 # Format code / auto-fix quality issues
@@ -303,12 +427,6 @@ To run pre-commit manually:
 
 ```bash
 pre-commit run --all-files
-```
-
-To skip pre-commit hooks temporarily (not recommended):
-
-```bash
-git commit --no-verify
 ```
 
 ## Code Quality
@@ -444,7 +562,7 @@ Example:
 
 ```python
 import pytest
-from sage.core.api.local_environment import LocalEnvironment
+from sage.runtime import LocalEnvironment
 
 
 def test_local_environment_initialization_creates_instance():
@@ -500,20 +618,19 @@ sage-dev docs serve
        pass
    ```
 
-1. **User Guides**: Place in `docs-public/docs_src/`
+1. **User Guides**: Place in `docs/`
 
-1. **Dev Notes**: Use the template in `docs/dev-notes/TEMPLATE.md`
+1. **Changelog**: 重要变更统一记录到 `CHANGELOG.md`
 
-### Creating Dev Notes
+### Updating Changelog
 
 When documenting fixes or features:
 
 ```bash
-# Copy the template
-cp docs/dev-notes/TEMPLATE.md docs/dev-notes/<category>/<FEATURE_NAME>_<ISSUE_NUM>.md
+# Edit repo changelog directly
+$EDITOR CHANGELOG.md
 
-# Fill in the template
-# See docs/dev-notes/QUICK_START.md for guidance
+# Add key changes under [Unreleased]
 ```
 
 ## Release Process
@@ -629,7 +746,7 @@ We follow [Semantic Versioning](https://semver.org/):
 
 ## Getting Help
 
-- **Documentation**: Check `docs-public/`
+- **Documentation**: Check `docs/`, `README.md`, and `CONTRIBUTING.md`
 - **Examples**: See [sage-examples](https://github.com/intellistream/sage-examples) repository
 - **Issues**: Search existing issues or create new one
 - **Community**: Join our
@@ -639,8 +756,7 @@ We follow [Semantic Versioning](https://semver.org/):
 ## Useful Resources
 
 - [Architecture Diagram](docs/images/architecture.svg)
-- [Dev Notes Template](docs/dev-notes/TEMPLATE.md)
-- [Dev Notes Quick Start](docs/dev-notes/QUICK_START.md)
+- [Project Changelog](CHANGELOG.md)
 - [Keep a Changelog](https://keepachangelog.com/)
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [Semantic Versioning](https://semver.org/)

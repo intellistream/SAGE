@@ -82,6 +82,65 @@ test_mirror_speed() {
     fi
 }
 
+extract_mirror_artifact_url() {
+    local mirror_url="$1"
+    local test_package="${2:-pip}"
+    local test_url="${mirror_url}/${test_package}/"
+
+    if ! command -v curl >/dev/null 2>&1; then
+        return 1
+    fi
+
+    local html
+    html="$(curl -L -s --connect-timeout 5 --max-time 12 "$test_url" 2>/dev/null || true)"
+    [ -n "$html" ] || return 1
+
+    local href
+    href="$(printf '%s' "$html" | tr '\n' ' ' | grep -oE 'href="[^"]+"' | head -n 1 | sed 's/^href="//;s/"$//')"
+    [ -n "$href" ] || return 1
+
+    python3 - <<PY
+from urllib.parse import urljoin
+print(urljoin(${test_url@Q}, ${href@Q}))
+PY
+}
+
+verify_mirror_download_capability() {
+    local mirror_url="$1"
+    local test_package="${2:-pip}"
+
+    local artifact_url
+    artifact_url="$(extract_mirror_artifact_url "$mirror_url" "$test_package" 2>/dev/null || true)"
+    [ -n "$artifact_url" ] || return 0
+
+    if ! command -v curl >/dev/null 2>&1; then
+        return 1
+    fi
+
+    local status
+    status="$(curl -L -s -I --connect-timeout 5 --max-time 12 -o /dev/null -w "%{http_code}" "$artifact_url" 2>/dev/null || echo "000")"
+
+    case "$status" in
+        200|204|206|301|302)
+            return 0
+            ;;
+        405|000)
+            status="$(curl -L -s --range 0-0 --connect-timeout 5 --max-time 12 -o /dev/null -w "%{http_code}" "$artifact_url" 2>/dev/null || echo "000")"
+            case "$status" in
+                200|204|206|301|302)
+                    return 0
+                    ;;
+                *)
+                    return 1
+                    ;;
+            esac
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 # 自动选择最快的镜像
 auto_select_fastest_mirror() {
     local test_package="${1:-pip}"
@@ -105,12 +164,23 @@ auto_select_fastest_mirror() {
         fi
 
         local response_time=$(test_mirror_speed "$mirror_url" "$test_package")
+        local download_ok=true
+        if [ "$response_time" -lt 99999 ]; then
+            if ! verify_mirror_download_capability "$mirror_url" "$test_package"; then
+                download_ok=false
+                response_time=99999
+            fi
+        fi
 
         if [ "$verbose" = "true" ]; then
             if [ "$response_time" -lt 99999 ]; then
                 echo -e "${GREEN}   ✅ $mirror_name: ${response_time}ms${NC}"
             else
-                echo -e "${RED}   ❌ $mirror_name: 超时或不可达${NC}"
+                if [ "$download_ok" = "false" ]; then
+                    echo -e "${RED}   ❌ $mirror_name: 元信息可达，但包下载不可用（疑似 403）${NC}"
+                else
+                    echo -e "${RED}   ❌ $mirror_name: 超时或不可达${NC}"
+                fi
             fi
         fi
 

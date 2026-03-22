@@ -29,8 +29,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # 需要完整历史来进行 diff
-          # 注意: 不递归克隆 submodules，避免检查外部依赖代码
-          # Submodules (neuromem, sageRefiner, docs-public) 由各自仓库维护
+          # 注意: 仅检出当前仓库代码；外部独立仓库在各自仓库维护
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -67,7 +66,14 @@ jobs:
 
             if [ -n "$PYTHON_CHANGED" ]; then
               echo "📝 发现 Python 文件变更"
-              sage-dev quality architecture --changed-only || {
+              sage-dev quality --check-only \
+                --architecture \
+                --no-devnotes \
+                --no-examples \
+                --no-format \
+                --no-sort-imports \
+                --no-ruff \
+                --no-type-check || {
                   echo ""
                   echo "❌ 架构合规性检查失败！"
                   echo ""
@@ -77,7 +83,7 @@ jobs:
                   echo "1. 检查跨层级导入（如 app 导入 kernel）"
                   echo "2. 确保导入路径符合包架构"
                   echo "3. 查看架构信息: sage-dev architecture"
-                  echo "4. 查看文档: docs-public/docs_src/dev-notes/package-architecture.md"
+                  echo "4. 查看文档: https://intellistream.github.io/sage-docs/architecture/layer-ownership/"
                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                   exit 1
                 }
@@ -87,11 +93,18 @@ jobs:
           else
             echo "📦 Push 模式：快速检查（仅检查变更文件）"
             # 在 push 时做快速检查，避免阻塞
-            sage-dev quality architecture --changed-only || {
+            sage-dev quality --check-only \
+              --architecture \
+              --no-devnotes \
+              --no-examples \
+              --no-format \
+              --no-sort-imports \
+              --no-ruff \
+              --no-type-check || {
               echo ""
               echo "⚠️  发现架构问题，但不阻塞部署"
               echo "请查看架构信息: sage-dev architecture"
-              echo "并尽快修复: docs-public/docs_src/dev-notes/package-architecture.md"
+              echo "并尽快参考: https://intellistream.github.io/sage-docs/architecture/layer-ownership/"
             }
           fi
 
@@ -103,7 +116,15 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           echo "📖 检查包 README 文档..."
 
-          if sage-dev quality readme; then
+          if sage-dev quality --check-only \
+            --readme \
+            --no-architecture \
+            --no-devnotes \
+            --no-examples \
+            --no-format \
+            --no-sort-imports \
+            --no-ruff \
+            --no-type-check; then
             echo "✅ 所有包的 README 文档完整"
           else
             if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -113,7 +134,7 @@ jobs:
               echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
               echo "1. 确保每个包都有 README.md"
               echo "2. README 应包含：简介、安装、使用示例"
-              echo "3. 使用模板: packages/sage-tools/src/sage/tools/templates/PACKAGE_README_TEMPLATE.md"
+              echo "3. 使用模板: https://github.com/intellistream/sage-dev-tools/tree/main/src/sage/tools/templates/PACKAGE_README_TEMPLATE.md"
               echo "4. 查看详细报告: sage-dev quality readme --report"
               echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
               exit 1
@@ -129,7 +150,7 @@ jobs:
 
           # 统计信息
           TOTAL_PACKAGES=$(find packages -name "setup.py" -o -name "pyproject.toml" | wc -l)
-          TOTAL_DOCS=$(find docs-public/docs_src/dev-notes -name "*.md" -type f 2>/dev/null | wc -l)
+          TOTAL_DOCS=$(find docs -name "*.md" -type f 2>/dev/null | wc -l)
 
           echo "📦 包数量: $TOTAL_PACKAGES"
           echo "📚 文档数量: $TOTAL_DOCS"

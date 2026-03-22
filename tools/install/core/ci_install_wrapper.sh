@@ -17,7 +17,7 @@
 #
 # 示例:
 #   ./tools/install/ci_install_wrapper.sh --dev --yes
-#   ./tools/install/ci_install_wrapper.sh --core --yes
+#   ./tools/install/ci_install_wrapper.sh --standard --yes
 #
 
 
@@ -157,9 +157,9 @@ main() {
         echo -e "${BLUE}📝 详细日志: .sage/logs/ci_install.log${NC}"
         echo ""
 
-        # 验证安装（PEP 420 namespace - 检查实际包）
+        # 验证安装（主仓 in-tree 表面）
         echo -e "${BLUE}🔍 验证安装...${NC}"
-        if python3 -c "import sage.common; print(f'SAGE version: {sage.common.__version__}')" 2>/dev/null; then
+        if python3 -c "from sage._version import __version__; import sage.foundation, sage.stream, sage.runtime, sage.serving, sage.cli; print(f'SAGE version: {__version__}')" 2>/dev/null; then
             echo -e "${GREEN}✓ SAGE 导入成功${NC}"
         else
             echo -e "${YELLOW}⚠ SAGE 导入失败（可能需要激活环境）${NC}"

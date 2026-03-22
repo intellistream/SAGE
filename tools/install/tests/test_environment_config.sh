@@ -174,47 +174,6 @@ test_detect_venv_in_system() {
 }
 
 # ============================================================================
-# 测试 ensure_python_venv
-# ============================================================================
-
-test_ensure_python_venv_creation() {
-    echo ""
-    echo -e "${BLUE}测试组: ensure_python_venv${NC}"
-
-    # 创建临时测试目录
-    local test_venv="/tmp/sage_test_venv_$$"
-
-    # 清理可能存在的旧测试环境
-    rm -rf "$test_venv"
-
-    # 测试创建虚拟环境
-    if ensure_python_venv "$test_venv" 2>/dev/null; then
-        assert_success "创建虚拟环境成功"
-
-        # 验证虚拟环境结构
-        if [ -f "$test_venv/bin/activate" ]; then
-            assert_success "虚拟环境包含 activate 脚本"
-        else
-            assert_failure "虚拟环境缺少 activate 脚本"
-            false
-        fi
-
-        if [ -f "$test_venv/bin/python" ] || [ -f "$test_venv/bin/python3" ]; then
-            assert_success "虚拟环境包含 Python 可执行文件"
-        else
-            assert_failure "虚拟环境缺少 Python 可执行文件"
-            false
-        fi
-    else
-        echo -e "${YELLOW}⚠️  SKIP${NC}: 创建虚拟环境 (可能缺少 python3-venv 或 virtualenv)"
-        TOTAL_TESTS=$((TOTAL_TESTS + 1))
-    fi
-
-    # 清理
-    rm -rf "$test_venv"
-}
-
-# ============================================================================
 # 测试 check_virtual_environment_isolation (非交互部分)
 # ============================================================================
 
@@ -227,7 +186,7 @@ test_check_venv_skip_in_ci() {
     unset CONDA_DEFAULT_ENV CONDA_PREFIX VIRTUAL_ENV
 
     # 在 CI 中应该跳过检查
-    check_virtual_environment_isolation "pip" "false" 2>/dev/null
+    check_virtual_environment_isolation "pip" 2>/dev/null
     assert_success "CI 环境跳过虚拟环境检查"
 
     # 清理
@@ -241,8 +200,26 @@ test_check_venv_skip_for_conda_install() {
     unset CI CONDA_DEFAULT_ENV CONDA_PREFIX VIRTUAL_ENV
 
     # 选择 conda 安装模式时应该跳过检查
-    check_virtual_environment_isolation "conda" "false" 2>/dev/null
+    check_virtual_environment_isolation "conda" 2>/dev/null
     assert_success "Conda 安装模式跳过虚拟环境检查"
+}
+
+test_check_venv_rejected() {
+    echo ""
+    echo -e "${BLUE}测试组: check_virtual_environment_isolation - Python venv 禁止${NC}"
+
+    unset CI CONDA_DEFAULT_ENV CONDA_PREFIX
+    export VIRTUAL_ENV="/tmp/fake_venv"
+
+    if (
+        export VIRTUAL_ENV="/tmp/fake_venv"
+        check_virtual_environment_isolation "pip" >/dev/null 2>&1
+    ); then
+        assert_failure "Python venv 应被拒绝"
+        false
+    else
+        assert_success "Python venv 被正确拒绝"
+    fi
 }
 
 # ============================================================================
@@ -291,9 +268,9 @@ main() {
     test_detect_venv_in_conda
     test_detect_venv_in_python_venv
     test_detect_venv_in_system
-    test_ensure_python_venv_creation
     test_check_venv_skip_in_ci
     test_check_venv_skip_for_conda_install
+    test_check_venv_rejected
 
     # 打印总结
     print_test_summary

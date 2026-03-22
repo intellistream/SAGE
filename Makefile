@@ -47,20 +47,12 @@ install:
 	./quickstart.sh
 
 install-dev:
-	@echo "🔧 开发模式安装所有子包（正确顺序）..."
-	@echo "  1️⃣ 安装基础包（无依赖）..."
-	@pip install -e packages/sage-common -e packages/sage-platform --no-deps
-	@echo "  2️⃣ 安装核心库..."
-	@pip install -e packages/sage-libs -e packages/sage-kernel --no-deps
-	@echo "  3️⃣ 安装 middleware（C++ 扩展）..."
-	@pip install -e packages/sage-middleware --no-deps
-	@echo "  4️⃣ 安装应用层..."
-	@pip install -e packages/sage-cli -e packages/sage-studio -e packages/sage-tools --no-deps
-	@echo "✅ 所有包已安装！"
+	@echo "🔧 开发模式安装主仓（editable）..."
+	@python3 -m pip install -e '.[dev]'
+	@echo "✅ 主仓开发安装完成！"
 	@echo ""
-	@echo "ℹ️  Note: sage-apps and examples moved to independent repos:"
-	@echo "  - https://github.com/intellistream/sage-examples"
-	@echo "  - Install sage-apps via: pip install isage-apps"
+	@echo "ℹ️  Main repo now ships foundation/stream/runtime/serving/cli in-tree."
+	@echo "ℹ️  Additional ecosystem repos remain independently released when needed."
 	@echo ""
 	@echo "📊 验证版本一致性..."
 	@pip list | grep -E "^isage"
@@ -72,9 +64,8 @@ install-deps:
 # C++ 扩展构建
 build-extensions:
 	@echo "🔨 构建 C++ 扩展..."
-	@echo "Building TSDB extension..."
-	@cd packages/sage-middleware/src/sage/middleware/components/sage_tsdb && ./build_tsdb.sh
-	@echo "✅ All C++ extensions built successfully!"
+	@echo "ℹ️ TSDB 已迁移为独立包（isage-tsdb），不再在 SAGE 内部构建。"
+	@echo "✅ 本仓库无需执行 TSDB 本地扩展构建。"
 
 # 代码质量
 lint:
@@ -119,12 +110,7 @@ clean:
 	@rm -rf .sage/htmlcov/ .sage/cache/pytest/ .sage/cache/mypy/ .sage/cache/ruff/
 	@echo "  • 清理旧的构建目录（已废弃）..."
 	@rm -rf build/ htmlcov/
-	@rm -rf packages/sage-middleware/build/
-	@rm -rf packages/sage-middleware/lib/
-	@rm -rf packages/sage-middleware/bin/
-	@rm -rf packages/sage-middleware/sage_*_build/
-	@rm -rf packages/sage-common/build/
-	@find packages/sage-middleware/src/sage/middleware/components -type d \( -name "build" -o -name "lib" -o -name "bin" -o -name "install" \) -exec rm -rf {} + 2>/dev/null || true
+	@find packages -type d \( -name "lib" -o -name "bin" -o -name "install" \) -exec rm -rf {} + 2>/dev/null || true
 	@echo "✅ 清理完成"
 
 clean-cache:
@@ -158,22 +144,16 @@ version-bump:
 
 # 文档
 docs:
-	@echo "📚 构建文档..."
-	cd docs-public && ./build.sh
+	@echo "📚 SAGE meta 仓库当前仅维护仓库内文档检查流程"
+	@bash tools/maintenance/check_docs.sh
 
 docs-serve:
-	@echo "🌐 启动文档服务器..."
-	cd docs-public && mkdocs serve
+	@echo "🌐 SAGE meta 仓库当前没有内置文档站点可启动"
+	@echo "请直接查看 docs/、README.md 和各独立仓库文档"
 
 docs-check:
 	@echo "🔍 检查文档质量..."
-	@echo "1️⃣  Checking dev-notes..."
-	@python tools/devnotes_checker.py --all
-	@echo ""
-	@echo "2️⃣  Checking package READMEs..."
-	@python tools/package_readme_checker.py --all
-	@echo ""
-	@echo "✅ Documentation check complete"
+	@bash tools/maintenance/check_docs.sh
 
 docs-report:
 	@echo "📊 生成文档质量报告..."

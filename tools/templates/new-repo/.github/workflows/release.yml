@@ -1,0 +1,122 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+    - "v*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (build only, skip upload)"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build-and-publish:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install build tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install build isage-pypi-publisher
+
+    - name: Verify version source of truth
+      run: |
+        python - <<'PY'
+        import re, sys, tomllib
+        from pathlib import Path
+        data = tomllib.loads(Path("pyproject.toml").read_text())
+        if "version" in data.get("project", {}):
+            sys.exit("[FAIL] project.version must not be hardcoded in pyproject.toml")
+        print("[OK] version is dynamic")
+        PY
+
+    - name: Build wheel and sdist
+      run: python -m build
+
+    - name: Publish to PyPI
+      if: ${{ inputs.dry_run != true }}
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        skip-existing: true
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist/
+
+  dispatch-downstream:
+    name: Notify downstream packages
+    needs: build-and-publish
+    if: ${{ github.event_name == 'push' || inputs.dry_run != true }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract package info
+      id: pkg
+      run: |
+        python - <<'PY'
+        import glob, re, tomllib
+        from pathlib import Path
+        import os
+
+        # Version from _version.py (single source of truth)
+        files = glob.glob("src/**/_version.py", recursive=True)
+        version = ""
+        if files:
+            m = re.search(r'__version__\s*=\s*"(.+?)"', Path(files[0]).read_text())
+            if m:
+                version = m.group(1)
+
+        # Package name from pyproject.toml
+        data = tomllib.loads(Path("pyproject.toml").read_text())
+        name = data["project"]["name"]
+
+        print(f"package={name}")
+        print(f"version={version}")
+
+        with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+            f.write(f"package={name}\n")
+            f.write(f"version={version}\n")
+        PY
+
+    - name: Dispatch to downstream repos
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PACKAGE: ${{ steps.pkg.outputs.package }}
+        VERSION: ${{ steps.pkg.outputs.version }}
+        TAG: ${{ github.ref_name }}
+      run: |
+        # DOWNSTREAM_REPOS: space-separated list of org/repo targets.
+        # The default token only supports the current repository. Replace GH_TOKEN
+        # with a PAT after scaffolding if cross-repo dispatch is required.
+        DOWNSTREAM_REPOS=""  # e.g. "intellistream/isage-rag-adapter intellistream/isage-rag-examples"
+
+        for repo in $DOWNSTREAM_REPOS; do
+          echo "Dispatching package-released to $repo (${PACKAGE} ${VERSION})"
+          gh api "repos/${repo}/dispatches" \
+            --method POST \
+            -f event_type=package-released \
+            -f "client_payload[package]=${PACKAGE}" \
+            -f "client_payload[version]=${VERSION}" \
+            -f "client_payload[tag]=${TAG}" \
+          && echo "  ✓ $repo" || echo "  ✗ $repo (dispatch failed — check GH_TOKEN permissions)"
+        done

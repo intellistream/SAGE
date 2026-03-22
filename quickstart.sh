@@ -10,48 +10,9 @@ set -e
 SAGE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOOLS_DIR="$SAGE_ROOT/tools/install"
 
-# 自动设置 HuggingFace 镜像（国内网络加速）
-# 如果用户已设置 HF_ENDPOINT 则不覆盖
-if [ -z "${HF_ENDPOINT}" ]; then
-    # 检测是否能直接访问 huggingface.co
-    if ! curl -s --connect-timeout 3 https://huggingface.co >/dev/null 2>&1; then
-        export HF_ENDPOINT="https://hf-mirror.com"
-        echo -e "\033[2m自动设置 HuggingFace 镜像: $HF_ENDPOINT\033[0m"
-
-        # 检测到国内网络，提示配置 HF_TOKEN
-        if [ -z "${HF_TOKEN}" ] && [ ! -f ".env" ] || ! grep -q "HF_TOKEN=" .env 2>/dev/null; then
-            echo -e "\033[33m💡 提示: 检测到您在中国大陆网络环境\033[0m"
-            echo -e "\033[2m为避免 HuggingFace API 限流 (429 错误)，建议配置 HF_TOKEN\033[0m"
-            echo -e "\033[2m获取 token: https://huggingface.co/settings/tokens\033[0m"
-            echo ""
-            read -p "是否现在配置 HF_TOKEN? (y/N): " -n 1 -r
-            echo
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                read -p "请输入您的 HuggingFace Token: " hf_token
-                if [ -n "$hf_token" ]; then
-                    # 创建或更新 .env 文件
-                    if [ ! -f ".env" ]; then
-                        cp .env.template .env 2>/dev/null || touch .env
-                    fi
-                    # 添加或更新 HF_TOKEN
-                    if grep -q "^HF_TOKEN=" .env 2>/dev/null; then
-                        sed -i "s/^HF_TOKEN=.*/HF_TOKEN=$hf_token/" .env
-                    else
-                        echo "HF_TOKEN=$hf_token" >> .env
-                    fi
-                    # 同时添加 HF_ENDPOINT
-                    if ! grep -q "^HF_ENDPOINT=" .env 2>/dev/null; then
-                        echo "HF_ENDPOINT=https://hf-mirror.com" >> .env
-                    fi
-                    echo -e "\033[32m✅ HF_TOKEN 已保存到 .env 文件\033[0m"
-                    export HF_TOKEN="$hf_token"
-                fi
-            else
-                echo -e "\033[2m跳过 HF_TOKEN 配置（可稍后在 .env 文件中手动添加）\033[0m"
-            fi
-        fi
-    fi
-fi
+# 统一 Python/pip 命令，避免 pip 指向用户级路径导致安装到错误环境
+export PYTHON_CMD="${PYTHON_CMD:-python3}"
+export PIP_CMD="${PIP_CMD:-$PYTHON_CMD -m pip}"
 
 # 导入所有模块
 source "$TOOLS_DIR/display_tools/colors.sh"
@@ -63,6 +24,7 @@ source "$TOOLS_DIR/examination_tools/comprehensive_check.sh"
 source "$TOOLS_DIR/examination_tools/environment_prechecks.sh"
 source "$TOOLS_DIR/examination_tools/install_verification.sh"
 source "$TOOLS_DIR/download_tools/argument_parser.sh"
+source "$TOOLS_DIR/download_tools/clone_satellite_repos.sh"
 source "$TOOLS_DIR/examination_tools/mirror_selector.sh"  # 网络加速优化（增强版）
 source "$TOOLS_DIR/installation_table/main_installer.sh"
 source "$TOOLS_DIR/fixes/environment_doctor.sh"
@@ -76,25 +38,221 @@ pre_check_system_environment
 # 根据偏移探测结果设置Unicode符号
 setup_unicode_symbols
 
-# 初始化可选功能标志（防止 unbound variable 错误）
-SAGE_SET_SKIP_SMUDGE="${SAGE_SET_SKIP_SMUDGE:-0}"
+is_interactive_session() {
+    [ -t 0 ] && [ -t 1 ]
+}
+
+run_core_surface_import_check() {
+    local python_cmd="${1:-${PYTHON_CMD:-python3}}"
+    "$python_cmd" -c "import importlib; [importlib.import_module(name) for name in ('sage.foundation', 'sage.stream', 'sage.runtime', 'sage.serving', 'sage.cli')]; print('✅ core surface imports OK')"
+}
+
+show_core_surface_verify_hint() {
+    local python_cmd="${1:-${PYTHON_CMD:-python3}}"
+    echo -e "  $python_cmd -c \"import importlib; [importlib.import_module(name) for name in ('sage.foundation', 'sage.stream', 'sage.runtime', 'sage.serving', 'sage.cli')]; print('✅ core surface imports OK')\"  ${DIM}# 快速验证主仓核心表面${NC}"
+}
+
+# 在参数解析后再处理 HF 配置，避免 --yes/CI 模式被提前交互阻塞
+configure_huggingface_network() {
+    local auto_confirm="$1"
+
+    if [ -n "${HF_ENDPOINT:-}" ]; then
+        return 0
+    fi
+
+    if curl -s --connect-timeout 3 https://huggingface.co >/dev/null 2>&1; then
+        return 0
+    fi
+
+    export HF_ENDPOINT="https://hf-mirror.com"
+    echo -e "${DIM}自动设置 HuggingFace 镜像: $HF_ENDPOINT${NC}"
+
+    if [ -n "${HF_TOKEN:-}" ]; then
+        return 0
+    fi
+
+    local has_env_token=false
+    if [ -f ".env" ] && grep -q "^HF_TOKEN=" .env 2>/dev/null; then
+        has_env_token=true
+    fi
+    if [ "$has_env_token" = true ]; then
+        return 0
+    fi
+
+    if [ "$auto_confirm" = "true" ] || [[ -n "${CI:-}" || -n "${GITHUB_ACTIONS:-}" ]] || ! is_interactive_session; then
+        echo -e "${YELLOW}💡 检测到可能受限网络，建议在 .env 中配置 HF_TOKEN 以减少 429 频率${NC}"
+        return 0
+    fi
+
+    echo -e "${YELLOW}💡 提示: 检测到受限网络环境${NC}"
+    echo -e "${DIM}为避免 HuggingFace API 限流 (429 错误)，建议配置 HF_TOKEN${NC}"
+    echo -e "${DIM}获取 token: https://huggingface.co/settings/tokens${NC}"
+    echo ""
+    read -r -p "是否现在配置 HF_TOKEN? (y/N): " -n 1 reply
+    echo
+
+    if [[ ! "$reply" =~ ^[Yy]$ ]]; then
+        echo -e "${DIM}跳过 HF_TOKEN 配置（可稍后在 .env 文件中手动添加）${NC}"
+        return 0
+    fi
+
+    read -r -p "请输入您的 HuggingFace Token: " hf_token
+    if [ -z "$hf_token" ]; then
+        return 0
+    fi
+
+    if [ ! -f ".env" ]; then
+        cp .env.template .env 2>/dev/null || touch .env
+    fi
+
+    if grep -q "^HF_TOKEN=" .env 2>/dev/null; then
+        sed -i "s/^HF_TOKEN=.*/HF_TOKEN=$hf_token/" .env
+    else
+        echo "HF_TOKEN=$hf_token" >> .env
+    fi
+
+    if ! grep -q "^HF_ENDPOINT=" .env 2>/dev/null; then
+        echo "HF_ENDPOINT=https://hf-mirror.com" >> .env
+    fi
+
+    export HF_TOKEN="$hf_token"
+    echo -e "${GREEN}✅ HF_TOKEN 已保存到 .env 文件${NC}"
+}
+
+# ─── SAGE 工作区初始化函数 ───────────────────────────────────────────────────
+# 用于按当前 SAGE.code-workspace 克隆协同仓库到本地工作区目录。
+# 使用方法：./quickstart.sh --workspace [--dir <path>]
+_init_sage_workspace() {
+    # 解析 --dir 参数
+    local workspace_dir="$HOME/sage-workspace"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --dir) workspace_dir="$2"; shift 2 ;;
+            --dir=*) workspace_dir="${1#--dir=}"; shift ;;
+            *) shift ;;
+        esac
+    done
+
+    local GREEN='\033[0;32m'; local CYAN='\033[0;36m'
+    local YELLOW='\033[1;33m'; local NC='\033[0m'; local BOLD='\033[1m'
+
+    echo -e "\n${BOLD}🚀 SAGE 工作区初始化${NC}"
+    echo -e "${CYAN}目标目录: ${workspace_dir}${NC}\n"
+
+    # ── 当前工作区协同仓库列表（与 SAGE.code-workspace 保持一致）────────────
+    local workspace_file="$SAGE_ROOT/SAGE.code-workspace"
+    local SAGE_REPOS=()
+
+    if declare -f load_repos_from_workspace >/dev/null 2>&1; then
+        local repos_output
+        if repos_output=$(load_repos_from_workspace "$workspace_file" 2>/dev/null); then
+            while IFS= read -r repo_name; do
+                [ -z "$repo_name" ] && continue
+                SAGE_REPOS+=("intellistream/$repo_name")
+            done <<< "$repos_output"
+        fi
+    fi
+
+    if [ ${#SAGE_REPOS[@]} -eq 0 ]; then
+        SAGE_REPOS=(
+            "intellistream/sage-benchmark"
+            "intellistream/sage-docs"
+            "intellistream/sage-examples"
+            "intellistream/sage-tutorials"
+        )
+    fi
+
+    mkdir -p "$workspace_dir"
+
+    local ok=0; local skip=0; local fail=0
+    for repo in "${SAGE_REPOS[@]}"; do
+        local name="${repo#*/}"
+        local target="$workspace_dir/$name"
+        if [ -d "$target/.git" ]; then
+            echo -e "  ${YELLOW}↻${NC} $name — 已存在，正在 pull..."
+            git -C "$target" pull --ff-only 2>&1 | tail -1 && ((skip++)) || ((fail++))
+        else
+            echo -e "  ${CYAN}⬇${NC} clone $repo..."
+            if git clone "https://github.com/$repo.git" "$target" --depth 1 2>&1 | tail -1; then
+                ((ok++))
+            else
+                echo -e "  ${YELLOW}⚠ clone 失败，跳过 $name${NC}"
+                ((fail++))
+            fi
+        fi
+    done
+
+    # ── 主 SAGE meta 仓库（当前仓库）─────────────────────────────────────────
+    if [ ! -d "$workspace_dir/SAGE/.git" ]; then
+        echo -e "  ${CYAN}⬇${NC} clone intellistream/SAGE (meta)..."
+        git clone "https://github.com/intellistream/SAGE.git" "$workspace_dir/SAGE" --depth 1 2>&1 | tail -1 && ((ok++)) || ((fail++))
+    else
+        echo -e "  ${YELLOW}↻${NC} SAGE — 已存在，跳过"
+        ((skip++))
+    fi
+
+    echo ""
+    echo -e "${GREEN}✓ 完成: ${ok} 新克隆, ${skip} 已存在, ${fail} 失败${NC}"
+    echo -e "\n${BOLD}下一步:${NC}"
+    echo -e "  cd $workspace_dir/SAGE"
+    echo -e "  ./quickstart.sh --dev --yes            # 安装主仓开发环境"
+    echo -e "\n  或最小化本地 editable 安装:"
+    echo -e "  python -m pip install -e '.[dev]'\n"
+    return $fail
+}
 
 # 主函数
 main() {
+    # ── 工作区引导模式 (--workspace) ─────────────────────────────────────────
+    # Clone 所有 SAGE 子仓库到 WORKSPACE_DIR（默认 $HOME/sage-workspace）。
+    # 这是新开发者快速设置完整生态系统开发环境的推荐方式。
+    if [[ " $* " == *" --workspace "* ]] || [[ " $* " == *" --init-workspace "* ]]; then
+        _init_sage_workspace "$@"
+        exit $?
+    fi
+
+    # ── Conda 环境引导模式 (--setup-conda) ──────────────────────────────────
+    # 检测 conda 是否已安装，引导安装 Miniforge3 / 创建专用环境。
+    # 适用于首次在新机器上配置开发环境的场景。
+    if [[ " $* " == *" --setup-conda "* ]]; then
+        # conda_guide.sh 由 environment_prechecks.sh 自动 source
+        if declare -f check_conda_environment >/dev/null 2>&1; then
+            check_conda_environment
+        else
+            source "$TOOLS_DIR/examination_tools/conda_guide.sh"
+            check_conda_environment
+        fi
+        exit $?
+    fi
+
     # 运行日志管理
     if [ -f "$TOOLS_DIR/log_management.sh" ]; then
         bash "$TOOLS_DIR/log_management.sh" "$SAGE_ROOT/.sage/logs"
     fi
 
-    # 解析命令行参数（包括帮助检查）
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}🚀 SAGE Quickstart Pipeline${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+    # Phase 1: 参数解析（含默认值设置）
     parse_arguments "$@"
 
-    # 检查环境医生模式
+    if [ -n "${VIRTUAL_ENV:-}" ]; then
+        echo ""
+        echo -e "${RED}${BOLD}❌ 检测到 Python venv: ${VIRTUAL_ENV}${NC}"
+        echo -e "${YELLOW}SAGE 主仓禁止在 venv/.venv 中执行安装或诊断流程。${NC}"
+        echo -e "${DIM}请先 deactivate 当前 venv，并改用现有 Conda 或其他非-venv Python 环境。${NC}"
+        exit 1
+    fi
+
+    # 解析完成后再处理 HF 网络配置，避免 --yes/CI 触发早期交互
+    local auto_confirm=$(get_auto_confirm)
+    configure_huggingface_network "$auto_confirm"
+
+    # Phase 2: 诊断与断点控制
     local run_doctor=$(get_run_doctor)
     local doctor_only=$(get_doctor_only)
     local fix_environment=$(get_fix_environment)
-
-    # 检查断点续传选项
     local resume_install=$(get_resume_install)
     local reset_checkpoint=$(get_reset_checkpoint)
 
@@ -120,7 +278,7 @@ main() {
             source "$TOOLS_DIR/fixes/environment_doctor.sh"
 
             # 确保如果使用了 --yes 参数，环境医生也会自动确认修复
-            if [ "$(get_auto_confirm)" = "true" ]; then
+            if [ "$auto_confirm" = "true" ]; then
                 export AUTO_CONFIRM_FIX="true"
             fi
 
@@ -153,7 +311,7 @@ main() {
 
             # 诊断完成，询问是否继续安装（CI 环境自动确认）
             echo ""
-            if [[ -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" ]] && [ "$(get_auto_confirm)" != "true" ]; then
+            if [[ -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" ]] && [ "$auto_confirm" != "true" ]; then
                 echo -e "${BLUE}${BOLD}📋 环境诊断完成${NC}"
                 echo -e "${DIM}诊断结果已显示在上方${NC}"
                 echo ""
@@ -173,9 +331,6 @@ main() {
             exit 1
         fi
     fi
-
-    # 设置智能默认值并显示提示
-    set_defaults_and_show_tips
 
     # 显示欢迎界面
     show_welcome
@@ -200,15 +355,18 @@ main() {
             echo -e "${YELLOW}⚠️  检测到潜在 numpy 环境问题，但将继续尝试安装${NC}"
         fi
     fi
-    # 如果没有指定任何参数且不在 CI 环境中，显示交互式菜单
+    # Phase 3: 交互式菜单（仅在无参数且非 CI）
     if [ $# -eq 0 ] && [[ -z "${CI:-}" && -z "${GITHUB_ACTIONS:-}" && -z "${GITLAB_CI:-}" && -z "${JENKINS_URL:-}" && -z "${BUILDKITE:-}" ]]; then
         show_installation_menu
+        auto_confirm=$(get_auto_confirm)
     fi
 
-    # 获取解析后的参数
+    # Phase 4: 读取最终安装配置
     local mode=$(get_install_mode)
     local environment=$(get_install_environment)
-    local auto_confirm=$(get_auto_confirm)
+    local clone_satellites=$(should_clone_satellite_repos)
+    export SAGE_INSTALL_MODE="$mode"
+    export SAGE_AUTO_CONFIRM="$auto_confirm"
     local clean_cache=$(get_clean_pip_cache)
     local verify_deps=$(get_verify_deps)
     local verify_deps_strict=$(get_verify_deps_strict)
@@ -218,6 +376,7 @@ main() {
     local use_mirror=$(should_use_pip_mirror)
     local mirror_source=$(get_mirror_source_value)
     local clean_before_install=$(get_clean_before_install)
+    export CLEAN_BEFORE_INSTALL="$clean_before_install"
 
     # 导出 pip 镜像配置为环境变量，供子脚本使用
     export USE_PIP_MIRROR="$use_mirror"
@@ -254,8 +413,10 @@ main() {
 
         echo -e "${YELLOW}确认开始安装吗？${NC} [${GREEN}Y${NC}/${RED}n${NC}]"
         read -p "请输入选择: " -r continue_choice
+        # Trim whitespace/control chars, then only cancel on explicit n/N
+        continue_choice="${continue_choice//[[:space:]]/}"
 
-        if [[ ! "$continue_choice" =~ ^[Yy]$ ]] && [[ ! -z "$continue_choice" ]]; then
+        if [[ "$continue_choice" =~ ^[Nn] ]]; then
             echo ""
             echo -e "${INFO} 安装已取消。"
             echo -e "${DIM}提示: 可使用 ./quickstart.sh --help 查看所有选项${NC}"
@@ -270,6 +431,13 @@ main() {
 
     # 切换到项目根目录
     cd "$SAGE_ROOT"
+
+    # dev 模式下自动克隆附属仓库（默认启用，可用 --no-clone-satellites 关闭）
+    if [ "$mode" = "dev" ] && [ "$clone_satellites" = "true" ]; then
+        echo ""
+        echo -e "${BLUE}📚 同步附属仓库（dev 模式）...${NC}"
+        clone_all_public_repos "$(dirname "$SAGE_ROOT")" "$SAGE_ROOT/SAGE.code-workspace" || true
+    fi
 
     # 执行深度依赖验证（如果指定了 --verify-deps）
     if [ "$verify_deps" = "true" ]; then
@@ -302,9 +470,9 @@ main() {
 
     # 验证安装
     if run_comprehensive_verification; then
-        # C++扩展已在 sage-middleware 安装时自动构建和验证
+        # 原生/C++扩展会在相关安装阶段自动构建和验证
         if [ "$mode" = "standard" ] || [ "$mode" = "dev" ]; then
-            echo -e "${DIM}C++扩展已通过 sage-middleware 自动构建和验证${NC}"
+            echo -e "${DIM}原生/C++扩展已在安装流程中自动构建和验证（若当前模式包含相关组件）${NC}"
         fi
 
         # 自动安装代码质量和架构检查 Git hooks（所有模式）
@@ -316,17 +484,7 @@ main() {
             echo ""
             echo -e "${INFO} 安装代码质量和架构检查工具..."
 
-            # 1. 安装 pre-commit 框架（代码质量）
-            if command -v pip3 >/dev/null 2>&1 || command -v pip >/dev/null 2>&1; then
-                echo -e "${DIM}   安装 pre-commit 框架...${NC}"
-                if pip install -q pre-commit 2>/dev/null || pip3 install -q pre-commit 2>/dev/null; then
-                    echo -e "${GREEN}   ✅ pre-commit 框架已安装${NC}"
-                else
-                    echo -e "${YELLOW}   ⚠️  pre-commit 安装失败，代码格式检查将被跳过${NC}"
-                fi
-            fi
-
-            # 2. 安装 Git hooks（使用新的 sage-dev maintain hooks 命令）
+            # 安装 Git hooks（统一使用 sage-dev maintain hooks 命令）
             # 使用正确环境中的 sage-dev
             local sage_dev_cmd="sage-dev"
             if [ -n "$SAGE_ENV_NAME" ]; then
@@ -386,8 +544,35 @@ main() {
                     fi
                 fi
             else
-                echo -e "${YELLOW}⚠️  sage-dev 命令不可用，跳过 Git hooks 安装${NC}"
-                echo -e "${DIM}   安装完成后激活环境并运行: sage-dev maintain hooks install${NC}"
+                echo -e "${YELLOW}⚠️  sage-dev 命令暂不可用，尝试使用 pre-commit 回退安装 hooks...${NC}"
+
+                # 回退路径：仅安装 hooks，不负责安装依赖
+                local precommit_available=false
+                local precommit_cmd=""
+
+                if command -v pre-commit >/dev/null 2>&1; then
+                    precommit_available=true
+                    precommit_cmd="pre-commit"
+                elif [ -n "$SAGE_ENV_NAME" ] && conda run -n "$SAGE_ENV_NAME" python -c "import pre_commit" >/dev/null 2>&1; then
+                    precommit_available=true
+                    precommit_cmd="conda run -n $SAGE_ENV_NAME python -m pre_commit"
+                elif python3 -c "import pre_commit" >/dev/null 2>&1; then
+                    precommit_available=true
+                    precommit_cmd="python3 -m pre_commit"
+                fi
+
+                if [ "$precommit_available" = true ] && [ -d ".git" ]; then
+                    echo -e "${DIM}   使用 pre-commit 回退安装 hooks...${NC}"
+                    if eval "$precommit_cmd install --config tools/config/pre-commit-config.yaml" 2>&1; then
+                        echo -e "${GREEN}✅ Git hooks 已安装（pre-commit 回退路径）${NC}"
+                    else
+                        echo -e "${YELLOW}⚠️  pre-commit 回退安装失败${NC}"
+                        echo -e "${DIM}   请激活环境后运行: sage-dev maintain hooks install${NC}"
+                    fi
+                else
+                    echo -e "${YELLOW}⚠️  pre-commit 也不可用，跳过 Git hooks 安装${NC}"
+                    echo -e "${DIM}   请激活环境后运行: sage-dev maintain hooks install${NC}"
+                fi
             fi
         fi
 
@@ -413,81 +598,20 @@ main() {
                 echo -e "${DIM}   ℹ️  Git 配置脚本不存在，跳过${NC}"
             fi
 
-            # 安装主仓库的 pre-commit hooks
-            if command -v pre-commit >/dev/null 2>&1; then
-                echo -e "${DIM}   配置主仓库 pre-commit hooks...${NC}"
-                if pre-commit install 2>/dev/null; then
-                    echo -e "${GREEN}   ✅ 主仓库 pre-commit hooks 已安装${NC}"
-                else
-                    echo -e "${YELLOW}   ⚠️  主仓库 pre-commit hooks 安装失败${NC}"
-                fi
-            else
-                echo -e "${YELLOW}   ⚠️  pre-commit 未安装，跳过 Git hooks 安装${NC}"
-            fi
-
-            # 安装所有子模块的 pre-commit hooks
-            if command -v pre-commit >/dev/null 2>&1; then
-                echo -e "${DIM}   配置子模块 pre-commit hooks...${NC}"
-                local submodules_with_hooks=0
-                local submodules_installed=0
-
-                # 定义所有子模块路径
-                # 注意: C++ 扩展已迁移为独立 PyPI 包 (isagevdb, isage-flow, isage-tsdb, neuromem, isage-refiner)
-                # sageLLM 已独立为私有仓库
-                local submodule_paths=(
-                    # 所有子模块已迁移或独立，不在此列表中
-                )
-
-                for submodule_path in "${submodule_paths[@]}"; do
-                    local full_path="$SAGE_ROOT/$submodule_path"
-                    local submodule_name=$(basename "$submodule_path")
-
-                    if [ -d "$full_path" ] && [ -f "$full_path/.pre-commit-config.yaml" ]; then
-                        ((submodules_with_hooks++)) || true
-                        if (cd "$full_path" && pre-commit install 2>/dev/null); then
-                            echo -e "${GREEN}   ✅ $submodule_name pre-commit hooks 已安装${NC}"
-                            ((submodules_installed++)) || true
-                        else
-                            echo -e "${DIM}   ℹ️  $submodule_name pre-commit hooks 安装跳过${NC}"
-                        fi
-                    fi
-                done
-
-                # 使用 || true 避免 set -e 导致脚本退出
-                if [ $submodules_with_hooks -gt 0 ]; then
-                    echo -e "${GREEN}   ✅ 子模块 pre-commit hooks: $submodules_installed/$submodules_with_hooks 安装成功${NC}"
-                else
-                    echo -e "${DIM}   ℹ️  未发现子模块 pre-commit 配置${NC}"
-                fi || true
-            else
-                echo -e "${YELLOW}   ⚠️  pre-commit 未安装，跳过子模块 hooks${NC}"
-            fi
+            echo -e "${DIM}   ℹ️  hooks 已由 sage-dev maintain hooks install 统一管理${NC}"
         fi
 
         show_usage_tips "$mode"
 
-        # 设置 workspace 依赖（如果指定了 --workspace）
-        local setup_workspace=$(get_setup_workspace)
-        if [ "$setup_workspace" = "true" ]; then
-            echo ""
-            echo -e "${INFO} 设置 workspace 依赖..."
-            if [ -f "$SAGE_ROOT/tools/scripts/setup_workspace_deps.sh" ]; then
-                if bash "$SAGE_ROOT/tools/scripts/setup_workspace_deps.sh"; then
-                    echo -e "${GREEN}✅ Workspace 依赖设置完成${NC}"
-                else
-                    echo -e "${YELLOW}⚠️  Workspace 设置遇到问题，但不影响 SAGE 使用${NC}"
-                fi
-            else
-                echo -e "${YELLOW}⚠️  Workspace 设置脚本未找到${NC}"
-            fi
+        # ── Zoo packages: 可选的独立插件包 ──────────────────────────────────
+        offer_zoo_packages "$auto_confirm"
+
+        # 将 sage conda 环境写入 shell RC，下次打开终端自动激活
+        if declare -f setup_bashrc_conda_default >/dev/null 2>&1; then
+            setup_bashrc_conda_default "${SAGE_ENV_NAME:-${SAGE_CONDA_ENV_NAME:-sage}}"
         fi
 
-        # 显示快速启动服务菜单（交互模式）
-        # 注意：已由 show_usage_tips 内部调用 prompt_start_llm_service
-        # if [ "$(get_auto_confirm)" != "true" ] && [ -z "${CI:-}" ] && [ -z "${GITHUB_ACTIONS:-}" ]; then
-        #     echo ""
-        #     prompt_start_llm_service "$mode"
-        # fi
+        # 显示安装后使用提示（不自动启动服务）
 
         # 检查并修复依赖冲突
         echo ""
@@ -509,6 +633,31 @@ main() {
         fi
 
         echo ""
+        # ── 安装后快速健康检查 ──────────────────────────────────────────────
+        echo -e "${INFO} 运行安装后健康检查..."
+        local python_cmd="${PYTHON_CMD:-python3}"
+        local sage_cli_ok=false
+        if $python_cmd -c "import sage.cli" &>/dev/null 2>&1; then
+            sage_cli_ok=true
+        fi
+
+        if [ "$sage_cli_ok" = true ]; then
+            # 用 sage doctor 做层级检查（静默失败，不阻塞安装）
+            if $python_cmd -m sage.cli.main doctor 2>/dev/null; then
+                :
+            else
+                echo -e "${DIM}  💡 可运行 [sage doctor] 查看详细诊断${NC}"
+            fi
+        else
+            # 回退到主仓核心表面 import 检查
+            if run_core_surface_import_check "$python_cmd" >/dev/null 2>&1; then
+                echo -e "${GREEN}  ✅ 核心包验证通过${NC}"
+            else
+                echo -e "${YELLOW}  ⚠️  主仓核心表面 import 检查失败，请运行: sage doctor${NC}"
+            fi
+        fi
+
+        echo ""
         # 使用适配的居中显示函数，确保在所有环境下都能正确居中
         if [ "$VSCODE_OFFSET_ENABLED" = true ]; then
             center_text_formatted "${ROCKET} 欢迎使用 SAGE！${ROCKET}" "$GREEN$BOLD"
@@ -516,8 +665,10 @@ main() {
             center_text "${ROCKET} 欢迎使用 SAGE！${ROCKET}" "$GREEN$BOLD"
         fi
         echo ""
+        echo -e "${DIM}  💡 验证安装: [bold]sage doctor[/bold] | 快速体验: [bold]sage verify[/bold]${NC}"
+        echo ""
 
-        if [ "$SAGE_SET_SKIP_SMUDGE" = 1 ]; then
+        if [ "${SAGE_SET_SKIP_SMUDGE:-0}" = 1 ]; then
             echo -e "${DIM}提示: 已跳过 Git LFS 大文件的自动下载，以缩短初始化时间。${NC}"
             echo -e "${DIM}如需使用 LibAMM 基准数据，请手动执行:${NC}"
             echo -e "  ${DIM}cd packages/sage-benchmark/src/sage/data && git lfs pull${NC}"
@@ -525,11 +676,46 @@ main() {
         fi
     else
         echo ""
-        echo -e "${YELLOW}安装可能成功，请手动验证（PEP 420 namespace）：${NC}"
-        # 使用正确的 Python 命令和 PEP 420 导入
+        echo -e "${YELLOW}安装可能成功，请手动验证：${NC}"
         local python_cmd="${PYTHON_CMD:-python3}"
-        echo -e "  $python_cmd -c \"import sage.common; print(sage.common.__version__)\""
+        echo -e "  sage doctor           ${DIM}# 完整诊断（推荐）${NC}"
+        show_core_surface_verify_hint "$python_cmd"
     fi
+}
+
+# ============================================================================
+# Zoo packages: 可选安装的独立发布包
+# 这些包已从 SAGE workspace 独立出去，单独发布到 PyPI，按需安装即可。
+# ============================================================================
+offer_zoo_packages() {
+    # Zoo 包列表：格式 "pypi-name|中文描述"
+    local zoo_packages=(
+        "isage-rag|RAG 管道组件（文档加载、分块、检索、重排）"
+        "isage-eval|评估框架（指标、性能分析、LLM 评判）"
+        "isage-finetune|LLM 微调工具（LoRA、数据加载器）"
+        "isage-agentic-tooluse|Agent 工具选择算法（Hybrid/DFS/Gorilla）"
+        "isage-intent|意图识别（关键词 + LLM 方案）"
+    )
+
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}🐾  Zoo 独立包（可选安装）${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${DIM}以下包已独立发布到 PyPI，不影响 SAGE 核心功能。${NC}"
+    echo -e "${DIM}不再逐个交互询问；如需使用，请按需手动安装。${NC}"
+    echo ""
+
+    printf '  %-28s %s\n' "PyPI 包名" "说明"
+    printf '  %-28s %s\n' "----------------------------" "----------------------------------------"
+    for entry in "${zoo_packages[@]}"; do
+        local pkg="${entry%%|*}"
+        local desc="${entry##*|}"
+        printf '  %-28s %s\n' "$pkg" "$desc"
+    done
+
+    echo ""
+    echo -e "${DIM}安装方式示例: python -m pip install isage-rag${NC}"
+    echo -e "${DIM}可按需替换为上表中的任意包名。${NC}"
 }
 
 # 运行主函数

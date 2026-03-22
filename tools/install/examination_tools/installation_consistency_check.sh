@@ -80,7 +80,7 @@ print_check() {
 check_sage_root() {
     echo -e "${BOLD}1. 检查项目结构${NC}"
 
-    if [ -f "${SAGE_ROOT:-}/quickstart.sh" ] && [ -d "${SAGE_ROOT:-}/packages/sage" ]; then
+    if [ -f "${SAGE_ROOT:-}/quickstart.sh" ] && [ -f "${SAGE_ROOT:-}/pyproject.toml" ]; then
         print_check "pass" "SAGE 项目根目录已识别"
     else
         print_check "fail" "未在 SAGE 项目根目录运行"

@@ -7,8 +7,7 @@
 
 # 方式 1: 标准安全安装（带深度验证）
 echo "📦 标准安全安装"
-# python3 -m venv sage-env
-# source sage-env/bin/activate
+# conda activate sage
 # ./quickstart.sh --verify-deps --standard
 
 # ============================================================================

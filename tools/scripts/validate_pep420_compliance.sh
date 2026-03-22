@@ -1,13 +1,13 @@
 #!/bin/bash
 # validate_pep420_compliance.sh
-# Validates PEP 420 namespace package compliance for SAGE monorepo
+# Validates PEP 420 namespace package compliance for the SAGE meta package
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-echo "🔍 Validating PEP 420 namespace package compliance (SAGE monorepo)..."
+echo "🔍 Validating PEP 420 namespace package compliance (SAGE meta package)..."
 echo ""
 
 # Color codes
@@ -19,51 +19,44 @@ NC='\033[0m' # No Color
 ERRORS=0
 WARNINGS=0
 
-# Check 1: No src/sage/__init__.py in any package
+# Check 1: No src/sage/__init__.py in the meta package
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Check 1: Namespace package __init__.py compliance"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Find all src/sage/__init__.py files (should be none)
-VIOLATIONS=$(find "$PROJECT_ROOT/packages" -type f -path "*/src/sage/__init__.py" 2>/dev/null || true)
+VIOLATION_FILE="$PROJECT_ROOT/src/sage/__init__.py"
 
-if [ -n "$VIOLATIONS" ]; then
-    echo -e "${RED}❌ FAIL: Found prohibited src/sage/__init__.py files:${NC}"
-    echo "$VIOLATIONS" | sed 's/^/   /'
+if [ -f "$VIOLATION_FILE" ]; then
+    echo -e "${RED}❌ FAIL: Found prohibited src/sage/__init__.py file:${NC}"
+    echo "   $VIOLATION_FILE"
     echo ""
     echo "   PEP 420 requires namespace packages to be implicit (no __init__.py)"
-    echo "   Solution: rm packages/*/src/sage/__init__.py"
-    echo "   See: docs-public/docs_src/dev-notes/cross-layer/pep420-namespace-migration.md"
+    echo "   Solution: rm src/sage/__init__.py"
+    echo "   See: CONTRIBUTING.md (PEP 420 section)"
     ERRORS=$((ERRORS + 1))
 else
-    echo -e "${GREEN}✓ PASS: No src/sage/__init__.py files found${NC}"
+    echo -e "${GREEN}✓ PASS: No prohibited src/sage/__init__.py file found${NC}"
 fi
 echo ""
 
-# Check 2: All packages have "namespaces = true"
+# Check 2: Root pyproject.toml has "namespaces = true"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Check 2: pyproject.toml namespace configuration"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-MISSING_NAMESPACES=()
-for TOML in "$PROJECT_ROOT"/packages/*/pyproject.toml; do
-    if [ -f "$TOML" ]; then
-        PACKAGE=$(basename "$(dirname "$TOML")")
-        if ! grep -q "namespaces = true" "$TOML"; then
-            MISSING_NAMESPACES+=("$PACKAGE")
-        fi
-    fi
-done
+ROOT_PYPROJECT="$PROJECT_ROOT/pyproject.toml"
 
-if [ ${#MISSING_NAMESPACES[@]} -gt 0 ]; then
-    echo -e "${RED}❌ FAIL: Missing 'namespaces = true' in packages:${NC}"
-    printf '   - %s\n' "${MISSING_NAMESPACES[@]}"
+if [ ! -f "$ROOT_PYPROJECT" ]; then
+    echo -e "${RED}❌ FAIL: Missing root pyproject.toml${NC}"
+    ERRORS=$((ERRORS + 1))
+elif ! grep -q "namespaces = true" "$ROOT_PYPROJECT"; then
+    echo -e "${RED}❌ FAIL: Missing 'namespaces = true' in root pyproject.toml${NC}"
     echo ""
     echo "   Add to [tool.setuptools.packages.find] section:"
     echo "   namespaces = true"
     ERRORS=$((ERRORS + 1))
 else
-    echo -e "${GREEN}✓ PASS: All packages have 'namespaces = true'${NC}"
+    echo -e "${GREEN}✓ PASS: Root pyproject.toml has 'namespaces = true'${NC}"
 fi
 echo ""
 
@@ -118,6 +111,6 @@ else
         echo -e "${YELLOW}   ($WARNINGS warnings)${NC}"
     fi
     echo ""
-    echo "See: docs-public/docs_src/dev-notes/cross-layer/pep420-namespace-migration.md"
+    echo "See: CONTRIBUTING.md (PEP 420 section)"
     exit 1
 fi

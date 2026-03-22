@@ -70,6 +70,64 @@ log_message() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $*" >> "$DOCTOR_LOG"
 }
 
+# 轻量获取包版本（避免直接 import 大型包导致内存峰值）
+get_package_version_safe() {
+    local package_name="$1"
+    local detected_version=""
+
+    detected_version=$(python3 -c "from importlib.metadata import version, PackageNotFoundError; pkg='$package_name';
+try:
+    print(version(pkg))
+except PackageNotFoundError:
+    pass" 2>/dev/null | head -1)
+
+    if [ -z "$detected_version" ]; then
+        if command -v pip3 >/dev/null 2>&1; then
+            detected_version=$(pip3 show "$package_name" 2>/dev/null | awk -F': ' '/^Version:/{print $2; exit}')
+        elif command -v pip >/dev/null 2>&1; then
+            detected_version=$(pip show "$package_name" 2>/dev/null | awk -F': ' '/^Version:/{print $2; exit}')
+        fi
+    fi
+
+    echo "$detected_version"
+}
+
+# 检查 numpy 元数据是否完整（避免依赖 pkg_resources）
+is_numpy_metadata_healthy() {
+    python3 -c "
+import glob
+import os
+import site
+import sys
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    import numpy  # noqa: F401
+except Exception:
+    sys.exit(0)
+
+try:
+    version('numpy')
+except PackageNotFoundError:
+    sys.exit(1)
+
+paths = []
+for p in site.getsitepackages() + [site.getusersitepackages()]:
+    if p not in paths and os.path.isdir(p):
+        paths.append(p)
+
+for root in paths:
+    for candidate in glob.glob(os.path.join(root, '~umpy*')):
+        if os.path.exists(candidate):
+            sys.exit(1)
+    for dist_info in glob.glob(os.path.join(root, 'numpy-*.dist-info')):
+        if not os.path.isfile(os.path.join(dist_info, 'RECORD')):
+            sys.exit(1)
+
+sys.exit(0)
+" >/dev/null 2>&1
+}
+
 # 问题报告结构
 declare -A ISSUE_REGISTRY
 declare -A FIX_REGISTRY
@@ -144,9 +202,9 @@ check_python_environment() {
     if command -v pip >/dev/null 2>&1 || command -v pip3 >/dev/null 2>&1; then
         local pip_version=""
         if command -v pip3 >/dev/null 2>&1; then
-            pip_version=$(pip3 --version 2>&1 | grep -oP 'pip \K[0-9]+\.[0-9]+\.[0-9]+')
+            pip_version=$(pip3 --version 2>&1 | grep -oE 'pip [0-9]+\.[0-9]+(\.[0-9]+)?' | awk '{print $2}' | head -1)
         else
-            pip_version=$(pip --version 2>&1 | grep -oP 'pip \K[0-9]+\.[0-9]+\.[0-9]+')
+            pip_version=$(pip --version 2>&1 | grep -oE 'pip [0-9]+\.[0-9]+(\.[0-9]+)?' | awk '{print $2}' | head -1)
         fi
         echo -e "  ${GREEN}${CHECK_MARK}${NC} pip 版本: $pip_version"
         log_message "INFO" "pip version: $pip_version"
@@ -197,7 +255,7 @@ check_package_manager_conflicts() {
         fi
 
         if [ "$pip_available" = "true" ]; then
-            pip_installed=$(python3 -c "import $package; print($package.__version__)" 2>/dev/null || echo "")
+            pip_installed=$(get_package_version_safe "$package")
         fi
 
         # 只有在真正冲突时才报告（conda 管理的包 vs pip 管理的包，且版本不同）
@@ -264,7 +322,7 @@ check_core_dependencies() {
         local status="missing"
 
         # 尝试获取包版本
-        version=$(python3 -c "import $package; print($package.__version__)" 2>/dev/null || echo "")
+        version=$(get_package_version_safe "$package")
 
         if [ -n "$version" ]; then
             status="installed"
@@ -276,16 +334,6 @@ check_core_dependencies() {
                 "numpy")
                     if [[ "$version" =~ ^1\. ]]; then
                         report_issue "numpy_v1" "numpy 1.x 版本可能与某些深度学习库不兼容，建议升级到 2.x" "major"
-                    fi
-                    ;;
-                "torch")
-                    # 检查CUDA支持
-                    local cuda_available=$(python3 -c "import torch; print(torch.cuda.is_available())" 2>/dev/null || echo "False")
-                    if [ "$cuda_available" = "True" ]; then
-                        local cuda_version=$(python3 -c "import torch; print(torch.version.cuda)" 2>/dev/null || echo "unknown")
-                        echo -e "    ${GREEN}${CHECK_MARK}${NC} CUDA 支持: $cuda_version"
-                    else
-                        echo -e "    ${YELLOW}${WARNING_MARK}${NC} 未检测到 CUDA 支持"
                     fi
                     ;;
             esac
@@ -301,16 +349,16 @@ check_core_dependencies() {
 check_specific_issues() {
     echo -e "\n${YELLOW}${BOLD}🔎 特定问题诊断${NC}"
 
-    # 检查numpy RECORD文件问题
+    # 检查 numpy 元数据完整性问题
     if python3 -c "import numpy" >/dev/null 2>&1; then
-        if ! python3 -c "import pkg_resources; pkg_resources.get_distribution('numpy')" >/dev/null 2>&1; then
+        if ! is_numpy_metadata_healthy; then
             report_issue "numpy_corrupted" "numpy 安装记录损坏，可能导致升级失败" "major"
         fi
     fi
 
     # 检查torch版本兼容性
-    local torch_version=$(python3 -c "import torch; print(torch.__version__)" 2>/dev/null || echo "")
-    local numpy_version=$(python3 -c "import numpy; print(numpy.__version__)" 2>/dev/null || echo "")
+    local torch_version=$(get_package_version_safe "torch")
+    local numpy_version=$(get_package_version_safe "numpy")
 
     if [ -n "$torch_version" ] && [ -n "$numpy_version" ]; then
         # 检查已知的不兼容组合
@@ -321,24 +369,12 @@ check_specific_issues() {
 
     # 检查CUDA环境
     if command -v nvidia-smi >/dev/null 2>&1; then
+        echo -e "  ${GREEN}${CHECK_MARK}${NC} CUDA 设备检测: 检测到 NVIDIA GPU"
         local driver_version=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader,nounits 2>/dev/null | head -1)
         echo -e "  ${INFO_MARK} NVIDIA 驱动版本: $driver_version"
 
-        # 检查CUDA工具包 - 系统级别
-        if [ -d "/usr/local/cuda" ]; then
-            local cuda_version=$(cat /usr/local/cuda/version.txt 2>/dev/null | grep -oP 'CUDA Version \K[0-9]+\.[0-9]+' || echo "unknown")
-            echo -e "  ${INFO_MARK} CUDA 工具包版本 (系统): $cuda_version"
-        fi
-
-        # 检查 nvcc 编译器 (关键：vLLM 需要)
-        if command -v nvcc >/dev/null 2>&1; then
-            local nvcc_version=$(nvcc --version 2>/dev/null | grep -oP 'release \K[0-9]+\.[0-9]+' || echo "unknown")
-            echo -e "  ${GREEN}${CHECK_MARK}${NC} NVCC 编译器: $nvcc_version"
-            log_message "INFO" "NVCC version: $nvcc_version"
-        else
-            report_issue "nvcc_missing" "检测到 GPU 但未找到 nvcc 编译器 - vLLM 需要 CUDA Toolkit" "critical"
-            echo -e "    ${DIM}修复建议: conda install -c conda-forge cudatoolkit-dev -y --override-channels${NC}"
-        fi
+    else
+        echo -e "  ${INFO_MARK} CUDA 设备检测: 未检测到 nvidia-smi（当前可能为 CPU 环境）"
     fi
 
     # 检查磁盘空间
@@ -350,85 +386,79 @@ check_specific_issues() {
     fi
 }
 
-# 5. 开发工具检查
-check_dev_tools() {
-    echo -e "\n${PURPLE}${BOLD}🛠️  开发工具诊断${NC}"
+# 5. 系统级依赖检查（无法通过 pyproject.toml 自动安装）
+check_system_dependencies() {
+    echo -e "\n${PURPLE}${BOLD}🧰 系统依赖诊断${NC}"
 
-    # 检查 pytest 及其相关插件
-    declare -A dev_tools=(
-        ["pytest"]="pytest>=7.0.0"
-        ["pytest-cov"]="pytest-cov>=4.0.0"
-        ["pytest-asyncio"]="pytest-asyncio>=0.21.0"
-        ["pytest-mock"]="pytest-mock>=3.10.0"
-        ["pytest-timeout"]="pytest-timeout>=2.1.0"
-        ["pytest-benchmark"]="pytest-benchmark>=4.0.0"
-        ["ruff"]="ruff==0.14.6"
-        ["mypy"]="mypy>=1.0.0"
-        ["pre-commit"]="pre-commit>=3.0.0"
-    )
-
-    local missing_tools=()
-    local installed_tools=()
-
-    for tool in "${!dev_tools[@]}"; do
-        local version=""
-        local package_name="$tool"
-
-        # 确保 ~/.local/bin 在 PATH 中（pip install --user 安装的工具在这里）
-        if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-            export PATH="$HOME/.local/bin:$PATH"
-        fi
-
-        # 使用 importlib.metadata 获取版本（Python 3.8+ 标准方法）
-        # 这比直接 import 模块更可靠，因为不是所有包都有 __version__ 属性
-        version=$(python3 -c "from importlib.metadata import version; print(version('$package_name'))" 2>/dev/null || echo "")
-
-        # 对于命令行工具（如 pre-commit, ruff），如果 importlib 找不到，也检查 command -v
-        if [ -z "$version" ]; then
-            if command -v "$tool" >/dev/null 2>&1; then
-                # 尝试从工具自身获取版本
-                version=$("$tool" --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1 || echo "available")
-            fi
-        fi
-
-        if [ -n "$version" ]; then
-            echo -e "  ${GREEN}${CHECK_MARK}${NC} $tool: $version"
-            installed_tools+=("$tool")
-            log_message "INFO" "$tool version: $version"
+    local missing_build_tools=()
+    for tool in gcc cmake make pkg-config; do
+        if command -v "$tool" >/dev/null 2>&1; then
+            echo -e "  ${GREEN}${CHECK_MARK}${NC} $tool: 已安装"
         else
             echo -e "  ${YELLOW}${CROSS_MARK}${NC} $tool: 未安装"
-            missing_tools+=("$tool")
-            log_message "WARN" "$tool is not installed"
+            missing_build_tools+=("$tool")
         fi
     done
 
-    # 如果有缺失的工具，报告问题
-    if [ ${#missing_tools[@]} -gt 0 ]; then
-        local tools_list=$(IFS=", "; echo "${missing_tools[*]}")
-        report_issue "dev_tools_missing" "缺少开发工具: $tools_list" "major"
-
-        # 特别强调 pytest
-        for tool in "${missing_tools[@]}"; do
-            if [[ "$tool" == pytest* ]]; then
-                echo -e "    ${DIM}提示: pytest 是运行测试所必需的${NC}"
-                break
-            fi
-        done
-    else
-        echo -e "\n  ${GREEN}${CHECK_MARK}${NC} 所有开发工具已安装"
+    if [ ${#missing_build_tools[@]} -gt 0 ]; then
+        local tool_list=$(IFS=", "; echo "${missing_build_tools[*]}")
+        report_issue "system_build_tools_missing" "缺少系统构建工具: $tool_list" "major"
+        echo -e "    ${DIM}说明: 这类依赖属于系统包，不能由 pyproject.toml 自动安装${NC}"
     fi
 
-    # 检查 pre-commit hooks 是否已安装
-    if [ -d ".git" ]; then
-        if [ -f ".git/hooks/pre-commit" ]; then
-            echo -e "  ${GREEN}${CHECK_MARK}${NC} pre-commit hooks: 已安装"
-        else
-            if command -v pre-commit >/dev/null 2>&1; then
-                echo -e "  ${YELLOW}${WARNING_MARK}${NC} pre-commit hooks: 未安装（pre-commit 工具可用）"
-                report_issue "pre_commit_hooks_missing" "pre-commit hooks 未安装" "minor"
-            fi
+    local blas_found=false
+    local lapack_found=false
+    for lib_path in /usr/lib /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/local/lib; do
+        if [[ -f "$lib_path/libopenblas.so" || -f "$lib_path/libblas.so" ]]; then
+            blas_found=true
         fi
+        if [[ -f "$lib_path/liblapack.so" ]]; then
+            lapack_found=true
+        fi
+    done
+
+    if [ "$blas_found" = true ]; then
+        echo -e "  ${GREEN}${CHECK_MARK}${NC} BLAS: 已检测到"
+    else
+        echo -e "  ${YELLOW}${CROSS_MARK}${NC} BLAS: 未检测到"
     fi
+
+    if [ "$lapack_found" = true ]; then
+        echo -e "  ${GREEN}${CHECK_MARK}${NC} LAPACK: 已检测到"
+    else
+        echo -e "  ${YELLOW}${CROSS_MARK}${NC} LAPACK: 未检测到"
+    fi
+
+    if [ "$blas_found" != true ] || [ "$lapack_found" != true ]; then
+        report_issue "system_math_libs_missing" "缺少系统数学库（BLAS/LAPACK）" "major"
+        echo -e "    ${DIM}说明: 这类依赖属于系统包，不能由 pyproject.toml 自动安装${NC}"
+    fi
+}
+
+# 系统级依赖修复（通过系统包管理器）
+fix_system_dependencies() {
+    echo -e "\n${TOOL_MARK} 修复系统依赖问题..."
+
+    local script_dir=""
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local installer_script="$script_dir/../core/install_system_deps.sh"
+
+    if [ ! -f "$installer_script" ]; then
+        echo -e "  ${RED}${CROSS_MARK}${NC} 未找到系统依赖安装脚本: $installer_script"
+        return 1
+    fi
+
+    echo -e "  ${DIM}执行: bash $installer_script${NC}"
+    if bash "$installer_script"; then
+        echo -e "  ${GREEN}${CHECK_MARK}${NC} 系统依赖修复完成"
+        FIXES_APPLIED=$((FIXES_APPLIED + 1))
+        log_message "FIX" "Successfully repaired system dependencies"
+        return 0
+    fi
+
+    echo -e "  ${RED}${CROSS_MARK}${NC} 系统依赖修复失败"
+    log_message "ERROR" "Failed to repair system dependencies"
+    return 1
 }
 
 # ================================
@@ -703,18 +733,32 @@ fix_numpy_corrupted() {
         return 1
     fi
 
-    # 清理损坏的numpy
+    # 清理损坏的 numpy
     pip3 uninstall numpy -y >/dev/null 2>&1 || true
     python3 -c "
-import os, shutil, sys
-try:
-    import numpy
-    numpy_path = os.path.dirname(numpy.__file__)
-    if 'site-packages' in numpy_path:
-        shutil.rmtree(numpy_path, ignore_errors=True)
-        print('清理了损坏的 numpy 安装')
-except Exception:
-    pass
+import glob
+import os
+import shutil
+import site
+
+paths = []
+for p in site.getsitepackages() + [site.getusersitepackages()]:
+    if p not in paths and os.path.isdir(p):
+        paths.append(p)
+
+for root in paths:
+    for candidate in glob.glob(os.path.join(root, 'numpy')):
+        shutil.rmtree(candidate, ignore_errors=True)
+    for candidate in glob.glob(os.path.join(root, 'numpy-*.dist-info')):
+        shutil.rmtree(candidate, ignore_errors=True)
+    for candidate in glob.glob(os.path.join(root, '~umpy*')):
+        if os.path.isdir(candidate):
+            shutil.rmtree(candidate, ignore_errors=True)
+        elif os.path.exists(candidate):
+            try:
+                os.remove(candidate)
+            except OSError:
+                pass
 " 2>/dev/null || true
 
     # 重新安装（使用 SAGE 兼容版本：>=1.26.0,<2.3.0）
@@ -788,72 +832,16 @@ fix_mixed_packages() {
     FIXES_APPLIED=$((FIXES_APPLIED + 1))
 }
 
-# CUDA Toolkit 缺失修复
-fix_cuda_toolkit() {
-    echo -e "\n${TOOL_MARK} 安装 CUDA Toolkit (nvcc 编译器)..."
-
-    # 检查是否已安装
-    if command -v nvcc >/dev/null 2>&1; then
-        local nvcc_version=$(nvcc --version 2>/dev/null | grep -oP 'release \K[0-9]+\.[0-9]+' || echo "unknown")
-        echo -e "  ${GREEN}${CHECK_MARK}${NC} NVCC 编译器已安装: $nvcc_version"
-        FIXES_APPLIED=$((FIXES_APPLIED + 1))
-        return 0
-    fi
-
-    # 检查是否在 conda 环境中
-    if ! command -v conda >/dev/null 2>&1; then
-        echo -e "  ${RED}${CROSS_MARK}${NC} 未检测到 conda，无法自动安装 CUDA Toolkit"
-        echo -e "  ${DIM}请手动安装: sudo apt-get install nvidia-cuda-toolkit${NC}"
-        return 1
-    fi
-
-    # 检查是否有 NVIDIA GPU
-    if ! command -v nvidia-smi >/dev/null 2>&1; then
-        echo -e "  ${YELLOW}⚠${NC} 未检测到 NVIDIA GPU，跳过 CUDA Toolkit 安装"
-        return 0
-    fi
-
-    echo -e "  ${INFO_MARK} 通过 conda 安装 CUDA Toolkit 开发包..."
-    echo -e "  ${DIM}这可能需要几分钟时间...${NC}"
-
-    # 使用统一的 conda 安装工具（自动使用镜像）
-    local conda_utils="${SAGE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}/tools/lib/conda_install_utils.sh"
-    if [ -f "$conda_utils" ]; then
-        source "$conda_utils"
-        if conda_install_bypass cudatoolkit-dev; then
-            echo -e "  ${GREEN}${CHECK_MARK}${NC} CUDA Toolkit 安装成功"
-
-            # 验证安装
-            if command -v nvcc >/dev/null 2>&1; then
-                local nvcc_version=$(nvcc --version 2>/dev/null | grep -oP 'release \K[0-9]+\.[0-9]+' || echo "unknown")
-                echo -e "  ${GREEN}${CHECK_MARK}${NC} NVCC 编译器可用: $nvcc_version"
-                FIXES_APPLIED=$((FIXES_APPLIED + 1))
-                return 0
-            else
-                echo -e "  ${YELLOW}⚠${NC} CUDA Toolkit 已安装，但 nvcc 不在 PATH 中"
-                echo -e "  ${DIM}请重新激活 conda 环境: conda deactivate && conda activate ${CONDA_DEFAULT_ENV}${NC}"
-                FIXES_APPLIED=$((FIXES_APPLIED + 1))
-                return 0
-            fi
-        else
-            echo -e "  ${RED}${CROSS_MARK}${NC} CUDA Toolkit 安装失败"
-            echo -e "  ${DIM}请手动安装: conda install -c conda-forge cudatoolkit-dev -y --override-channels${NC}"
-            return 1
-        fi
-    else
-        # Fallback: 直接使用 conda 命令
-        if conda install -c conda-forge cudatoolkit-dev -y --override-channels >/dev/null 2>&1; then
-            echo -e "  ${GREEN}${CHECK_MARK}${NC} CUDA Toolkit 安装成功"
-            FIXES_APPLIED=$((FIXES_APPLIED + 1))
-            return 0
-        else
-            echo -e "  ${RED}${CROSS_MARK}${NC} CUDA Toolkit 安装失败"
-            return 1
-        fi
-    fi
-}
 
 # CLI 工具冲突修复
+fix_python_version() {
+    echo -e "\n${TOOL_MARK} 修复 Python 版本兼容性问题..."
+    echo -e "  ${INFO_MARK} 当前 Python 版本与 SAGE 不兼容（需要 3.9-3.12）"
+    echo -e "  ${INFO_MARK} 将创建 conda 环境并使用 Python 3.11"
+    # 复用 fix_pip_missing 中完整的 conda 环境创建逻辑（包含清华镜像、Miniconda 安装等）
+    fix_pip_missing
+}
+
 fix_cli_conflicts() {
     echo -e "\n${TOOL_MARK} 清理 CLI 工具冲突..."
     local local_bin="$HOME/.local/bin"
@@ -867,190 +855,6 @@ fix_cli_conflicts() {
 
     echo -e "  ${GREEN}${CHECK_MARK}${NC} CLI 工具冲突清理完成"
     FIXES_APPLIED=$((FIXES_APPLIED + 1))
-}
-
-# 开发工具缺失修复
-fix_dev_tools_missing() {
-    echo -e "\n${TOOL_MARK} 安装缺失的开发工具..."
-
-    # 首先检查 pip 是否可用
-    local pip_cmd=""
-    if command -v pip3 >/dev/null 2>&1; then
-        pip_cmd="pip3"
-    elif command -v pip >/dev/null 2>&1; then
-        pip_cmd="pip"
-    elif python3 -m pip --version >/dev/null 2>&1; then
-        pip_cmd="python3 -m pip"
-    else
-        echo -e "  ${RED}${CROSS_MARK}${NC} pip 不可用，无法安装开发工具"
-        echo -e "  ${DIM}请先解决 pip 缺失问题${NC}"
-        return 1
-    fi
-
-    # 准备安装参数（优先使用国内镜像）
-    local pip_args=""
-    if ! curl -s --connect-timeout 3 https://pypi.org >/dev/null 2>&1; then
-        echo -e "  ${INFO_MARK} 使用清华 PyPI 镜像..."
-        pip_args="-i https://pypi.tuna.tsinghua.edu.cn/simple"
-    fi
-
-    # 读取外部依赖文件（如果存在）
-    local external_deps_file=".sage/external-deps-dev.txt"
-    local dev_tools_installed=false
-
-    if [ -f "$external_deps_file" ] && grep -q "pytest" "$external_deps_file"; then
-        echo -e "  ${INFO_MARK} 从外部依赖文件安装开发工具..."
-
-        # 提取开发工具相关的依赖
-        local dev_deps=$(grep -E "pytest|ruff|mypy|pre-commit|black|isort|coverage|bandit" "$external_deps_file" || echo "")
-
-        if [ -n "$dev_deps" ]; then
-            echo "$dev_deps" > /tmp/sage_dev_tools.txt
-
-            echo -e "  ${DIM}安装: pytest, ruff, mypy, pre-commit 等...${NC}"
-            # 先执行安装，再检查结果
-            local install_output=""
-            install_output=$($pip_cmd install -r /tmp/sage_dev_tools.txt $pip_args 2>&1)
-            local install_status=$?
-
-            # 检查是否成功（退出码为0 或 输出包含成功/已安装消息）
-            if [ $install_status -eq 0 ] || echo "$install_output" | grep -qE "(Successfully installed|Requirement already satisfied)"; then
-                echo -e "  ${GREEN}${CHECK_MARK}${NC} 开发工具安装成功"
-                dev_tools_installed=true
-                FIXES_APPLIED=$((FIXES_APPLIED + 1))
-                log_message "FIX" "Successfully installed dev tools from external deps file"
-            else
-                echo -e "  ${YELLOW}${WARNING_MARK}${NC} 从外部文件安装失败，将尝试逐个安装"
-                log_message "WARN" "Failed to install from external deps file"
-            fi
-
-            rm -f /tmp/sage_dev_tools.txt
-        fi
-    fi
-
-    # 如果外部依赖文件不存在或安装失败，手动安装核心开发工具
-    local install_success_count=0
-    local install_total=9  # 核心工具总数
-
-    if [ "$dev_tools_installed" = false ]; then
-        echo -e "  ${INFO_MARK} 手动安装核心开发工具..."
-
-        local core_tools=(
-            "pytest>=7.0.0"
-            "pytest-cov>=4.0.0"
-            "pytest-asyncio>=0.21.0"
-            "pytest-mock>=3.10.0"
-            "pytest-timeout>=2.1.0"
-            "pytest-benchmark>=4.0.0"
-            "ruff==0.14.6"
-            "mypy>=1.0.0"
-            "pre-commit>=3.0.0"
-        )
-
-        install_total=${#core_tools[@]}
-
-        for tool in "${core_tools[@]}"; do
-            local tool_name=$(echo "$tool" | sed 's/[<>=].*//')
-
-            # 先检查是否已安装
-            if python3 -c "import ${tool_name//-/_}" >/dev/null 2>&1; then
-                echo -e "  ${GREEN}${CHECK_MARK}${NC} $tool_name: 已安装"
-                install_success_count=$((install_success_count + 1))
-                continue
-            fi
-
-            echo -e "  ${DIM}安装: $tool_name...${NC}"
-
-            # 尝试安装，捕获输出
-            local install_output=""
-            install_output=$($pip_cmd install "$tool" $pip_args 2>&1)
-            local install_status=$?
-
-            # 检查是否成功（退出码为0 或 输出包含成功消息）
-            if [ $install_status -eq 0 ] || echo "$install_output" | grep -qE "(Successfully installed|Requirement already satisfied)"; then
-                echo -e "  ${GREEN}${CHECK_MARK}${NC} $tool_name 安装成功"
-                install_success_count=$((install_success_count + 1))
-                log_message "INFO" "Successfully installed $tool_name"
-            else
-                echo -e "  ${YELLOW}${WARNING_MARK}${NC} $tool_name 安装失败: $install_output"
-                log_message "WARN" "Failed to install $tool_name: $install_output"
-            fi
-        done
-
-        if [ $install_success_count -eq $install_total ]; then
-            echo -e "  ${GREEN}${CHECK_MARK}${NC} 所有开发工具安装成功 ($install_success_count/$install_total)"
-            FIXES_APPLIED=$((FIXES_APPLIED + 1))
-            log_message "FIX" "Successfully installed all dev tools"
-        elif [ $install_success_count -gt 0 ]; then
-            echo -e "  ${YELLOW}${WARNING_MARK}${NC} 部分开发工具安装成功 ($install_success_count/$install_total)"
-            FIXES_APPLIED=$((FIXES_APPLIED + 1))
-            log_message "WARN" "Partially installed dev tools: $install_success_count/$install_total"
-        else
-            echo -e "  ${RED}${CROSS_MARK}${NC} 开发工具安装失败"
-            log_message "ERROR" "Failed to install dev tools"
-        fi
-    else
-        echo -e "  ${INFO_MARK} 跳过手动安装（外部依赖文件已处理）"
-    fi
-
-    # 验证 pytest 是否安装成功
-    # 注意：在某些环境（如 CI）中，刚安装的包可能需要刷新环境才能导入
-    # 如果开发工具从外部文件安装成功，或至少有一个工具安装成功，就认为修复是有效的
-
-    # Debug logging
-    echo -e "  ${DIM}[DEBUG] dev_tools_installed=$dev_tools_installed, install_success_count=$install_success_count${NC}"
-    log_message "DEBUG" "dev_tools_installed=$dev_tools_installed, install_success_count=$install_success_count, install_total=$install_total"
-
-    if [ "$dev_tools_installed" = true ] || [ $install_success_count -gt 0 ]; then
-        if python3 -c "import pytest" >/dev/null 2>&1; then
-            local pytest_version=$(python3 -c "import pytest; print(pytest.__version__)" 2>/dev/null)
-            echo -e "  ${GREEN}${CHECK_MARK}${NC} pytest $pytest_version 已就绪"
-        else
-            echo -e "  ${YELLOW}${WARNING_MARK}${NC} 开发工具已安装，但需要刷新环境（安装流程完成后生效）"
-            log_message "WARN" "Dev tools installed but not yet importable (environment refresh needed)"
-        fi
-        return 0
-    else
-        echo -e "  ${RED}${CROSS_MARK}${NC} 开发工具安装失败"
-        log_message "ERROR" "Dev tools installation failed: dev_tools_installed=$dev_tools_installed, install_success_count=$install_success_count"
-        return 1
-    fi
-}
-
-# pre-commit hooks 安装修复
-fix_pre_commit_hooks_missing() {
-    echo -e "\n${TOOL_MARK} 安装 pre-commit hooks..."
-
-    # 确保 ~/.local/bin 在 PATH 中（pip install --user 安装的工具在这里）
-    if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-        export PATH="$HOME/.local/bin:$PATH"
-    fi
-
-    if ! command -v pre-commit >/dev/null 2>&1; then
-        echo -e "  ${YELLOW}${WARNING_MARK}${NC} pre-commit 工具未安装，跳过 hooks 安装"
-        return 0  # 不是错误，只是跳过
-    fi
-
-    if [ ! -d ".git" ]; then
-        echo -e "  ${YELLOW}${WARNING_MARK}${NC} 不是 Git 仓库，无需安装 pre-commit hooks"
-        return 0  # 不是错误，只是跳过
-    fi
-
-    echo -e "  ${DIM}正在安装 pre-commit hooks...${NC}"
-    echo -e "  ${DIM}执行命令: pre-commit install --config tools/config/pre-commit-config.yaml${NC}"
-
-    # 显示详细输出以便调试
-    if pre-commit install --config tools/config/pre-commit-config.yaml 2>&1; then
-        echo -e "  ${GREEN}${CHECK_MARK}${NC} pre-commit hooks 安装成功"
-        FIXES_APPLIED=$((FIXES_APPLIED + 1))
-        log_message "FIX" "Successfully installed pre-commit hooks"
-        return 0
-    else
-        local install_exit_code=$?
-        echo -e "  ${RED}${CROSS_MARK}${NC} pre-commit hooks 安装失败 (退出码: $install_exit_code)"
-        log_message "ERROR" "pre-commit install failed with exit code: $install_exit_code"
-        return 1
-    fi
 }
 
 # 环境优化建议
@@ -1076,7 +880,7 @@ suggest_environment_optimization() {
 
 # 注册所有已知问题和修复方案
 register_all_issues() {
-    register_issue "python_version" "Python版本兼容性问题" "major" ""
+    register_issue "python_version" "Python版本兼容性问题" "major" "fix_python_version"
     register_issue "python_missing" "Python解释器缺失" "critical" ""
     register_issue "pip_missing" "pip包管理器缺失" "critical" "fix_pip_missing"
     register_issue "no_virtual_env" "未使用虚拟环境" "minor" ""
@@ -1084,11 +888,10 @@ register_all_issues() {
     register_issue "numpy_v1" "numpy版本过旧" "major" ""
     register_issue "torch_numpy_compat" "PyTorch与numpy版本不匹配" "major" ""
     register_issue "low_disk_space" "磁盘空间不足" "major" ""
-    register_issue "nvcc_missing" "CUDA Toolkit (nvcc编译器) 缺失" "critical" "fix_cuda_toolkit"
 
-    # 开发工具问题
-    register_issue "dev_tools_missing" "缺少开发工具（pytest等）" "major" "fix_dev_tools_missing"
-    register_issue "pre_commit_hooks_missing" "pre-commit hooks未安装" "minor" "fix_pre_commit_hooks_missing"
+    # 系统级依赖（无法由 pyproject.toml 自动安装）
+    register_issue "system_build_tools_missing" "缺少系统构建工具（gcc/cmake/make/pkg-config）" "major" "fix_system_dependencies"
+    register_issue "system_math_libs_missing" "缺少系统数学库（BLAS/LAPACK）" "major" "fix_system_dependencies"
 
     # 动态注册混合包问题
     for package in "numpy" "torch" "transformers"; do
@@ -1118,7 +921,7 @@ run_full_diagnosis() {
     check_cli_conflicts
     check_core_dependencies
     check_specific_issues
-    check_dev_tools
+    check_system_dependencies
 
     # 诊断总结
     echo -e "\n${BLUE}${BOLD}📋 诊断总结${NC}"
@@ -1182,8 +985,12 @@ run_auto_fixes() {
 
             # 如果没有执行过，则执行修复
             if [ "$already_executed" = false ]; then
-                "$fix_function"
-                executed_fixes+=("$fix_function")
+                if "$fix_function"; then
+                    executed_fixes+=("$fix_function")
+                else
+                    echo -e "  ${YELLOW}${WARNING_MARK}${NC} 修复函数执行失败: $fix_function"
+                    log_message "WARN" "Fix function failed: $fix_function"
+                fi
             fi
         fi
     done

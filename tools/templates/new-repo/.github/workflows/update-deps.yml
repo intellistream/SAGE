@@ -1,0 +1,70 @@
+name: Update upstream dependency
+
+# Triggered by upstream packages via repository_dispatch (event: package-released).
+# Payload: { "package": "isage-rag", "version": "0.3.1", "tag": "v0.3.1" }
+#
+# No extra secret is required for the default same-repo pull request flow.
+# If a generated repository needs stronger auth, replace `github.token` after scaffolding.
+
+on:
+  repository_dispatch:
+    types: [package-released]
+
+jobs:
+  update-deps:
+    name: Bump ${{ github.event.client_payload.package }} to ${{ github.event.client_payload.version }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Update version constraint in pyproject.toml
+      env:
+        PACKAGE: ${{ github.event.client_payload.package }}
+        VERSION: ${{ github.event.client_payload.version }}
+      run: |
+        python - <<'PY'
+        import os, re
+        from pathlib import Path
+
+        pkg = os.environ["PACKAGE"]
+        ver = os.environ["VERSION"]
+        path = Path("pyproject.toml")
+        content = path.read_text()
+
+        # Replace "isage-foo>=X.Y.Z" with "isage-foo>=NEW_VER"
+        new_content = re.sub(
+            rf'"{re.escape(pkg)}>=[\d.]+"',
+            f'"{pkg}>={ver}"',
+            content,
+        )
+
+        if new_content == content:
+            print(f"[SKIP] {pkg} not found in pyproject.toml or already at >={ver}")
+        else:
+            path.write_text(new_content)
+            print(f"[OK] Updated {pkg} to >={ver} in pyproject.toml")
+        PY
+
+    - name: Create pull request
+      uses: peter-evans/create-pull-request@v6
+      with:
+        branch: deps/bump-${{ github.event.client_payload.package }}-${{ github.event.client_payload.version }}
+        commit-message: "chore(deps): bump ${{ github.event.client_payload.package }} to >=${{ github.event.client_payload.version }}"
+        title: "chore(deps): bump ${{ github.event.client_payload.package }} to >=${{ github.event.client_payload.version }}"
+        body: |
+          Automated dependency update triggered by upstream release.
+
+          | Field | Value |
+          |-------|-------|
+          | Package | `${{ github.event.client_payload.package }}` |
+          | New version | `${{ github.event.client_payload.version }}` |
+          | Tag | `${{ github.event.client_payload.tag }}` |
+
+          > This PR was created automatically by the SAGE cross-repo release pipeline.
+          > Merge after CI passes.
+        delete-branch: true
+        labels: "dependencies,automated"

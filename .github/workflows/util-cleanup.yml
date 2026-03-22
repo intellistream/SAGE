@@ -43,102 +43,6 @@ jobs:
         run: |
           bash tools/install/tests/test_cleanup_tools.sh
 
-  # 测试 auto-venv 在不同环境下的行为
-  test-auto-venv:
-    name: Test Auto-Venv (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, ubuntu-22.04]
-        python-version: ["3.10", "3.11", "3.12"]
-      fail-fast: false
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: false
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-pip python3-venv
-
-      - name: Test auto-venv creation (clean environment)
-        run: |
-          # 在清洁环境中测试 auto-venv
-          env -u CONDA_DEFAULT_ENV -u CONDA_PREFIX -u VIRTUAL_ENV bash -c '
-            source tools/install/display_tools/colors.sh
-            source tools/install/download_tools/environment_config.sh
-
-            # 测试虚拟环境检测
-            result=$(detect_virtual_environment)
-            echo "Detection result: $result"
-
-            is_venv=$(echo "$result" | cut -d"|" -f1)
-            if [ "$is_venv" = "false" ]; then
-              echo "✅ Correctly detected no virtual environment"
-            else
-              echo "❌ Failed: should not detect venv in clean environment"
-              exit 1
-            fi
-          '
-
-      - name: Test auto-venv with --auto-venv flag
-        run: |
-          # 测试 --auto-venv 选项
-          env -u CONDA_DEFAULT_ENV -u CONDA_PREFIX -u VIRTUAL_ENV bash -c '
-            cd $(mktemp -d)
-            cp -r $GITHUB_WORKSPACE/tools .
-
-            source tools/install/display_tools/colors.sh
-            source tools/install/download_tools/environment_config.sh
-
-            # 尝试创建虚拟环境
-            test_venv=".sage/venv"
-            if ensure_python_venv "$test_venv"; then
-              echo "✅ Virtual environment created successfully"
-
-              # 验证虚拟环境结构
-              if [ -f "$test_venv/bin/activate" ]; then
-                echo "✅ Virtual environment contains activate script"
-              else
-                echo "❌ Missing activate script"
-                exit 1
-              fi
-
-              # 激活并测试
-              source "$test_venv/bin/activate"
-              python --version
-              pip --version
-              deactivate
-            else
-              echo "⚠️ Virtual environment creation failed (may need python3-venv)"
-            fi
-          '
-
-      - name: Test SAGE_VENV_POLICY environment variable
-        run: |
-          # 测试不同的策略
-          for policy in warning error ignore; do
-            echo "Testing SAGE_VENV_POLICY=$policy"
-
-            export SAGE_VENV_POLICY=$policy
-            source tools/install/display_tools/colors.sh
-            source tools/install/download_tools/environment_config.sh
-
-            # 在虚拟环境中测试（应该通过）
-            export VIRTUAL_ENV="/tmp/test-venv"
-            result=$(detect_virtual_environment)
-            echo "Policy $policy result: $result"
-            unset VIRTUAL_ENV
-          done
-
   # 测试安装跟踪和清理流程
   test-install-tracking:
     name: Test Install Tracking and Cleanup
@@ -207,27 +111,22 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential python3-dev python3-venv
+          sudo apt-get install -y build-essential python3-dev
 
-      - name: Test complete workflow with auto-venv
+      - name: Test complete workflow without venv
         run: |
           # 完整的安装-使用-清理流程
 
-          # 1. 使用 auto-venv 安装 (minimal 模式用于快速测试)
-          ./quickstart.sh --auto-venv --minimal --yes || {
+          # 1. 使用非 venv 模式安装 (minimal 模式用于快速测试)
+          ./quickstart.sh --pip --minimal --yes || {
             echo "⚠️ Installation failed, checking logs..."
             find .sage -name "*.log" -type f -exec tail -20 {} \;
             exit 1
           }
 
           # 2. 验证安装
-          if [ -d .sage/venv ]; then
-            echo "✅ Virtual environment created"
-            source .sage/venv/bin/activate
-            python --version
-            pip list | grep -i sage || true
-            deactivate
-          fi
+          python --version
+          pip list | grep -i sage || true
 
           # 3. 检查安装跟踪
           bash tools/cleanup/track_install.sh show
@@ -255,5 +154,4 @@ jobs:
 
           # 验证环境管理功能在代码中存在
           grep -q "detect_virtual_environment" tools/install/download_tools/environment_config.sh
-          grep -q "ensure_python_venv" tools/install/download_tools/environment_config.sh
           grep -q "SAGE_VENV_POLICY" tools/install/download_tools/environment_config.sh

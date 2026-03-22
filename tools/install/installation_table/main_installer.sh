@@ -92,8 +92,8 @@ verify_cpp_extensions() {
     echo -e "${DIM}   如需使用，请通过 pip 安装这些独立包${NC}"
     echo ""
 
-    # sage-middleware 现在只包含 Python 兼容层，总是返回成功
-    log_info "sage-middleware 安装完成（仅包含 Python 兼容层）" "CPPExt"
+    # 历史中间件扩展已拆分为独立适配器包，总是返回成功
+    log_info "独立适配器提示完成（主仓不再内建这些 C++ 扩展）" "CPPExt"
     return 0
 
     # 以下代码已废弃，保留供参考
@@ -137,8 +137,6 @@ try:
                     from sage.middleware.components.sage_db.python import _sage_db
                 elif ext == 'sage_flow':
                     from sage.middleware.components.sage_flow.python import _sage_flow
-                elif ext == 'sage_tsdb':
-                    from sage.middleware.components.sage_tsdb.python import _sage_tsdb
             except Exception as e:
                 print(f'   {ext}: {type(e).__name__}: {e}')
 
@@ -150,14 +148,14 @@ try:
         else
             print('')
             print(f'⚠️  部分扩展不可用 ({total}/{total_expected})，功能将受限')
-            print('💡 提示: 确保已安装构建依赖 (cmake, build-essential) 并重新安装 isage-middleware')
+            print('💡 提示: 确保已安装构建依赖并重新安装对应独立适配器包')
         sys.exit(0)  # 部分成功也返回 0
     else:
         print('')
         print('❌ 没有任何 C++ 扩展可用')
         print('💡 这可能是因为：')
         print('   1. 缺少构建工具：apt-get install build-essential cmake')
-        print('   2. 未按 --dev 安装或 isage-middleware 构建失败')
+        print('   2. 未按 --dev 安装或独立适配器包未正确安装')
         print('   3. 查看详细日志了解更多信息')
         sys.exit(1)
 except Exception as e:
@@ -173,17 +171,17 @@ except Exception as e:
         echo "$verify_output"
 
         if [ $validation_result -eq 0 ]; then
-            echo -e "${CHECK} C++ 扩展可用 (sage_db, sage_flow, sage_tsdb)"
+            echo -e "${CHECK} C++ 扩展可用 (sage_db, sage_flow)"
             echo -e "${DIM}现在可以使用高性能数据库和流处理功能${NC}"
             log_info "C++扩展验证成功" "CPPExt"
             return 0
         else
             echo -e "${WARNING} 扩展验证失败"
             log_warn "扩展验证失败" "CPPExt"
-            echo -e "${DIM}💡 提示: C++扩展在 sage-middleware 安装时自动构建${NC}"
+            echo -e "${DIM}💡 提示: C++扩展由对应独立适配器包负责构建${NC}"
             echo -e "${DIM}   如果验证失败，可能是因为：${NC}"
             echo -e "${DIM}   1. 缺少构建工具：apt-get install build-essential cmake${NC}"
-            echo -e "${DIM}   2. 未按 --dev 模式或 isage-middleware 安装失败${NC}"
+            echo -e "${DIM}   2. 未按 --dev 模式或独立适配器包安装失败${NC}"
             echo -e "${DIM}   3. 查看详细日志：cat ${SAGE_INSTALL_LOG:-}${NC}"
             return 1
         fi
@@ -266,32 +264,33 @@ install_sage() {
 
     echo ""
     case "$mode" in
-        "minimal"|"core"|"standard")
-            # minimal 模式：只安装核心包，无开发工具，无可选依赖
-            echo -e "${BLUE}最小安装模式：仅安装核心 SAGE 包${NC}"
-            log_phase_start "最小安装模式" "MAIN"
+        "standard")
+            # standard 模式：仅核心包，不含 torch/GPU 依赖
+            echo -e "${YELLOW}standard 安装模式：核心子包（无 torch/CUDA）${NC}"
+            log_phase_start "standard 安装模式" "MAIN"
 
-            if install_core_packages "minimal"; then
-                log_phase_end "最小安装模式" "success" "MAIN"
-                echo ""
-                echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                echo -e "${INFO} 💡 最小安装完成！如需额外功能，可手动安装："
-                echo -e "${DIM}   ML/深度学习:    pip install isage-middleware[ml]${NC}"
-                echo -e "${DIM}   向量数据库:    pip install isage-middleware[vdb]${NC}"
-                echo -e "${DIM}   流处理:        pip install isage-middleware[streaming]${NC}"
-                echo -e "${DIM}   提示词压缩:    pip install isage-middleware[compression]${NC}"
-                echo -e "${DIM}   任务队列:      pip install isage-middleware[queue]${NC}"
-                echo -e "${DIM}   开发工具:      pip install isage-tools[dev]${NC}"
-                echo -e "${DIM}   所有可选:      pip install isage-middleware[all]${NC}"
-                echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            else
-                log_phase_end "最小安装模式" "failure" "MAIN"
+            if ! install_core_packages "standard"; then
+                log_phase_end "standard 安装模式" "failure" "MAIN"
                 return 1
             fi
+
+            log_phase_end "standard 安装模式" "success" "MAIN"
+            ;;
+        "full")
+            # full 模式：standard + 扩展能力集 via .[full]
+            echo -e "${CYAN}full 安装模式：standard + 扩展能力集（.[full]）${NC}"
+            log_phase_start "full 安装模式" "MAIN"
+
+            if ! install_core_packages "full"; then
+                log_phase_end "full 安装模式" "failure" "MAIN"
+                return 1
+            fi
+
+            log_phase_end "full 安装模式" "success" "MAIN"
             ;;
         "dev")
-            # dev 模式：核心包 + 开发工具
-            echo -e "${BLUE}开发安装模式：核心包 + 开发工具${NC}"
+            # dev 模式：full + 开发工具 + 本地 editable 优先
+            echo -e "${GREEN}dev 安装模式：full + 开发工具 + 本地 editable（尽量）${NC}"
             log_phase_start "开发安装模式" "MAIN"
 
             if ! install_core_packages "dev"; then
@@ -299,60 +298,21 @@ install_sage() {
                 return 1
             fi
 
-            # 安装开发工具
-            log_info "开始安装开发工具" "MAIN"
-            if install_dev_packages; then
-                log_phase_end "开发安装模式" "success" "MAIN"
-                echo ""
-                echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-                echo -e "${INFO} 💡 开发安装完成！如需额外功能，可手动安装："
-                echo -e "${DIM}   ML/深度学习:    pip install isage-middleware[ml]${NC}"
-                echo -e "${DIM}   向量数据库:    pip install isage-middleware[vdb]${NC}"
-                echo -e "${DIM}   流处理:        pip install isage-middleware[streaming]${NC}"
-                echo -e "${DIM}   提示词压缩:    pip install isage-middleware[compression]${NC}"
-                echo -e "${DIM}   所有可选:      pip install isage-middleware[all]${NC}"
-                echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            else
-                log_phase_end "开发安装模式" "failure" "MAIN"
-                return 1
-            fi
-            ;;
-        "full")
-            # full 模式：核心包 + 开发工具 + 所有可选依赖
-            echo -e "${BLUE}完整安装模式：核心包 + 开发工具 + 所有可选依赖${NC}"
-            log_phase_start "完整安装模式" "MAIN"
+            # 验证开发工具可用性
+            log_info "验证开发工具" "MAIN"
+            install_dev_packages
 
-            if ! install_core_packages "full"; then
-                log_phase_end "完整安装模式" "failure" "MAIN"
-                return 1
-            fi
-
-            # 安装开发工具
-            log_info "开始安装开发工具" "MAIN"
-            if ! install_dev_packages; then
-                log_phase_end "完整安装模式" "failure" "MAIN"
-                return 1
-            fi
-
-            # 安装所有可选依赖
-            log_info "开始安装可选依赖 (ML, VDB, streaming, etc.)" "MAIN"
-            if install_optional_packages; then
-                log_phase_end "完整安装模式" "success" "MAIN"
-            else
-                log_phase_end "完整安装模式" "failure" "MAIN"
-                return 1
-            fi
+            log_phase_end "开发安装模式" "success" "MAIN"
+            echo ""
             ;;
         *)
-            echo -e "${WARNING} 未知安装模式: $mode，使用完整安装"
-            log_warn "未知安装模式 $mode，使用完整安装" "MAIN"
-            log_phase_start "默认完整安装" "MAIN"
+            echo -e "${WARNING} 未知安装模式: $mode，使用 standard 安装"
+            log_warn "未知安装模式 $mode，使用 standard 安装" "MAIN"
+            log_phase_start "默认 standard 安装" "MAIN"
 
-            install_core_packages "full"
-            install_dev_packages
-            install_optional_packages
+            install_core_packages "standard"
 
-            log_phase_end "默认完整安装" "success" "MAIN"
+            log_phase_end "默认 standard 安装" "success" "MAIN"
             ;;
     esac
 
@@ -373,23 +333,45 @@ install_sage() {
         sage_dev_cmd="$HOME/.local/bin/sage-dev"
     fi
 
-    # 执行清理
+    # 执行清理（优先使用 sage-dev，失败时回退到仓库内置清理脚本）
+    local cleanup_script="$project_root/tools/maintenance/helpers/quick_cleanup.sh"
+    local sage_dev_healthy=false
     if { [ "$environment" = "conda" ] && conda run -n "$SAGE_ENV_NAME" which sage-dev >/dev/null 2>&1; } || \
        { [ "$environment" = "pip" ] && command -v sage-dev >/dev/null 2>&1; } || \
        { [ "$environment" = "pip" ] && [ -x "$HOME/.local/bin/sage-dev" ]; }; then
-        if $sage_dev_cmd project clean 2>&1 | tee -a "$log_file"; then
-            echo -e "${CHECK} 清理完成"
-            log_info "项目清理成功" "MAIN"
+        if $sage_dev_cmd --help >/dev/null 2>&1; then
+            sage_dev_healthy=true
         else
-            echo -e "${DIM}   清理跳过（非关键操作）${NC}"
-            log_warn "项目清理失败，但不影响安装" "MAIN"
+            log_warn "sage-dev 存在但不可用，回退到内置清理脚本" "MAIN"
+            echo -e "${DIM}   检测到 sage-dev 不可用，使用内置清理${NC}"
         fi
-    else
-        echo -e "${DIM}   sage-dev 命令不可用，跳过清理${NC}"
-        log_warn "sage-dev 不可用，跳过清理" "MAIN"
     fi
 
-    # C++扩展已在 sage-middleware 安装时通过 scikit-build-core 自动构建
+    if [ "$sage_dev_healthy" = true ]; then
+        if $sage_dev_cmd project clean >>"$log_file" 2>&1; then
+            echo -e "${CHECK} 清理完成"
+            log_info "项目清理成功（sage-dev）" "MAIN"
+        else
+            log_warn "sage-dev 清理失败，回退到内置清理脚本" "MAIN"
+            if [ -f "$cleanup_script" ] && bash "$cleanup_script" >>"$log_file" 2>&1; then
+                echo -e "${CHECK} 清理完成"
+                log_info "项目清理成功（fallback script）" "MAIN"
+            else
+                echo -e "${DIM}   清理跳过（非关键操作）${NC}"
+                log_warn "项目清理失败，但不影响安装" "MAIN"
+            fi
+        fi
+    else
+        if [ -f "$cleanup_script" ] && bash "$cleanup_script" >>"$log_file" 2>&1; then
+            echo -e "${CHECK} 清理完成"
+            log_info "项目清理成功（fallback script）" "MAIN"
+        else
+            echo -e "${DIM}   清理跳过（非关键操作）${NC}"
+            log_warn "项目清理脚本不可用或执行失败，跳过清理" "MAIN"
+        fi
+    fi
+
+    # C++扩展由独立适配器包负责构建
     # 上面的验证步骤已检查扩展状态
 
     # 记录安装完成

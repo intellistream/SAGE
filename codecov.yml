@@ -2,19 +2,19 @@
 # https://docs.codecov.com/docs/codecov-yaml
 
 codecov:
-  require_ci_to_pass: yes
+  require_ci_to_pass: true
   notify:
-    wait_for_ci: yes
+    wait_for_ci: true
 
 # 告诉 Codecov 如何处理文件移动/重命名
 # 这样移动的文件不会被算作完全新增的代码
 parsers:
   gcov:
     branch_detection:
-      conditional: yes
-      loop: yes
-      method: no
-      macro: no
+      conditional: true
+      loop: true
+      method: false
+      macro: false
 
 coverage:
   precision: 2
@@ -37,17 +37,17 @@ coverage:
 
   # 包级别覆盖率要求
   package:
-    sage-common:
+    foundation:
       target: 60%
-    sage-kernel:
+    runtime:
       target: 50%
-    sage-platform:
+    stream:
       target: 50%
-    sage-middleware:
+    serving:
       target: 50%
-    sage-libs:
+    cli:
       target: 50%
-    sage-tools:
+    tools:
       target: 50%
     sage-apps:
       target: 40%
@@ -59,9 +59,9 @@ coverage:
 comment:
   layout: "reach,diff,flags,tree,footer"
   behavior: default
-  require_changes: no
-  require_base: no
-  require_head: yes
+  require_changes: false
+  require_base: false
+  require_head: true
 
 # 忽略测试文件和自动生成的代码
 ignore:

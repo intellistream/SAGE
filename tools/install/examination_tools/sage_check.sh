@@ -28,11 +28,41 @@ LC_CTYPE="${LC_CTYPE:-${LANG}}"
 check_existing_sage() {
     echo -e "${INFO} 检查是否已安装 SAGE..."
 
+    _sage_pip_list() {
+        if [ -n "${PIP_CMD:-}" ]; then
+            eval "$PIP_CMD list" 2>/dev/null
+        else
+            python3 -m pip list 2>/dev/null
+        fi
+    }
+
+    _detect_sage_version() {
+        local installed_packages="$1"
+        local priority_packages=(
+            "isage"
+        )
+
+        local package_name=""
+        local package_version=""
+        for package_name in "${priority_packages[@]}"; do
+            package_version=$(echo "$installed_packages" | awk -v pkg="$package_name" '$1==pkg {print $2; exit}')
+            if [ -n "$package_version" ]; then
+                echo "$package_version"
+                return 0
+            fi
+        done
+
+        echo "$installed_packages" | head -n1 | awk '{print $2}'
+    }
+
+    _sage_package_filter_pattern() {
+        echo '^(isage($|-)|intsage($|-)|sage$)'
+    }
+
     # 检查pip包列表中的所有SAGE相关包变体
-    local installed_packages=$(pip list 2>/dev/null | grep -E '^(sage|isage|intsage)(-|$)' || echo "")
+    local installed_packages=$(_sage_pip_list | grep -E "$(_sage_package_filter_pattern)" || echo "")
     if [ -n "$installed_packages" ]; then
-        # 获取第一个包的版本作为代表版本
-        local version=$(echo "$installed_packages" | head -n1 | awk '{print $2}')
+        local version=$(_detect_sage_version "$installed_packages")
         echo -e "${WARNING} 检测到已安装的 SAGE v${version}"
         echo
         echo -e "${DIM}已安装的包：${NC}"
@@ -43,9 +73,9 @@ check_existing_sage() {
         return 0
     fi
 
-    # 检查是否能导入sage.common（PEP 420 namespace，检查实际包）
-    if python3 -c "import sage.common" 2>/dev/null; then
-        local sage_version=$(python3 -c "import sage.common; print(sage.common.__version__)" 2>/dev/null || echo "unknown")
+    # 检查是否能导入主仓核心表面
+    if python3 -c "from sage._version import __version__; import sage.foundation, sage.stream, sage.runtime, sage.serving, sage.cli" 2>/dev/null; then
+        local sage_version=$(python3 -c "from sage._version import __version__; print(__version__)" 2>/dev/null || echo "unknown")
         echo -e "${WARNING} 检测到已安装的 SAGE v${sage_version}"
         return 0
     fi
@@ -58,8 +88,38 @@ check_existing_sage() {
 uninstall_sage() {
     echo -e "${INFO} 卸载现有 SAGE 安装..."
 
+    _sage_pip_list() {
+        if [ -n "${PIP_CMD:-}" ]; then
+            eval "$PIP_CMD list" 2>/dev/null
+        else
+            python3 -m pip list 2>/dev/null
+        fi
+    }
+
+    _sage_pip_show() {
+        local package_name="$1"
+        if [ -n "${PIP_CMD:-}" ]; then
+            eval "$PIP_CMD show \"$package_name\"" 2>/dev/null
+        else
+            python3 -m pip show "$package_name" 2>/dev/null
+        fi
+    }
+
+    _sage_pip_uninstall() {
+        local package_name="$1"
+        if [ -n "${PIP_CMD:-}" ]; then
+            eval "$PIP_CMD uninstall \"$package_name\" -y --quiet" 2>/dev/null
+        else
+            python3 -m pip uninstall "$package_name" -y --quiet 2>/dev/null
+        fi
+    }
+
     # 获取所有已安装的SAGE相关包（包括所有前缀变体）
-    local all_sage_packages=$(pip list 2>/dev/null | grep -E '^(sage|isage|intsage)(-|$)' | awk '{print $1}' || echo "")
+    _sage_package_filter_pattern() {
+        echo '^(isage($|-)|intsage($|-)|sage$)'
+    }
+
+    local all_sage_packages=$(_sage_pip_list | grep -E "$(_sage_package_filter_pattern)" | awk '{print $1}' || echo "")
 
     if [ -n "$all_sage_packages" ]; then
         echo -e "${DIM}  → 发现已安装的包：${NC}"
@@ -79,19 +139,12 @@ uninstall_sage() {
             if [ -n "$package" ]; then
                 total_packages=$((total_packages + 1))
                 # 先检查包是否真的存在
-                if pip show "$package" >/dev/null 2>&1; then
-                    # 检查是否是editable安装
-                    local package_info=$(pip show "$package" 2>/dev/null)
-                    if echo "$package_info" | grep -q "Editable project location:"; then
-                        echo -e "${DIM}    ○ $package 开发模式安装，重新安装时会自动更新${NC}"
-                        uninstall_count=$((uninstall_count + 1))  # 算作处理成功
+                if _sage_pip_show "$package" >/dev/null 2>&1; then
+                    if _sage_pip_uninstall "$package"; then
+                        echo -e "${DIM}    ✓ 已卸载 $package${NC}"
+                        uninstall_count=$((uninstall_count + 1))
                     else
-                        if $PIP_CMD uninstall "$package" -y --quiet 2>/dev/null; then
-                            echo -e "${DIM}    ✓ 已卸载 $package${NC}"
-                            uninstall_count=$((uninstall_count + 1))
-                        else
-                            echo -e "${DIM}    ⚠ $package 卸载失败${NC}"
-                        fi
+                        echo -e "${DIM}    ⚠ $package 卸载失败${NC}"
                     fi
                 else
                     echo -e "${DIM}    - $package 未安装，跳过${NC}"
@@ -106,26 +159,12 @@ uninstall_sage() {
     echo -e "${DIM}  → 清理开发模式链接${NC}"
     local dev_packages=(
         "sage"
-        "sage-libs"
-        "sage-middleware"
-        "sage-kernel"
-        "sage-common"
-        "sage-tools"
         "isage"
-        "isage-libs"
-        "isage-middleware"
-        "isage-kernel"
-        "isage-common"
         "intsage"
-        "intsage-apps"
-        "intsage-dev-toolkit"
-        "intsage-frontend"
-        "intsage-kernel"
-        "intsage-middleware"
     )
 
     for package in "${dev_packages[@]}"; do
-        if $PIP_CMD uninstall "$package" -y --quiet 2>/dev/null; then
+        if _sage_pip_uninstall "$package"; then
             echo -e "${DIM}    清理 $package 开发链接${NC}"
         fi
     done

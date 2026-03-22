@@ -73,7 +73,7 @@ clean_egg_info_cache() {
             local cached_version=$(grep "^Version:" "$egg_info_dir/PKG-INFO" 2>/dev/null | cut -d' ' -f2)
 
             # 从 egg-info 路径推导包路径
-            # 例如: packages/sage-common/src/isage_common.egg-info -> packages/sage-common
+            # 例如: src/isage.egg-info -> 项目根目录 / 当前包目录
             local pkg_dir=$(dirname "$(dirname "$egg_info_dir")")
 
             # 查找对应的 _version.py（在该包的 src 目录下）

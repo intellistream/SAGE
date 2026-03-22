@@ -1,0 +1,100 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", "packaging>=24.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isage"
+dynamic = ["version"]
+description = "SAGE - Streaming-Augmented Generative Execution (meta package)"
+readme = "README.md"
+authors = [{ name = "SAGE Team", email = "shuhao_zhang@hust.edu.cn" }]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: System :: Distributed Computing",
+]
+requires-python = ">=3.10"
+dependencies = [
+    # External engine integration on interpreters where the engine family is published
+    "isagellm>=0.5.4.3; python_version < '3.13'",
+]
+
+license = "MIT"
+
+[project.scripts]
+sage = "sage.cli.main:main"
+sage-edge = "sage.edge.server:main"
+
+[project.optional-dependencies]
+serving-edge = [
+    # In-tree edge aggregation shell
+    "fastapi>=0.115.0,<1.0.0",
+    "uvicorn[standard]>=0.34.0,<1.0.0",
+]
+capability-adapters = [
+    # Optional adapter — intent recognition for tool-use / orchestration flows
+    "isage-libs-intent>=0.1.0.7",
+    # Optional adapter — RAG pipelines and vector-store backends
+    "isage-rag>=0.3.0",
+    # Optional adapter — memory / retrieval persistence
+    "isage-neuromem>=0.2.1.4",
+]
+capability-tooluse = [
+    # Optional adapter — continual-learning / coreset selection for tool-use (SIAS)
+    "isage-sias>=0.1.0",
+]
+full = [
+    # In-tree edge aggregation shell
+    "fastapi>=0.115.0,<1.0.0",
+    "uvicorn[standard]>=0.34.0,<1.0.0",
+    # Optional adapters beyond the stream/runtime/serving core
+    "isage-libs-intent>=0.1.0.7",
+    "isage-rag>=0.3.0",
+    "isage-neuromem>=0.2.1.4",
+    "isage-sias>=0.1.0",
+    # L6 — dataset management for fine-tuning and benchmark workflows
+    "isage-data>=0.2.3.2",
+]
+dev = [
+    # External developer workflow owner (independently released)
+    "isage-dev-tools>=0.1.0",
+    # Edge integration runtime + test helpers
+    "fastapi>=0.115.0,<1.0.0",
+    "uvicorn[standard]>=0.34.0,<1.0.0",
+    "httpx>=0.27.0",
+    # Testing
+    "pytest>=7.4.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.12.0",
+    # Quality
+    "ruff>=0.15.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.5.0",
+    "isage-pypi-publisher>=0.2.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/intellistream/SAGE"
+Documentation = "https://intellistream.github.io/SAGE-Pub/"
+Repository = "https://github.com/intellistream/SAGE.git"
+"Bug Tracker" = "https://github.com/intellistream/SAGE/issues"
+
+[tool.setuptools.packages.find]
+namespaces = true
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.dynamic.version]
+attr = "sage._version.__version__"
+
+[tool.ruff]
+extend = "tools/ruff.toml"
+
+[tool.mypy]
+cache_dir = ".sage/cache/mypy"
+ignore_missing_imports = true

@@ -4,6 +4,8 @@
 
 # 导入颜色定义
 source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+# 导入 Conda 安装引导模块
+source "$(dirname "${BASH_SOURCE[0]}")/conda_guide.sh"
 
 # 最小要求常量
 
@@ -224,7 +226,6 @@ check_cuda_availability() {
     local driver_version=""
     local cuda_version=""
     local has_gpu=false
-    local has_nvcc=false
 
     # 检查 NVIDIA 驱动
     if command -v nvidia-smi &> /dev/null; then
@@ -244,16 +245,6 @@ check_cuda_availability() {
         echo -e "${YELLOW}   ⚠️  未找到 nvidia-smi 命令${NC}"
     fi
 
-    # 检查 CUDA 工具包
-    if command -v nvcc &> /dev/null; then
-        local nvcc_version=$(nvcc --version 2>/dev/null | grep "release" | awk '{print $6}' | sed 's/,//')
-        echo -e "${GREEN}   ✅ CUDA 编译器已安装 (nvcc ${nvcc_version})${NC}"
-        has_nvcc=true
-        cuda_available=true
-    else
-        echo -e "${YELLOW}   ⚠️  未找到 CUDA 编译器 (nvcc)${NC}"
-    fi
-
     # 检查 CUDA 环境变量
     if [ -n "$CUDA_HOME" ] || [ -n "$CUDA_PATH" ]; then
         echo -e "${GREEN}   ✅ CUDA 环境变量已设置${NC}"
@@ -261,18 +252,6 @@ check_cuda_availability() {
         echo -e "${DIM}   CUDA_PATH: ${CUDA_PATH}${NC}"
     else
         echo -e "${YELLOW}   ⚠️  CUDA 环境变量未设置${NC}"
-    fi
-
-    # 关键检测：GPU 存在但缺少 nvcc
-    if [ "$has_gpu" = true ] && [ "$has_nvcc" = false ]; then
-        echo -e "${RED}   ❌ 检测到 GPU 但缺少 CUDA Toolkit (nvcc 编译器)${NC}"
-        echo -e "${YELLOW}   这将导致 GPU 加速功能无法使用！${NC}"
-        echo -e "${YELLOW}   建议操作:${NC}"
-        echo -e "${DIM}   • 如果使用 conda: conda install -c conda-forge cudatoolkit-dev -y --override-channels${NC}"
-        echo -e "${DIM}   • 如果使用系统包管理: apt install nvidia-cuda-toolkit${NC}"
-        # 导出状态供调用者使用
-        export SAGE_NEEDS_NVCC=true
-        return 1
     fi
 
     if [ "$cuda_available" = true ]; then
@@ -344,12 +323,16 @@ run_environment_prechecks() {
     local cuda_status="UNKNOWN"
     local conda_env_status="UNKNOWN"
 
-    # 检查 Conda base 环境（最优先）
-    if check_conda_base_environment; then
+    # 检查 Conda 环境（最优先）：未安装 / base / 未激活 / 正常
+    # 若 apply_defaults 中已交互完成，则跳过重复询问
+    if [ "${_SAGE_CONDA_ENV_CHECKED:-false}" = "true" ]; then
+        echo -e "${GREEN}   ✅ Conda 环境检查已完成（跳过重复检查）${NC}"
+        conda_env_status="PASS"
+    elif check_conda_environment; then
         conda_env_status="PASS"
     else
         conda_env_status="WARN"
-        # base 环境警告但不阻止安装（用户可能选择继续）
+        # 警告但不阻止安装（用户可能选择继续）
     fi
     echo ""
 

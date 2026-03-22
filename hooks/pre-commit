@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# Pre-commit hook — code quality checks before commit
+#
+# Checks:
+#   1. Trailing whitespace
+#   2. Merge conflict markers
+#   3. Large files (>5 MB)
+#   4. Auto-fix + lint staged Python files with ruff (gracefully skipped if absent)
+#   5. Hardcoded API keys in staged Python files
+#   6. Debug statements (pdb/breakpoint) in staged Python files
+
+set -eo pipefail
+
+# Colors
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+echo -e "${CYAN}🔍 Running pre-commit checks...${NC}"
+
+staged_files=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
+if [ -z "$staged_files" ]; then
+    echo -e "${GREEN}✓ No staged changes${NC}"
+    exit 0
+fi
+
+# --- Trailing whitespace ---
+if ! git diff --cached --check --diff-filter=ACM 2>/dev/null; then
+    echo -e "${RED}✗ Trailing whitespace found. Fix before committing.${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ No trailing whitespace${NC}"
+
+# --- Merge conflict markers ---
+if git diff --cached 2>/dev/null | grep -qE '^\+(<<<<<<<|=======|>>>>>>>)'; then
+    echo -e "${RED}✗ Merge conflict markers found in staged changes${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ No conflict markers${NC}"
+
+# --- Large files (>5 MB) ---
+max_size=5242880
+large=""
+while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    sz=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null || echo 0)
+    [ "$sz" -gt "$max_size" ] && large="${large}  $f ($((sz / 1024 / 1024))MB)\n"
+done <<< "$staged_files"
+if [ -n "$large" ]; then
+    echo -e "${RED}✗ Large files (>5MB) staged:${NC}"
+    printf "%b" "$large"
+    exit 1
+fi
+echo -e "${GREEN}✓ No large files${NC}"
+
+# --- Ruff: auto-fix + lint staged Python files ---
+STAGED_PY=$(echo "$staged_files" | grep '\.py$' || true)
+if [ -n "$STAGED_PY" ]; then
+    if command -v ruff &>/dev/null; then
+        echo -e "${YELLOW}📝 Auto-fixing staged Python files...${NC}"
+        echo "$STAGED_PY" | xargs ruff format 2>/dev/null || true
+        echo "$STAGED_PY" | xargs ruff check --fix 2>/dev/null || true
+        # Re-stage auto-fixed files
+        echo "$STAGED_PY" | xargs git add
+        echo "🔍 Final lint check on entire repo..."
+        if ! ruff check .; then
+            echo -e "${RED}✗ ruff check failed. Run 'ruff check --fix .' to fix.${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN}✓ Lint check passed${NC}"
+    else
+        echo -e "${YELLOW}⚠️  ruff not found, skipping lint${NC}"
+    fi
+fi
+
+# --- Hardcoded API keys ---
+if [ -n "$STAGED_PY" ] && echo "$STAGED_PY" | xargs grep -l "api[_-]key\s*=\s*['\"]sk-" 2>/dev/null | grep -q .; then
+    echo -e "${RED}✗ Hardcoded API keys detected in staged Python files!${NC}"
+    exit 1
+fi
+
+# --- Debug statements ---
+if [ -n "$STAGED_PY" ] && echo "$STAGED_PY" | xargs grep -l "import pdb\|breakpoint()" 2>/dev/null | grep -q .; then
+    echo -e "${YELLOW}⚠️  Debug statements found (pdb/breakpoint). Use --no-verify to skip.${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ All pre-commit checks passed!${NC}"
+exit 0

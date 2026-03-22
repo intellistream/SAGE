@@ -1,0 +1,65 @@
+# Back-sync: main → main-dev
+#
+# Trigger: any commit that lands on main (merge commit, release tag, bot commit).
+# Logic:   git cherry — ignores merge-commit noise, detects only real code delta.
+# Action:  if drift exists, open a PR (main → main-dev); CI must pass before merge.
+
+name: Back-Sync main → main-dev
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  back-sync:
+    name: Detect drift and open back-sync PR
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Fetch both branches
+      run: git fetch origin main main-dev --prune
+
+    - name: Check patch-level drift
+      id: drift
+      run: |
+        count=$(git cherry origin/main-dev origin/main | grep -c '^+' || echo 0)
+        echo "patch_count=${count}" >> "$GITHUB_OUTPUT"
+        if [ "${count}" -gt 0 ]; then
+          echo "has_drift=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "has_drift=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Skip — no patch-level drift
+      if: steps.drift.outputs.has_drift == 'false'
+      run: echo "main and main-dev are patch-equivalent. Nothing to do."
+
+    - name: Create back-sync branch and PR
+      if: steps.drift.outputs.has_drift == 'true'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        BRANCH="back-sync/main-to-main-dev-$(date -u +%Y%m%d-%H%M)"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git config user.name "github-actions[bot]"
+
+        git checkout -b "${BRANCH}" origin/main-dev
+        git merge --no-ff origin/main -m "chore: back-sync main into main-dev [auto]"
+        git push origin "${BRANCH}"
+
+        gh pr create \
+          --base main-dev \
+          --head "${BRANCH}" \
+          --title "chore: back-sync main into main-dev" \
+          --body "$(printf '**Auto-created back-sync PR**\n\n%s patch-level commit(s) present on `main` but missing from `main-dev`.\n\nMerge after CI passes — no code review required for pure sync PRs.' '${{ steps.drift.outputs.patch_count }}')" \
+          --label "chore" || true

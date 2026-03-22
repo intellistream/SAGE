@@ -115,16 +115,186 @@ detect_mainland_china_ip() {
     return 1
 }
 
+normalize_simple_url() {
+    local url="$1"
+    url="${url%/}"
+    if [[ "$url" != */simple ]]; then
+        url="$url/simple"
+    fi
+    echo "${url}/"
+}
+
+resolve_url_with_python() {
+    local base_url="$1"
+    local raw_url="$2"
+
+    python3 - <<PY
+from urllib.parse import urljoin
+print(urljoin(${base_url@Q}, ${raw_url@Q}))
+PY
+}
+
+extract_artifact_url_from_simple() {
+    local mirror_simple_url
+    mirror_simple_url="$(normalize_simple_url "$1")"
+    local package_name="${2:-pip}"
+    local package_simple_url="${mirror_simple_url}${package_name}/"
+
+    if ! command -v curl >/dev/null 2>&1; then
+        return 1
+    fi
+
+    local html
+    html="$(curl -L -s --connect-timeout 5 --max-time 12 "$package_simple_url" 2>/dev/null || true)"
+    [ -n "$html" ] || return 1
+
+    local href
+    href="$(printf '%s' "$html" | tr '\n' ' ' | grep -oE 'href="[^"]+"' | head -n 1 | sed 's/^href="//;s/"$//')"
+    [ -n "$href" ] || return 1
+
+    resolve_url_with_python "$package_simple_url" "$href"
+}
+
+probe_artifact_download_status() {
+    local artifact_url="$1"
+
+    if ! command -v curl >/dev/null 2>&1; then
+        echo "000"
+        return 1
+    fi
+
+    local status
+    status="$(curl -L -s -I --connect-timeout 5 --max-time 12 -o /dev/null -w "%{http_code}" "$artifact_url" 2>/dev/null || echo "000")"
+    case "$status" in
+        200|204|206|301|302)
+            echo "$status"
+            return 0
+            ;;
+        403)
+            echo "$status"
+            return 1
+            ;;
+        405|000)
+            status="$(curl -L -s --range 0-0 --connect-timeout 5 --max-time 12 -o /dev/null -w "%{http_code}" "$artifact_url" 2>/dev/null || echo "000")"
+            ;;
+    esac
+
+    echo "$status"
+    case "$status" in
+        200|204|206|301|302)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+is_mirror_download_healthy() {
+    local mirror_simple_url
+    mirror_simple_url="$(normalize_simple_url "$1")"
+    local test_package="${2:-pip}"
+
+    if ! command -v curl >/dev/null 2>&1; then
+        return 1
+    fi
+
+    local simple_status
+    simple_status="$(curl -L -s --connect-timeout 5 --max-time 12 -o /dev/null -w "%{http_code}" "${mirror_simple_url}${test_package}/" 2>/dev/null || echo "000")"
+    case "$simple_status" in
+        200|301|302)
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    local artifact_url
+    artifact_url="$(extract_artifact_url_from_simple "$mirror_simple_url" "$test_package" 2>/dev/null || true)"
+    [ -n "$artifact_url" ] || return 0
+
+    local artifact_status
+    artifact_status="$(probe_artifact_download_status "$artifact_url")"
+    case "$artifact_status" in
+        200|204|206|301|302)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+build_pip_mirror_fallback_chain() {
+    local primary_url
+    primary_url="$(normalize_simple_url "$1")"
+
+    local candidates=(
+        "$primary_url"
+        "https://mirrors.aliyun.com/pypi/simple/"
+        "https://repo.huaweicloud.com/repository/pypi/simple/"
+        "https://mirrors.cloud.tencent.com/pypi/simple/"
+        "https://pypi.mirrors.ustc.edu.cn/simple/"
+        "https://pypi.tuna.tsinghua.edu.cn/simple/"
+        "https://pypi.org/simple/"
+    )
+
+    local unique=()
+    local candidate
+    for candidate in "${candidates[@]}"; do
+        local normalized
+        normalized="$(normalize_simple_url "$candidate")"
+        local seen=false
+        local item
+        for item in "${unique[@]}"; do
+            if [ "$item" = "$normalized" ]; then
+                seen=true
+                break
+            fi
+        done
+        if [ "$seen" = "false" ]; then
+            unique+=("$normalized")
+        fi
+    done
+
+    local fallback_chain=""
+    for candidate in "${unique[@]}"; do
+        if [ -z "$fallback_chain" ]; then
+            fallback_chain="$candidate"
+        else
+            fallback_chain="$fallback_chain|$candidate"
+        fi
+    done
+
+    export SAGE_PIP_MIRROR_FALLBACKS="$fallback_chain"
+}
+
 # 配置 pip 镜像
 # 配置 pip 镜像
 configure_pip_mirror() {
     local mirror_source="${1:-auto}"
+    local selected_mirror="https://pypi.org/simple/"
 
     # 如果设置了 SAGE_FORCE_CHINA_MIRROR=true，强制使用中国镜像（适用于中国的 self-hosted runner）
     if [ "${SAGE_FORCE_CHINA_MIRROR:-}" = "true" ]; then
-        export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
+        local forced_candidates=(
+            "https://mirrors.aliyun.com/pypi/simple/"
+            "https://repo.huaweicloud.com/repository/pypi/simple/"
+            "https://mirrors.cloud.tencent.com/pypi/simple/"
+            "https://pypi.mirrors.ustc.edu.cn/simple/"
+            "https://pypi.tuna.tsinghua.edu.cn/simple/"
+        )
+        local candidate
+        for candidate in "${forced_candidates[@]}"; do
+            if is_mirror_download_healthy "$candidate" "pip"; then
+                selected_mirror="$candidate"
+                break
+            fi
+        done
+        export PIP_INDEX_URL="$(normalize_simple_url "$selected_mirror")"
         export PIP_EXTRA_INDEX_URL=""
-        echo -e "${GREEN}  ✓ SAGE_FORCE_CHINA_MIRROR=true，强制使用清华镜像${NC}"
+        build_pip_mirror_fallback_chain "$PIP_INDEX_URL"
+        echo -e "${GREEN}  ✓ SAGE_FORCE_CHINA_MIRROR=true，使用可下载镜像: $PIP_INDEX_URL${NC}"
         return 0
     fi
 
@@ -133,13 +303,29 @@ configure_pip_mirror() {
     if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${GITLAB_CI:-}" ] || [ -n "${JENKINS_URL:-}" ]; then
         # 在 CI 中也尝试检测是否在中国
         if detect_mainland_china_ip; then
-            export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
+            local ci_candidates=(
+                "https://mirrors.aliyun.com/pypi/simple/"
+                "https://repo.huaweicloud.com/repository/pypi/simple/"
+                "https://mirrors.cloud.tencent.com/pypi/simple/"
+                "https://pypi.mirrors.ustc.edu.cn/simple/"
+                "https://pypi.tuna.tsinghua.edu.cn/simple/"
+            )
+            local candidate
+            for candidate in "${ci_candidates[@]}"; do
+                if is_mirror_download_healthy "$candidate" "pip"; then
+                    selected_mirror="$candidate"
+                    break
+                fi
+            done
+            export PIP_INDEX_URL="$(normalize_simple_url "$selected_mirror")"
             export PIP_EXTRA_INDEX_URL=""
-            echo -e "${GREEN}  ✓ CI环境 + 中国大陆网络检测，使用清华镜像加速${NC}"
+            build_pip_mirror_fallback_chain "$PIP_INDEX_URL"
+            echo -e "${GREEN}  ✓ CI环境 + 中国大陆网络检测，使用可下载镜像: $PIP_INDEX_URL${NC}"
             return 0
         fi
         export PIP_INDEX_URL="https://pypi.org/simple/"
         export PIP_EXTRA_INDEX_URL=""
+        build_pip_mirror_fallback_chain "$PIP_INDEX_URL"
         echo -e "${INFO} CI环境检测：使用官方 PyPI（国际网络）"
         return 0
     fi
@@ -150,26 +336,54 @@ configure_pip_mirror() {
         "auto")
             # 自动检测最优镜像，优先根据公网 IP 判断
             if detect_mainland_china_ip; then
-                # 检测清华镜像是否可用（快速健康检查）
-                if curl -s --connect-timeout 3 --max-time 3 -I "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
-                    export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
-                    export PIP_EXTRA_INDEX_URL=""
-                    echo -e "${GREEN}  ✓ 检测到中国大陆网络，自动使用清华镜像加速${NC}"
+                local mainland_candidates=(
+                    "https://mirrors.aliyun.com/pypi/simple/"
+                    "https://repo.huaweicloud.com/repository/pypi/simple/"
+                    "https://mirrors.cloud.tencent.com/pypi/simple/"
+                    "https://pypi.mirrors.ustc.edu.cn/simple/"
+                    "https://pypi.tuna.tsinghua.edu.cn/simple/"
+                )
+                local candidate
+                local mirror_picked=false
+                for candidate in "${mainland_candidates[@]}"; do
+                    if is_mirror_download_healthy "$candidate" "pip"; then
+                        selected_mirror="$candidate"
+                        mirror_picked=true
+                        break
+                    fi
+                done
+
+                export PIP_INDEX_URL="$(normalize_simple_url "$selected_mirror")"
+                export PIP_EXTRA_INDEX_URL=""
+                if [ "$mirror_picked" = "true" ] && [ "$PIP_INDEX_URL" != "https://pypi.org/simple/" ]; then
+                    echo -e "${GREEN}  ✓ 检测到中国大陆网络，自动使用可下载镜像: $PIP_INDEX_URL${NC}"
                 else
-                    export PIP_INDEX_URL="https://pypi.org/simple/"
-                    export PIP_EXTRA_INDEX_URL=""
-                    echo -e "${YELLOW}  ⚠️  清华镜像不可用，降级到官方 PyPI${NC}"
+                    echo -e "${YELLOW}  ⚠️  国内镜像下载探测失败，已降级到官方 PyPI${NC}"
                 fi
             elif [[ "${LANG:-}" == zh_* ]] || [[ "${LC_ALL:-}" == zh_* ]] || [[ "${LC_CTYPE:-}" == zh_* ]]; then
-                # 中文环境也进行健康检查
-                if curl -s --connect-timeout 3 --max-time 3 -I "https://pypi.tuna.tsinghua.edu.cn/simple/" 2>/dev/null | head -1 | grep -q "200\|301\|302"; then
-                    export PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple/"
-                    export PIP_EXTRA_INDEX_URL=""
-                    echo -e "${GREEN}  ✓ 检测到中文环境，自动使用清华镜像加速${NC}"
+                local zh_candidates=(
+                    "https://mirrors.aliyun.com/pypi/simple/"
+                    "https://repo.huaweicloud.com/repository/pypi/simple/"
+                    "https://mirrors.cloud.tencent.com/pypi/simple/"
+                    "https://pypi.mirrors.ustc.edu.cn/simple/"
+                    "https://pypi.tuna.tsinghua.edu.cn/simple/"
+                )
+                local candidate
+                local mirror_picked=false
+                for candidate in "${zh_candidates[@]}"; do
+                    if is_mirror_download_healthy "$candidate" "pip"; then
+                        selected_mirror="$candidate"
+                        mirror_picked=true
+                        break
+                    fi
+                done
+
+                export PIP_INDEX_URL="$(normalize_simple_url "$selected_mirror")"
+                export PIP_EXTRA_INDEX_URL=""
+                if [ "$mirror_picked" = "true" ] && [ "$PIP_INDEX_URL" != "https://pypi.org/simple/" ]; then
+                    echo -e "${GREEN}  ✓ 检测到中文环境，自动使用可下载镜像: $PIP_INDEX_URL${NC}"
                 else
-                    export PIP_INDEX_URL="https://pypi.org/simple/"
-                    export PIP_EXTRA_INDEX_URL=""
-                    echo -e "${YELLOW}  ⚠️  清华镜像不可用，使用官方 PyPI${NC}"
+                    echo -e "${YELLOW}  ⚠️  中文环境镜像下载探测失败，已降级到官方 PyPI${NC}"
                 fi
             else
                 export PIP_INDEX_URL="https://pypi.org/simple/"
@@ -193,10 +407,13 @@ configure_pip_mirror() {
             echo -e "${DIM}  使用官方 PyPI${NC}"
             ;;
         "disable")
-            # 显式禁用镜像配置
-            unset PIP_INDEX_URL
-            unset PIP_EXTRA_INDEX_URL
-            echo -e "${DIM}  镜像已禁用${NC}"
+            # 显式禁用镜像配置：强制官方 PyPI
+            # 说明：不能 simple unset，否则可能回落到用户全局 pip.conf 中的镜像配置。
+            export PIP_INDEX_URL="https://pypi.org/simple/"
+            export PIP_EXTRA_INDEX_URL=""
+            export PIP_NO_CACHE_DIR=1
+            build_pip_mirror_fallback_chain "$PIP_INDEX_URL"
+            echo -e "${DIM}  镜像已禁用（强制官方 PyPI）${NC}"
             return 0
             ;;
         custom:*)
@@ -212,7 +429,13 @@ configure_pip_mirror() {
             ;;
     esac
 
+    PIP_INDEX_URL="$(normalize_simple_url "${PIP_INDEX_URL:-https://pypi.org/simple/}")"
+    export PIP_INDEX_URL
+    export PIP_EXTRA_INDEX_URL=""
+    build_pip_mirror_fallback_chain "$PIP_INDEX_URL"
+
     echo -e "${DIM}  PIP_INDEX_URL: $PIP_INDEX_URL${NC}"
+    echo -e "${DIM}  镜像回退链: ${SAGE_PIP_MIRROR_FALLBACKS}${NC}"
 }
 
 # 检测是否在虚拟环境中
@@ -242,10 +465,9 @@ detect_virtual_environment() {
     echo "$is_venv|$venv_type|$venv_name"
 }
 
-# 检查虚拟环境隔离（可配置为警告或错误）
+# 检查环境隔离（可配置为警告或错误）
 check_virtual_environment_isolation() {
     local install_environment="$1"
-    local auto_venv="${2:-false}"
 
     # 如果用户选择了 conda，则会创建新环境，不需要额外检查
     if [ "$install_environment" = "conda" ]; then
@@ -262,31 +484,28 @@ check_virtual_environment_isolation() {
     local venv_type=$(echo "$venv_info" | cut -d'|' -f2)
     local venv_name=$(echo "$venv_info" | cut -d'|' -f3)
 
+    # 项目策略：不支持 Python venv（含 .venv）作为安装/运行环境
+    if [ "$is_venv" = "true" ] && [ "$venv_type" = "venv" ]; then
+        echo ""
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BOLD}❌ 不支持 Python venv 环境${NC}"
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+        echo -e "${WARNING} 检测到 VIRTUAL_ENV: ${RED}${VIRTUAL_ENV:-unknown}${NC}"
+        echo -e "${INFO} SAGE 当前策略不允许使用或自动创建 venv/.venv"
+        echo ""
+        echo -e "${BLUE}请改用以下方式之一：${NC}"
+        echo -e "  ${GREEN}1)${NC} 退出当前 venv 后使用 Conda 环境（推荐）"
+        echo -e "     ${DIM}conda activate sage${NC}"
+        echo -e "  ${PURPLE}2)${NC} 退出当前 venv 后使用当前系统/已有环境"
+        echo -e "     ${DIM}deactivate && ./quickstart.sh --pip${NC}"
+        echo ""
+        echo -e "${RED}${BOLD}✗ 安装已终止${NC}"
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        exit 1
+    fi
+
     if [ "$is_venv" = "false" ]; then
-        # 如果启用了 auto-venv，自动创建虚拟环境
-        if [ "$auto_venv" = "true" ]; then
-            echo ""
-            echo -e "${BLUE}🔧 自动创建虚拟环境${NC}"
-            echo ""
-
-            local venv_path=".sage/venv"
-            echo -e "${INFO} 将在 ${GREEN}$venv_path${NC} 创建 Python 虚拟环境"
-
-            if ! ensure_python_venv "$venv_path"; then
-                echo -e "${RED}错误: 无法自动创建虚拟环境${NC}"
-                echo -e "${DIM}请手动创建: python3 -m venv $venv_path${NC}"
-                exit 1
-            fi
-
-            source "$venv_path/bin/activate"
-            if [ -n "${VIRTUAL_ENV:-}" ]; then
-                echo -e "${CHECK} 虚拟环境已激活: ${GREEN}$venv_path${NC}"
-                export PIP_CMD="python3 -m pip"
-                export PYTHON_CMD="python3"
-                return 0
-            fi
-        fi
-
         # 读取配置（默认为 warning）
         local venv_policy="${SAGE_VENV_POLICY:-warning}"
 
@@ -295,9 +514,9 @@ check_virtual_environment_isolation() {
         echo -e "${BOLD}⚠️  环境隔离警告${NC}"
         echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo ""
-        echo -e "${WARNING} 检测到您正在使用系统 Python 环境（非虚拟环境）"
+        echo -e "${WARNING} 检测到您正在使用系统 Python 环境（非 Conda 环境）"
         echo ""
-        echo -e "${BLUE}为什么推荐使用虚拟环境？${NC}"
+        echo -e "${BLUE}为什么推荐使用隔离环境（Conda）？${NC}"
         echo -e "  ${DIM}• 避免与系统包冲突${NC}"
         echo -e "  ${DIM}• 保持系统环境清洁${NC}"
         echo -e "  ${DIM}• 便于完全卸载和清理${NC}"
@@ -306,14 +525,10 @@ check_virtual_environment_isolation() {
 
         echo -e "${BLUE}建议的操作：${NC}"
         echo ""
-        echo -e "  ${YELLOW}1. 自动创建虚拟环境（推荐）${NC}"
-        echo -e "     ${DIM}重新运行: ${CYAN}./quickstart.sh --auto-venv${NC}"
+        echo -e "  ${GREEN}1. 使用 Conda 环境（推荐）${NC}"
+        echo -e "     ${DIM}运行: ${CYAN}./quickstart.sh --conda${NC}"
         echo ""
-        echo -e "  ${PURPLE}2. 手动创建虚拟环境${NC}"
-        echo -e "     ${DIM}使用 conda: ${CYAN}./quickstart.sh --conda${NC}"
-        echo -e "     ${DIM}或使用 venv: ${CYAN}python3 -m venv .sage/venv && source .sage/venv/bin/activate${NC}"
-        echo ""
-        echo -e "  ${GRAY}3. 继续在系统环境中安装（不推荐）${NC}"
+        echo -e "  ${GRAY}2. 继续在系统环境中安装（不推荐）${NC}"
         echo -e "     ${DIM}风险：可能污染系统 Python 环境${NC}"
         echo ""
 
@@ -336,7 +551,7 @@ check_virtual_environment_isolation() {
                 if [[ ! "$continue_choice" =~ ^[Yy]$ ]]; then
                     echo ""
                     echo -e "${INFO} 安装已取消"
-                    echo -e "${DIM}提示: 使用 --auto-venv 可自动创建虚拟环境${NC}"
+                    echo -e "${DIM}提示: 使用 --conda 创建并使用隔离环境${NC}"
                     echo ""
                     echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
                     exit 0
@@ -358,32 +573,10 @@ check_virtual_environment_isolation() {
                 ;;
         esac
     else
-        echo -e "${CHECK} 检测到虚拟环境: ${GREEN}$venv_type ($venv_name)${NC}"
+        echo -e "${CHECK} 检测到隔离环境: ${GREEN}$venv_type ($venv_name)${NC}"
     fi
 
     return 0
-}
-
-ensure_python_venv() {
-    local venv_path="$1"
-    : > /tmp/venv.log
-    if python3 -m venv "$venv_path" 2>/tmp/venv.log; then
-        return 0
-    fi
-    echo -e "${DIM}标准 venv 创建失败，尝试使用 virtualenv 模块...${NC}"
-    if python3 -m virtualenv "$venv_path" 2>>/tmp/venv.log; then
-        return 0
-    fi
-    echo -e "${DIM}virtualenv 模块不可用，尝试安装...${NC}"
-    if python3 -m pip install --user --break-system-packages virtualenv >/tmp/venv.log 2>&1; then
-        if python3 -m virtualenv "$venv_path" 2>>/tmp/venv.log; then
-            return 0
-        fi
-    fi
-    if [ -f /tmp/venv.log ]; then
-        tail -n 20 /tmp/venv.log
-    fi
-    return 1
 }
 
 # 配置安装环境的主函数
@@ -406,8 +599,8 @@ configure_installation_environment() {
         echo -e "${INFO} 已设置 PYTHONNOUSERSITE=1 以避免用户包冲突"
     fi
 
-    # 检查虚拟环境隔离（--auto-venv 会在 argument_parser 中设置 SAGE_AUTO_VENV）
-    check_virtual_environment_isolation "$install_environment" "${SAGE_AUTO_VENV:-false}"
+    # 检查环境隔离
+    check_virtual_environment_isolation "$install_environment"
 
     # 运行综合系统检查（包含预检查、系统检查、SAGE检查）
     if ! comprehensive_system_check "$install_mode" "$install_environment"; then

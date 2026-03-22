@@ -14,8 +14,43 @@ NC='\033[0m'
 
 echo -e "${BLUE}🧹 安装前清理...${NC}"
 
+# 统一 pip 命令（优先使用 quickstart 注入的 PIP_CMD）
+PYTHON_CMD="${PYTHON_CMD:-python3}"
+PIP_CMD="${PIP_CMD:-$PYTHON_CMD -m pip}"
+
 # 计数器
 removed_count=0
+
+# 清理当前主仓直接产出的历史安装（避免误删 benchmark/docs/isagellm/zoo 等独立包）
+echo -e "${DIM}清理当前 SAGE 主仓的直接安装包...${NC}"
+
+collect_direct_sage_packages_to_remove() {
+    local installed_lines="$1"
+    local removable_packages=(
+        "isage"
+        "sage"
+        "intsage"
+    )
+
+    local package_name
+    for package_name in "${removable_packages[@]}"; do
+        echo "$installed_lines" | awk -F'==' -v pkg="$package_name" '$1==pkg {print $1}'
+    done | awk '!seen[$0]++'
+}
+
+installed_packages=$(eval "$PIP_CMD list --format=freeze" 2>/dev/null || true)
+package_names=$(collect_direct_sage_packages_to_remove "$installed_packages" | tr '\n' ' ')
+
+if [ -n "$package_names" ]; then
+    echo -e "${DIM}将卸载: $package_names${NC}"
+    eval "$PIP_CMD uninstall -y $package_names" >/dev/null 2>&1 || true
+    pkg_count=$(echo "$package_names" | wc -w)
+    echo -e "${GREEN}✅ 清理了 $pkg_count 个主仓历史安装包${NC}"
+    removed_count=$((removed_count + pkg_count))
+else
+    echo -e "${DIM}未检测到需要清理的主仓安装包${NC}"
+fi
+echo -e "${DIM}保留独立包: isagellm / isage-benchmark / sage-pub-docs / zoo packages${NC}"
 
 # 清理 Python 缓存文件
 echo -e "${DIM}清理 __pycache__ 目录...${NC}"
@@ -58,13 +93,13 @@ if [ -d "dist" ]; then
     removed_count=$((removed_count + 1))
 fi
 
-# 清理空目录 (排除.git目录和docs-public子模块)
+# 清理空目录 (排除.git目录)
 echo -e "${DIM}清理空目录...${NC}"
-empty_dirs=$(find . -type d -empty -not -path "./.git/*" -not -path "./docs-public" -not -path "./.sage/*" 2>/dev/null | wc -l)
+empty_dirs=$(find . -type d -empty -not -path "./.git/*" -not -path "./.sage/*" 2>/dev/null | wc -l)
 if [ "$empty_dirs" -gt 0 ]; then
     # 多次运行以处理嵌套的空目录
     for i in {1..5}; do
-        find . -type d -empty -not -path "./.git/*" -not -path "./docs-public" -not -path "./.sage/*" -delete 2>/dev/null || true
+        find . -type d -empty -not -path "./.git/*" -not -path "./.sage/*" -delete 2>/dev/null || true
     done
     echo -e "${GREEN}✅ 删除了 $empty_dirs 个空目录${NC}"
     removed_count=$((removed_count + empty_dirs))
@@ -73,8 +108,8 @@ fi
 # 清理 pip 缓存 (可选，占用较大空间)
 if [ "${CLEAN_PIP_CACHE:-false}" = "true" ]; then
     echo -e "${DIM}清理 pip 缓存...${NC}"
-    if command -v pip3 >/dev/null 2>&1; then
-        pip3 cache purge 2>/dev/null || true
+    if eval "$PIP_CMD cache --help" >/dev/null 2>&1; then
+        eval "$PIP_CMD cache purge" 2>/dev/null || true
         echo -e "${GREEN}✅ pip 缓存已清理${NC}"
     fi
 fi

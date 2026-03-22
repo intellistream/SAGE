@@ -1,0 +1,47 @@
+name: Layer Consistency Check
+
+on:
+  pull_request:
+    branches: [main, main-dev]
+    paths:
+      - "SAGE.code-workspace"
+      - "README.md"
+      - "docs/layer-manifest.json"
+      - ".github/workflows/ci-layer-consistency.yml"
+      - "tools/scripts/check_layer_manifest_sync.py"
+  push:
+    branches: [main, main-dev]
+    paths:
+      - "SAGE.code-workspace"
+      - "README.md"
+      - "docs/layer-manifest.json"
+      - ".github/workflows/ci-layer-consistency.yml"
+      - "tools/scripts/check_layer_manifest_sync.py"
+  workflow_dispatch:
+
+concurrency:
+  group: layer-consistency-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  layer-consistency:
+    name: Validate layer manifest and workspace labels
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout SAGE
+        uses: actions/checkout@v4
+
+      - name: Explain current layer-consistency scope
+        run: |
+          echo "SAGE main workspace now validates an in-tree core surface."
+          echo "No split core-layer satellite repositories are required for this gate."
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run layer consistency check
+        run: |
+          python3 tools/scripts/check_layer_manifest_sync.py --strict-repos

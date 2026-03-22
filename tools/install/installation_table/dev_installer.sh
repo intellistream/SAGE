@@ -38,9 +38,9 @@ install_dev_packages() {
 
     log_info "开发工具安装阶段" "DevTools"
 
-    echo -e "${CHECK} 开发工具依赖已在 sage-tools[dev] 安装过程中完成"
+    echo -e "${CHECK} 开发工具依赖已在 isage-dev-tools / isage[dev] 安装过程中完成"
     echo -e "${DIM}包含: black, isort, flake8, pytest, pytest-timeout, mypy, pre-commit 等${NC}"
-    echo -e "${DIM}所有依赖通过 packages/sage-tools/pyproject.toml 统一管理${NC}"
+    echo -e "${DIM}开发工具由独立仓库 sage-dev-tools 统一维护${NC}"
     echo ""
 
     # 验证关键开发工具是否可用
@@ -51,12 +51,17 @@ install_dev_packages() {
     local missing_tools=()
 
     for tool in "${tools_to_check[@]}"; do
+        # 优先尝试直接调用（在 PATH 中）
         if command -v "$tool" >/dev/null 2>&1; then
             log_info "$tool 可用" "DevTools"
             echo -e "${CHECK} $tool 可用"
+        # 降级方案：尝试通过 python -m 方式调用
+        elif python3 -m "$tool" --version >/dev/null 2>&1 || python3 -m pip show "$tool" >/dev/null 2>&1; then
+            log_info "$tool 可用（通过 python -m）" "DevTools"
+            echo -e "${CHECK} $tool 可用（通过 python -m）"
         else
-            log_warn "$tool 不在 PATH 中" "DevTools"
-            echo -e "${WARNING} $tool 不在 PATH 中"
+            log_warn "$tool 不可用" "DevTools"
+            echo -e "${WARNING} $tool 不可用"
             missing_tools+=("$tool")
         fi
     done
@@ -84,9 +89,9 @@ install_dev_packages() {
         echo -e "${CHECK} 所有开发工具验证成功！"
     else
         echo ""
-        log_warn "部分工具不在 PATH 中: ${missing_tools[*]}" "DevTools"
-        echo -e "${WARNING} 部分工具不在 PATH 中: ${missing_tools[*]}"
-        echo -e "${DIM}这在某些环境中是正常的，工具仍可通过 python -m 方式使用${NC}"
+        log_warn "部分工具不可用: ${missing_tools[*]}" "DevTools"
+        echo -e "${WARNING} 部分工具不可用: ${missing_tools[*]}"
+        echo -e "${DIM}建议运行: pip install ${missing_tools[*]}${NC}"
     fi
 
     echo ""

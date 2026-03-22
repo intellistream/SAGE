@@ -227,12 +227,10 @@ check_gpu_configuration() {
                 echo -e "${DIM}  - $name (${memory}MB)${NC}"
             done
 
-            # 检查CUDA
-            if command -v nvcc &> /dev/null; then
-                local cuda_version=$(nvcc --version | grep "release" | sed 's/.*release \([0-9.]*\).*/\1/')
-                echo -e "${CHECK} CUDA 版本: $cuda_version"
-            else
-                echo -e "${WARNING} 未检测到CUDA，GPU计算功能可能受限"
+            # 检查CUDA运行时版本 (nvidia-smi)
+            local cuda_runtime=$(nvidia-smi | grep "CUDA Version:" | awk '{print $9}' 2>/dev/null)
+            if [ -n "$cuda_runtime" ]; then
+                echo -e "${CHECK} CUDA 运行时版本: $cuda_runtime"
             fi
         fi
     fi

@@ -3,7 +3,7 @@
 ## Workflow Overview
 
 | Workflow | 用途 | 触发条件 | 必须通过 |
-|----------|------|----------|---------|
+| -------- | ---- | -------- | -------- |
 | `ci-build-test.yml` | 构建、测试、覆盖率 | PR, push | ✅ |
 | `ci-sagellm-test.yml` | SageLLM mock/CUDA 测试 | PR, push | ✅ (mock) |
 | `ci-code-quality.yml` | 代码质量检查 | PR, push | ✅ |
@@ -21,6 +21,7 @@
 ### Job 1: SageLLM Mock Backend (必须通过)
 
 所有 PR 必须通过此测试，验证：
+
 - SageLLM mock backend 正常工作
 - `SageLLMGenerator` 与 mock backend 集成
 - Agentic operators (Planning, Timing, ToolSelection) 与 mock backend 兼容
@@ -33,6 +34,7 @@ pytest -v -k "sagellm or mock or SageLLM or Mock" packages/
 ### Job 2: SageLLM CUDA Backend (可选)
 
 GPU 测试，仅在以下情况运行：
+
 - 手动触发 workflow 并选择 `run_cuda_tests: true`
 - Push 到 `main` 分支
 
@@ -119,14 +121,14 @@ Workflow 会在以下情况**自动运行**：
 
 1. **TEST_PYPI_API_TOKEN**: TestPyPI API token
 
-   - 访问 https://test.pypi.org/manage/account/token/
+   - 访问 [TestPyPI token 页面](https://test.pypi.org/manage/account/token/)
    - 创建新 token
    - 权限: "Upload packages"
    - 将 token 添加到 GitHub Secrets
 
 1. **PYPI_API_TOKEN**: PyPI API token
 
-   - 访问 https://pypi.org/manage/account/token/
+   - 访问 [PyPI token 页面](https://pypi.org/manage/account/token/)
    - 创建新 token
    - 权限: "Upload packages"
    - 将 token 添加到 GitHub Secrets
@@ -161,22 +163,20 @@ Workflow 会在以下情况**自动运行**：
 
 ### 发布的包
 
-所有核心包都会按依赖顺序发布:
+所有核心发布物按依赖关系协同演进:
 
-1. `isage-common` - 公共基础库 (L1)
-1. `isage-platform` - 平台服务 (L2)
-1. `isage-kernel` - 核心引擎 (L3)
-1. `isage-libs` - 算法库 (L3)
-1. `isage-middleware` - 中间件组件 (L4)
-1. `isage-cli` - 命令行工具 (L5)
-1. `isage-tools` - 开发工具 (L5)
-1. `isage` - 元包（安装所有子包）
+1. `isage` - 主仓产品表面（foundation / stream / runtime / serving / cli）
+1. `isagellm` - 独立推理引擎（由独立仓库发布，不随主仓一起内嵌）
 
-**独立仓库发布** (不在 SAGE 核心仓库):
+**独立仓库协同**（不由 SAGE 主仓直接发布）:
+
 - `isagellm` - LLM 推理引擎 (sageLLM 仓库)
 - `isage-benchmark` - 基准测试 (sage-benchmark 仓库)
-- `isage-studio` - 可视化工具 (sage-studio 仓库)
-- `isage-edge` - 边缘聚合器 (sage-edge 仓库)
+- `isage-examples` - 示例与应用入口 (sage-examples 仓库)
+- `sage-tutorials` - 教学内容仓库（工作区协同，不作为主仓 editable 依赖）
+- `sage-docs` / `sage-pub-docs` - 文档站点与发布产物 (SAGE-Docs 仓库)
+
+`sage-edge` 不再列为独立协同仓库：edge aggregation 已回收入主仓 `sage.edge` 产品面。
 
 ### 版本策略
 
@@ -231,7 +231,7 @@ git push origin main
 #    - 创建 GitHub Release v0.1.7.0
 ```
 
-### 版本策略
+### 自动版本规则
 
 版本号格式: `MAJOR.MINOR.MICRO.PATCH`
 

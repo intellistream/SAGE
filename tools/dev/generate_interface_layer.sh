@@ -11,7 +11,7 @@ fi
 
 MODULE_NAME="$1"
 SAGE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-INTERFACE_DIR="$SAGE_ROOT/packages/sage-libs/src/sage/libs/$MODULE_NAME/interface"
+INTERFACE_DIR="$SAGE_ROOT/src/sage/$MODULE_NAME/interface"
 
 echo "🏗️  为 $MODULE_NAME 生成接口层模板"
 echo "================================"
@@ -200,7 +200,7 @@ sed -i "s/{MODULE_NAME}/$MODULE_NAME/g" "$INTERFACE_DIR/factory.py"
 sed -i "s/{MODULE_NAME_UPPER}/$MODULE_NAME_UPPER/g" "$INTERFACE_DIR/factory.py"
 
 # 4. 更新父级 __init__.py
-PARENT_INIT="$SAGE_ROOT/packages/sage-libs/src/sage/libs/$MODULE_NAME/__init__.py"
+PARENT_INIT="$SAGE_ROOT/src/sage/$MODULE_NAME/__init__.py"
 if [ ! -f "$PARENT_INIT" ]; then
     echo "📝 创建 $MODULE_NAME/__init__.py..."
     cat > "$PARENT_INIT" << 'EOF'
@@ -214,7 +214,7 @@ Installation:
 
 Usage:
     # Use the interface layer
-    from sage.libs.{MODULE_NAME}.interface import create, register
+    from sage.{MODULE_NAME}.interface import create, register
 
     # Or import from external package
     from isage_{MODULE_NAME} import *
@@ -253,4 +253,4 @@ echo "  2. 编辑 factory.py - 如果需要自定义注册逻辑"
 echo "  3. 在 isage-$MODULE_NAME 中实现具体类并注册"
 echo ""
 echo "📖 参考示例："
-echo "  packages/sage-libs/src/sage/libs/anns/interface/"
+echo "  src/sage/anns/interface/"

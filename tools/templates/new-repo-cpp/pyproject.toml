@@ -1,0 +1,59 @@
+# pyproject.toml template for SAGE packages WITH C++ extension
+#
+# Replace ALL occurrences of:
+#   MY_PKG_NAME  → PyPI package name  (e.g. isage-anns)
+#   my_pkg       → Python import name (e.g. sage_anns)
+#   "Short description."
+#
+# This variant adds cmake + pybind11 as build dependencies and sets
+# scikit-build-core as the build backend so `pip install -e .` compiles csrc/.
+
+[build-system]
+requires = [
+    "scikit-build-core>=0.9",
+    "pybind11>=2.12",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "MY_PKG_NAME"
+dynamic = ["version"]
+description = "Short description."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "IntelliStream Team" }]
+license = { text = "Apache-2.0" }
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+  # runtime Python deps
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0.0",
+  "pytest-cov>=4.0.0",
+  "ruff>=0.8.0",
+  "pre-commit>=3.0.0",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "my_pkg._version.__version__" }
+
+# ─── scikit-build-core settings ──────────────────────────────────────────────
+[tool.scikit-build]
+cmake.build-type = "Release"
+wheel.packages = ["src/my_pkg"]
+# Pass extra cmake args:
+# cmake.args = ["-DBUILD_TESTING=OFF"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --tb=short --color=yes"

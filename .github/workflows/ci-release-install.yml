@@ -4,10 +4,11 @@ on:
   push:
     branches: [main]
     paths:
-      - 'packages/*/pyproject.toml'
-      - 'packages/*/setup.py'
-      - 'packages/*/setup.cfg'
+      - 'pyproject.toml'
+      - 'setup.py'
+      - 'src/**'
       - 'tools/install/**'
+      - '.github/workflows/ci-release-install.yml'
     tags:
       - 'v*'
   release:
@@ -54,12 +55,19 @@ jobs:
         run: |
           make clean || true
           python -m pip install build
-          python -m build --wheel --outdir dist packages/sage
+          python -m build --wheel --outdir dist .
 
       - name: Install from wheels
         run: |
           python -m pip install --force-reinstall dist/*.whl
-          python -c "import sage; import sage.cli; import sage.apps; import sage.benchmark; print('full import ok')"
+          python -c "import sage.foundation, sage.stream, sage.runtime, sage.serving, sage.cli; print('core imports ok')"
+          sage version
+          sage verify
+          sage chat --help
+
+      - name: Run current in-tree tests
+        run: |
+          python -m pytest src/tests -q
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4

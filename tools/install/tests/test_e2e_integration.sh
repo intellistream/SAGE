@@ -105,8 +105,8 @@ step1_setup_test_environment() {
     log_success "测试环境设置完成"
 }
 
-step2_test_auto_venv_creation() {
-    log_step "测试自动虚拟环境创建"
+step2_test_environment_detection() {
+    log_step "测试环境检测（禁用 venv）"
 
     # 清除所有虚拟环境变量
     unset CONDA_DEFAULT_ENV CONDA_PREFIX VIRTUAL_ENV
@@ -126,41 +126,11 @@ step2_test_auto_venv_creation() {
         return 1
     fi
 
-    # 测试创建虚拟环境
-    local test_venv="$TEST_DIR/.sage/venv"
-    log_info "创建测试虚拟环境: $test_venv"
-
-    if ensure_python_venv "$test_venv" 2>/dev/null; then
-        log_success "虚拟环境创建成功"
-
-        # 验证虚拟环境结构
-        if [ -f "$test_venv/bin/activate" ]; then
-            log_success "虚拟环境包含 activate 脚本"
-        else
-            log_failure "虚拟环境缺少 activate 脚本"
-            return 1
-        fi
-
-        # 激活虚拟环境
-        source "$test_venv/bin/activate"
-        log_info "Python: $(python --version 2>&1)"
-        log_info "Pip: $(pip --version 2>&1)"
-
-        log_success "虚拟环境激活成功"
-    else
-        log_failure "虚拟环境创建失败"
-        return 1
-    fi
+    log_success "venv 自动创建路径已禁用（仅检测，不创建）"
 }
 
 step3_test_install_tracking() {
     log_step "测试安装跟踪"
-
-    # 确保在虚拟环境中
-    if [ -z "${VIRTUAL_ENV:-}" ]; then
-        log_info "激活虚拟环境..."
-        source "$TEST_DIR/.sage/venv/bin/activate"
-    fi
 
     # 安装一些测试包
     log_info "安装测试包..."
@@ -194,29 +164,24 @@ step3_test_install_tracking() {
     log_success "安装跟踪测试完成"
 }
 
-step4_test_environment_detection() {
+step4_test_venv_policy_reject() {
     log_step "测试环境检测功能"
 
     source "$TEST_DIR/tools/install/display_tools/colors.sh"
     source "$TEST_DIR/tools/install/download_tools/environment_config.sh"
 
-    # 测试在虚拟环境中的检测
-    local result=$(detect_virtual_environment)
-    local is_venv=$(echo "$result" | cut -d'|' -f1)
-    local venv_type=$(echo "$result" | cut -d'|' -f2)
-
-    log_info "检测结果: $result"
-
-    if [ "$is_venv" = "true" ] && [ "$venv_type" = "venv" ]; then
-        log_success "正确检测到 Python venv"
-    else
-        log_failure "虚拟环境检测不正确"
+    export VIRTUAL_ENV="$TEST_DIR/.venv"
+    if check_virtual_environment_isolation "pip" >/dev/null 2>&1; then
+        log_failure "Python venv 未被拒绝"
+        unset VIRTUAL_ENV
         return 1
     fi
+    unset VIRTUAL_ENV
+    log_success "Python venv 被正确拒绝"
 }
 
 step5_test_venv_policy() {
-    log_step "测试 SAGE_VENV_POLICY 配置"
+    log_step "测试 SAGE_VENV_POLICY 配置（系统环境）"
 
     source "$TEST_DIR/tools/install/display_tools/colors.sh"
     source "$TEST_DIR/tools/install/download_tools/environment_config.sh"
@@ -226,7 +191,7 @@ step5_test_venv_policy() {
         export SAGE_VENV_POLICY=$policy
         log_info "测试策略: SAGE_VENV_POLICY=$policy"
 
-        # 在虚拟环境中检查应该总是通过
+        # 仅验证变量可设置与检测函数可执行
         local result=$(detect_virtual_environment)
         log_info "策略 $policy 检测结果: $result"
     done
@@ -273,20 +238,15 @@ step8_verify_documentation() {
 
     # 检查文档文件
     local docs_to_check=(
-        "docs-public/docs_src/dev-notes/l1-common/CLEANUP_AUTOMATION.md"
+        "README.md"
+        "DEVELOPER.md"
+        "CONTRIBUTING.md"
+        "docs/dependency-audit-gate.md"
     )
 
     for doc in "${docs_to_check[@]}"; do
         if [ -f "$TEST_DIR/$doc" ]; then
             log_success "文档存在: $doc"
-
-            # 验证文档包含关键字
-            if grep -q "auto-venv" "$TEST_DIR/$doc"; then
-                log_info "文档包含 auto-venv 说明"
-            fi
-            if grep -q "SAGE_VENV_POLICY" "$TEST_DIR/$doc"; then
-                log_info "文档包含 SAGE_VENV_POLICY 说明"
-            fi
         else
             log_info "文档不存在（跳过）: $doc"
         fi
@@ -339,9 +299,9 @@ main() {
 
     # 运行所有测试步骤
     step1_setup_test_environment
-    step2_test_auto_venv_creation
+    step2_test_environment_detection
     step3_test_install_tracking
-    step4_test_environment_detection
+    step4_test_venv_policy_reject
     step5_test_venv_policy
     step6_test_cleanup
     step7_test_makefile_integration

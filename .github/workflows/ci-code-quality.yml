@@ -1,20 +1,11 @@
-name: Code Quality Check
+# DEPRECATED (#1466) — Historical split-repo code quality checks have been
+# superseded by the consolidated main-repo workflow plus independent optional
+# adapter/tooling repos. Preserved for reference.
+
+name: "[DEPRECATED] Code Quality Check (monorepo)"
 
 on:
-  pull_request:
-    branches: [main, main-dev]
-    types: [opened, synchronize, reopened]
-    paths:
-      - '**.py'
-      - '**.pyi'
-      - 'tools/config/pre-commit-config.yaml'
-      - 'tools/config/ruff.toml'
-  push:
-    branches: [main, main-dev]
-    paths:
-      - '**.py'
-      - '**.pyi'
-  workflow_dispatch:
+  workflow_dispatch:  # manual only — automatic triggers removed (#1466)
 
 concurrency:
   group: quality-${{ github.ref }}
@@ -32,6 +23,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout sageFlownet (for dedup gate)
+        uses: actions/checkout@v4
+        with:
+          repository: intellistream/sageFlownet
+          path: sageFlownet
+          fetch-depth: 1
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -47,7 +45,7 @@ jobs:
       - name: Install tools (no SAGE)
         run: |
           pip install --upgrade pip
-          pip install pre-commit ruff mypy types-PyYAML types-requests types-setuptools
+          pip install pre-commit ruff
 
       - name: Configure Git for large diffs
         run: |
@@ -77,3 +75,11 @@ jobs:
           SKIP: shellcheck  # Skip shellcheck-py to avoid network issues, use system shellcheck instead
         run: |
           pre-commit run --all-files --config tools/config/pre-commit-config.yaml
+
+      - name: Cross-repo dedup check - SAGE vs sageFlownet (Issue #1439)
+        run: |
+          python3 tools/scripts/check_cross_repo_dedup.py \
+            --flownet-path "$GITHUB_WORKSPACE/sageFlownet" \
+            --require-flownet \
+            --verbose
+        continue-on-error: false

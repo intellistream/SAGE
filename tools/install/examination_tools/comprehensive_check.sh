@@ -130,8 +130,8 @@ check_system_runtime() {
     # 警告：磁盘空间不足（SAGE 需要至少 10GB，推荐 20GB+）
     if [ "$disk_space_gb" -lt 10 ]; then
         output_warning "磁盘空间不足！可用: ${disk_space}，推荐至少 20GB"
-        output_dim "SAGE 完整安装（包含 vLLM、submodules）需要 15-20GB 空间"
-        output_dim "建议: 清理磁盘或使用 --core 模式减少空间占用"
+        output_dim "SAGE 完整安装（包含 submodules、ML 依赖）需要 15-20GB 空间"
+        output_dim "建议: 清理磁盘后重试（standard/dev 均需完整依赖空间）"
 
         # 严重不足时提示用户确认
         if [ "$disk_space_gb" -lt 5 ]; then
@@ -147,7 +147,7 @@ check_system_runtime() {
         fi
     elif [ "$disk_space_gb" -lt 20 ]; then
         output_warning "磁盘空间较紧张（可用: ${disk_space}），推荐 20GB+"
-        output_dim "提示: 使用 --core 模式可减少空间占用"
+        output_dim "提示: 建议预留 20GB+ 磁盘空间以保证安装顺利"
     fi
 
     # 检查基础命令
@@ -441,11 +441,45 @@ check_conda_mode_requirements() {
 check_existing_sage() {
     echo -e "${INFO} 检查是否已安装 SAGE..."
 
+    _sage_pip_list() {
+        if [ -n "${PIP_CMD:-}" ]; then
+            eval "$PIP_CMD list" 2>/dev/null
+        else
+            python3 -m pip list 2>/dev/null
+        fi
+    }
+
+    _detect_sage_version() {
+        local installed_packages="$1"
+        local priority_packages=(
+            "isage"
+        )
+
+        local package_name=""
+        local package_version=""
+        for package_name in "${priority_packages[@]}"; do
+            package_version=$(echo "$installed_packages" | awk -v pkg="$package_name" '$1==pkg {print $2; exit}')
+            if [ -n "$package_version" ]; then
+                echo "$package_version"
+                return 0
+            fi
+        done
+
+        echo "$installed_packages" | head -n1 | awk '{print $2}'
+    }
+
+    _sage_package_filter_pattern() {
+        echo '^(isage($|-)|intsage($|-)|sage$)'
+    }
+
+    _should_auto_uninstall() {
+        [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" || "${AUTO_CONFIRM:-false}" = "true" || "${SAGE_AUTO_CONFIRM:-false}" = "true" ]]
+    }
+
     # 检查pip包列表中的所有SAGE相关包变体
-    local installed_packages=$(pip list 2>/dev/null | grep -E '^(sage|isage|intsage)(-|$)' || echo "")
+    local installed_packages=$(_sage_pip_list | grep -E "$(_sage_package_filter_pattern)" || echo "")
     if [ -n "$installed_packages" ]; then
-        # 获取第一个包的版本作为代表版本
-        local version=$(echo "$installed_packages" | head -n1 | awk '{print $2}')
+        local version=$(_detect_sage_version "$installed_packages")
         echo -e "${WARNING} 检测到已安装的 SAGE v${version}"
         echo
         echo -e "${DIM}已安装的包：${NC}"
@@ -454,13 +488,12 @@ check_existing_sage() {
         done
         echo
 
-        # 在CI环境中自动卸载重装
-        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" ]]; then
-            echo -e "${INFO} CI环境检测到已安装包，执行强制重装..."
+        if _should_auto_uninstall; then
+            echo -e "${INFO} 检测到自动确认/CI模式，执行强制重装..."
             # 导入卸载函数
             source "$(dirname "${BASH_SOURCE[0]}")/sage_check.sh"
             uninstall_sage
-            echo -e "${CHECK} CI环境强制重装准备完成"
+            echo -e "${CHECK} 强制重装准备完成"
         else
             echo -e "${WARNING} 检测到已安装 请强制重装"
             echo -e "${DIM}提示: 建议先卸载现有版本以避免冲突${NC}"
@@ -469,18 +502,17 @@ check_existing_sage() {
         return 0
     fi
 
-    # 检查是否能导入sage.common（PEP 420 namespace，检查实际包）
-    if python3 -c "import sage.common" 2>/dev/null; then
-        local sage_version=$(python3 -c "import sage.common; print(sage.common.__version__)" 2>/dev/null || echo "unknown")
+    # 检查是否能导入主仓核心表面
+    if python3 -c "from sage._version import __version__; import sage.foundation, sage.stream, sage.runtime, sage.serving, sage.cli; print(__version__)" 2>/dev/null; then
+        local sage_version=$(python3 -c "from sage._version import __version__; print(__version__)" 2>/dev/null || echo "unknown")
         echo -e "${WARNING} 检测到已安装的 SAGE v${sage_version}"
 
-        # 在CI环境中自动卸载重装
-        if [[ -n "$CI" || -n "$GITHUB_ACTIONS" || -n "$GITLAB_CI" || -n "$JENKINS_URL" || -n "$BUILDKITE" ]]; then
-            echo -e "${INFO} CI环境检测到已安装包，执行强制重装..."
+        if _should_auto_uninstall; then
+            echo -e "${INFO} 检测到自动确认/CI模式，执行强制重装..."
             # 导入卸载函数
             source "$(dirname "${BASH_SOURCE[0]}")/sage_check.sh"
             uninstall_sage
-            echo -e "${CHECK} CI环境强制重装准备完成"
+            echo -e "${CHECK} 强制重装准备完成"
         fi
 
         return 0
@@ -588,13 +620,14 @@ verify_installation() {
 
     local verify_output
     verify_output=$($python_cmd -c "
-# PEP 420 namespace - import actual packages, not the namespace
-import sage.common
-import sage.kernel
-import sage.libs
-import sage.middleware
-print(f'${CHECK} SAGE v{sage.common.__version__} 安装成功！')
-print(f'${CHECK} 核心包已安装: common, kernel, libs, middleware')
+from sage._version import __version__
+import sage.foundation
+import sage.stream
+import sage.runtime
+import sage.serving
+import sage.cli
+print(f'${CHECK} SAGE v{__version__} 安装成功！')
+print(f'${CHECK} 核心包已安装: foundation, stream, runtime, serving, cli')
 " 2>&1)
     local verify_status=$?
 
@@ -606,7 +639,7 @@ print(f'${CHECK} 核心包已安装: common, kernel, libs, middleware')
     else
         echo -e "${WARNING} 验证出现问题，但安装可能成功了"
         echo -e "${DIM}尝试使用以下命令手动验证：${NC}"
-        echo -e "${DIM}  $python_cmd -c \"import sage.common; print(sage.common.__version__)\"${NC}"
+        echo -e "${DIM}  $python_cmd -c \"from sage._version import __version__; print(__version__)\"${NC}"
         return 1
     fi
 }

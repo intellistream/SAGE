@@ -149,7 +149,7 @@ cat > "$SETTINGS_FILE" << EOF
   "python.terminal.activateEnvironment": true,
   "terminal.integrated.env.linux": {
     "CONDA_DEFAULT_ENV": "$ENV_NAME",
-    "PYTHONPATH": "\${workspaceFolder}/packages/sage/src:\${workspaceFolder}/packages/sage-common/src:\${workspaceFolder}/packages/sage-kernel/src:\${workspaceFolder}/packages/sage-libs/src:\${workspaceFolder}/packages/sage-middleware/src:\${workspaceFolder}/packages/sage-platform/src:\${workspaceFolder}/packages/sage-apps/src:\${workspaceFolder}/packages/sage-studio/src:\${workspaceFolder}/packages/sage-tools/src:\${workspaceFolder}/packages/sage-cli/src:\${workspaceFolder}/packages/sage-benchmark/src:\${workspaceFolder}/packages/sage-gateway/src"
+        "PYTHONPATH": "\${workspaceFolder}/src"
   },
   "terminal.integrated.profiles.linux": {
     "bash ($ENV_NAME)": {
@@ -162,18 +162,7 @@ cat > "$SETTINGS_FILE" << EOF
   },
   "terminal.integrated.defaultProfile.linux": "bash ($ENV_NAME)",
   "python.analysis.extraPaths": [
-    "\${workspaceFolder}/packages/sage/src",
-    "\${workspaceFolder}/packages/sage-common/src",
-    "\${workspaceFolder}/packages/sage-kernel/src",
-    "\${workspaceFolder}/packages/sage-libs/src",
-    "\${workspaceFolder}/packages/sage-middleware/src",
-    "\${workspaceFolder}/packages/sage-platform/src",
-    "\${workspaceFolder}/packages/sage-apps/src",
-    "\${workspaceFolder}/packages/sage-studio/src",
-    "\${workspaceFolder}/packages/sage-tools/src",
-    "\${workspaceFolder}/packages/sage-cli/src",
-    "\${workspaceFolder}/packages/sage-benchmark/src",
-    "\${workspaceFolder}/packages/sage-gateway/src"
+        "\${workspaceFolder}/src"
   ],
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,

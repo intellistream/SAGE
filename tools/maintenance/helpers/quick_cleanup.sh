@@ -83,13 +83,13 @@ if [ -d "sage_ext" ]; then
     echo "✅ 清理了 sage_ext 子模块的构建文件"
 fi
 
-# 清理空目录 (排除.git目录和docs-public子模块)
+# 清理空目录 (排除.git目录)
 echo "清理空目录..."
-empty_dirs=$(find . -type d -empty -not -path "./.git/*" -not -path "./docs-public" 2>/dev/null | wc -l)
+empty_dirs=$(find . -type d -empty -not -path "./.git/*" 2>/dev/null | wc -l)
 if [ $empty_dirs -gt 0 ]; then
     # 多次运行以处理嵌套的空目录
     for i in {1..5}; do
-        find . -type d -empty -not -path "./.git/*" -not -path "./docs-public" -delete 2>/dev/null || true
+        find . -type d -empty -not -path "./.git/*" -delete 2>/dev/null || true
     done
     echo "✅ 删除了 $empty_dirs 个空目录"
     removed_count=$((removed_count + empty_dirs))

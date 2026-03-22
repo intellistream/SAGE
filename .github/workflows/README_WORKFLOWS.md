@@ -73,11 +73,11 @@ gh workflow run ci-sagellm-test.yml -f run_cuda_tests=true
 
 ### quickstart.sh 模式
 
-| quickstart.sh | pip install           | 包含内容                              | 用途               | 包数量 |
-| ------------- | --------------------- | ------------------------------------- | ------------------ | ------ |
-| `--minimal`   | `isage`               | L1-L3 核心 (common, platform, kernel) | 容器部署、生产环境 | ~80    |
-| `--dev`       | `isage` + dev tools   | minimal + pytest, ruff, mypy          | 框架开发、贡献代码 | ~120   |
-| `--full`      | `isage` + all extras  | dev + 科学库 + 可选依赖               | 完整功能、学习示例 | ~200+  |
+| quickstart.sh | pip install | 包含内容 | 用途 | 包数量 |
+| ------------- | ----------- | -------- | ---- | ------ |
+| `--minimal` | `isage` | 主仓核心表面 (foundation/stream/runtime/serving/cli) | 容器部署、生产环境 | ~80 |
+| `--dev` | `isage` + dev tools | minimal + pytest, ruff, mypy | 框架开发、贡献代码 | ~120 |
+| `--full` | `isage` + all extras | dev + 科学库 + 可选依赖 | 完整功能、学习示例 | ~200+ |
 
 **默认模式**: `--full` (推荐新用户使用)
 
@@ -85,16 +85,17 @@ gh workflow run ci-sagellm-test.yml -f run_cuda_tests=true
 
 #### `minimal` (最小安装)
 
-- **包含包**：sage-common, sage-platform, sage-kernel, sage-libs, sage-middleware, sage-cli, sage-tools
-- **核心功能**：Pipeline, Operators, DataStream API, CLI
+- **包含包**：isage（核心表面）+ 可选外部引擎/适配器按需安装
+- **核心功能**：Foundation, DataStream API, Runtime, Serving integration, CLI
 - **适用场景**：
   - Docker 容器部署
   - 生产环境最小化安装
   - 仅需要流处理核心功能
   - CI/CD 快速测试
 - **提示**：如需使用 ML、向量数据库等功能，可手动安装:
+
   ```bash
-  pip install isage-middleware[ml,vdb,streaming]
+  pip install 'isage[capability-adapters]'
   ```
 
 #### `dev` (开发安装)
@@ -110,8 +111,9 @@ gh workflow run ci-sagellm-test.yml -f run_cuda_tests=true
   - 贡献代码到 SAGE
   - 运行测试和代码质量检查
 - **提示**：如需 ML/科学计算功能:
+
   ```bash
-  pip install isage-middleware[ml,vdb] isage-kernel[ml]
+  pip install 'isage[full]'
   ```
 
 #### `full` (完整安装，默认)
@@ -218,14 +220,14 @@ strategy:
 # 核心运行时（最小依赖）
 pip install isage
 
-# 添加 ML 功能
-pip install isage-middleware[ml]
+# 添加核心可选适配器
+pip install 'isage[capability-adapters]'
 
-# 添加向量数据库支持
-pip install isage-middleware[vdb]
+# 添加工具使用适配器
+pip install 'isage[capability-tooluse]'
 
 # 添加所有可选功能
-pip install isage-middleware[ml,vdb,streaming,compression]
+pip install 'isage[full]'
 ```
 
 ### 开发者安装 (从源码)
@@ -272,23 +274,25 @@ pip install -e ".[standard]"   # 标准模式
 
 ## 🔗 相关文档
 
-- [SAGE 架构文档](../../docs-public/docs_src/dev-notes/package-architecture.md)
-- [包依赖关系](../../docs-public/docs_src/dev-notes/package-dependencies.md)
+- [SAGE 架构文档](https://intellistream.github.io/sage-docs/architecture/)
+- [包依赖关系](../../docs/dependency-audit-gate.md)
 - [贡献指南](../../CONTRIBUTING.md)
-- [CI/CD 分层与目录结构](../../docs/dev-notes/cross-layer/ci-cd.md)
+- [CI/CD 分层与目录结构](https://intellistream.github.io/sage-docs/dev-notes/cross-layer/ci-cd/)
 
 ## ♻️ Workflow 命名规范
 
 **前缀分类**:
+
 | 前缀 | 含义 | 触发方式 |
-|------|------|----------|
+| ---- | ---- | -------- |
 | `ci-*` | 持续集成检查 | PR/Push 自动触发 |
 | `cd-*` | 部署/发布 | Tag/Release/手动触发 |
 | `util-*` | 辅助工具 | 定时/手动触发 |
 | `exp-*` | 实验/研究 | 手动触发 |
 
 **完整列表**:
-```
+
+```text
 ci-build-test.yml        # 构建 + 单元测试 (packages 变更触发)
 ci-code-quality.yml      # Lint & Format (*.py 变更触发, ~3min)
 ci-pr-examples.yml       # Examples quick 测试 (examples 变更触发)
@@ -336,7 +340,7 @@ ______________________________________________________________________
 
 部署成功后，在 Actions Summary 中查看访问地址：
 
-```
+```text
 Studio UI:   http://<服务器IP>:4200
 Gateway API: http://<服务器IP>:8000
 ```

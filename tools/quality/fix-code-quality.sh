@@ -8,7 +8,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 if ! command -v sage-dev >/dev/null 2>&1; then
 	echo "❌ 未检测到 sage-dev 命令"
-	echo "➡️  请先安装/激活开发环境: pip install -e packages/sage-tools"
+	echo "➡️  请先安装/激活开发环境: pip install 'isage[dev]'"
 	exit 1
 fi
 
