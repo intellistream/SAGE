@@ -1,7 +1,7 @@
-# SAGE PyPI Publishing via sage-pypi-publisher
+# SAGE PyPI Publishing via wheelwright
 #
-# This workflow uses the independent sage-pypi-publisher tool to publish packages.
-# Repository: https://github.com/intellistream/sage-pypi-publisher
+# This workflow uses the independent wheelwright tool to publish packages.
+# Source repository: https://github.com/intellistream/wheelwright
 
 name: "Publish to PyPI"
 
@@ -45,10 +45,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install sage-pypi-publisher
+      - name: Install wheelwright
         run: |
           pip install --upgrade pip
-          pip install git+https://github.com/intellistream/sage-pypi-publisher.git@main
+          pip install git+https://github.com/intellistream/wheelwright.git@main
 
       - name: Configure PyPI credentials
         run: |
@@ -86,7 +86,7 @@ jobs:
             # Publish all SAGE packages
             for pkg in sage-common sage-llm-core sage-llm-gateway sage-kernel sage-libs sage-middleware sage-platform sage-cli sage-tools sage; do
               echo "📦 Publishing $pkg..."
-              sage-pypi-publisher publish "$pkg" \
+              wheelwright publish "$pkg" \
                 --auto-bump "$BUMP" \
                 --repository "$REPO" \
                 --no-dry-run
@@ -97,7 +97,7 @@ jobs:
             for pkg in "${PKG_LIST[@]}"; do
               pkg=$(echo "$pkg" | xargs)  # trim whitespace
               echo "📦 Publishing $pkg..."
-              sage-pypi-publisher publish "$pkg" \
+              wheelwright publish "$pkg" \
                 --auto-bump "$BUMP" \
                 --repository "$REPO" \
                 --no-dry-run

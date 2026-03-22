@@ -1,5 +1,5 @@
 #!/bin/bash
-# Update documentation to use sage-pypi-publisher instead of sage-dev package pypi
+# Update documentation to use wheelwright instead of legacy sage-dev package PyPI commands
 
 set -e
 
@@ -35,12 +35,12 @@ echo "🔧 Performing replacements..."
 # Add deprecation notice at the top of relevant files
 deprecation_notice="
 > **⚠️  DEPRECATED**: The \`sage-dev package pypi\` command has been removed.
-> Please use the standalone [sage-pypi-publisher](https://github.com/intellistream/sage-pypi-publisher) tool instead.
+> Please use the standalone [wheelwright](https://github.com/intellistream/wheelwright) tool instead.
 >
 > **Migration**:
 > \`\`\`bash
-> git clone https://github.com/intellistream/sage-pypi-publisher.git
-> cd sage-pypi-publisher
+> git clone https://github.com/intellistream/wheelwright.git
+> cd wheelwright
 > ./publish.sh <package-name> --auto-bump patch
 > \`\`\`
 "
@@ -53,7 +53,7 @@ add_deprecation_notice() {
     fi
 
     # Check if notice already exists
-    if grep -q "sage-pypi-publisher" "$file"; then
+    if grep -q "wheelwright\|sage-pypi-publisher" "$file"; then
         echo "  ℹ️  Deprecation notice already present in $(basename "$file")"
         return
     fi
@@ -85,5 +85,5 @@ echo "✅ Documentation update complete!"
 echo ""
 echo "📖 Next steps:"
 echo "  1. Review the changes: git diff"
-echo "  2. Commit the updates: git commit -am 'docs: update PyPI publishing to use sage-pypi-publisher'"
+echo "  2. Commit the updates: git commit -am 'docs: update PyPI publishing to use wheelwright'"
 echo "  3. Update any remaining internal documentation as needed"

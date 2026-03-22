@@ -117,8 +117,8 @@ for pkg_path in "${ALL_PACKAGES[@]}"; do
     echo "📦 处理: $pkg_name"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-    # Build and upload using sage-pypi-publisher
-    if sage-pypi-publisher build "$pkg_path" \
+    # Build and upload using wheelwright
+    if wheelwright build "$pkg_path" \
         --upload \
         --repository "$REPOSITORY" \
         $DRY_RUN; then

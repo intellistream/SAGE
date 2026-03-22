@@ -516,8 +516,8 @@ agent = ReActAgent(
 ## 发布流程
 
 ```bash
-# 使用 sage-pypi-publisher
-cd /path/to/sage-pypi-publisher
+# 使用 wheelwright
+cd /path/to/wheelwright
 ./publish.sh sage-agentic --auto-bump patch
 
 # 或手动指定版本

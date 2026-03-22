@@ -23,8 +23,8 @@ Automatically publishes affected packages to PyPI after each commit.
 cp tools/hooks/post-commit.sample .git/hooks/post-commit
 chmod +x .git/hooks/post-commit
 
-# Clone sage-pypi-publisher if not already done
-git clone https://github.com/intellistream/sage-pypi-publisher.git ~/sage-pypi-publisher
+# Clone wheelwright if not already done
+git clone git@github.com:intellistream/wheelwright.git ~/wheelwright
 ```
 
 **Configuration**:
@@ -33,7 +33,7 @@ Edit `.git/hooks/post-commit` and configure these variables:
 
 ```bash
 # Publisher path
-PUBLISHER_PATH="${HOME}/sage-pypi-publisher"
+PUBLISHER_PATH="${HOME}/wheelwright"
 
 # Enable/disable auto-publish
 AUTO_PUBLISH_ENABLED=false  # Set to true to enable
@@ -66,7 +66,7 @@ git commit -m "feat(common): add new feature"
 **Manual Publishing** (without hook):
 
 ```bash
-cd ~/sage-pypi-publisher
+cd ~/wheelwright
 ./publish.sh sage-common --auto-bump patch
 ```
 
@@ -110,7 +110,7 @@ VERSION_BUMP_TYPE="patch"        # Small increments
 **Publisher not found?**
 
 - Clone it:
-  `git clone https://github.com/intellistream/sage-pypi-publisher.git ~/sage-pypi-publisher`
+  `git clone git@github.com:intellistream/wheelwright.git ~/wheelwright`
 - Update `PUBLISHER_PATH` in hook if using different location
 
 **Publishing fails?**
@@ -132,7 +132,7 @@ mv .git/hooks/post-commit .git/hooks/post-commit.disabled
 
 ## See Also
 
-- [sage-pypi-publisher](https://github.com/intellistream/sage-pypi-publisher) - Standalone
+- [wheelwright](https://github.com/intellistream/wheelwright) - Standalone
   publishing tool
 - [PyPI Publishing Guide](/.github/copilot-instructions.md#pypi-publishing) - Copilot instructions
 - [CONTRIBUTING.md](/CONTRIBUTING.md) - General contribution guidelines

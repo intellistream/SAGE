@@ -106,26 +106,19 @@ git checkout main-dev
    This will:
 
    - ✅ Clone `SAGE-Pub` repository (documentation)
-   - ✅ Optionally clone `sage-team-info` if you're a core team member
 
    **Or manually:**
 
    ```bash
    # Clone SAGE-Pub (documentation repository)
    cd ..
-   git clone https://github.com/intellistream/SAGE-Pub.git
+   git clone git@github.com:intellistream/SAGE-Pub.git
    cd SAGE-Pub && git checkout main-dev && cd ../SAGE
-
-   # Clone sage-team-info (optional, for core team members only)
-   cd ..
-   git clone https://github.com/intellistream/sage-team-info.git
-   cd SAGE
    ```
 
    > 💡 **Note**:
    >
    > - `SAGE-Pub` is an independent repository for SAGE documentation
-   > - `sage-team-info` is an optional private repository for team documentation
    > - If you skip these, VS Code may show warnings which you can safely ignore
 
 1. **Recommended: Use quickstart with dev mode**

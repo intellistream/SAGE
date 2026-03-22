@@ -396,8 +396,8 @@ pytest tests/ --cov=sage_libs.sage_rag --cov-report=html
 ## 发布流程
 
 ```bash
-# 使用 sage-pypi-publisher
-cd /path/to/sage-pypi-publisher
+# 使用 wheelwright
+cd /path/to/wheelwright
 ./publish.sh sage-rag --auto-bump patch
 
 # 或手动指定版本

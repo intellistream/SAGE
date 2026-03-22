@@ -7,15 +7,6 @@
 		{
 			"name": "SAGE-Pub",
 			"path": "../SAGE-Pub"
-		},
-		{
-			"path": "../sage-team-info"
-		},
-		{
-			"path": "../sageData"
-		},
-		{
-			"path": "../sage-pypi-publisher"
 		}
 	],
 	"settings": {
@@ -171,7 +162,7 @@
 				"group": "build",
 				"problemMatcher": [],
 				"options": {
-					"cwd": "${workspaceFolder:SAGE-Docs}"
+					"cwd": "${workspaceFolder:SAGE-Pub}"
 				}
 			},
 			{
@@ -182,7 +173,7 @@
 				"problemMatcher": [],
 				"isBackground": true,
 				"options": {
-					"cwd": "${workspaceFolder:SAGE-Docs}"
+					"cwd": "${workspaceFolder:SAGE-Pub}"
 				}
 			}
 		]

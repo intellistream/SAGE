@@ -478,7 +478,7 @@ show_parameter_help() {
     echo -e "    ${DIM}稍后可手动运行 'sage-dev maintain hooks install'${NC}"
     echo ""
     echo -e "  ${BOLD}--workspace${NC}                              ${GREEN}设置 workspace 依赖${NC}"
-    echo -e "    ${DIM}克隆 SAGE-Pub 和 sage-team-info 仓库${NC}"
+    echo -e "    ${DIM}克隆 SAGE-Pub 仓库${NC}"
     echo -e "    ${DIM}用于 VS Code 多文件夹编辑（SAGE.code-workspace）${NC}"
     echo ""
     echo -e "  ${BOLD}--hooks-mode <auto|background|sync>${NC}      ${GREEN}控制 hooks 安装方式${NC}"
