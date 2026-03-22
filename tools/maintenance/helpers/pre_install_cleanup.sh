@@ -50,7 +50,7 @@ if [ -n "$package_names" ]; then
 else
     echo -e "${DIM}未检测到需要清理的主仓安装包${NC}"
 fi
-echo -e "${DIM}保留独立包: isagellm / isage-benchmark / sage-pub-docs / zoo packages${NC}"
+echo -e "${DIM}保留独立包: isagellm / isage-benchmark / sage-docs / zoo packages${NC}"
 
 # 清理 Python 缓存文件
 echo -e "${DIM}清理 __pycache__ 目录...${NC}"

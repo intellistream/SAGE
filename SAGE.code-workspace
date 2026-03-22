@@ -5,8 +5,8 @@
       "path": "."
     },
     {
-      "name": "SAGE-Pub  [docs]",
-      "path": "../SAGE-Pub"
+      "name": "SAGE-Docs  [docs]",
+      "path": "../SAGE-Docs"
     }
   ],
   "settings": {
@@ -156,7 +156,7 @@
         "group": "build",
         "problemMatcher": [],
         "options": {
-          "cwd": "${workspaceFolder:SAGE-Pub  [docs]}"
+          "cwd": "${workspaceFolder:SAGE-Docs  [docs]}"
         }
       },
       {
@@ -167,7 +167,7 @@
         "problemMatcher": [],
         "isBackground": true,
         "options": {
-          "cwd": "${workspaceFolder:SAGE-Pub  [docs]}"
+          "cwd": "${workspaceFolder:SAGE-Docs  [docs]}"
         }
       }
     ]

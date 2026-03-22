@@ -78,7 +78,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/intellistream/SAGE"
-Documentation = "https://intellistream.github.io/SAGE-Pub/"
+Documentation = "https://intellistream.github.io/SAGE-Docs/"
 Repository = "https://github.com/intellistream/SAGE.git"
 "Bug Tracker" = "https://github.com/intellistream/SAGE/issues"
 
