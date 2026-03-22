@@ -6,7 +6,7 @@ set -e
 
 echo "🔍 Checking sage-studio frontend..."
 
-FRONTEND_DIR="packages/sage-studio/src/sage/studio/frontend"
+FRONTEND_DIR="${FRONTEND_DIR:-../sage-studio/frontend}"
 
 if [ ! -d "$FRONTEND_DIR" ]; then
     echo "⚠️  Frontend directory not found at $FRONTEND_DIR"

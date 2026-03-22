@@ -63,10 +63,10 @@ SAGE 项目使用多个 Git 子模块来组织代码。这些工具帮助：
 
 ```text
 📝 处理子模块: sageData
-   路径: packages/sage-benchmark/src/sage/data
+   路径: <submodule-path>
    仓库: sageData
-   分支: main-dev
-   ✅ 创建: packages/sage-benchmark/src/sage/data/SUBMODULE.md
+   分支: main
+   ✅ 创建: <submodule-path>/SUBMODULE.md
 ```
 
 ### 2. `commit-all-submodule-markers.sh`
@@ -152,7 +152,7 @@ SAGE 项目使用多个 Git 子模块来组织代码。这些工具帮助：
 
 ```bash
 # 1. 添加子模块
-git submodule add -b main-dev https://github.com/intellistream/NewRepo.git path/to/submodule
+git submodule add -b main https://github.com/intellistream/NewRepo.git path/to/submodule
 
 # 2. 生成标记文件
 ./tools/git-tools/generate-submodule-markers.sh
@@ -161,7 +161,7 @@ git submodule add -b main-dev https://github.com/intellistream/NewRepo.git path/
 cd path/to/submodule
 git add SUBMODULE.md
 git commit -m "docs: add submodule marker"
-git push origin main-dev
+git push origin main
 
 # 4. 更新主仓库引用
 cd ../../..
