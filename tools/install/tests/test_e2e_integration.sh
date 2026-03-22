@@ -140,11 +140,11 @@ step3_test_install_tracking() {
     export SAGE_ROOT="$TEST_DIR"
 
     # 记录安装前状态
-    bash "$TEST_DIR/tools/cleanup/track_install.sh" pre-install
+    bash "$TEST_DIR/tools/install/cleanup/track_install.sh" pre-install
     log_info "已记录安装前状态"
 
     # 记录安装后状态
-    bash "$TEST_DIR/tools/cleanup/track_install.sh" post-install "dev" "pip" "false"
+    bash "$TEST_DIR/tools/install/cleanup/track_install.sh" post-install "dev" "pip" "false"
     log_info "已记录安装后状态"
 
     # 验证生成的文件
@@ -159,7 +159,7 @@ step3_test_install_tracking() {
 
     # 测试 show 命令
     log_info "测试 show 命令..."
-    bash "$TEST_DIR/tools/cleanup/track_install.sh" show
+    bash "$TEST_DIR/tools/install/cleanup/track_install.sh" show
 
     log_success "安装跟踪测试完成"
 }
@@ -207,12 +207,12 @@ step6_test_cleanup() {
 
     # 测试 --help
     log_info "测试 --help 选项..."
-    bash "$TEST_DIR/tools/cleanup/uninstall_sage.sh" --help >/dev/null 2>&1
+    bash "$TEST_DIR/tools/install/cleanup/uninstall_sage.sh" --help >/dev/null 2>&1
     log_success "帮助信息显示正常"
 
     # 测试 --yes 标志（非交互式）
     log_info "测试 --yes 标志..."
-    timeout 10s bash "$TEST_DIR/tools/cleanup/uninstall_sage.sh" --yes >/dev/null 2>&1 || true
+    timeout 10s bash "$TEST_DIR/tools/install/cleanup/uninstall_sage.sh" --yes >/dev/null 2>&1 || true
     log_success "非交互式卸载测试完成"
 }
 

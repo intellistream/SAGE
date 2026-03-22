@@ -52,9 +52,8 @@ CRITICAL_PATTERNS=(
     "^\.github/workflows/.*\.yml$|CI/CD|GitHub Actions 工作流"
 
     # Development Tools Config
-    "^tools/pre-commit-config\.yaml$|开发工具|Pre-commit 配置"
-    "^tools/config/pre-commit-config\.yaml$|开发工具|Pre-commit 配置模板"
-    "^tools/pytest\.ini$|测试|Pytest 配置"
+    "^\.pre-commit-config\.yaml$|开发工具|Pre-commit 配置"
+    "^pytest\.ini$|测试|Pytest 配置"
     "^tools/ruff\.toml$|代码质量|Ruff 配置"
 
     # Meta Package & Config

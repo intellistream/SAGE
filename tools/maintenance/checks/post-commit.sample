@@ -2,7 +2,7 @@
 # SAGE Post-Commit Hook - Auto-publish to PyPI
 #
 # 安装方法:
-#   cp tools/hooks/post-commit.sample .git/hooks/post-commit
+#   cp tools/maintenance/checks/post-commit.sample .git/hooks/post-commit
 #   chmod +x .git/hooks/post-commit
 #
 # 配置:

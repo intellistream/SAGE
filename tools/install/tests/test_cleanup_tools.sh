@@ -112,7 +112,7 @@ test_track_install_record_info() {
     mkdir -p "$TEST_DIR/.sage"
 
     # 创建测试脚本副本
-    cp "$orig_sage_root/tools/cleanup/track_install.sh" "$TEST_DIR/track_install.sh"
+    cp "$orig_sage_root/tools/install/cleanup/track_install.sh" "$TEST_DIR/track_install.sh"
     sed -i "s|SAGE_ROOT=.*|SAGE_ROOT=\"$TEST_DIR\"|g" "$TEST_DIR/track_install.sh"
 
     # 测试记录安装信息
@@ -153,7 +153,7 @@ test_uninstall_help_option() {
     echo -e "${BLUE}测试组: uninstall_sage.sh - 帮助选项${NC}"
 
     # 测试 --help 选项
-    bash "${SAGE_ROOT:-}/tools/cleanup/uninstall_sage.sh" --help >/dev/null 2>&1
+    bash "${SAGE_ROOT:-}/tools/install/cleanup/uninstall_sage.sh" --help >/dev/null 2>&1
     assert_success "显示帮助信息"
 }
 
@@ -169,7 +169,7 @@ test_uninstall_yes_flag() {
     echo "test-package" > "$TEST_DIR/.sage/installed_packages.txt"
 
     # 创建测试脚本副本
-    cp "$orig_sage_root/tools/cleanup/uninstall_sage.sh" "$TEST_DIR/uninstall_sage.sh"
+    cp "$orig_sage_root/tools/install/cleanup/uninstall_sage.sh" "$TEST_DIR/uninstall_sage.sh"
     sed -i "s|SAGE_ROOT=.*|SAGE_ROOT=\"$TEST_DIR\"|g" "$TEST_DIR/uninstall_sage.sh"
 
     # 测试 --yes 标志（应该不会有交互提示）

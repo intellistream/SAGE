@@ -54,14 +54,15 @@ tools/maintenance/
 ├── setup_hooks.sh           # Git hooks 安装脚本
 ├── check_docs.sh            # 文档检查辅助脚本
 ├── fix-types-helper.sh      # 类型问题辅助脚本
+├── checks/                  # Pre-commit / policy checks and samples
 ├── git-hooks/               # Hook 模板
 └── helpers/                 # 内部辅助脚本
   ├── configure_git.sh
-   ├── check_config_security.sh
-   ├── common.sh
-   ├── pre_install_cleanup.sh
-   ├── quick_cleanup.sh
-   └── sage-jobmanager.sh
+  ├── check_config_security.sh
+  ├── common.sh
+  ├── pre_install_cleanup.sh
+  ├── quick_cleanup.sh
+  └── sage-jobmanager.sh
 ```
 
 ## 关于子仓库 / 独立仓库

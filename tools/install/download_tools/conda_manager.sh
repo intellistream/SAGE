@@ -221,14 +221,14 @@ create_conda_environment() {
             echo ""
 
             # 尝试自动接受 TOS
-            if [ -f "$SCRIPT_DIR/../../conda/conda_utils.sh" ]; then
-                source "$SCRIPT_DIR/../../conda/conda_utils.sh"
+            if [ -f "$SCRIPT_DIR/../conda/conda_utils.sh" ]; then
+                source "$SCRIPT_DIR/../conda/conda_utils.sh"
                 if accept_conda_tos; then
                     echo -e "${CHECK} 服务条款已接受，继续创建环境..."
                 else
                     echo -e "${CROSS} 无法自动接受服务条款"
                     echo -e "${INFO} 请手动运行以下命令："
-                    echo -e "${CYAN}  bash tools/conda/fix_conda_tos.sh${NC}"
+                    echo -e "${CYAN}  bash tools/install/conda/fix_conda_tos.sh${NC}"
                     SAGE_ENV_NAME=""
                     return 1
                 fi
@@ -236,7 +236,7 @@ create_conda_environment() {
                 echo -e "${CROSS} Conda 服务条款未接受，无法继续"
                 echo -e "${INFO} 请运行以下命令接受服务条款："
                 echo -e "${CYAN}  conda config --set channel_priority flexible${NC}"
-                echo -e "${CYAN}  bash tools/conda/fix_conda_tos.sh${NC}"
+                echo -e "${CYAN}  bash tools/install/conda/fix_conda_tos.sh${NC}"
                 SAGE_ENV_NAME=""
                 return 1
             fi

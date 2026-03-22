@@ -1,6 +1,6 @@
 # SAGE Shell Library
 
-`tools/lib` 集中存放可复用的 Shell 脚本模块，供 `tools/conda`、`tools/maintenance` 等运维工具共享使用。
+`tools/install/lib` 集中存放安装流程可复用的 Shell 脚本模块，供 `tools/install/conda`、`tools/install/*` 与部分维护脚本共享使用。
 
 ## 模块清单
 

@@ -98,7 +98,7 @@ SAGE_TOOLS_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$SCRIPT_DIR/../display_tools/colors.sh"
 
 # 导入 conda 工具函数
-source "$SAGE_TOOLS_ROOT/conda/conda_utils.sh"
+source "$SAGE_TOOLS_ROOT/install/conda/conda_utils.sh"
 
 # 全局变量
 INSTALL_MODE=""

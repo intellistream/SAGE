@@ -41,4 +41,4 @@ tools: ['vscode', 'execute', 'read', 'agent', 'edit', 'search', 'web', 'todo', '
 
 - `.github/copilot-instructions.md`
 - `quickstart.sh`, `pytest.ini`
-- `.pre-commit-config.yaml`, `tools/hooks/check_docs_location.sh`
+- `.pre-commit-config.yaml`, `tools/maintenance/checks/check_docs_location.sh`

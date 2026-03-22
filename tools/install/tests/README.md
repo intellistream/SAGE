@@ -173,7 +173,7 @@ done
 
 ```
 tools/install/environment_config.sh
-tools/cleanup/**
+tools/install/cleanup/**
 .github/workflows/test-env-cleanup.yml
 CHANGELOG.md
 ```

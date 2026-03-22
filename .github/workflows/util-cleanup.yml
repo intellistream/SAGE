@@ -6,7 +6,7 @@ on:
     paths:
       - "tools/install/download_tools/environment_config.sh"
       - "tools/install/download_tools/argument_parser.sh"
-      - "tools/cleanup/**"
+      - "tools/install/cleanup/**"
       - "tools/install/tests/test_*.sh"
       - ".github/workflows/test-env-cleanup.yml"
   pull_request:
@@ -14,7 +14,7 @@ on:
     paths:
       - "tools/install/download_tools/environment_config.sh"
       - "tools/install/download_tools/argument_parser.sh"
-      - "tools/cleanup/**"
+      - "tools/install/cleanup/**"
       - "tools/install/tests/test_*.sh"
       - ".github/workflows/test-env-cleanup.yml"
 
@@ -68,8 +68,8 @@ jobs:
           # 测试记录安装信息
           mkdir -p .sage
 
-          bash tools/cleanup/track_install.sh pre-install
-          bash tools/cleanup/track_install.sh post-install "dev" "pip" "false"
+          bash tools/install/cleanup/track_install.sh pre-install
+          bash tools/install/cleanup/track_install.sh post-install "dev" "pip" "false"
 
           # 验证文件创建
           if [ -f .sage/install_info.json ]; then
@@ -81,16 +81,16 @@ jobs:
           fi
 
           # 测试 show 命令
-          bash tools/cleanup/track_install.sh show
-          bash tools/cleanup/track_install.sh info
+          bash tools/install/cleanup/track_install.sh show
+          bash tools/install/cleanup/track_install.sh info
 
       - name: Test uninstall_sage.sh with --yes flag
         run: |
           # 测试非交互式卸载
-          bash tools/cleanup/uninstall_sage.sh --yes || true
+          bash tools/install/cleanup/uninstall_sage.sh --yes || true
 
           # 验证脚本可以处理 --help
-          bash tools/cleanup/uninstall_sage.sh --help
+          bash tools/install/cleanup/uninstall_sage.sh --help
 
   # 端到端集成测试
   e2e-test:
@@ -129,10 +129,10 @@ jobs:
           pip list | grep -i sage || true
 
           # 3. 检查安装跟踪
-          bash tools/cleanup/track_install.sh show
+          bash tools/install/cleanup/track_install.sh show
 
           # 4. 测试清理
-          bash tools/cleanup/uninstall_sage.sh --yes
+          bash tools/install/cleanup/uninstall_sage.sh --yes
 
           echo "✅ Complete workflow test passed"
 
@@ -149,8 +149,8 @@ jobs:
       # 验证清理脚本存在
       - name: Verify cleanup scripts
         run: |
-          test -f tools/cleanup/track_install.sh
-          test -f tools/cleanup/uninstall_sage.sh
+          test -f tools/install/cleanup/track_install.sh
+          test -f tools/install/cleanup/uninstall_sage.sh
 
           # 验证环境管理功能在代码中存在
           grep -q "detect_virtual_environment" tools/install/download_tools/environment_config.sh

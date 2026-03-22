@@ -253,7 +253,7 @@ install_sage() {
     echo "========================================" >> "$log_file"
 
     # 安装前记录已安装包列表，便于后续卸载和清理
-    local track_script="$project_root/tools/cleanup/track_install.sh"
+    local track_script="$project_root/tools/install/cleanup/track_install.sh"
     if [ -f "$track_script" ]; then
         echo -e "${DIM}记录安装前的 SAGE 包列表...${NC}"
         bash "$track_script" pre-install || true

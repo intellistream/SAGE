@@ -37,7 +37,7 @@ fi
 # Additional maintenance helpers
 if [ "$1" = "clean-env" ] || [ "$1" = "uninstall" ]; then
     # Provide a straightforward alias to the uninstall/cleanup helper
-    CLEAN_SCRIPT="$SCRIPT_DIR/tools/cleanup/uninstall_sage.sh"
+    CLEAN_SCRIPT="$SCRIPT_DIR/tools/install/cleanup/uninstall_sage.sh"
     if [ -f "$CLEAN_SCRIPT" ]; then
         exec bash "$CLEAN_SCRIPT" "${@:2}"
     else
