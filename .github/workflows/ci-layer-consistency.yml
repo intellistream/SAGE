@@ -2,7 +2,7 @@ name: Layer Consistency Check
 
 on:
   pull_request:
-    branches: [main, main-dev]
+    branches: [main]
     paths:
       - "SAGE.code-workspace"
       - "README.md"
@@ -10,7 +10,7 @@ on:
       - ".github/workflows/ci-layer-consistency.yml"
       - "tools/scripts/check_layer_manifest_sync.py"
   push:
-    branches: [main, main-dev]
+    branches: [main]
     paths:
       - "SAGE.code-workspace"
       - "README.md"

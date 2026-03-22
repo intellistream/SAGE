@@ -2,12 +2,12 @@ name: Examples Test
 
 on:
   push:
-    branches: [main, main-dev]
+    branches: [main]
     paths:
       - 'packages/*/examples/**'
       - '.github/workflows/ci-examples-test.yml'
   pull_request:
-    branches: [main, main-dev]
+    branches: [main]
     types: [opened, synchronize, reopened]
     paths:
       - 'packages/*/examples/**'

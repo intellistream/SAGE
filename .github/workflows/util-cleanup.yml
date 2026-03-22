@@ -2,7 +2,7 @@ name: Test Environment Isolation and Cleanup
 
 on:
   push:
-    branches: [main, main-dev]
+    branches: [main]
     paths:
       - "tools/install/download_tools/environment_config.sh"
       - "tools/install/download_tools/argument_parser.sh"
@@ -10,7 +10,7 @@ on:
       - "tools/install/tests/test_*.sh"
       - ".github/workflows/test-env-cleanup.yml"
   pull_request:
-    branches: [main, main-dev]
+    branches: [main]
     paths:
       - "tools/install/download_tools/environment_config.sh"
       - "tools/install/download_tools/argument_parser.sh"

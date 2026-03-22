@@ -53,10 +53,10 @@ sage-dev quality check --all-files --readme
 git clone https://github.com/intellistream/SAGE.git
 cd SAGE
 
-# 切换主开发分支并更新
+# 切换默认分支并更新
 git fetch origin
-git checkout main-dev
-git pull --ff-only origin main-dev
+git checkout main
+git pull --ff-only origin main
 
 # 安装开发环境 (默认 dev 模式 + conda)
 ./quickstart.sh --dev --yes
@@ -76,7 +76,7 @@ sage chat --ask "Hello, SAGE!"
 sage index ingest --source ./docs --index local-docs
 ```
 
-### 第二步：创建功能分支（勿在 main-dev 直接开发）
+### 第二步：创建功能分支（勿在 main 直接开发）
 
 ```bash
 # 基础格式
@@ -98,10 +98,10 @@ git diff
 
 # 开发过程中保持同步（避免大冲突）
 git fetch origin
-git rebase origin/main-dev   # 有冲突时解决后: git add <files> && git rebase --continue
+git rebase origin/main   # 有冲突时解决后: git add <files> && git rebase --continue
 
 # 或使用 merge（团队更偏好 REBASE 的话请遵守该策略）
-# git merge origin/main-dev
+# git merge origin/main
 ```
 
 ### 第四步：本地测试与验证
@@ -181,9 +181,8 @@ feat | fix | refactor | docs | test | perf | ci | chore | build | deps | securit
 
 ### 主要分支说明
 
-- `main-dev`: 主开发分支（默认基线）
-- `main`: 稳定发布（仅合并已验证发布）
-- `feature/<epic-name>`: 大型特性聚合分支（需要时建立）
+- `main`: 默认分支（稳定基线）
+- `feature/<epic-name>`: 大型特性开发分支（完成后通过 PR 合并到 `main`）
 
 ### 分支命名规范
 
@@ -488,7 +487,7 @@ pre-commit run cross-repo-dedup-check --all-files
 ```bash
 git fetch origin
 git checkout <your-branch>
-git rebase origin/main-dev
+git rebase origin/main
 ```
 
 ### 2. 提交信息写错了
@@ -657,7 +656,7 @@ HF_TOKEN=***
 ```bash
 1. Clone & install: ./quickstart.sh --dev --yes
 2. Create branch: git checkout -b feat/<topic>
-3. Keep updated: git fetch && git rebase origin/main-dev
+3. Keep updated: git fetch && git rebase origin/main
 4. Test: sage-dev project test --coverage && sage-dev quality
 5. Commit: feat(runtime): add xyz
 6. Push & PR: include background / solution / tests / impact

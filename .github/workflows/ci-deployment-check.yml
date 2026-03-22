@@ -6,10 +6,10 @@ name: Pre-Deployment Readiness Check
 
 on:
   pull_request:
-    branches: [main, main-dev]
+    branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches: [main, main-dev]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:

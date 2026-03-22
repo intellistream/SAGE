@@ -3,7 +3,7 @@ name: TODO-to-Issue (PR)
 on:
   workflow_dispatch:  # 允许手动触发
   pull_request:       # 自动触发
-    branches: [main-dev, main]  # 明确指定目标分支
+    branches: [main]  # main-only policy
     types: [opened, reopened]   # 只在PR首次打开和重新打开时运行，避免每次同步都运行
 
 # 并发控制：防止同一PR运行多个TODO转换任务

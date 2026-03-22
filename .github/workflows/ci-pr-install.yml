@@ -2,7 +2,7 @@ name: Installation Test (PR)
 
 on:
   pull_request:
-    branches: [main, main-dev]
+    branches: [main]
     types: [opened, synchronize, reopened]
     paths:
       - 'pyproject.toml'

@@ -4,7 +4,7 @@
 # and runs a smoke test to confirm they compose correctly.
 #
 # Triggered:
-#   - Every push / PR to main-dev (fast feedback)
+#   - Every push / PR to main (fast feedback)
 #   - workflow_dispatch (manual trigger from sub-repo release pipelines via
 #     the dispatch-downstream mechanism in each sub-repo's release.yml)
 
@@ -12,12 +12,12 @@ name: Integration Test (isage meta)
 
 on:
   push:
-    branches: [main, main-dev]
+    branches: [main]
     paths:
       - "**"
       - ".github/workflows/ci-integration.yml"
   pull_request:
-    branches: [main, main-dev]
+    branches: [main]
     paths:
       - "**"
   workflow_dispatch:
