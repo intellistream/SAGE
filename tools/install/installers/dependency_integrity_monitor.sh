@@ -84,7 +84,7 @@ echo "   最后修改: $(stat -c '%y' "$LOG_FILE" 2>/dev/null || stat -f '%Sm' "
 echo ""
 
 # 调用 pip 安装监控器
-MONITOR_SCRIPT="${SAGE_ROOT:-}/tools/install/installation_table/pip_install_monitor.sh"
+MONITOR_SCRIPT="${SAGE_ROOT:-}/tools/install/installers/pip_install_monitor.sh"
 
 if [ ! -f "$MONITOR_SCRIPT" ]; then
     echo -e "${RED}❌ 监控脚本不存在：$MONITOR_SCRIPT${NC}"

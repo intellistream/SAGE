@@ -134,7 +134,7 @@ jobs:
               echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
               echo "1. 确保每个包都有 README.md"
               echo "2. README 应包含：简介、安装、使用示例"
-              echo "3. 使用模板: https://github.com/intellistream/sage-dev-tools/tree/main/src/sage/tools/templates/PACKAGE_README_TEMPLATE.md"
+              echo "3. 使用主仓 README 模板（如适用）并遵循 CONTRIBUTING/DEVELOPER 文档约定"
               echo "4. 查看详细报告: sage-dev quality readme --report"
               echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
               exit 1

@@ -4,16 +4,16 @@ on:
   push:
     branches: [main]
     paths:
-      - "tools/install/download_tools/environment_config.sh"
-      - "tools/install/download_tools/argument_parser.sh"
+      - "tools/install/installers/environment_config.sh"
+      - "tools/install/installers/argument_parser.sh"
       - "tools/install/cleanup/**"
       - "tools/install/tests/test_*.sh"
       - ".github/workflows/test-env-cleanup.yml"
   pull_request:
     branches: [main]
     paths:
-      - "tools/install/download_tools/environment_config.sh"
-      - "tools/install/download_tools/argument_parser.sh"
+      - "tools/install/installers/environment_config.sh"
+      - "tools/install/installers/argument_parser.sh"
       - "tools/install/cleanup/**"
       - "tools/install/tests/test_*.sh"
       - ".github/workflows/test-env-cleanup.yml"
@@ -153,5 +153,5 @@ jobs:
           test -f tools/install/cleanup/uninstall_sage.sh
 
           # 验证环境管理功能在代码中存在
-          grep -q "detect_virtual_environment" tools/install/download_tools/environment_config.sh
-          grep -q "SAGE_VENV_POLICY" tools/install/download_tools/environment_config.sh
+          grep -q "detect_virtual_environment" tools/install/installers/environment_config.sh
+          grep -q "SAGE_VENV_POLICY" tools/install/installers/environment_config.sh

@@ -75,10 +75,10 @@ The repo no longer treats the retired split-package layout as a set of direct de
 
 ### `dev`
 
-- Packages: `isage-dev-tools`, `fastapi`, `uvicorn`, `httpx`, `pytest`, `pytest-cov`,
+- Packages: `fastapi`, `uvicorn`, `httpx`, `pytest`, `pytest-cov`,
   `pytest-asyncio`, `pytest-mock`, `ruff`, `mypy`, `pre-commit`, `isage-pypi-publisher`
 - Callsite: `DEVELOPER.md`
-- Rationale: developer workflow, validation, and release tooling.
+- Rationale: in-tree `sage-dev` developer workflow, validation, and release tooling.
 
 ## How To Update
 

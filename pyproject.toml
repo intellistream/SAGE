@@ -25,6 +25,7 @@ license = "MIT"
 
 [project.scripts]
 sage = "sage.cli.main:main"
+sage-dev = "sage.tools.cli.commands.dev:run_with_suggestions"
 sage-edge = "sage.edge.server:main"
 
 [project.optional-dependencies]
@@ -58,8 +59,6 @@ full = [
     "isage-data>=0.2.3.2",
 ]
 dev = [
-    # External developer workflow owner (independently released)
-    "isage-dev-tools>=0.1.0",
     # Edge integration runtime + test helpers
     "fastapi>=0.115.0,<1.0.0",
     "uvicorn[standard]>=0.34.0,<1.0.0",

@@ -29,7 +29,7 @@ SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 TEST_DIR="/tmp/sage_e2e_test_$$"
 
 # 导入颜色定义
-source "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh"
+source "${SAGE_ROOT:-}/tools/install/ui/colors.sh"
 
 # 测试结果
 TOTAL_STEPS=0
@@ -112,8 +112,8 @@ step2_test_environment_detection() {
     unset CONDA_DEFAULT_ENV CONDA_PREFIX VIRTUAL_ENV
 
     # 导入环境配置模块
-    source "$TEST_DIR/tools/install/display_tools/colors.sh"
-    source "$TEST_DIR/tools/install/download_tools/environment_config.sh"
+    source "$TEST_DIR/tools/install/ui/colors.sh"
+    source "$TEST_DIR/tools/install/installers/environment_config.sh"
 
     # 测试虚拟环境检测
     local result=$(detect_virtual_environment)
@@ -167,8 +167,8 @@ step3_test_install_tracking() {
 step4_test_venv_policy_reject() {
     log_step "测试环境检测功能"
 
-    source "$TEST_DIR/tools/install/display_tools/colors.sh"
-    source "$TEST_DIR/tools/install/download_tools/environment_config.sh"
+    source "$TEST_DIR/tools/install/ui/colors.sh"
+    source "$TEST_DIR/tools/install/installers/environment_config.sh"
 
     export VIRTUAL_ENV="$TEST_DIR/.venv"
     if check_virtual_environment_isolation "pip" >/dev/null 2>&1; then
@@ -183,8 +183,8 @@ step4_test_venv_policy_reject() {
 step5_test_venv_policy() {
     log_step "测试 SAGE_VENV_POLICY 配置（系统环境）"
 
-    source "$TEST_DIR/tools/install/display_tools/colors.sh"
-    source "$TEST_DIR/tools/install/download_tools/environment_config.sh"
+    source "$TEST_DIR/tools/install/ui/colors.sh"
+    source "$TEST_DIR/tools/install/installers/environment_config.sh"
 
     # 测试不同策略
     for policy in warning error ignore; do

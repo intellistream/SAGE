@@ -201,7 +201,7 @@ interactive_clone_repos() {
     echo ""
     echo -e "${DIM}附属仓库将从 SAGE.code-workspace 文件读取，包括：${NC}"
     echo -e "${DIM}  • sage-examples, sage-tutorials, sagellm, sage-benchmark${NC}"
-    echo -e "${DIM}  • sage-dev-tools, sage-agentic, sage-agentic-tooluse${NC}"
+    echo -e "${DIM}  • sage-agentic, sage-agentic-tooluse${NC}"
     echo -e "${DIM}  • sage-anns, sage-eval, sage-finetune, sage-studio 等${NC}"
     echo ""
     echo -e "${YELLOW}💡 提示：${NC}"

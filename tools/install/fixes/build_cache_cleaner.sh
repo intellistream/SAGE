@@ -7,8 +7,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # 导入颜色定义
-if [ -f "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh" ]; then
-    source "${SAGE_ROOT:-}/tools/install/display_tools/colors.sh"
+if [ -f "${SAGE_ROOT:-}/tools/install/ui/colors.sh" ]; then
+    source "${SAGE_ROOT:-}/tools/install/ui/colors.sh"
 fi
 
 # ============================================================================
@@ -38,8 +38,8 @@ HOME="${HOME:-$(/usr/bin/env | grep ^HOME= | cut -d= -f2 || echo /root)}"
 # ============================================================================
 
 # 导入日志工具
-if [ -f "${SAGE_ROOT:-}/tools/install/display_tools/logging.sh" ]; then
-    source "${SAGE_ROOT:-}/tools/install/display_tools/logging.sh"
+if [ -f "${SAGE_ROOT:-}/tools/install/ui/logging.sh" ]; then
+    source "${SAGE_ROOT:-}/tools/install/ui/logging.sh"
 fi
 
 # 清理 egg-info 缓存

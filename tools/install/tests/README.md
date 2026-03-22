@@ -192,7 +192,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # 导入颜色定义
-source "$SAGE_ROOT/tools/install/display_tools/colors.sh"
+source "$SAGE_ROOT/tools/install/ui/colors.sh"
 
 # 测试计数器
 TOTAL_TESTS=0
@@ -272,7 +272,7 @@ chmod +x tools/install/tests/*.sh
 
 ### 找不到颜色定义
 
-确保 `tools/install/display_tools/colors.sh` 存在。
+确保 `tools/install/ui/colors.sh` 存在。
 
 ### 临时目录空间不足
 

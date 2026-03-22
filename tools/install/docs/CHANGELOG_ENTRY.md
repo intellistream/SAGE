@@ -47,7 +47,7 @@
 
 **技术实现**:
 
-- 文件: `tools/install/display_tools/logging.sh`
+- 文件: `tools/install/ui/logging.sh`
 - 函数: `log_pip_install_with_verbose_progress`
 - 依赖: `bc` 命令（用于浮点数计算，大多数系统自带）
 

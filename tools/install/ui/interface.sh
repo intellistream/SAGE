@@ -188,7 +188,7 @@ show_install_success() {
             ;;
         "dev")
             echo -e "${BLUE}已安装 (开发模式):${NC}"
-            echo_icon "✅" "standard + isage-dev-tools (sage-dev 命令)" 1 1
+            echo_icon "✅" "standard + in-tree sage-dev 命令" 1 1
             echo_icon "✅" "pytest, pre-commit, 代码质量工具" 1 1
             ;;
     esac
@@ -654,11 +654,11 @@ show_usage_tips() {
                 echo -e "${DIM}   终端将自动激活 conda 环境 '${SAGE_ENV_NAME:-}'${NC}"
             else
                 echo -e "${YELLOW}⚠️  自动配置失败，可手动运行:${NC}"
-                echo -e "  ${CYAN}bash tools/install/setup_vscode_conda.sh ${SAGE_ENV_NAME:-}${NC}"
+                echo -e "  ${CYAN}bash tools/install/conda/setup_vscode_conda.sh ${SAGE_ENV_NAME:-}${NC}"
             fi
         else
             echo -e "${DIM}💡 开发者提示: 运行以下命令配置 VS Code:${NC}"
-            echo -e "  ${CYAN}bash tools/install/setup_vscode_conda.sh ${SAGE_ENV_NAME:-}${NC}"
+            echo -e "  ${CYAN}bash tools/install/conda/setup_vscode_conda.sh ${SAGE_ENV_NAME:-}${NC}"
         fi
         echo ""
     fi

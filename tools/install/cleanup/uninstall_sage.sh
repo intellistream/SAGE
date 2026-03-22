@@ -12,9 +12,9 @@ INSTALL_INFO_FILE="$SAGE_ROOT/.sage/install_info.json"
 PACKAGE_LIST_FILE="$SAGE_ROOT/.sage/installed_packages.txt"
 
 # 颜色定义（尽量复用安装脚本风格）
-if [ -f "$SAGE_ROOT/tools/install/display_tools/colors.sh" ]; then
+if [ -f "$SAGE_ROOT/tools/install/ui/colors.sh" ]; then
     # shellcheck source=/dev/null
-    source "$SAGE_ROOT/tools/install/display_tools/colors.sh"
+    source "$SAGE_ROOT/tools/install/ui/colors.sh"
 else
     RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'; BOLD='\033[1m'; DIM='\033[2m'
     INFO="[i]"; WARNING="[!]"; CHECK="[✓]"; CROSS="[x]"
@@ -60,9 +60,9 @@ confirm() {
 uninstall_packages_from_list() {
     if [ ! -f "$PACKAGE_LIST_FILE" ]; then
         echo -e "${YELLOW}未找到包列表文件，回退到自动检测模式${NC}"
-        if [ -f "$SAGE_ROOT/tools/install/examination_tools/sage_check.sh" ]; then
+        if [ -f "$SAGE_ROOT/tools/install/checks/sage_check.sh" ]; then
             # shellcheck source=/dev/null
-            source "$SAGE_ROOT/tools/install/examination_tools/sage_check.sh"
+            source "$SAGE_ROOT/tools/install/checks/sage_check.sh"
             uninstall_sage
             return
         else

@@ -138,11 +138,11 @@ runs:
         echo "$HOME/.local/bin" >> $GITHUB_PATH
 
         # Make scripts executable
-        chmod +x ./tools/install/core/ci_install_wrapper.sh
+        chmod +x ./tools/install/installers/ci_install_wrapper.sh
         chmod +x ./quickstart.sh
 
         # Run installation
-        ./tools/install/core/ci_install_wrapper.sh --${{ inputs.install-mode }} --yes
+        ./tools/install/installers/ci_install_wrapper.sh --${{ inputs.install-mode }} --yes
 
         echo "✅ SAGE installation completed"
 

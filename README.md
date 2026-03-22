@@ -217,7 +217,7 @@ git clone https://github.com/intellistream/SAGE.git && cd SAGE
 
 ```bash
 pip install isage              # Core framework
-pip install isage[dev]         # Development tools (includes isage-dev-tools, pre-commit, pytest, etc.)
+pip install isage[dev]         # Development tools (includes in-tree sage-dev, pre-commit, pytest, etc.)
 ```
 
 **What's included in `pip install isage`**
@@ -523,11 +523,8 @@ Independent sub-repositories that remain justified are organized by category:
 
 ### Developer Tooling
 
-- **[sage-dev-tools](https://github.com/intellistream/sage-dev-tools)** — Development CLI and
-  quality tooling
-  [![CI](https://github.com/intellistream/sage-dev-tools/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-dev-tools/actions/workflows/ci.yml)
-  [![PyPI](https://badge.fury.io/py/isage-dev-tools.svg)](https://pypi.org/project/isage-dev-tools/)
-  [![Stars](https://img.shields.io/github/stars/intellistream/sage-dev-tools?style=social)](https://github.com/intellistream/sage-dev-tools/stargazers)
+- **In-tree `sage-dev`** — Development CLI and quality tooling now ship directly from this
+  repository.
 - Historical split repos remain retirement targets and are intentionally omitted from the
   recommended active ecosystem list.
 

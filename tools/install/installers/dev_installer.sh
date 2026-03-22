@@ -38,9 +38,9 @@ install_dev_packages() {
 
     log_info "开发工具安装阶段" "DevTools"
 
-    echo -e "${CHECK} 开发工具依赖已在 isage-dev-tools / isage[dev] 安装过程中完成"
+    echo -e "${CHECK} 开发工具依赖已在 in-tree sage-dev / isage[dev] 安装过程中完成"
     echo -e "${DIM}包含: black, isort, flake8, pytest, pytest-timeout, mypy, pre-commit 等${NC}"
-    echo -e "${DIM}开发工具由独立仓库 sage-dev-tools 统一维护${NC}"
+    echo -e "${DIM}开发工具由主仓内置的 sage-dev 统一维护${NC}"
     echo ""
 
     # 验证关键开发工具是否可用

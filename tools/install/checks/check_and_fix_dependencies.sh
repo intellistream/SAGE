@@ -3,11 +3,11 @@
 # 这个脚本可以被其他脚本调用，也可以独立运行
 #
 # 用法:
-#   source tools/install/check_and_fix_dependencies.sh
+#   source tools/install/checks/check_and_fix_dependencies.sh
 #   check_and_fix_dependencies [--non-interactive]
 #
 # 或者直接运行:
-#   ./tools/install/check_and_fix_dependencies.sh [--non-interactive]
+#   ./tools/install/checks/check_and_fix_dependencies.sh [--non-interactive]
 
 # 检查并修复依赖
 
@@ -47,7 +47,7 @@ check_and_fix_dependencies() {
     if [ -n "${BASH_SOURCE[0]}" ]; then
         script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     else
-        script_dir="$(pwd)/tools/install/diagnostics"
+        script_dir="$(pwd)/tools/install/checks"
     fi
     local project_root="$(cd "$script_dir/../../.." && pwd)"
 
@@ -58,7 +58,7 @@ check_and_fix_dependencies() {
     fi
 
     # 运行依赖验证脚本
-    local verify_script="$project_root/tools/install/diagnostics/verify_dependencies.py"
+    local verify_script="$project_root/tools/install/checks/verify_dependencies.py"
     if [ ! -f "$verify_script" ]; then
         echo "⚠️  警告: 依赖验证脚本不存在: $verify_script"
         return 0
@@ -89,7 +89,7 @@ check_and_fix_dependencies() {
     fi
 
     if [ "$should_fix" = true ]; then
-        local fix_script="$project_root/tools/install/maintenance/fix_torch.sh"
+        local fix_script="$project_root/tools/install/fixes/fix_torch.sh"
         if [ ! -f "$fix_script" ]; then
             echo "❌ 错误: 修复脚本不存在: $fix_script"
             return 1
@@ -105,7 +105,7 @@ check_and_fix_dependencies() {
         return $?
     else
         echo "ℹ️  跳过自动修复。你可以稍后手动运行:"
-        echo "   ./tools/install/maintenance/fix_torch.sh"
+        echo "   ./tools/install/fixes/fix_torch.sh"
         return 0
     fi
 }

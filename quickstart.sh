@@ -15,18 +15,18 @@ export PYTHON_CMD="${PYTHON_CMD:-python3}"
 export PIP_CMD="${PIP_CMD:-$PYTHON_CMD -m pip}"
 
 # 导入所有模块
-source "$TOOLS_DIR/display_tools/colors.sh"
-source "$TOOLS_DIR/display_tools/output_formatter.sh"
-source "$TOOLS_DIR/display_tools/interface.sh"
-source "$TOOLS_DIR/examination_tools/system_check.sh"
-source "$TOOLS_DIR/examination_tools/system_deps.sh"
-source "$TOOLS_DIR/examination_tools/comprehensive_check.sh"
-source "$TOOLS_DIR/examination_tools/environment_prechecks.sh"
-source "$TOOLS_DIR/examination_tools/install_verification.sh"
-source "$TOOLS_DIR/download_tools/argument_parser.sh"
-source "$TOOLS_DIR/download_tools/clone_satellite_repos.sh"
-source "$TOOLS_DIR/examination_tools/mirror_selector.sh"  # 网络加速优化（增强版）
-source "$TOOLS_DIR/installation_table/main_installer.sh"
+source "$TOOLS_DIR/ui/colors.sh"
+source "$TOOLS_DIR/ui/output_formatter.sh"
+source "$TOOLS_DIR/ui/interface.sh"
+source "$TOOLS_DIR/checks/system_check.sh"
+source "$TOOLS_DIR/checks/system_deps.sh"
+source "$TOOLS_DIR/checks/comprehensive_check.sh"
+source "$TOOLS_DIR/checks/environment_prechecks.sh"
+source "$TOOLS_DIR/checks/install_verification.sh"
+source "$TOOLS_DIR/installers/argument_parser.sh"
+source "$TOOLS_DIR/installers/clone_satellite_repos.sh"
+source "$TOOLS_DIR/checks/mirror_selector.sh"  # 网络加速优化（增强版）
+source "$TOOLS_DIR/installers/main_installer.sh"
 source "$TOOLS_DIR/fixes/environment_doctor.sh"
 source "$TOOLS_DIR/fixes/numpy_fix.sh"
 source "$TOOLS_DIR/fixes/friendly_error_handler.sh"
@@ -219,7 +219,7 @@ main() {
         if declare -f check_conda_environment >/dev/null 2>&1; then
             check_conda_environment
         else
-            source "$TOOLS_DIR/examination_tools/conda_guide.sh"
+            source "$TOOLS_DIR/conda/conda_guide.sh"
             check_conda_environment
         fi
         exit $?
@@ -531,11 +531,11 @@ main() {
                         echo -e "${DIM}   • 跳过检查: git commit --no-verify${NC}"
 
                         # 检查工具版本一致性
-                        if [ -f "$SAGE_ROOT/tools/install/diagnostics/check_tool_versions.sh" ]; then
+                        if [ -f "$SAGE_ROOT/tools/install/checks/check_tool_versions.sh" ]; then
                             echo ""
-                            if ! bash "$SAGE_ROOT/tools/install/diagnostics/check_tool_versions.sh" --quiet 2>/dev/null; then
+                            if ! bash "$SAGE_ROOT/tools/install/checks/check_tool_versions.sh" --quiet 2>/dev/null; then
                                 echo -e "${YELLOW}⚠️  检测到工具版本不一致${NC}"
-                                echo -e "${DIM}   运行 ./tools/install/diagnostics/check_tool_versions.sh --fix 自动修复${NC}"
+                                echo -e "${DIM}   运行 ./tools/install/checks/check_tool_versions.sh --fix 自动修复${NC}"
                             fi
                         fi
                     else
@@ -616,16 +616,16 @@ main() {
         # 检查并修复依赖冲突
         echo ""
         echo -e "${INFO} 检查依赖版本兼容性..."
-        if [ -f "$SAGE_ROOT/tools/install/diagnostics/check_and_fix_dependencies.sh" ]; then
+        if [ -f "$SAGE_ROOT/tools/install/checks/check_and_fix_dependencies.sh" ]; then
             # 非交互模式检查（在 CI 环境中或自动确认模式）
             if [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ] || [ "$(get_auto_confirm)" = "true" ]; then
-                source "$SAGE_ROOT/tools/install/diagnostics/check_and_fix_dependencies.sh"
+                source "$SAGE_ROOT/tools/install/checks/check_and_fix_dependencies.sh"
                 check_and_fix_dependencies --non-interactive || {
                     echo -e "${DIM}  ⚠️  依赖检查完成（可能存在警告）${NC}"
                 }
             else
                 # 交互模式检查
-                source "$SAGE_ROOT/tools/install/diagnostics/check_and_fix_dependencies.sh"
+                source "$SAGE_ROOT/tools/install/checks/check_and_fix_dependencies.sh"
                 check_and_fix_dependencies || {
                     echo -e "${DIM}  ℹ️  依赖检查跳过或失败（非关键）${NC}"
                 }

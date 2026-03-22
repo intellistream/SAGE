@@ -385,7 +385,7 @@ install_sage() {
         echo -e "${BLUE}🔍 CI/CD 安全检查：验证依赖完整性...${NC}"
         log_phase_start "依赖完整性检查" "MAIN"
 
-        local monitor_script="$project_root/tools/install/installation_table/pip_install_monitor.sh"
+        local monitor_script="$project_root/tools/install/installers/pip_install_monitor.sh"
         if [ -f "$monitor_script" ] && [ -f "$log_file" ]; then
             if bash "$monitor_script" analyze "$log_file"; then
                 log_info "依赖完整性检查通过" "MAIN"

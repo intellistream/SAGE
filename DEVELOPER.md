@@ -167,7 +167,7 @@ in historical split algorithm packages.
 - `rich>=13.0.0` - Pretty output
 - `click>=8.0.0` - Command parsing
 - `jinja2>=3.1.0` - Templates
-- `isage-dev-tools>=0.1.0` - Dev utilities
+- in-tree `sage-dev` command - Dev utilities
 
 **Role**: top layer of the core workspace stack; applications should extend it rather than sit as
 peers.
@@ -303,15 +303,8 @@ ______________________________________________________________________
 
 ### Using the sage-dev CLI
 
-The `sage-dev` CLI (provided by the independently released `isage-dev-tools` package) offers the
-same development workflows:
-
-> **💡 Note**: Additional development utilities are available via `sage-dev-tools` (automatically
-> installed in `--dev` mode):
->
-> - Work report generation: `sage-dev-tools report --period weekly`
-> - Cluster code sync: `sage-dev-tools maintenance sync-cluster`
-> - See: [sage-dev-tools](https://github.com/intellistream/sage-dev-tools)
+The `sage-dev` CLI now ships in-tree with the main SAGE repository and provides the same
+development workflows:
 
 ```bash
 # Format code / auto-fix quality issues

@@ -2,8 +2,8 @@
 # 修复 PyTorch 版本冲突问题
 #
 # 用法:
-#   ./tools/install/maintenance/fix_torch.sh
-#   ./tools/install/maintenance/fix_torch.sh --non-interactive  # 非交互模式（用于 CI/CD）
+#   ./tools/install/fixes/fix_torch.sh
+#   ./tools/install/fixes/fix_torch.sh --non-interactive  # 非交互模式（用于 CI/CD）
 
 set -e
 
