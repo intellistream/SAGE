@@ -17,8 +17,9 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    # External engine integration on interpreters where the engine family is published
-    "isagellm>=0.5.4.3; python_version < '3.13'",
+    # In-tree FlowNet runtime core dependencies
+    "cloudpickle>=2.2",
+    "pyyaml>=6.0",
 ]
 
 license = "MIT"
@@ -29,6 +30,10 @@ sage-dev = "sage.tools.cli.commands.dev:run_with_suggestions"
 sage-edge = "sage.edge.server:main"
 
 [project.optional-dependencies]
+sagellm = [
+    # Optional external inference engine integration
+    "isagellm>=0.5.4.3; python_version < '3.13'",
+]
 serving-edge = [
     # In-tree edge aggregation shell
     "fastapi>=0.115.0,<1.0.0",

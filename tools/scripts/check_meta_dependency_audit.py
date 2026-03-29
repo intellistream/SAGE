@@ -12,8 +12,9 @@ import argparse
 import re
 import subprocess
 import sys
-import tomllib
 from pathlib import Path
+
+import tomllib
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PYPROJECT_PATH = Path("pyproject.toml")

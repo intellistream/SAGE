@@ -7,6 +7,12 @@
     {
       "name": "SAGE-Docs  [docs]",
       "path": "../SAGE-Docs"
+    },
+    {
+      "path": "flutty"
+    },
+    {
+      "path": "../intellistream-dotgithub"
     }
   ],
   "settings": {

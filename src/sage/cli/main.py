@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from typing import Sequence
+from collections.abc import Sequence
 
 from sage._version import __version__
 from sage.cli.commands.apps.chat import add_chat_parser, add_index_parser

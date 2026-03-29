@@ -14,7 +14,7 @@ from typing import Any
 from sage.stream._runtime_kernel_types import Packet, StopSignal
 
 from .backend import get_runtime_backend
-from .environments import FluttyEnvironment, LocalEnvironment
+from .environments import FlowNetEnvironment, LocalEnvironment
 from .job_manager import JobManager
 from .pipeline_compiler import CompiledActorGraph, PipelineCompiler
 from .scheduler import (
@@ -28,7 +28,7 @@ from .service import BaseService
 
 __all__ = [
     "LocalEnvironment",
-    "FluttyEnvironment",
+    "FlowNetEnvironment",
     "BaseScheduler",
     "FIFOScheduler",
     "LoadAwareScheduler",

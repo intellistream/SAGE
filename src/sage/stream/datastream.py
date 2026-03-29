@@ -134,8 +134,8 @@ class DataStream(Generic[T]):
         tr = KeyByTransformation(
             self._environment,
             function,
-            strategy=strategy,
             *args,
+            strategy=strategy,
             parallelism=actual_parallelism,
             **kwargs,
         )

@@ -38,15 +38,21 @@ def _add_quality_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser]
 
     check = quality_sub.add_parser("check", help="Run quality checks")
     check.add_argument("--all-files", action="store_true", help="Accepted for compatibility")
-    check.add_argument("--readme", action="store_true", help="Run doc quality check as part of quality command")
+    check.add_argument(
+        "--readme", action="store_true", help="Run doc quality check as part of quality command"
+    )
 
     fix = quality_sub.add_parser("fix", help="Run quality auto-fixes")
     fix.add_argument("--all-files", action="store_true", help="Accepted for compatibility")
-    fix.add_argument("--readme", action="store_true", help="Run doc quality check as part of quality command")
+    fix.add_argument(
+        "--readme", action="store_true", help="Run doc quality check as part of quality command"
+    )
 
     parser.add_argument("--check-only", action="store_true", help="Legacy alias for quality check")
     parser.add_argument("--all-files", action="store_true", help="Accepted for compatibility")
-    parser.add_argument("--readme", action="store_true", help="Run doc quality check as part of quality command")
+    parser.add_argument(
+        "--readme", action="store_true", help="Run doc quality check as part of quality command"
+    )
 
 
 def _add_project_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -124,7 +130,9 @@ def _quality_action(args: argparse.Namespace) -> int:
         rc = _run(base, cwd=repo)
         if rc != 0:
             return rc
-        rc = _run(["ruff", "format", "--check", "--config", "tools/ruff.toml", "src", "tools"], cwd=repo)
+        rc = _run(
+            ["ruff", "format", "--check", "--config", "tools/ruff.toml", "src", "tools"], cwd=repo
+        )
 
     if rc != 0:
         return rc
@@ -196,7 +204,9 @@ def _docs_action(args: argparse.Namespace) -> int:
     if args.docs_command == "build":
         return _run_shell(repo / "tools/maintenance/check_docs.sh")
     if args.docs_command == "serve":
-        print("SAGE meta repo has no built-in docs server. Use sage-docs repository for mkdocs serve.")
+        print(
+            "SAGE meta repo has no built-in docs server. Use sage-docs repository for mkdocs serve."
+        )
         return 0
     return 1
 

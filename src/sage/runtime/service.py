@@ -61,13 +61,13 @@ class BaseService(ABC):  # noqa: B024
         )
 
     def setup(self) -> None:
-        pass
+        return None
 
     def cleanup(self) -> None:
-        pass
+        return None
 
     def start(self) -> None:
-        pass
+        return None
 
     def stop(self) -> None:
-        pass
+        return None

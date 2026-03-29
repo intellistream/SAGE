@@ -4,11 +4,10 @@ import json
 import socket
 import time
 import uuid
-from abc import ABC
 from typing import Any
 
 
-class BaseTcpClient(ABC):
+class BaseTcpClient:
     """Minimal runtime-local TCP client base used by JobManager clients."""
 
     def __init__(

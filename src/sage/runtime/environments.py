@@ -128,12 +128,12 @@ class LocalEnvironment(BaseEnvironment):
             self.pipeline.clear()
 
 
-class FluttyEnvironment(BaseEnvironment):
-    """Optional distributed execution environment backed by Flutty."""
+class FlowNetEnvironment(BaseEnvironment):
+    """Optional distributed execution environment backed by FlowNet."""
 
     def __init__(
         self,
-        name: str = "flutty_environment",
+        name: str = "flownet_environment",
         config: dict | None = None,
         scheduler=None,
         placement_policy: str | None = None,
@@ -142,7 +142,7 @@ class FluttyEnvironment(BaseEnvironment):
         super().__init__(
             name,
             config,
-            platform="flutty",
+            platform="flownet",
             scheduler=scheduler,
             enable_monitoring=enable_monitoring,
         )
@@ -155,12 +155,12 @@ class FluttyEnvironment(BaseEnvironment):
         compiler = PipelineCompiler()
 
         self.logger.info(
-            f"[FluttyEnvironment:{self.name}] Compiling pipeline with {len(self.pipeline)} stage(s)…"
+            f"[FlowNetEnvironment:{self.name}] Compiling pipeline with {len(self.pipeline)} stage(s)…"
         )
         self._compiled_graph = compiler.compile(self.pipeline, adapter)
 
         self.logger.info(
-            f"[FluttyEnvironment:{self.name}] Submitting "
+            f"[FlowNetEnvironment:{self.name}] Submitting "
             f"({'batch/autostop' if autostop else 'streaming'})…"
         )
         result = self._compiled_graph.submit(autostop=autostop)
@@ -172,25 +172,25 @@ class FluttyEnvironment(BaseEnvironment):
 
     def stop(self) -> None:
         if self._streaming_handle is not None:
-            self.logger.info(f"[FluttyEnvironment:{self.name}] Stopping streaming pipeline…")
+            self.logger.info(f"[FlowNetEnvironment:{self.name}] Stopping streaming pipeline…")
             self._streaming_handle.stop()
             self._streaming_handle = None
         else:
             self.logger.info(
-                f"[FluttyEnvironment:{self.name}] stop() called but no active streaming handle found — nothing to stop."
+                f"[FlowNetEnvironment:{self.name}] stop() called but no active streaming handle found — nothing to stop."
             )
 
     def close(self) -> None:
         self.stop()
         self._compiled_graph = None
-        self.logger.info(f"[FluttyEnvironment:{self.name}] Closed.")
+        self.logger.info(f"[FlowNetEnvironment:{self.name}] Closed.")
 
     def health_check(self) -> list[dict[str, Any]]:
         try:
             adapter = runtime_backend.get_runtime_backend()
             return adapter.list_nodes()
         except Exception as exc:  # noqa: BLE001
-            self.logger.warning(f"[FluttyEnvironment:{self.name}] health_check failed: {exc}")
+            self.logger.warning(f"[FlowNetEnvironment:{self.name}] health_check failed: {exc}")
             return []
 
     @property
@@ -210,14 +210,14 @@ class FluttyEnvironment(BaseEnvironment):
     def __repr__(self) -> str:
         state = "running" if self.is_running else "idle"
         return (
-            f"FluttyEnvironment(name={self.name!r}, stages={len(self.pipeline)}, state={state!r})"
+            f"FlowNetEnvironment(name={self.name!r}, stages={len(self.pipeline)}, state={state!r})"
         )
 
-    def __enter__(self) -> FluttyEnvironment:
+    def __enter__(self) -> FlowNetEnvironment:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.close()
 
 
-__all__ = ["LocalEnvironment", "FluttyEnvironment"]
+__all__ = ["LocalEnvironment", "FlowNetEnvironment"]

@@ -49,7 +49,9 @@ PATH_PATTERNS = [
     (
         "R2",
         "HIGH",
-        re.compile(r"(?:Path\s*\([^\n]*\)\s*/\s*['\"]tools['\"]|\.joinpath\(\s*['\"]tools['\"]|os\.path\.join\([^\n]*['\"]tools['\"]|subprocess\.(?:run|Popen|call|check_call|check_output)\([^\n]*tools/)"),
+        re.compile(
+            r"(?:Path\s*\([^\n]*\)\s*/\s*['\"]tools['\"]|\.joinpath\(\s*['\"]tools['\"]|os\.path\.join\([^\n]*['\"]tools['\"]|subprocess\.(?:run|Popen|call|check_call|check_output)\([^\n]*tools/)"
+        ),
         "Runtime code constructs or executes a tools path directly.",
         "Keep repository tooling in maintenance flows and expose a runtime-safe interface if the behavior is required at runtime.",
     ),
@@ -133,7 +135,9 @@ def _scan_misplaced_new_files() -> list[Finding]:
             continue
         path = Path(rel_path)
         path_text = rel_path.lower()
-        if path.suffix in MISPLACED_EXTENSIONS or any(segment in MISPLACED_SEGMENTS for segment in path.parts):
+        if path.suffix in MISPLACED_EXTENSIONS or any(
+            segment in MISPLACED_SEGMENTS for segment in path.parts
+        ):
             findings.append(
                 Finding(
                     rule="R3",

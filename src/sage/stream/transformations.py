@@ -248,11 +248,11 @@ class KeyByTransformation(BaseTransformation):
         self.operator_class = KeyByOperator
         self.partition_strategy = strategy
         super().__init__(
-            env=env,
-            function=key_selector_function,
+            env,
+            key_selector_function,
+            *args,
             name=name,
             parallelism=parallelism,
-            *args,
             **kwargs,
         )
 

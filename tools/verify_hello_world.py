@@ -138,7 +138,7 @@ def main() -> int:
     print("  - Inspect runtime view: sage runtime nodes")
     print("  - Inspect gateway contract: sage serve gateway --json")
     print("  - Build a stream: from sage.stream import DataStream")
-    print("  - Pick a runtime: from sage.runtime import LocalEnvironment, FluttyEnvironment")
+    print("  - Pick a runtime: from sage.runtime import LocalEnvironment, FlowNetEnvironment")
     print("  - Attach serving when needed: from sage.serving import SageServeConfig")
     print('  - Chat with sagellm: sage chat --ask "Hello, SAGE!"')
     print(

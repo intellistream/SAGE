@@ -179,7 +179,7 @@ in historical split algorithm packages.
 
 **Core**:
 
-- `flutty>=0.1.0` - optional distributed runtime backend
+- in-tree `sage.runtime.flownet` package - distributed runtime backend (merged into SAGE)
 - `fastapi>=0.115.0,<1.0.0` - Kernel HTTP service
 - `grpcio>=1.74.0,<2.0.0` - RPC communication
 - `msgpack>=1.1.0,<2.0.0` - Serialization
@@ -247,9 +247,9 @@ Priority order:
 1. **Capabilities as adapters**: RAG, memory, tool-use, evaluation, and benchmark modules should be
    optional adapters unless they clearly strengthen the inference-service core.
 
-Distributed-runtime rule: `FluttyEnvironment` should remain a first-class **optional** public API
+Distributed-runtime rule: `FlowNetEnvironment` should remain a first-class **optional** public API
 for cluster execution. The consolidation target is not “distributed-only SAGE”; it is “stream-first
-SAGE” with a strong local default plus Flutty-backed scale-out when needed, and no new Ray-oriented
+SAGE” with a strong local default plus FlowNet-backed scale-out when needed, and no new Ray-oriented
 dependency path.
 
 Inference-engine rule: do not absorb `isagellm` internals into `SAGE`. `isagellm` is itself an

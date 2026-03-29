@@ -29,7 +29,7 @@ collection of loosely coupled apps.
 - **Keep the execution core**: `LocalEnvironment`, `JobManager`, scheduling, service runtime
 - **Keep the serving integration plane**: OpenAI-compatible gateway access, model lifecycle entry,
   and control-plane integration contracts
-- **Keep distributed execution optional**: `FluttyEnvironment` remains the Flutty-first optional
+- **Keep distributed execution optional**: `FlowNetEnvironment` remains the FlowNet-first optional
   distributed runtime entry, instead of falling back to new Ray-based paths
 - **Keep the operating substrate**: centralized ports, XDG user paths, model registry, logs,
   health/status surfaces
@@ -47,7 +47,7 @@ repository.
 Preferred in-tree surface during consolidation:
 
 - `from sage.stream import DataStream`
-- `from sage.runtime import LocalEnvironment, FluttyEnvironment, JobManager`
+- `from sage.runtime import LocalEnvironment, FlowNetEnvironment, JobManager`
 - `from sage.foundation import SagePorts, SageUserPaths`
 - `from sage.serving import SageServeConfig, build_sagellm_gateway_command, probe_gateway`
 
@@ -165,7 +165,7 @@ Target product convergence is narrower than the historical workspace shape:
 SAGE Inference Service System
 L3 Interface   : CLI + OpenAI-compatible service entry + external integration surface
 L2 Runtime     : LocalEnvironment + DataStream + JobManager + scheduler + execution services
-Optional Dist. : FluttyEnvironment (Flutty-backed distributed execution)
+Optional Dist. : FlowNetEnvironment (FlowNet-backed distributed execution)
 L1 Foundation  : config + ports + user paths + model registry + logging
 Optional       : RAG / memory / tool-use / benchmark adapters
 ```
@@ -227,10 +227,15 @@ pip install isage[dev]         # Development tools (includes in-tree sage-dev, p
 longer requires a separate historical runtime split package as a direct dependency. `isagellm`
 remains the external inference engine.
 
-On Python 3.13+, the root package currently skips automatic `isagellm` installation because the
-required `isagellm-protocol` distribution is not yet published for that interpreter. Core SAGE
-stream/runtime development still installs normally; engine integration can be enabled later on a
-supported interpreter once upstream wheels are available.
+`pip install isage` now stays lightweight and does not auto-install `isagellm`.
+If you need the external engine integration, install it explicitly via extras:
+
+```bash
+pip install 'isage[sagellm]'
+```
+
+On Python 3.13+, `isagellm` integration may still be unavailable until the related upstream wheels
+are published. Core SAGE stream/runtime development installs and runs independently.
 
 **Core + engine integration only** 🧩
 
@@ -238,9 +243,9 @@ For a standard `pip install isage`, the product center is intentionally narrow:
 
 - **Foundation** → `isage`: in-tree config, ports, paths, contracts
 - **Stream + Runtime** → `isage`: main public API and local runtime owned in-tree
-- **Distributed scale-out** → `flutty`: optional backend used through `FluttyEnvironment`
+- **Distributed scale-out** → in-tree `sage.runtime.flownet`: backend used through `FlowNetEnvironment`
 - **CLI** → `isage`: in-tree `sage` command surface
-- **Inference Engine** → `isagellm`: external engine; auto-installed on supported Python versions
+- **Inference Engine** → `isagellm`: external engine; opt-in via `isage[sagellm]`
 
 Compatibility note: transitional imports such as `sage.common`, `sage.platform`, `sage.middleware`,
 or `sage.kernel` may still appear in older repos or environments, but they are not part of the root
@@ -482,9 +487,8 @@ Independent sub-repositories that remain justified are organized by category:
   [![CI](https://github.com/intellistream/sage-amms/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-amms/actions/workflows/build.yml)
   [![PyPI](https://badge.fury.io/py/isage-amms.svg)](https://pypi.org/project/isage-amms/)
   [![Stars](https://img.shields.io/github/stars/intellistream/sage-amms?style=social)](https://github.com/intellistream/sage-amms/stargazers)
-- **[flutty](https://github.com/intellistream/flutty)** — Optional distributed execution backend for
-  SAGE stream runtime
-  [![PyPI](https://badge.fury.io/py/flutty.svg)](https://pypi.org/project/flutty/)
+- **FlowNet (merged in-tree)** — Distributed execution backend now consolidated into this
+  repository for SAGE stream runtime
 
 ### Data & Benchmarks
 

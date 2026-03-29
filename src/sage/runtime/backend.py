@@ -4,17 +4,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from .flutty_backend import get_flutty_adapter
+from .flownet_backend import get_flownet_adapter
 
 
 def get_runtime_backend() -> Any:
-    """Return the process-global Flutty runtime adapter.
+    """Return the process-global FlowNet runtime adapter.
 
     The distributed backend remains optional. When callers need cluster-backed
-    execution they should go through this helper rather than importing Flutty
+    execution they should go through this helper rather than importing FlowNet
     internals directly.
     """
-    return get_flutty_adapter()
+    return get_flownet_adapter()
 
 
 __all__ = ["get_runtime_backend"]
