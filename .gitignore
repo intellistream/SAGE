@@ -260,7 +260,7 @@ SALARY_POLICY.md
 FUNDING_INFO.md
 **/team_info/**
 **/sensitive/**
-
+/docs/papers/*
 # ============================================
 # PyPI 发布产物 (sage-pypi-publisher)
 # ============================================
