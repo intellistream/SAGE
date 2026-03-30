@@ -182,11 +182,11 @@ retired.
 See [SAGE Ecosystem](#sage-ecosystem) for all independent sub-repositories with CI status, PyPI
 packages, and categorized listings.
 
-📖 **[Architecture Guide](https://intellistream.github.io/sage-docs/architecture/)** - Canonical
+📖 **[Architecture Guide](https://sage.org.ai/architecture/)** - Canonical
 ownership boundaries and dependency rules for the meta repo
 
 📌
-**[Layer Ownership Matrix v1 (Wave A)](https://intellistream.github.io/sage-docs/architecture/layer-ownership/)**
+**[Layer Ownership Matrix v1 (Wave A)](https://sage.org.ai/architecture/layer-ownership/)**
 \- Canonical L1-L4 workspace ownership, independent sub-repo coordination boundary (including
 `sagellm` capabilities), forbidden directions, and boundary refactor review checklist
 
@@ -329,9 +329,9 @@ sage index ingest --source ./docs --index local-docs
 ```
 
 📖 **Detailed guides**:
-[Installation Guide](https://intellistream.github.io/sage-docs/guides/installation/) |
-[Troubleshooting](https://intellistream.github.io/sage-docs/guides/troubleshooting/) |
-[Validation](https://intellistream.github.io/sage-docs/guides/validation/) |
+[Installation Guide](https://sage.org.ai/guides/installation/) |
+[Troubleshooting](https://sage.org.ai/guides/troubleshooting/) |
+[Validation](https://sage.org.ai/guides/validation/) |
 [Optimization Tips](tools/install/docs/INSTALLATION_OPTIMIZATION.md)
 
 ⚠️ **Known Issues**: If you encounter transformers version conflicts when installing multiple SAGE
@@ -377,7 +377,7 @@ See `sage-tutorials/README.md` for complete learning paths.
 ## Documentation & Resources
 
 - **Documentation**:
-  [https://intellistream.github.io/sage-docs/](https://intellistream.github.io/sage-docs/)
+  [https://sage.org.ai/](https://sage.org.ai/)
 - **Examples & Applications**:
   [intellistream/sage-examples](https://github.com/intellistream/sage-examples)
   - RAG examples and production applications
@@ -385,7 +385,7 @@ See `sage-tutorials/README.md` for complete learning paths.
 - **Tutorials**: [intellistream/sage-tutorials](https://github.com/intellistream/sage-tutorials)
   - Layered tutorials from L1 to L5, quick-start learning paths
 - **Architecture**:
-  [sage-docs architecture guide](https://intellistream.github.io/sage-docs/architecture/)
+  [sage-docs architecture guide](https://sage.org.ai/architecture/)
 
 ## Contributing
 
@@ -401,7 +401,7 @@ git push -u origin feature/my-feature
 ```
 
 **Resources**:
-[Quick Reference](https://intellistream.github.io/sage-docs/reference/quick-reference/) |
+[Quick Reference](https://sage.org.ai/reference/quick-reference/) |
 [GitHub Issues](https://github.com/intellistream/SAGE/issues) |
 [Discussions](https://github.com/intellistream/SAGE/discussions)
 
@@ -428,7 +428,7 @@ make docs           # Build documentation
 
 ## SAGE Ecosystem
 
-📦 **[sage-docs package guide](https://intellistream.github.io/sage-docs/guides/packages/)** —
+📦 **[sage-docs package guide](https://sage.org.ai/guides/packages/)** —
 独立能力包与安装索引
 
 ### 🧠 SAGE — Streaming AI Framework
