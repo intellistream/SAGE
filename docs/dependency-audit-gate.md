@@ -35,7 +35,8 @@ The repo no longer treats the retired split-package layout as a set of direct de
 
 ### `pyyaml`
 
-- Callsite: `src/sage/runtime/flownet/client/cluster_context.py`, `src/sage/runtime/flownet/node/cluster_inventory.py`
+- Callsite: `src/sage/runtime/flownet/client/cluster_context.py`,
+  `src/sage/runtime/flownet/node/cluster_inventory.py`
 - Rationale: YAML parsing for cluster configuration and inventory management.
 
 ### `isagellm`
@@ -85,8 +86,8 @@ The repo no longer treats the retired split-package layout as a set of direct de
 
 ### `dev`
 
-- Packages: `fastapi`, `uvicorn`, `httpx`, `pytest`, `pytest-cov`,
-  `pytest-asyncio`, `pytest-mock`, `ruff`, `mypy`, `pre-commit`, `isage-pypi-publisher`
+- Packages: `fastapi`, `uvicorn`, `httpx`, `pytest`, `pytest-cov`, `pytest-asyncio`, `pytest-mock`,
+  `ruff`, `mypy`, `pre-commit`, `isage-pypi-publisher`
 - Callsite: `DEVELOPER.md`
 - Rationale: in-tree `sage-dev` developer workflow, validation, and release tooling.
 

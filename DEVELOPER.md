@@ -283,15 +283,11 @@ does not block stream/runtime development in the main repo.
 
 When extras were removed, functionality migrated to independent packages:
 
-| Feature    | Before                  | Now                |
-| ---------- | ----------------------- | ------------------ |
-| Embedding  | `commons[embedding]`    | → `isage-neuromem` |
-| Agentic    | `libs[agentic]`         | → `isage-agentic`  |
-| RAG        | `libs[rag]`             | → `isage-rag`      |
-| Evaluation | `libs[eval]`            | → `isage-eval`     |
-| Vector DB  | `middleware[vdb]`       | → `isage-vdb`      |
-| Memory     | `middleware[neuromem]`  | → `isage-neuromem` |
-| Streaming  | `middleware[streaming]` | → `isage-flow`     |
+| Feature | Before | Now | | ---------- | ----------------------- | ------------------ | | Embedding
+| `commons[embedding]` | → `isage-neuromem` | | Agentic | `libs[agentic]` | → `isage-agentic` | |
+RAG | `libs[rag]` | → `isage-rag` | | Evaluation | `libs[eval]` | → `isage-eval` | | Vector DB |
+`middleware[vdb]` | → `isage-vdb` | | Memory | `middleware[neuromem]` | → `isage-neuromem` | |
+Streaming | `middleware[streaming]` | → `isage-flow` |
 
 ### Installation Examples
 
@@ -331,8 +327,8 @@ ______________________________________________________________________
 
 ### Using the sage-dev CLI
 
-The `sage-dev` CLI now ships in-tree with the main SAGE repository and provides the same
-development workflows:
+The `sage-dev` CLI now ships in-tree with the main SAGE repository and provides the same development
+workflows:
 
 ```bash
 # Format code / auto-fix quality issues

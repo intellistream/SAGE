@@ -182,13 +182,12 @@ retired.
 See [SAGE Ecosystem](#sage-ecosystem) for all independent sub-repositories with CI status, PyPI
 packages, and categorized listings.
 
-📖 **[Architecture Guide](https://sage.org.ai/architecture/)** - Canonical
-ownership boundaries and dependency rules for the meta repo
+📖 **[Architecture Guide](https://sage.org.ai/architecture/)** - Canonical ownership boundaries and
+dependency rules for the meta repo
 
-📌
-**[Layer Ownership Matrix v1 (Wave A)](https://sage.org.ai/architecture/layer-ownership/)**
-\- Canonical L1-L4 workspace ownership, independent sub-repo coordination boundary (including
-`sagellm` capabilities), forbidden directions, and boundary refactor review checklist
+📌 **[Layer Ownership Matrix v1 (Wave A)](https://sage.org.ai/architecture/layer-ownership/)** -
+Canonical L1-L4 workspace ownership, independent sub-repo coordination boundary (including `sagellm`
+capabilities), forbidden directions, and boundary refactor review checklist
 
 ## Installation
 
@@ -227,8 +226,8 @@ pip install isage[dev]         # Development tools (includes in-tree sage-dev, p
 longer requires a separate historical runtime split package as a direct dependency. `isagellm`
 remains the external inference engine.
 
-`pip install isage` now stays lightweight and does not auto-install `isagellm`.
-If you need the external engine integration, install it explicitly via extras:
+`pip install isage` now stays lightweight and does not auto-install `isagellm`. If you need the
+external engine integration, install it explicitly via extras:
 
 ```bash
 pip install 'isage[sagellm]'
@@ -243,7 +242,8 @@ For a standard `pip install isage`, the product center is intentionally narrow:
 
 - **Foundation** → `isage`: in-tree config, ports, paths, contracts
 - **Stream + Runtime** → `isage`: main public API and local runtime owned in-tree
-- **Distributed scale-out** → in-tree `sage.runtime.flownet`: backend used through `FlowNetEnvironment`
+- **Distributed scale-out** → in-tree `sage.runtime.flownet`: backend used through
+  `FlowNetEnvironment`
 - **CLI** → `isage`: in-tree `sage` command surface
 - **Inference Engine** → `isagellm`: external engine; opt-in via `isage[sagellm]`
 
@@ -307,18 +307,16 @@ sage index ingest --help       # Inspect lightweight index entrypoints
 The current main-repo `sage` command surface is intentionally small and grouped around the core
 product boundary:
 
-| Command                                                | Purpose                                                                               |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| `sage version`                                         | Print installed SAGE version                                                          |
-| `sage status`                                          | Show local config/data/state paths and gateway summary                                |
-| `sage doctor`                                          | Run lightweight environment diagnostics                                               |
-| `sage verify`                                          | Smoke-check the in-tree core surface                                                  |
-| `sage runtime nodes`                                   | List runtime-visible nodes                                                            |
-| `sage serve gateway --json`                            | Print the external `sagellm` gateway launch contract                                  |
-| `sage serve gateway --probe --json`                    | Probe the configured gateway health endpoint                                          |
-| `sage chat`                                            | Start chat via `sagellm` gateway, direct CLI, or configured OpenAI-compatible backend |
-| `sage chat --ask "..."`                                | Run one-shot chat                                                                     |
-| `sage index ingest --source ./docs --index local-docs` | Record lightweight local index metadata                                               |
+| Command | Purpose | | ------------------------------------------------------ |
+------------------------------------------------------------------------------------- | |
+`sage version` | Print installed SAGE version | | `sage status` | Show local config/data/state paths
+and gateway summary | | `sage doctor` | Run lightweight environment diagnostics | | `sage verify` |
+Smoke-check the in-tree core surface | | `sage runtime nodes` | List runtime-visible nodes | |
+`sage serve gateway --json` | Print the external `sagellm` gateway launch contract | |
+`sage serve gateway --probe --json` | Probe the configured gateway health endpoint | | `sage chat` |
+Start chat via `sagellm` gateway, direct CLI, or configured OpenAI-compatible backend | |
+`sage chat --ask "..."` | Run one-shot chat | |
+`sage index ingest --source ./docs --index local-docs` | Record lightweight local index metadata |
 
 ```bash
 sage verify
@@ -328,8 +326,7 @@ sage chat --ask "Hello, SAGE!"
 sage index ingest --source ./docs --index local-docs
 ```
 
-📖 **Detailed guides**:
-[Installation Guide](https://sage.org.ai/guides/installation/) |
+📖 **Detailed guides**: [Installation Guide](https://sage.org.ai/guides/installation/) |
 [Troubleshooting](https://sage.org.ai/guides/troubleshooting/) |
 [Validation](https://sage.org.ai/guides/validation/) |
 [Optimization Tips](tools/install/docs/INSTALLATION_OPTIMIZATION.md)
@@ -376,16 +373,14 @@ See `sage-tutorials/README.md` for complete learning paths.
 
 ## Documentation & Resources
 
-- **Documentation**:
-  [https://sage.org.ai/](https://sage.org.ai/)
+- **Documentation**: [https://sage.org.ai/](https://sage.org.ai/)
 - **Examples & Applications**:
   [intellistream/sage-examples](https://github.com/intellistream/sage-examples)
   - RAG examples and production applications
   - Will be published as `isage-examples` on PyPI
 - **Tutorials**: [intellistream/sage-tutorials](https://github.com/intellistream/sage-tutorials)
   - Layered tutorials from L1 to L5, quick-start learning paths
-- **Architecture**:
-  [sage-docs architecture guide](https://sage.org.ai/architecture/)
+- **Architecture**: [sage-docs architecture guide](https://sage.org.ai/architecture/)
 
 ## Contributing
 
@@ -400,8 +395,7 @@ git commit -m "feat(kernel): add new feature"
 git push -u origin feature/my-feature
 ```
 
-**Resources**:
-[Quick Reference](https://sage.org.ai/reference/quick-reference/) |
+**Resources**: [Quick Reference](https://sage.org.ai/reference/quick-reference/) |
 [GitHub Issues](https://github.com/intellistream/SAGE/issues) |
 [Discussions](https://github.com/intellistream/SAGE/discussions)
 
@@ -428,8 +422,7 @@ make docs           # Build documentation
 
 ## SAGE Ecosystem
 
-📦 **[sage-docs package guide](https://sage.org.ai/guides/packages/)** —
-独立能力包与安装索引
+📦 **[sage-docs package guide](https://sage.org.ai/guides/packages/)** — 独立能力包与安装索引
 
 ### 🧠 SAGE — Streaming AI Framework
 
@@ -487,8 +480,8 @@ Independent sub-repositories that remain justified are organized by category:
   [![CI](https://github.com/intellistream/sage-amms/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/intellistream/sage-amms/actions/workflows/build.yml)
   [![PyPI](https://badge.fury.io/py/isage-amms.svg)](https://pypi.org/project/isage-amms/)
   [![Stars](https://img.shields.io/github/stars/intellistream/sage-amms?style=social)](https://github.com/intellistream/sage-amms/stargazers)
-- **FlowNet (merged in-tree)** — Distributed execution backend now consolidated into this
-  repository for SAGE stream runtime
+- **FlowNet (merged in-tree)** — Distributed execution backend now consolidated into this repository
+  for SAGE stream runtime
 
 ### Data & Benchmarks
 

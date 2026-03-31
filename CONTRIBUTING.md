@@ -186,8 +186,8 @@ feat | fix | refactor | docs | test | perf | ci | chore | build | deps | securit
 1. 是否说明了迁移触发条件、调用点证据、打包影响和验证范围。
 1. 是否评估了回滚条件：分层方向被破坏、默认依赖膨胀、或 `quickstart.sh` / `sage verify` / 核心导入面失败。
 
-本地可直接运行 `pre-commit run release-tools-boundary-check --all-files`，或执行
-`pre-commit run --all-files` 复核边界守护结果。
+本地可直接运行 `pre-commit run release-tools-boundary-check --all-files`，或执行 `pre-commit run --all-files`
+复核边界守护结果。
 
 ## 分支与工作流
 
@@ -429,11 +429,12 @@ from sage.kernel.scheduler.schema import ResourceSpec, PlacementSchema, Placemen
 
 #### 已迁移的规范符号（不得在 Flownet 中重定义）
 
-| 符号                                                                                                                 | SAGE 规范位置                      |
-| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `ExceptionAction`, `ExceptionContext`, `ExceptionDecision`, `ExceptionEvent`, `FlowException`, `FlowDefinitionError` | `sage.common.core.flow_exceptions` |
-| `ResourceSpec`, `PlacementSchema`, `PlacementStrategy`                                                               | `sage.kernel.scheduler.schema`     |
-| `ContextSlot`                                                                                                        | `sage.common.utils.context`        |
+| 符号 | SAGE 规范位置 | |
+\--------------------------------------------------------------------------------------------------------------------
+| ---------------------------------- | | `ExceptionAction`, `ExceptionContext`, `ExceptionDecision`,
+`ExceptionEvent`, `FlowException`, `FlowDefinitionError` | `sage.common.core.flow_exceptions` | |
+`ResourceSpec`, `PlacementSchema`, `PlacementStrategy` | `sage.kernel.scheduler.schema` | |
+`ContextSlot` | `sage.common.utils.context` |
 
 #### PR 提交要求
 
@@ -469,15 +470,12 @@ pre-commit run cross-repo-dedup-check --all-files
 
 ## 命令与脚本说明
 
-| 目的           | 推荐命令                                           | 说明                       |
-| -------------- | -------------------------------------------------- | -------------------------- |
-| 安装（交互式） | `./quickstart.sh`                                  | 未传参进入菜单             |
-| 核心安装       | `./quickstart.sh --core --yes`                     | 仅核心包                   |
-| 开发者安装     | `./quickstart.sh --dev --yes`                      | 安装开发依赖（可编辑模式） |
-| 标准安装       | `./quickstart.sh --standard --yes`                 | 标准功能集合               |
-| 核心测试       | `sage-dev project test --coverage`                 | 运行核心测试集             |
-| 单个测试       | `pytest -k <keyword>`                              | 关键字过滤                 |
-| 版本查看       | `python -c "import sage; print(sage.__version__)"` | 确认安装                   |
+| 目的 | 推荐命令 | 说明 | | -------------- | -------------------------------------------------- |
+-------------------------- | | 安装（交互式） | `./quickstart.sh` | 未传参进入菜单 | | 核心安装 |
+`./quickstart.sh --core --yes` | 仅核心包 | | 开发者安装 | `./quickstart.sh --dev --yes` | 安装开发依赖（可编辑模式） | |
+标准安装 | `./quickstart.sh --standard --yes` | 标准功能集合 | | 核心测试 | `sage-dev project test --coverage` |
+运行核心测试集 | | 单个测试 | `pytest -k <keyword>` | 关键字过滤 | | 版本查看 |
+`python -c "import sage; print(sage.__version__)"` | 确认安装 |
 
 **注意**: 示例和应用已迁移到独立仓库: <https://github.com/intellistream/sage-examples>
 
@@ -589,13 +587,10 @@ gh secret set HF_TOKEN -b "hf_xxx..."
 1. 点击 `New repository secret`
 1. 添加以下 secrets：
 
-| Name                   | Value                                    | Required |
-| ---------------------- | ---------------------------------------- | -------- |
-| `OPENAI_API_KEY`       | 你的 OpenAI/DashScope API key            | ⭕ 可选  |
-| `HF_TOKEN`             | 你的 Hugging Face token                  | ⭕ 可选  |
-| `ALIBABA_API_KEY`      | 阿里云 API key                           | ⭕ 可选  |
-| `SAGE_UNIFIED_API_KEY` | 统一推理服务 token（默认: token-abc123） | ✅ 是    |
-| `WEB_SEARCH_API_KEY`   | Web 搜索服务 key                         | ⭕ 可选  |
+| Name | Value | Required | | ---------------------- | ---------------------------------------- |
+-------- | | `OPENAI_API_KEY` | 你的 OpenAI/DashScope API key | ⭕ 可选 | | `HF_TOKEN` | 你的 Hugging Face
+token | ⭕ 可选 | | `ALIBABA_API_KEY` | 阿里云 API key | ⭕ 可选 | | `SAGE_UNIFIED_API_KEY` | 统一推理服务
+token（默认: token-abc123） | ✅ 是 | | `WEB_SEARCH_API_KEY` | Web 搜索服务 key | ⭕ 可选 |
 
 ### 验证配置
 

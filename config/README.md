@@ -4,9 +4,8 @@ Unified configuration file for SAGE project.
 
 ## File
 
-| File          | Purpose                                        |
-| ------------- | ---------------------------------------------- |
-| `config.yaml` | All configuration (cluster, services, runtime) |
+| File | Purpose | | ------------- | ---------------------------------------------- | |
+`config.yaml` | All configuration (cluster, services, runtime) |
 
 ## Quick Start
 
