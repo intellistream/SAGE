@@ -3,7 +3,7 @@
 # 实现 2.1 要求：检查磁盘空间、网络连接、内存、CUDA 可用性
 
 # 导入颜色定义
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
 # 导入 Conda 安装引导模块
 source "$(dirname "${BASH_SOURCE[0]}")/conda_guide.sh"
 

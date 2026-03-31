@@ -28,8 +28,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # 导入颜色定义
-if [ -f "$SCRIPT_DIR/../display_tools/colors.sh" ]; then
-    source "$SCRIPT_DIR/../display_tools/colors.sh"
+if [ -f "$SCRIPT_DIR/../ui/colors.sh" ]; then
+    source "$SCRIPT_DIR/../ui/colors.sh"
 else
     RED='\033[0;31m'
     YELLOW='\033[1;33m'
@@ -39,8 +39,8 @@ else
 fi
 
 # 导入日志工具
-if [ -f "$SCRIPT_DIR/../display_tools/logging.sh" ]; then
-    source "$SCRIPT_DIR/../display_tools/logging.sh"
+if [ -f "$SCRIPT_DIR/../ui/logging.sh" ]; then
+    source "$SCRIPT_DIR/../ui/logging.sh"
 fi
 
 echo -e "${BLUE}🔍 CI/CD 安全检查：验证依赖完整性...${NC}"

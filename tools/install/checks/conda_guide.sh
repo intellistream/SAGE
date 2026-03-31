@@ -6,7 +6,7 @@
 set -e
 
 _CONDA_GUIDE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$_CONDA_GUIDE_DIR/../display_tools/colors.sh"
+source "$_CONDA_GUIDE_DIR/../ui/colors.sh"
 
 # ============================================================
 # Constants

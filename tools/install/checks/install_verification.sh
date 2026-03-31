@@ -3,7 +3,7 @@
 # 实现全面的安装验证：hello_world 测试、CLI 检查、依赖验证、报告生成
 
 # 导入颜色定义
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
 
 # 设置 Python 命令（使用安装过程中设置的环境变量）
 

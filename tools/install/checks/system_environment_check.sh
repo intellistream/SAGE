@@ -3,7 +3,7 @@
 # 全面检查系统环境、硬件配置等
 
 # 导入颜色定义
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
 
 # 检查操作系统及版本
 

@@ -3,7 +3,7 @@
 # 处理现有 SAGE 安装的检查、卸载等操作
 
 # 导入颜色定义
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
 
 # 检查是否已安装SAGE
 

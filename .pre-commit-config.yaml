@@ -224,6 +224,7 @@ repos:
         ".pre-commit-config.yaml"
         ".pypirc"
         ".pyrightconfig.json"
+        ".secrets.baseline"
         "codecov.yml"
         "CONTRIBUTING.md"
         "coverage.xml"

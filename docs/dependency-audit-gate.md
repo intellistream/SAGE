@@ -28,6 +28,16 @@ The repo no longer treats the retired split-package layout as a set of direct de
 
 ## Direct Dependency Evidence
 
+### `cloudpickle`
+
+- Callsite: `src/sage/runtime/flownet/runtime/comm/backends.py`
+- Rationale: serialization library for distributed runtime communication backends.
+
+### `pyyaml`
+
+- Callsite: `src/sage/runtime/flownet/client/cluster_context.py`, `src/sage/runtime/flownet/node/cluster_inventory.py`
+- Rationale: YAML parsing for cluster configuration and inventory management.
+
 ### `isagellm`
 
 - Callsite: `src/sage/serving/gateway.py`

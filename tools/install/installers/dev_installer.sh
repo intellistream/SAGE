@@ -3,7 +3,7 @@
 # 负责安装开发工具相关的依赖包
 
 # 导入颜色定义
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
 
 # 导入核心安装器函数
 source "$(dirname "${BASH_SOURCE[0]}")/core_installer.sh"

@@ -2,7 +2,7 @@
 # libstdc++ 版本兼容性检查与自动升级
 # 目标: 确保提供 GLIBCXX_3.4.30 (sage_flow C++ 扩展所需)
 
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
 
 # 检测当前 (conda) Python 对应的 libstdc++.so.6 是否包含指定符号
 
