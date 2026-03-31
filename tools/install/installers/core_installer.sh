@@ -3,8 +3,8 @@
 # 负责通过主sage包统一安装所有依赖
 
 # 导入颜色定义
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/logging.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/logging.sh"
 
 # 导入友好错误处理
 

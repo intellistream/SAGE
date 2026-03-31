@@ -3,11 +3,11 @@
 # 统一管理不同安装模式的安装流程
 
 # 导入所有安装器
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/interface.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/logging.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/../examination_tools/sage_check.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/../download_tools/environment_config.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/interface.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/logging.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../checks/sage_check.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../installers/environment_config.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/core_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/scientific_installer.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/dev_installer.sh"

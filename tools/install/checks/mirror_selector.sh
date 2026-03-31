@@ -3,7 +3,7 @@
 # 功能：测试多个 PyPI 镜像速度，自动选择最快的
 
 # 导入颜色定义
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
 
 # PyPI 镜像列表（官方 + 常用国内镜像）
 

@@ -3,7 +3,7 @@
 # 实现安装进度保存、断点续传、自动回滚功能
 
 # 导入颜色定义
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
 
 # 检查点文件路径
 

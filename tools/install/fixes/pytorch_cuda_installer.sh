@@ -22,8 +22,8 @@ LC_ALL="${LC_ALL:-${LANG}}"
 LC_CTYPE="${LC_CTYPE:-${LANG}}"
 # ============================================================================
 
-if [ -f "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh" ]; then
-    source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+if [ -f "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh" ]; then
+    source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
 else
     # 定义基本颜色
     GREEN='\033[0;32m'
