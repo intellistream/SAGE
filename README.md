@@ -308,7 +308,7 @@ The current main-repo `sage` command surface is intentionally small and grouped 
 product boundary:
 
 | Command | Purpose | | ------------------------------------------------------ |
-------------------------------------------------------------------------------------- | |
+\------------------------------------------------------------------------------------- | |
 `sage version` | Print installed SAGE version | | `sage status` | Show local config/data/state paths
 and gateway summary | | `sage doctor` | Run lightweight environment diagnostics | | `sage verify` |
 Smoke-check the in-tree core surface | | `sage runtime nodes` | List runtime-visible nodes | |

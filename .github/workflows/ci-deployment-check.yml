@@ -116,15 +116,7 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           echo "📖 检查包 README 文档..."
 
-          if sage-dev quality --check-only \
-            --readme \
-            --no-architecture \
-            --no-devnotes \
-            --no-examples \
-            --no-format \
-            --no-sort-imports \
-            --no-ruff \
-            --no-type-check; then
+          if sage-dev quality --check-only --readme; then
             echo "✅ 所有包的 README 文档完整"
           else
             if [ "${{ github.event_name }}" = "pull_request" ]; then
