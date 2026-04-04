@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import warnings
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -12,12 +14,40 @@ from sage.foundation.config import user_paths as user_paths_module
 from sage.serving.gateway import GatewayProbeResult
 
 
-def test_chat_direct_requires_sagellm_binary(capsys: pytest.CaptureFixture[str]) -> None:
+def test_chat_direct_requires_sagellm_binary(
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    if os.getenv("GITHUB_ACTIONS") != "true" and chat_module._sagellm_executable():
+        warnings.warn(
+            "Local host has sagellm installed; forcing missing-binary path for deterministic check.",
+            stacklevel=2,
+        )
+
+    # Keep unit test deterministic regardless of host-installed sagellm binaries.
+    monkeypatch.setattr(chat_module, "_sagellm_executable", lambda: None)
     status = main(["chat", "--backend", "direct", "--ask", "你好", "--stream"])
     captured = capsys.readouterr()
 
     assert status == 2
     assert "未找到 `sagellm` 可执行文件" in captured.err
+
+
+@pytest.mark.integration
+def test_chat_direct_sagellm_detection_ci_only() -> None:
+    # Real environment assertion for CI; skipped locally to avoid host-specific noise.
+    if os.getenv("GITHUB_ACTIONS") != "true":
+        pytest.skip("CI-only sagellm detection check")
+
+    expected_in_ci = os.getenv("SAGE_EXPECT_SAGELLM_IN_CI")
+    if expected_in_ci not in {"0", "1"}:
+        pytest.skip("Set SAGE_EXPECT_SAGELLM_IN_CI=0|1 to enforce CI sagellm expectation")
+
+    sagellm_bin = chat_module._sagellm_executable()
+    if expected_in_ci == "1":
+        assert sagellm_bin is not None
+    else:
+        assert sagellm_bin is None
 
 
 def test_chat_direct_uses_sagellm_run(
