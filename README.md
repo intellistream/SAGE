@@ -307,16 +307,18 @@ sage index ingest --help       # Inspect lightweight index entrypoints
 The current main-repo `sage` command surface is intentionally small and grouped around the core
 product boundary:
 
-| Command | Purpose | | ------------------------------------------------------ |
-\------------------------------------------------------------------------------------- | |
-`sage version` | Print installed SAGE version | | `sage status` | Show local config/data/state paths
-and gateway summary | | `sage doctor` | Run lightweight environment diagnostics | | `sage verify` |
-Smoke-check the in-tree core surface | | `sage runtime nodes` | List runtime-visible nodes | |
-`sage serve gateway --json` | Print the external `sagellm` gateway launch contract | |
-`sage serve gateway --probe --json` | Probe the configured gateway health endpoint | | `sage chat` |
-Start chat via `sagellm` gateway, direct CLI, or configured OpenAI-compatible backend | |
-`sage chat --ask "..."` | Run one-shot chat | |
-`sage index ingest --source ./docs --index local-docs` | Record lightweight local index metadata |
+| Command | Purpose |
+| --- | --- |
+| `sage version` | Print installed SAGE version |
+| `sage status` | Show local config/data/state paths and gateway summary |
+| `sage doctor` | Run lightweight environment diagnostics |
+| `sage verify` | Smoke-check the in-tree core surface |
+| `sage runtime nodes` | List runtime-visible nodes |
+| `sage serve gateway --json` | Print the external `sagellm` gateway launch contract |
+| `sage serve gateway --probe --json` | Probe the configured gateway health endpoint |
+| `sage chat` | Start chat via `sagellm` gateway, direct CLI, or configured OpenAI-compatible backend |
+| `sage chat --ask "..."` | Run one-shot chat |
+| `sage index ingest --source ./docs --index local-docs` | Record lightweight local index metadata |
 
 ```bash
 sage verify
