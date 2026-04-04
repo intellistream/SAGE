@@ -148,7 +148,7 @@ jobs:
           python3 - <<'EOF' >> $GITHUB_STEP_SUMMARY
           import importlib.metadata as meta
 
-            pkgs = ["isage", "isagellm"]
+          pkgs = ["isage", "isagellm"]
           for p in pkgs:
               try:
                   v = meta.version(p)
