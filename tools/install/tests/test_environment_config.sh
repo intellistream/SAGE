@@ -208,7 +208,7 @@ test_check_venv_rejected() {
     echo ""
     echo -e "${BLUE}测试组: check_virtual_environment_isolation - Python venv 禁止${NC}"
 
-    unset CI CONDA_DEFAULT_ENV CONDA_PREFIX
+    unset CI GITHUB_ACTIONS GITLAB_CI JENKINS_URL BUILDKITE CONDA_DEFAULT_ENV CONDA_PREFIX
     export VIRTUAL_ENV="/tmp/fake_venv"
 
     if (
