@@ -113,9 +113,9 @@ jobs:
               print(f"\nFAILED: {', '.join(failed)}", file=sys.stderr)
               sys.exit(1)
 
-          # Verify meta version is accessible
-          import sage
-          print(f"\n  ✓ sage.__version__ = {sage.__version__}")
+          # Verify meta version is accessible from the dedicated version module.
+          from sage._version import __version__ as sage_version
+          print(f"\n  ✓ sage version = {sage_version}")
           EOF
 
       - name: Smoke test — version matrix
