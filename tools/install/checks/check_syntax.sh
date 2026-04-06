@@ -32,7 +32,7 @@ else
 fi
 
 # 检查所有模块
-for dir in display_tools examination_tools download_tools installation_table; do
+for dir in ui checks installers fixes cleanup conda lib tests; do
     echo "检查 $dir 模块..."
     for file in tools/install/$dir/*.sh; do
         if [ -f "$file" ]; then

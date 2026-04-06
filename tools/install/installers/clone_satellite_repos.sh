@@ -6,7 +6,7 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # 导入颜色定义
-source "$SCRIPT_DIR/../display_tools/colors.sh"
+source "$SCRIPT_DIR/../ui/colors.sh"
 
 # 获取 workspace 文件路径
 SAGE_ROOT="${SAGE_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"

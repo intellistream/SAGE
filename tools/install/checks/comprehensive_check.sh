@@ -3,8 +3,8 @@
 # 按照指定顺序进行系统检查：预检查 -> 通用检查 -> 模式特定检查 -> SAGE 检查
 
 # 导入颜色定义和输出格式化
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/output_formatter.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/output_formatter.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/system_deps.sh"
 
 # ============================================================================

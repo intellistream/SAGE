@@ -331,8 +331,8 @@ ______________________________________________________________________
 
 ### Using the sage-dev CLI
 
-The `sage-dev` CLI now ships in-tree with the main SAGE repository and provides the same
-development workflows:
+The `sage-dev` CLI now ships in-tree with the main SAGE repository and provides the same development
+workflows:
 
 ```bash
 # Format code / auto-fix quality issues

@@ -6,6 +6,9 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SAGE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+if git -C "$SCRIPT_DIR" rev-parse --show-toplevel >/dev/null 2>&1; then
+    SAGE_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
+fi
 
 TRACK_SCRIPT="$SCRIPT_DIR/track_install.sh"
 INSTALL_INFO_FILE="$SAGE_ROOT/.sage/install_info.json"

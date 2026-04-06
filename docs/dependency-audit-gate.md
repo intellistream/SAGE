@@ -28,6 +28,22 @@ The repo no longer treats the retired split-package layout as a set of direct de
 
 ## Direct Dependency Evidence
 
+### `cloudpickle`
+
+- Callsite: `src/sage/runtime/flownet/runtime/comm/backends.py`
+- Rationale: serialization library for distributed runtime communication backends.
+
+### `pyyaml`
+
+- Callsite: `src/sage/runtime/flownet/client/cluster_context.py`,
+  `src/sage/runtime/flownet/node/cluster_inventory.py`
+- Rationale: YAML parsing for cluster configuration and inventory management.
+
+### `tomli`
+
+- Callsite: `tools/scripts/check_meta_dependency_audit.py`
+- Rationale: Python 3.10 compatibility backport for `tomllib` used by dependency audit tooling.
+
 ### `isagellm`
 
 - Callsite: `src/sage/serving/gateway.py`
@@ -75,8 +91,8 @@ The repo no longer treats the retired split-package layout as a set of direct de
 
 ### `dev`
 
-- Packages: `fastapi`, `uvicorn`, `httpx`, `pytest`, `pytest-cov`,
-  `pytest-asyncio`, `pytest-mock`, `ruff`, `mypy`, `pre-commit`, `isage-pypi-publisher`
+- Packages: `fastapi`, `uvicorn`, `httpx`, `pytest`, `pytest-cov`, `pytest-asyncio`, `pytest-mock`,
+  `ruff`, `mypy`, `pre-commit`, `isage-pypi-publisher`
 - Callsite: `DEVELOPER.md`
 - Rationale: in-tree `sage-dev` developer workflow, validation, and release tooling.
 

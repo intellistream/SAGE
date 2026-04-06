@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Sequence
+from importlib.metadata import entry_points
 
 from sage._version import __version__
 from sage.cli.commands.apps.chat import add_chat_parser, add_index_parser
@@ -48,8 +49,21 @@ def _build_parser() -> argparse.ArgumentParser:
 
     add_chat_parser(sub)
     add_index_parser(sub)
+    _load_cli_plugins(sub)
 
     return parser
+
+
+def _load_cli_plugins(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """Load external CLI plugins from the ``sage.cli.plugins`` entry point group."""
+    for ep in sorted(entry_points(group="sage.cli.plugins"), key=lambda item: item.name):
+        try:
+            register_command = ep.load()
+            register_command(subparsers)
+        except Exception as exc:  # noqa: BLE001
+            raise RuntimeError(
+                f"Failed to load SAGE CLI plugin '{ep.name}' from '{ep.value}': {exc}"
+            ) from exc
 
 
 def _print_status() -> int:
@@ -157,7 +171,8 @@ def _verify_core() -> int:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = _build_parser()
-    args = parser.parse_args(list(argv) if argv is not None else None)
+    parsed_argv = list(argv) if argv is not None else None
+    args, unknown = parser.parse_known_args(parsed_argv)
 
     if args.command is None:
         return _print_status()
@@ -174,7 +189,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "serve" and args.serve_command == "gateway":
         return _serve_gateway(args)
     if hasattr(args, "_handler"):
+        if hasattr(args, "studio_args") and unknown:
+            args.studio_args = list(args.studio_args or []) + list(unknown)
         return args._handler(args)
+    if unknown:
+        parser.error(f"unrecognized arguments: {' '.join(unknown)}")
 
     parser.print_help()
     return 0

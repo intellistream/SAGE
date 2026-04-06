@@ -14,7 +14,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover
+    import tomli as tomllib
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PYPROJECT_PATH = Path("pyproject.toml")
@@ -60,8 +63,9 @@ def _load_current_dependency_map() -> dict[str, str]:
 def _load_base_dependency_map(refspec: str | None) -> dict[str, str]:
     if refspec:
         base_ref = refspec.split("...")[0] if "..." in refspec else refspec
-        base_sha = _run_git(["merge-base", base_ref, "HEAD"]).stdout.strip()
-        if not base_sha:
+        merge_base = _run_git(["merge-base", base_ref, "HEAD"], check=False)
+        base_sha = merge_base.stdout.strip()
+        if not base_sha or merge_base.returncode != 0:
             return {}
         show = _run_git(["show", f"{base_sha}:{PYPROJECT_PATH.as_posix()}"], check=False)
         if show.returncode != 0:

@@ -3,7 +3,7 @@
 # 保留验证安装等基础功能
 
 # 导入颜色定义
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
 
 # 验证安装
 

@@ -3,7 +3,7 @@
 # 处理 editable install 模式下 C++ 扩展库(.so)的安装问题
 
 # 加载日志和颜色函数（logging.sh 会自动 source colors.sh）
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/logging.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/logging.sh"
 
 # 修复独立适配器 C++ 扩展安装问题（当前仅保留提示功能）
 

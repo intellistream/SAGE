@@ -117,8 +117,8 @@ jobs:
         run: |
           # 完整的安装-使用-清理流程
 
-          # 1. 使用非 venv 模式安装 (minimal 模式用于快速测试)
-          ./quickstart.sh --pip --minimal --yes || {
+          # 1. 使用非 venv 模式安装
+          ./quickstart.sh --pip --yes || {
             echo "⚠️ Installation failed, checking logs..."
             find .sage -name "*.log" -type f -exec tail -20 {} \;
             exit 1

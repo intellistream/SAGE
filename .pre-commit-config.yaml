@@ -167,8 +167,8 @@ repos:
       # Define disallowed patterns (blacklist for test files)
       violations=""
       for file in $all_test_files; do
-        # Test files should be in tests/ directories or test scripts in examples/
-        if echo "$file" | grep -qE "^(tests/|examples/.*/tests?\.py$|examples/.*test.*\.py$)"; then
+        # Test files should be in tests/, src/tests/, or test scripts in examples/
+        if echo "$file" | grep -qE "^(tests/|src/tests/|examples/.*/tests?\.py$|examples/.*test.*\.py$)"; then
           # Allowed location
           continue
         else
@@ -184,6 +184,7 @@ repos:
         echo ""
         echo "📁 测试文件应该放在:"
         echo "  - tests/ - 单元测试和集成测试"
+        echo "  - src/tests/ - 主仓当前测试路径（由 pytest.ini 配置）"
         echo "  - tests/unit/ - 单元测试"
         echo "  - tests/integration/ - 集成测试"
         echo "  - tests/manual/ - 手动测试脚本"
@@ -224,6 +225,7 @@ repos:
         ".pre-commit-config.yaml"
         ".pypirc"
         ".pyrightconfig.json"
+        ".secrets.baseline"
         "codecov.yml"
         "CONTRIBUTING.md"
         "coverage.xml"

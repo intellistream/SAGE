@@ -20,6 +20,8 @@ dependencies = [
     # In-tree FlowNet runtime core dependencies
     "cloudpickle>=2.2",
     "pyyaml>=6.0",
+    # Build tools — Python 3.10 compat for tomllib backport
+    "tomli>=2.0.0; python_version < '3.11'",
 ]
 
 license = "MIT"
@@ -45,7 +47,7 @@ capability-adapters = [
     # Optional adapter — RAG pipelines and vector-store backends
     "isage-rag>=0.3.0",
     # Optional adapter — memory / retrieval persistence
-    "isage-neuromem>=0.2.1.4",
+    "isage-neuromem>=0.2.1.6,<0.2.2",
 ]
 capability-tooluse = [
     # Optional adapter — continual-learning / coreset selection for tool-use (SIAS)
@@ -58,7 +60,7 @@ full = [
     # Optional adapters beyond the stream/runtime/serving core
     "isage-libs-intent>=0.1.0.7",
     "isage-rag>=0.3.0",
-    "isage-neuromem>=0.2.1.4",
+    "isage-neuromem>=0.2.1.6,<0.2.2",
     "isage-sias>=0.1.0",
     # L6 — dataset management for fine-tuning and benchmark workflows
     "isage-data>=0.2.3.2",

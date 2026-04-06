@@ -24,8 +24,8 @@ LC_CTYPE="${LC_CTYPE:-${LANG}}"
 set -euo pipefail
 
 # 导入颜色定义（如果可用）
-if [ -f "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh" ]; then
-    source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+if [ -f "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh" ]; then
+    source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
 else
     # 简单定义
     RED='\033[0;31m'

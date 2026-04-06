@@ -95,7 +95,7 @@ set_mirror_source_value() {
 SAGE_TOOLS_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # 导入颜色定义
-source "$SCRIPT_DIR/../display_tools/colors.sh"
+source "$SCRIPT_DIR/../ui/colors.sh"
 
 # 导入 conda 工具函数
 source "$SAGE_TOOLS_ROOT/install/conda/conda_utils.sh"

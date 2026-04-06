@@ -3,7 +3,7 @@
 # 功能：验证下载包的 checksum、检查安全漏洞（safety/pip-audit）
 
 # 导入颜色定义
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
 
 # ============================================================================
 # Checksum 验证

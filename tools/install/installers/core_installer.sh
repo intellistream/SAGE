@@ -3,8 +3,8 @@
 # 负责通过主sage包统一安装所有依赖
 
 # 导入颜色定义
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/logging.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/logging.sh"
 
 # 导入友好错误处理
 
@@ -245,6 +245,7 @@ install_resolver_guard_packages() {
         "setuptools>=68"
         "wheel>=0.42"
         "wrapt>=1.15.0,<2.0.0"
+        "tomli>=2.0.0"
     )
 
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -274,6 +275,7 @@ create_quickstart_constraints_file() {
 wrapt>=1.14.2,<2.0.0
 setuptools>=68
 wheel>=0.42
+tomli>=2.0.0
 uvicorn>=0.34.0,<1.0.0
 EOF
 

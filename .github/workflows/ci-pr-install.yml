@@ -42,7 +42,7 @@ jobs:
       - name: Setup SAGE
         uses: ./.github/actions/setup-sage
         with:
-          install-mode: ${{ github.event.inputs.install-mode || 'standard' }}
+          install-mode: dev
           python-version: ${{ github.event.inputs.python-version || '3.11' }}
           hf-token: ${{ secrets.HF_TOKEN }}
           create-env-file: false

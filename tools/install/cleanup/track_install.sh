@@ -4,7 +4,10 @@
 
 # 获取脚本所在目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SAGE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+if git -C "$SCRIPT_DIR" rev-parse --show-toplevel >/dev/null 2>&1; then
+    SAGE_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
+fi
 
 # 导入颜色定义
 source "$SAGE_ROOT/tools/install/ui/colors.sh"

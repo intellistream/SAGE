@@ -27,24 +27,15 @@ SAGE 元仓库的轻量维护工具文档。
 
 ### 项目维护
 
-| 命令             | 说明                                 |
-| ---------------- | ------------------------------------ |
-| `clean`          | 清理常见构建产物与缓存               |
-| `clean-deep`     | 深度清理 Python 缓存、日志和构建目录 |
-| `security-check` | 检查配置中的敏感信息                 |
-| `setup-hooks`    | 安装或重装 Git hooks                 |
-| `doctor`         | 运行健康检查                         |
-| `status`         | 显示当前仓库状态                     |
+| 命令 | 说明 | | ---------------- | ------------------------------------ | | `clean` | 清理常见构建产物与缓存 | |
+`clean-deep` | 深度清理 Python 缓存、日志和构建目录 | | `security-check` | 检查配置中的敏感信息 | | `setup-hooks` | 安装或重装
+Git hooks | | `doctor` | 运行健康检查 | | `status` | 显示当前仓库状态 |
 
 ### 类型问题辅助
 
-| 命令                       | 说明                       |
-| -------------------------- | -------------------------- |
-| `typecheck status`         | 查看当前类型错误状态       |
-| `typecheck show-new`       | 查看格式化后新增错误       |
-| `typecheck explain <file>` | 解释某个文件的类型修复背景 |
-| `typecheck safe-commit`    | 以更安全的方式执行提交流程 |
-| `typecheck reset`          | 撤销相关自动格式化结果     |
+| 命令 | 说明 | | -------------------------- | -------------------------- | | `typecheck status` |
+查看当前类型错误状态 | | `typecheck show-new` | 查看格式化后新增错误 | | `typecheck explain <file>` | 解释某个文件的类型修复背景 | |
+`typecheck safe-commit` | 以更安全的方式执行提交流程 | | `typecheck reset` | 撤销相关自动格式化结果 |
 
 ## 目录结构
 

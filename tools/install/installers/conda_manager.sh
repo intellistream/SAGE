@@ -3,7 +3,7 @@
 # 处理 conda 环境的创建、激活、管理等操作
 
 # 导入颜色定义
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
 
 # CI环境或远程部署检测 - 确保非交互模式（静默设置，避免重复输出）
 

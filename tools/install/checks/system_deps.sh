@@ -3,7 +3,7 @@
 # 集成到quickstart.sh架构中的系统依赖检查和安装
 
 # 导入颜色定义
-source "$(dirname "${BASH_SOURCE[0]}")/../display_tools/colors.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../ui/colors.sh"
 
 
 # ============================================================================
