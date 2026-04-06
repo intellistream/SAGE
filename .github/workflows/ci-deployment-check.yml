@@ -66,14 +66,9 @@ jobs:
 
             if [ -n "$PYTHON_CHANGED" ]; then
               echo "📝 发现 Python 文件变更"
-              sage-dev quality --check-only \
-                --architecture \
-                --no-devnotes \
-                --no-examples \
-                --no-format \
-                --no-sort-imports \
-                --no-ruff \
-                --no-type-check || {
+              # NOTE: legacy flags (e.g. --architecture/--no-ruff) were removed from current sage-dev CLI.
+              # Use the supported quality entrypoint to keep CI compatible with the in-tree command surface.
+              sage-dev quality --check-only || {
                   echo ""
                   echo "❌ 架构合规性检查失败！"
                   echo ""
@@ -82,7 +77,7 @@ jobs:
                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                   echo "1. 检查跨层级导入（如 app 导入 kernel）"
                   echo "2. 确保导入路径符合包架构"
-                  echo "3. 查看架构信息: sage-dev architecture"
+                  echo "3. 查看项目质量命令: sage-dev quality --help"
                   echo "4. 查看文档: https://intellistream.github.io/sage-docs/architecture/layer-ownership/"
                   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                   exit 1
@@ -93,17 +88,10 @@ jobs:
           else
             echo "📦 Push 模式：快速检查（仅检查变更文件）"
             # 在 push 时做快速检查，避免阻塞
-            sage-dev quality --check-only \
-              --architecture \
-              --no-devnotes \
-              --no-examples \
-              --no-format \
-              --no-sort-imports \
-              --no-ruff \
-              --no-type-check || {
+            sage-dev quality --check-only || {
               echo ""
               echo "⚠️  发现架构问题，但不阻塞部署"
-              echo "请查看架构信息: sage-dev architecture"
+              echo "请查看质量命令帮助: sage-dev quality --help"
               echo "并尽快参考: https://intellistream.github.io/sage-docs/architecture/layer-ownership/"
             }
           fi

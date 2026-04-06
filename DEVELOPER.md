@@ -283,15 +283,15 @@ does not block stream/runtime development in the main repo.
 
 When extras were removed, functionality migrated to independent packages:
 
-| Feature | Before | Now |
+| Feature    | Before                  | Now                |
 | ---------- | ----------------------- | ------------------ |
-| Embedding | `commons[embedding]` | → `isage-neuromem` |
-| Agentic | `libs[agentic]` | → `isage-agentic` |
-| RAG | `libs[rag]` | → `isage-rag` |
-| Evaluation | `libs[eval]` | → `isage-eval` |
-| Vector DB | `middleware[vdb]` | → `isage-vdb` |
-| Memory | `middleware[neuromem]` | → `isage-neuromem` |
-| Streaming | `middleware[streaming]` | → `isage-flow` |
+| Embedding  | `commons[embedding]`    | → `isage-neuromem` |
+| Agentic    | `libs[agentic]`         | → `isage-agentic`  |
+| RAG        | `libs[rag]`             | → `isage-rag`      |
+| Evaluation | `libs[eval]`            | → `isage-eval`     |
+| Vector DB  | `middleware[vdb]`       | → `isage-vdb`      |
+| Memory     | `middleware[neuromem]`  | → `isage-neuromem` |
+| Streaming  | `middleware[streaming]` | → `isage-flow`     |
 
 ### Installation Examples
 
