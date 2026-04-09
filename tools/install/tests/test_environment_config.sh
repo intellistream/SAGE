@@ -223,6 +223,51 @@ test_check_venv_rejected() {
 }
 
 # ============================================================================
+# 测试镜像下载探测
+# ============================================================================
+
+test_is_mirror_download_healthy_rejects_missing_artifact_url() {
+    echo ""
+    echo -e "${BLUE}测试组: is_mirror_download_healthy - 缺少 artifact URL 时应失败${NC}"
+
+    if (
+        curl() {
+            printf '200'
+        }
+        extract_artifact_url_from_simple() {
+            return 1
+        }
+
+        is_mirror_download_healthy "https://mirror.example/simple" "pip" >/dev/null 2>&1
+    ); then
+        assert_failure "缺少 artifact URL 时不应判定镜像健康"
+        false
+    else
+        assert_success "缺少 artifact URL 时正确拒绝镜像"
+    fi
+}
+
+test_verify_mirror_download_capability_rejects_missing_artifact_url() {
+    echo ""
+    echo -e "${BLUE}测试组: verify_mirror_download_capability - 缺少 artifact URL 时应失败${NC}"
+
+    if (
+        source "${SAGE_ROOT:-}/tools/install/checks/mirror_selector.sh"
+
+        extract_mirror_artifact_url() {
+            return 1
+        }
+
+        verify_mirror_download_capability "https://mirror.example/simple" "pip" >/dev/null 2>&1
+    ); then
+        assert_failure "mirror_selector 缺少 artifact URL 时不应判定可下载"
+        false
+    else
+        assert_success "mirror_selector 缺少 artifact URL 时正确拒绝镜像"
+    fi
+}
+
+# ============================================================================
 # 测试报告
 # ============================================================================
 
@@ -271,6 +316,8 @@ main() {
     test_check_venv_skip_in_ci
     test_check_venv_skip_for_conda_install
     test_check_venv_rejected
+    test_is_mirror_download_healthy_rejects_missing_artifact_url
+    test_verify_mirror_download_capability_rejects_missing_artifact_url
 
     # 打印总结
     print_test_summary

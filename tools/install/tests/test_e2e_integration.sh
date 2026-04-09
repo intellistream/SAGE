@@ -31,10 +31,10 @@ TEST_DIR="/tmp/sage_e2e_test_$$"
 # 导入颜色定义
 source "${SAGE_ROOT:-}/tools/install/ui/colors.sh"
 
-# 测试结果
+# 测试统计
 TOTAL_STEPS=0
-PASSED_STEPS=0
-FAILED_STEPS=0
+PASSED_CHECKS=0
+FAILED_CHECKS=0
 
 # 日志函数
 log_step() {
@@ -49,13 +49,13 @@ log_step() {
 log_success() {
     local message="$1"
     echo -e "${GREEN}✅ $message${NC}"
-    PASSED_STEPS=$((PASSED_STEPS + 1))
+    PASSED_CHECKS=$((PASSED_CHECKS + 1))
 }
 
 log_failure() {
     local message="$1"
     echo -e "${RED}❌ $message${NC}"
-    FAILED_STEPS=$((FAILED_STEPS + 1))
+    FAILED_CHECKS=$((FAILED_CHECKS + 1))
 }
 
 log_info() {
@@ -170,10 +170,14 @@ step4_test_venv_policy_reject() {
     source "$TEST_DIR/tools/install/ui/colors.sh"
     source "$TEST_DIR/tools/install/installers/environment_config.sh"
 
-    export VIRTUAL_ENV="$TEST_DIR/.venv"
-    if check_virtual_environment_isolation "pip" >/dev/null 2>&1; then
+    unset VIRTUAL_ENV
+    # check_virtual_environment_isolation 在检测到 Python venv 时会直接 exit 1；
+    # 这里放到子 shell 中验证，避免中断整个集成测试进程。
+    if (
+        export VIRTUAL_ENV="$TEST_DIR/.venv"
+        check_virtual_environment_isolation "pip" >/dev/null 2>&1
+    ); then
         log_failure "Python venv 未被拒绝"
-        unset VIRTUAL_ENV
         return 1
     fi
     unset VIRTUAL_ENV
@@ -264,18 +268,19 @@ print_test_summary() {
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${BLUE}${BOLD}测试总结${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    local total_checks=$((PASSED_CHECKS + FAILED_CHECKS))
     echo -e "总步骤数: $TOTAL_STEPS"
-    echo -e "${GREEN}通过: $PASSED_STEPS${NC}"
-    echo -e "${RED}失败: $FAILED_STEPS${NC}"
+    echo -e "${GREEN}通过检查项: $PASSED_CHECKS${NC}"
+    echo -e "${RED}失败检查项: $FAILED_CHECKS${NC}"
 
     local pass_rate=0
-    if [ $TOTAL_STEPS -gt 0 ]; then
-        pass_rate=$((PASSED_STEPS * 100 / TOTAL_STEPS))
+    if [ $total_checks -gt 0 ]; then
+        pass_rate=$((PASSED_CHECKS * 100 / total_checks))
     fi
-    echo -e "通过率: ${pass_rate}%"
+    echo -e "检查通过率: ${pass_rate}%"
     echo ""
 
-    if [ $FAILED_STEPS -eq 0 ]; then
+    if [ $FAILED_CHECKS -eq 0 ]; then
         echo -e "${GREEN}${BOLD}✅ 所有集成测试通过！${NC}"
         return 0
     else

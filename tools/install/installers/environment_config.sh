@@ -211,7 +211,8 @@ is_mirror_download_healthy() {
 
     local artifact_url
     artifact_url="$(extract_artifact_url_from_simple "$mirror_simple_url" "$test_package" 2>/dev/null || true)"
-    [ -n "$artifact_url" ] || return 0
+    # fail closed: /simple/ 可达但无法解析实际包链接时，不能判定该镜像可下载
+    [ -n "$artifact_url" ] || return 1
 
     local artifact_status
     artifact_status="$(probe_artifact_download_status "$artifact_url")"
