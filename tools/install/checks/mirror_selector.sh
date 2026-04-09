@@ -111,7 +111,8 @@ verify_mirror_download_capability() {
 
     local artifact_url
     artifact_url="$(extract_mirror_artifact_url "$mirror_url" "$test_package" 2>/dev/null || true)"
-    [ -n "$artifact_url" ] || return 0
+    # fail closed: 仅 /simple/ 可达不足以证明 wheel 下载可用
+    [ -n "$artifact_url" ] || return 1
 
     if ! command -v curl >/dev/null 2>&1; then
         return 1
