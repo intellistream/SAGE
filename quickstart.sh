@@ -119,6 +119,76 @@ configure_huggingface_network() {
     echo -e "${GREEN}✅ HF_TOKEN 已保存到 .env 文件${NC}"
 }
 
+ensure_precommit_runtime_tools() {
+    local auto_confirm="${1:-false}"
+
+    # 某些 pip --user 安装的 CLI 会落在 ~/.local/bin，下游 pre-commit 需要它们在 PATH 中可见
+    export PATH="$HOME/.local/bin:$PATH"
+
+    local pip_cmd="${PIP_CMD:-${PYTHON_CMD:-python3} -m pip}"
+    if [ -n "${SAGE_ENV_NAME:-}" ] && command -v conda >/dev/null 2>&1; then
+        pip_cmd="conda run -n $SAGE_ENV_NAME python -m pip"
+    fi
+
+    local -a missing_python_tools=()
+
+    if ! command -v pre-commit >/dev/null 2>&1; then
+        missing_python_tools+=("pre-commit")
+    fi
+    if ! command -v pretty-format-yaml >/dev/null 2>&1; then
+        missing_python_tools+=("language-formatters-pre-commit-hooks")
+    fi
+    if ! command -v mdformat >/dev/null 2>&1; then
+        missing_python_tools+=("mdformat" "mdformat-gfm")
+    fi
+    if ! command -v detect-secrets-hook >/dev/null 2>&1; then
+        missing_python_tools+=("detect-secrets")
+    fi
+
+    if [ ${#missing_python_tools[@]} -gt 0 ]; then
+        echo -e "${DIM}   检测到缺少 pre-commit 运行时工具，尝试自动补齐...${NC}"
+        local install_cmd="$pip_cmd install --upgrade"
+        local package
+        for package in "${missing_python_tools[@]}"; do
+            install_cmd="$install_cmd $package"
+        done
+
+        if eval "$install_cmd"; then
+            echo -e "${GREEN}✅ pre-commit Python 工具已就绪${NC}"
+            echo -e "${DIM}   如需在新终端继续使用，请确保 ~/.local/bin 已加入 PATH${NC}"
+        else
+            echo -e "${YELLOW}⚠️  pre-commit Python 工具自动安装失败${NC}"
+            echo -e "${DIM}   请手动运行: $install_cmd${NC}"
+        fi
+    fi
+
+    if ! command -v shellcheck >/dev/null 2>&1; then
+        local shellcheck_installed=false
+        echo -e "${DIM}   检测到缺少 shellcheck，尝试自动安装...${NC}"
+
+        if [ -n "${SAGE_ENV_NAME:-}" ] && command -v conda >/dev/null 2>&1; then
+            if conda install -n "$SAGE_ENV_NAME" -c conda-forge -y shellcheck; then
+                shellcheck_installed=true
+            fi
+        fi
+
+        if [ "$shellcheck_installed" != "true" ] && command -v apt-get >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+            if sudo -n true >/dev/null 2>&1 || [ "$auto_confirm" = "true" ]; then
+                if sudo apt-get update && sudo apt-get install -y shellcheck; then
+                    shellcheck_installed=true
+                fi
+            fi
+        fi
+
+        if [ "$shellcheck_installed" = "true" ]; then
+            echo -e "${GREEN}✅ shellcheck 已就绪${NC}"
+        else
+            echo -e "${YELLOW}⚠️  shellcheck 未自动安装成功${NC}"
+            echo -e "${DIM}   请手动运行: conda install -c conda-forge shellcheck${NC}"
+        fi
+    fi
+}
+
 # ─── SAGE 工作区初始化函数 ───────────────────────────────────────────────────
 # 用于按当前 SAGE.code-workspace 克隆协同仓库到本地工作区目录。
 # 使用方法：./quickstart.sh --workspace [--dir <path>]
@@ -483,6 +553,9 @@ main() {
         else
             echo ""
             echo -e "${INFO} 安装代码质量和架构检查工具..."
+
+            # 预先补齐 local/system 类型 pre-commit hooks 所需的运行时工具
+            ensure_precommit_runtime_tools "$auto_confirm"
 
             # 安装 Git hooks（统一使用 sage-dev maintain hooks 命令）
             # 使用正确环境中的 sage-dev

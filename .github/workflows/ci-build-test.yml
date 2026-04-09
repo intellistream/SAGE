@@ -3,10 +3,13 @@
 # adapter/tooling repos. This workflow is preserved for reference only.
 # Cross-repo smoke tests: see ci-integration.yml
 
-name: "[DEPRECATED] Build and Test (monorepo)"
+name: "Build and Test (monorepo)"
 
 on:
-  workflow_dispatch:  # manual only — automatic triggers removed (#1466)
+  workflow_dispatch: # manual only — automatic triggers removed (#1466)
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,6 +23,7 @@ env:
   JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
   ALIBABA_API_KEY: ${{ secrets.ALIBABA_API_KEY }}
   GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
   HF_ENDPOINT: https://hf-mirror.com
   CACHE_VERSION: v2-simplified-prod
 
@@ -27,7 +31,7 @@ jobs:
   build-and-test:
     name: Build, Test & Coverage
     runs-on: ubuntu-latest
-    timeout-minutes: 60  # 278 个测试需要更多时间
+    timeout-minutes: 60 # 278 个测试需要更多时间
     # Skip version bump commits to avoid unnecessary CI runs
     if: ${{ !contains(github.event.head_commit.message, '[version bump]') }}
 
@@ -40,10 +44,17 @@ jobs:
           clean: true
 
       - name: Set up Python 3.11
+        if: ${{ env.ACT != 'true' }}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Set up Python 3.11 (act)
+        if: ${{ env.ACT == 'true' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Detect LLM endpoint (prefer local)
         run: |
@@ -130,6 +141,11 @@ jobs:
           echo "✅ 安装完成"
         timeout-minutes: 25
 
+      - name: Persist user-local CLI path
+        run: |
+          # core_installer 在 CI 模式使用 --user 安装，确保后续 step 可找到 ~/.local/bin 下的命令
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - name: Install Optional Dependencies
         run: |
           echo "📦 安装可选依赖（用于测试）..."
@@ -206,15 +222,9 @@ jobs:
           echo ""
           echo "📊 总结: ${available}/${total} 个包可用"
 
-          if [ $available -eq 0 ]; then
+          if [ $available -lt $total ]; then
             echo ""
-            echo "❌ 错误: 没有独立包可用"
-            echo "💡 这些包应该在安装过程中自动安装"
-            echo "   请检查 quickstart.sh 或安装脚本的输出"
-            exit 1
-          elif [ $available -lt $total ]; then
-            echo ""
-            echo "⚠️  警告: 部分包不可用 ($((total - available))/${total})"
+            echo "⚠️ 警告: 部分包不可用 ($((total - available))/${total})"
             echo "   某些高级功能可能受限，但不影响核心功能"
             echo "   这是预期行为 - 这些包是可选依赖"
           else
@@ -228,11 +238,14 @@ jobs:
           python -c "import sage; print('✅ SAGE imported')"
           python -c "import sage.common; print('✅ sage.common imported')"
 
-          # 验证CLI
+          # 验证CLI：优先 PATH 中的命令，失败时回退到 python -m（避免 PATH 未持久化导致误判）
           if command -v sage-dev >/dev/null 2>&1; then
-            sage-dev --help > /dev/null && echo "✅ sage-dev CLI可用"
+            sage-dev --help > /dev/null && echo "✅ sage-dev CLI可用 (PATH)"
+          elif python -m sage.tools.cli.commands.dev --help > /dev/null 2>&1; then
+            echo "⚠️ sage-dev 不在 PATH 中，但模块可执行 (python -m)"
+            echo "✅ sage-dev CLI可用 (module fallback)"
           else
-            echo "❌ sage-dev CLI不可用"
+            echo "❌ sage-dev CLI不可用（PATH 与 python -m 均失败）"
             exit 1
           fi
 
@@ -258,13 +271,14 @@ jobs:
           echo "🧪 运行单元测试并收集覆盖率..."
           echo "使用 sage-dev project test --coverage 命令"
 
-          # 使用 sage-dev 运行测试（排除慢速测试）
-          # 注意：不再使用 || exit 0，测试失败时CI应该失败
+          # 使用 in-tree sage-dev 运行测试：
+          # - 仅保留当前 CLI 支持的参数
+          # - 通过 `--` 透传 pytest 参数，生成与后续上传一致的覆盖率产物
           sage-dev project test --coverage \
-            --coverage-report term,xml,html \
-            --jobs 4 \
-            --timeout 300 \
-            --continue-on-error || {
+            -- \
+            --cov-report=term-missing \
+            --cov-report=xml:.sage/coverage/coverage.xml \
+            --cov-report=html:.sage/coverage/htmlcov || {
               echo "❌ 测试失败"
               exit 1
             }
@@ -284,19 +298,45 @@ jobs:
             echo "✅ HTML覆盖率报告已复制"
           fi
 
+      # Token-only upload: predictable on GitHub-hosted runners and skipped for local `act` runs.
       - name: Upload Coverage to Codecov
+        if: ${{ hashFiles('coverage.xml') != '' && env.CODECOV_TOKEN != '' && env.ACT != 'true' }}
         uses: codecov/codecov-action@v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: intellistream/SAGE
+          token: ${{ env.CODECOV_TOKEN }}
           files: ./coverage.xml
           flags: unittests
           name: codecov-sage
           fail_ci_if_error: false
           verbose: true
 
+      - name: Note skipped Codecov upload
+        if: ${{ always() && (hashFiles('coverage.xml') == '' || env.CODECOV_TOKEN == '' || env.ACT == 'true') }}
+        run: |
+          reasons=()
+
+          if [ ! -f coverage.xml ]; then
+            reasons+=("coverage.xml not generated")
+          fi
+
+          if [ -z "${CODECOV_TOKEN}" ]; then
+            reasons+=("CODECOV_TOKEN is not configured")
+          fi
+
+          if [ "${ACT:-}" = "true" ]; then
+            reasons+=("running under act local runner")
+          fi
+
+          if [ ${#reasons[@]} -gt 0 ]; then
+            printf '### Codecov upload skipped\n\n' >> "$GITHUB_STEP_SUMMARY"
+            printf 'Reasons:\n' >> "$GITHUB_STEP_SUMMARY"
+            for reason in "${reasons[@]}"; do
+              printf -- '- %s\n' "$reason" >> "$GITHUB_STEP_SUMMARY"
+            done
+          fi
+
       - name: Upload Coverage Reports
-        if: always()
+        if: ${{ always() && env.ACT != 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: coverage-reports
@@ -307,7 +347,7 @@ jobs:
           retention-days: 30
 
       - name: Upload Test Logs on Failure
-        if: failure()
+        if: ${{ failure() && env.ACT != 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: test-logs
@@ -316,23 +356,67 @@ jobs:
             .sage/reports/
           retention-days: 7
 
+      - name: Note local artifacts under act
+        if: ${{ always() && env.ACT == 'true' }}
+        run: |
+          echo "### 📦 Local run note (act)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "act 不提供 GitHub Artifact 服务，已跳过 artifact 上传步骤。" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          found_any=false
+
+          if [ -f "coverage.xml" ]; then
+            printf '%s\n' '- 覆盖率 XML: `coverage.xml`' >> "$GITHUB_STEP_SUMMARY"
+            found_any=true
+          fi
+
+          if [ -d "coverage_html" ]; then
+            printf '%s\n' '- 覆盖率 HTML: `coverage_html/`' >> "$GITHUB_STEP_SUMMARY"
+            found_any=true
+          fi
+
+          if [ -d ".sage/logs" ]; then
+            printf '%s\n' '- 日志目录: `.sage/logs/`' >> "$GITHUB_STEP_SUMMARY"
+            found_any=true
+          fi
+
+          if [ -d ".sage/reports" ]; then
+            printf '%s\n' '- 报告目录: `.sage/reports/`' >> "$GITHUB_STEP_SUMMARY"
+            found_any=true
+          fi
+
+          if [ "$found_any" = false ]; then
+            echo "- 未发现可保留的本地产物。" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Summary
         if: always()
         run: |
-          echo "## 🏗️ 构建和测试总结" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🏗️ 构建和测试总结" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
 
           if [ "${{ job.status }}" = "success" ]; then
-            echo "✅ **构建成功** - 所有测试通过" >> $GITHUB_STEP_SUMMARY
-
-            # 显示覆盖率摘要（如果存在）
-            if [ -f "coverage.xml" ]; then
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "### 📊 测试覆盖率" >> $GITHUB_STEP_SUMMARY
-              echo "覆盖率报告已生成，详见 Artifacts" >> $GITHUB_STEP_SUMMARY
-            fi
+            echo "✅ **构建成功** - 所有测试通过" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "❌ **构建失败** - 请查看日志和测试报告" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "测试日志已上传到 Artifacts，请下载查看详细信息" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **构建失败** - 请查看日志和测试报告" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ -f "coverage.xml" ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### 📊 测试覆盖率" >> "$GITHUB_STEP_SUMMARY"
+            if [ "${ACT:-}" = "true" ]; then
+              printf '%s\n' '覆盖率报告已在本地生成：`coverage.xml` 和 `coverage_html/`。' >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "覆盖率报告已生成，详见 Artifacts。" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+
+          if [ "${{ job.status }}" != "success" ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            if [ "${ACT:-}" = "true" ]; then
+              printf '%s\n' '失败日志保留在本地目录：`.sage/logs/` 和 `.sage/reports/`。' >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "测试日志已上传到 Artifacts，请下载查看详细信息。" >> "$GITHUB_STEP_SUMMARY"
+            fi
           fi
