@@ -41,7 +41,6 @@
 - `quickstart.sh`
 - `tools/install/**/*.sh`
 - `pyproject.toml`
-- `setup.py`
 - `.github/workflows/*.yml`
 
 ## 推荐工作流
