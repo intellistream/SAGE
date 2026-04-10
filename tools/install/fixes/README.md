@@ -98,9 +98,9 @@ tools/install/fixes/environment_doctor.sh
      conda uninstall numpy -y
      pip uninstall numpy -y
      pip install numpy==2.3.3
-      3. 切换到现有的非 venv Python 环境（例如已配置好的 Conda 环境）后重新安装：
-        conda activate <your-existing-env>
-        ./quickstart.sh --dev --yes
+  3. 切换到现有的非 venv Python 环境（例如已配置好的 Conda 环境）后重新安装：
+    conda activate <your-existing-env>
+    ./quickstart.sh --dev --yes
 
 🤖 自动修复：
 SAGE 提供了自动诊断和修复工具，可以帮您解决大部分环境问题：
