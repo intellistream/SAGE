@@ -8,7 +8,7 @@ on:
       - "tools/install/installers/argument_parser.sh"
       - "tools/install/cleanup/**"
       - "tools/install/tests/test_*.sh"
-      - ".github/workflows/test-env-cleanup.yml"
+      - ".github/workflows/util-cleanup.yml"
   pull_request:
     branches: [main]
     paths:
@@ -16,7 +16,7 @@ on:
       - "tools/install/installers/argument_parser.sh"
       - "tools/install/cleanup/**"
       - "tools/install/tests/test_*.sh"
-      - ".github/workflows/test-env-cleanup.yml"
+      - ".github/workflows/util-cleanup.yml"
 
 jobs:
   # 测试单元测试脚本

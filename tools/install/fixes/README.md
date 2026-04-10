@@ -63,7 +63,7 @@ tools/install/fixes/environment_doctor.sh
 ### 环境配置问题
 
 - **Python 版本兼容性**：不支持的 Python 版本
-- **虚拟环境**：建议使用隔离环境
+- **环境策略冲突**：检测并解释不符合仓库约束的 Python 环境
 - **CUDA 环境**：GPU 支持检测和配置
 - **磁盘空间**：安装空间不足检测
 
@@ -77,7 +77,7 @@ tools/install/fixes/environment_doctor.sh
 
 ### 用户看到的友好错误信息
 
-```
+```text
 🚨 安装过程中 遇到问题
 ═══════════════════════════════════════════════
 
@@ -98,10 +98,9 @@ tools/install/fixes/environment_doctor.sh
      conda uninstall numpy -y
      pip uninstall numpy -y
      pip install numpy==2.3.3
-  3. 使用新的虚拟环境：
-     conda create -n sage-fresh python=3.11 -y
-     conda activate sage-fresh
-     ./quickstart.sh
+      3. 切换到现有的非 venv Python 环境（例如已配置好的 Conda 环境）后重新安装：
+        conda activate <your-existing-env>
+        ./quickstart.sh --dev --yes
 
 🤖 自动修复：
 SAGE 提供了自动诊断和修复工具，可以帮您解决大部分环境问题：
@@ -115,7 +114,7 @@ SAGE 提供了自动诊断和修复工具，可以帮您解决大部分环境问
 
 ### 核心文件结构
 
-```
+```text
 tools/install/fixes/
 ├── environment_doctor.sh      # 环境医生主模块
 ├── friendly_error_handler.sh  # 友好错误处理

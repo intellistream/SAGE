@@ -5,11 +5,15 @@ A reusable GitHub Action for setting up the SAGE framework consistently across a
 ## Why This Action?
 
 Previously, different workflows had their own SAGE installation logic, leading to:
+
 - Inconsistent installation methods between `build-test.yml`, `paper1-experiments.yml`, etc.
 - Some workflows failing while others succeed with the same code
 - Duplicated installation code that's hard to maintain
 
 This action centralizes the installation logic to ensure consistency.
+
+The supported install modes must match the current `quickstart.sh` contract: `standard`, `full`,
+or `dev`.
 
 ## Usage
 
@@ -22,7 +26,7 @@ steps:
   - name: Setup SAGE
     uses: ./.github/actions/setup-sage
     with:
-      install-mode: 'dev'  # or 'core', 'standard'
+      install-mode: 'dev'  # or 'standard', 'full'
 ```
 
 ### With All Options
@@ -57,19 +61,19 @@ steps:
 
 ## Inputs
 
-| Input | Description | Default | Required |
-|-------|-------------|---------|----------|
-| `install-mode` | Installation mode: `core`, `standard`, or `dev` | `dev` | No |
-| `python-version` | Python version (GitHub-hosted runners only) | `3.11` | No |
-| `skip-system-deps` | Skip system dependency installation | `false` | No |
-| `hf-token` | HuggingFace token for model downloads | `''` | No |
-| `create-env-file` | Create .env file with provided settings | `false` | No |
-| `env-file-content` | Custom .env content (base64 encoded) | `''` | No |
+| Input              | Description                                        | Default | Required |
+| ------------------ | -------------------------------------------------- | ------- | -------- |
+| `install-mode`     | Installation mode: `standard`, `full`, or `dev`    | `dev`   | No       |
+| `python-version`   | Python version (GitHub-hosted runners only)        | `3.11`  | No       |
+| `skip-system-deps` | Skip system dependency installation                | `false` | No       |
+| `hf-token`         | HuggingFace token for model downloads              | `''`    | No       |
+| `create-env-file`  | Create .env file with provided settings            | `false` | No       |
+| `env-file-content` | Custom .env content (base64 encoded)               | `''`    | No       |
 
 ## Outputs
 
 | Output | Description |
-|--------|-------------|
+| --- | --- |
 | `sage-version` | Installed SAGE version |
 | `cpp-extensions-available` | Whether C++ extensions are available (`true`/`false`) |
 

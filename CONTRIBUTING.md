@@ -2,8 +2,9 @@
 
 # SAGE 贡献指南
 
-> 本地代码质量/测试请使用 `sage-dev quality` 或 `sage-dev test`，CI/CD 由 GitHub Workflows 自动完成。
-
+> 本地代码质量/测试请使用 `sage-dev quality check --all-files --readme` 与
+> `sage-dev project test --coverage`，CI/CD 由 GitHub Workflows 自动完成。
+>
 > 本文档帮助你高效、规范地向 SAGE 贡献代码与文档。请在提交 Pull Request 前完整阅读。若英文协作者需要，可参考文末的 English Quick Guide。
 
 ## 📚 开发者资源 / Developer Resources
@@ -120,8 +121,8 @@ pytest -vv
 python -m py_compile path/to/modified.py
 bash -n path/to/script.sh
 
-# 可选：若已安装 black / mypy（dev 模式会安装）
-black --check .
+# 可选：针对当前 Python 变更做额外静态检查
+ruff check --config tools/ruff.toml
 mypy src || true
 ```
 
@@ -302,7 +303,7 @@ Reduce flakiness via timeout + category filtering.
    ```bash
    # 注意：quick_examples 标记可能在 sage-examples 仓库中
    pytest --maxfail=1 --durations=10
-   black --check . && isort --check-only . || true
+   ruff check --config tools/ruff.toml
    mypy src || true
    ```
 
@@ -470,12 +471,17 @@ pre-commit run cross-repo-dedup-check --all-files
 
 ## 命令与脚本说明
 
-| 目的 | 推荐命令 | 说明 | | -------------- | -------------------------------------------------- |
--------------------------- | | 安装（交互式） | `./quickstart.sh` | 未传参进入菜单 | | 核心安装 |
-`./quickstart.sh --core --yes` | 仅核心包 | | 开发者安装 | `./quickstart.sh --dev --yes` | 安装开发依赖（可编辑模式） | |
-标准安装 | `./quickstart.sh --standard --yes` | 标准功能集合 | | 核心测试 | `sage-dev project test --coverage` |
-运行核心测试集 | | 单个测试 | `pytest -k <keyword>` | 关键字过滤 | | 版本查看 |
-`python -c "import sage; print(sage.__version__)"` | 确认安装 |
+| 目的           | 推荐命令                                                                | 说明                                             |
+| -------------- | ----------------------------------------------------------------------- | ------------------------------------------------ |
+| 安装（交互式） | `./quickstart.sh`                                                       | 未传参进入菜单                                   |
+| 开发者安装     | `./quickstart.sh --dev --yes`                                           | 安装开发依赖并优先切换本地 sibling 仓为 editable |
+| 标准安装       | `./quickstart.sh --standard --yes`                                      | 标准安装路径，从 PyPI 解析外部依赖               |
+| 环境诊断       | `./quickstart.sh --doctor`                                              | 检查安装、依赖与常见环境问题                     |
+| 质量修复       | `sage-dev quality fix --all-files`                                      | 自动修复格式和部分质量问题                       |
+| 质量检查       | `sage-dev quality check --all-files --readme`                           | 与当前贡献流程一致的完整检查                     |
+| 核心测试       | `sage-dev project test --coverage`                                      | 运行当前主仓测试集                               |
+| 单个测试       | `pytest src/tests/test_cli_main.py -v`                                  | 直接运行指定测试文件                             |
+| 版本查看       | `python -c "from sage._version import __version__; print(__version__)"` | 确认当前安装版本                                 |
 
 **注意**: 示例和应用已迁移到独立仓库: <https://github.com/intellistream/sage-examples>
 
@@ -655,7 +661,7 @@ HF_TOKEN=***
 1. Clone & install: ./quickstart.sh --dev --yes
 2. Create branch: git checkout -b feat/<topic>
 3. Keep updated: git fetch && git rebase origin/main
-4. Test: sage-dev project test --coverage && sage-dev quality
+4. Validate: sage-dev quality check --all-files --readme && sage-dev project test --coverage
 5. Commit: feat(runtime): add xyz
 6. Push & PR: include background / solution / tests / impact
 ```
