@@ -9,7 +9,6 @@
 | `config.yaml`  | 统一配置样例，包含集群、远程环境、模型、gateway 和 studio 等设置 |
 | `cluster.yaml` | 集群相关补充配置样例                                             |
 | `models.json`  | 模型清单或静态模型元数据                                         |
-| `ruff.toml`    | Ruff 质量工具配置                                                |
 
 ## 快速查看
 
