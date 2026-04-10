@@ -30,7 +30,7 @@ ______________________________________________________________________
 
 ### Prerequisites
 
-- Python 3.10 or higher
+- Python 3.11 or higher
 - Git
 - (Optional) Conda for environment management
 
@@ -530,7 +530,7 @@ mypy src || true
 **Ruff Configuration** (in `pyproject.toml` or `.ruff.toml`):
 
 - Line length: 100
-- Target Python version: 3.10
+- Target Python version: 3.11
 - Enable modern Python features
 
 ### Shell Scripts

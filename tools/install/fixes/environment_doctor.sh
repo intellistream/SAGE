@@ -190,8 +190,8 @@ check_python_environment() {
         log_message "INFO" "Python version: $python_version"
 
         # 检查是否为推荐版本
-        if [[ ! "$python_version" =~ ^3\.(9|10|11|12) ]]; then
-            report_issue "python_version" "推荐使用 Python 3.9-3.12，当前版本可能存在兼容性问题" "major"
+        if [[ ! "$python_version" =~ ^3\.(11|12) ]]; then
+            report_issue "python_version" "推荐使用 Python 3.11+，当前版本可能存在兼容性问题" "major"
         fi
     else
         report_issue "python_missing" "未找到 Python3 安装" "critical"
@@ -836,7 +836,7 @@ fix_mixed_packages() {
 # CLI 工具冲突修复
 fix_python_version() {
     echo -e "\n${TOOL_MARK} 修复 Python 版本兼容性问题..."
-    echo -e "  ${INFO_MARK} 当前 Python 版本与 SAGE 不兼容（需要 3.9-3.12）"
+    echo -e "  ${INFO_MARK} 当前 Python 版本与 SAGE 不兼容（需要 3.11+）"
     echo -e "  ${INFO_MARK} 将创建 conda 环境并使用 Python 3.11"
     # 复用 fix_pip_missing 中完整的 conda 环境创建逻辑（包含清华镜像、Miniconda 安装等）
     fix_pip_missing

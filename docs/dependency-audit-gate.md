@@ -39,10 +39,12 @@ The repo no longer treats the retired split-package layout as a set of direct de
   `src/sage/runtime/flownet/node/cluster_inventory.py`
 - Rationale: YAML parsing for cluster configuration and inventory management.
 
-### `tomli`
+### Removed direct dependency: `tomli`
 
-- Callsite: `tools/scripts/check_meta_dependency_audit.py`
-- Rationale: Python 3.10 compatibility backport for `tomllib` used by dependency audit tooling.
+- Status: removed from `[project.dependencies]` in `pyproject.toml` after baseline moved to Python
+  \>=3.11.
+- Rationale: `tomllib` is available in stdlib for all supported runtimes, so backport is no longer
+  required.
 
 ### `isagellm`
 

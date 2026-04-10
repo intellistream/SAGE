@@ -15,13 +15,11 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: System :: Distributed Computing",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     # In-tree FlowNet runtime core dependencies
     "cloudpickle>=2.2",
     "pyyaml>=6.0",
-    # Build tools — Python 3.10 compat for tomllib backport
-    "tomli>=2.0.0; python_version < '3.11'",
 ]
 
 license = "MIT"

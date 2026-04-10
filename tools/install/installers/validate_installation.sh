@@ -240,13 +240,13 @@ validate_python_environment() {
 
         log_check "info" "Python 版本: $python_version"
 
-        # CI/CD 使用 Python 3.10, 3.11, 3.12
-        if [ "$python_major" -eq 3 ] && [ "$python_minor" -ge 10 ] && [ "$python_minor" -le 12 ]; then
-            log_check "pass" "Python 版本兼容" "CI/CD 支持 Python 3.10-3.12"
-        elif [ "$python_major" -eq 3 ] && [ "$python_minor" -ge 9 ]; then
-            log_check "warn" "Python 版本可用但未在 CI 中测试" "CI/CD 主要测试 3.10-3.12"
+        # CI/CD 使用 Python 3.11, 3.12
+        if [ "$python_major" -eq 3 ] && [ "$python_minor" -ge 11 ] && [ "$python_minor" -le 12 ]; then
+            log_check "pass" "Python 版本兼容" "CI/CD 支持 Python 3.11-3.12"
+        elif [ "$python_major" -eq 3 ] && [ "$python_minor" -ge 11 ]; then
+            log_check "warn" "Python 版本可用但未在 CI 中测试" "CI/CD 主要测试 3.11-3.12"
         else
-            log_check "fail" "Python 版本不兼容" "需要 Python 3.10 或更高版本"
+            log_check "fail" "Python 版本不兼容" "需要 Python 3.11 或更高版本"
         fi
 
         # 检查虚拟环境
