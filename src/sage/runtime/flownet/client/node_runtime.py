@@ -43,6 +43,7 @@ _RUNTIME_STATE_QUERY_WINDOW_MS = 60_000
 _RUNTIME_STATE_QUERY_MAX_PER_WINDOW = 120
 _RUNTIME_STATE_QUERY_DEFAULT_LIMIT = 100
 _RUNTIME_STATE_QUERY_MAX_LIMIT = 1_000
+_RUNTIME_STATE_QUERY_REDACTED_PLACEHOLDER = "<redacted>"
 _RUNTIME_STATE_QUERY_REVEAL_PERMISSION = "runtime_state.reveal_values"
 
 _DEFAULT_NODE_CONTROL_CALLER_LOCK = threading.Lock()
@@ -575,9 +576,10 @@ class V1NodeRuntimeService:
                 normalized_permissions,
                 _RUNTIME_STATE_QUERY_REVEAL_PERMISSION,
             ):
-                self._stats["runtime_state_query_denied_total"] = (
-                    int(self._stats.get("runtime_state_query_denied_total", 0)) + 1
-                )
+                # Per Issue 1493: downgrade to masked response instead of hard rejection.
+                # Caller can still see which keys exist, just not their values.
+                # ("使调用方能判断状态存在但无法读取内容")
+                reveal_values_flag = False
                 self._record_runtime_state_query_audit_locked(
                     principal=normalized_principal,
                     namespace=normalized_namespace,
@@ -589,7 +591,8 @@ class V1NodeRuntimeService:
                     reveal_values=True,
                     result_count=0,
                 )
-                raise PermissionError("runtime_state_query_reveal_permission_required")
+                # Note: do NOT increment runtime_state_query_denied_total;
+                # the query is NOT rejected—it continues with masked values.
 
             if not self._runtime_state_query_allow_locked(
                 principal=normalized_principal,
@@ -1350,12 +1353,7 @@ class V1NodeRuntimeService:
             return query_entries
         return None
 
-    def _runtime_state_query_allow_locked(
-        self,
-        *,
-        principal: str,
-        now_ms: int,
-    ) -> bool:
+    def _runtime_state_query_allow_locked(self, *, principal: str, now_ms: int) -> bool:
         window = self._runtime_state_query_windows.setdefault(principal, deque())
         floor_ms = int(now_ms) - _RUNTIME_STATE_QUERY_WINDOW_MS
         while window and int(window[0]) < floor_ms:
@@ -2732,10 +2730,8 @@ def _has_runtime_state_permission(permissions: list[str], required_permission: s
 
 
 def _mask_runtime_state_value(value: Any) -> str:
-    type_name = value.__class__.__name__
-    if type_name:
-        return f"<masked:{type_name}>"
-    return "<masked>"
+    del value
+    return _RUNTIME_STATE_QUERY_REDACTED_PLACEHOLDER
 
 
 def resolve_seed_addresses(
