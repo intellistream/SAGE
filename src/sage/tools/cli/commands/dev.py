@@ -144,8 +144,15 @@ def _quality_action(args: argparse.Namespace) -> int:
 
 def _project_test_action(args: argparse.Namespace) -> int:
     repo = _repo_root()
+    # Ensure .sage directory exists
+    sage_dir = repo / ".sage"
+    sage_dir.mkdir(exist_ok=True)
     cmd = ["pytest", "src/tests"]
     if args.coverage:
+        # Set COVERAGE_FILE env to .sage/.coverage
+        import os
+
+        os.environ["COVERAGE_FILE"] = str(sage_dir / ".coverage")
         cmd.extend(["--cov=src/sage", "--cov-report=term-missing"])
     if args.test_type == "unit":
         cmd.extend(["-m", "not integration"])
