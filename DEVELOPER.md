@@ -30,7 +30,7 @@ ______________________________________________________________________
 
 ### Prerequisites
 
-- Python 3.10 or higher
+- Python 3.11 or higher
 - Git
 - (Optional) Conda for environment management
 
@@ -99,8 +99,9 @@ git checkout main
 ```bash
 pre-commit install
 
-# Install development tools
-pip install black isort ruff mypy pytest pytest-cov
+# Optional: verify the current core CLI surface
+sage verify
+sage status
 ```
 
 ______________________________________________________________________
@@ -281,40 +282,41 @@ does not block stream/runtime development in the main repo.
 
 ### Feature Modules
 
-When extras were removed, functionality migrated to independent packages:
+Current optional functionality is exposed through root-package extras and a small set of external
+adapter packages:
 
-| Feature    | Before                  | Now                |
-| ---------- | ----------------------- | ------------------ |
-| Embedding  | `commons[embedding]`    | → `isage-neuromem` |
-| Agentic    | `libs[agentic]`         | → `isage-agentic`  |
-| RAG        | `libs[rag]`             | → `isage-rag`      |
-| Evaluation | `libs[eval]`            | → `isage-eval`     |
-| Vector DB  | `middleware[vdb]`       | → `isage-vdb`      |
-| Memory     | `middleware[neuromem]`  | → `isage-neuromem` |
-| Streaming  | `middleware[streaming]` | → `isage-flow`     |
+| Install Target               | Purpose                                            |
+| ---------------------------- | -------------------------------------------------- |
+| `isage[sagellm]`             | External inference engine integration (`isagellm`) |
+| `isage[serving-edge]`        | In-tree edge shell runtime (`sage-edge`)           |
+| `isage[capability-adapters]` | Intent, RAG, and memory adapters                   |
+| `isage[capability-tooluse]`  | SIAS tool-use adapter                              |
+| `isage[full]`                | All supported extras plus `isage-data`             |
+
+Avoid treating historical split module names as the current install contract. The preferred surface
+is the in-tree `sage.foundation`, `sage.stream`, `sage.runtime`, `sage.serving`, `sage.edge`, and
+`sage.cli` packages.
 
 ### Installation Examples
 
 #### Minimal (core only)
 
 ```bash
-pip install isage
+python -m pip install isage
 ```
 
 ### Standard (recommended for most users)
 
 ```bash
-pip install isage                # Meta package with all core layers
+python -m pip install isage
 ```
 
-Then add features as needed:
+Then add extras as needed:
 
 ```bash
-pip install isage-agentic        # For agents
-pip install isage-rag            # For RAG
-pip install isage-vdb            # For vector search
-pip install isage-neuromem       # For memory / retrieval persistence
-pip install isage-libs-intent    # For intent / orchestration adapters
+python -m pip install 'isage[sagellm]'
+python -m pip install 'isage[capability-adapters]'
+python -m pip install 'isage[capability-tooluse]'
 ```
 
 #### Development (with all tools)
@@ -338,14 +340,11 @@ workflows:
 # Format code / auto-fix quality issues
 sage-dev quality fix --all-files
 
-# Run linters & quality checks
-sage-dev quality check --check-only --all-files
+# Run the full quality gate used in contributor docs
+sage-dev quality check --all-files --readme
 
 # Run tests
-sage-dev project test
-
-# Run all checks before committing
-sage-dev quality check --all-files --readme
+sage-dev project test --coverage
 
 # Clean build artifacts
 sage-dev project clean --target all
@@ -438,8 +437,8 @@ sage-dev project clean --dry-run
 
 Pre-commit hooks run automatically on `git commit`. They include:
 
-- **Code Formatting**: black, isort
-- **Linting**: ruff, mypy
+- **Code Formatting**: ruff format
+- **Linting**: ruff check
 - **Shell Scripts**: shellcheck
 - **File Checks**: trailing whitespace, end-of-file fixer, etc.
 - **Security**: detect-secrets
@@ -491,46 +490,47 @@ cat .git/hooks/pre-commit | grep "ARGS="
 # Run full checks (matches CI exactly)
 pre-commit run --all-files
 
-# Check individual tools
+# Check individual hooks
 pre-commit run ruff --all-files
-pre-commit run mypy --all-files
+pre-commit run ruff-format --all-files
 ```
 
 ### Code Formatting
 
-We use **Black** and **isort** for consistent code formatting:
+SAGE uses **Ruff** as the primary formatter and linter. Black and isort are intentionally disabled
+in `.pre-commit-config.yaml` to avoid formatter conflicts.
 
 ```bash
 # Format all code
 sage-dev quality fix --all-files
 
-# Or manually:
-black packages/ scripts/ --line-length 100
-isort packages/ scripts/ --profile black --line-length 100
+# Or run Ruff directly
+ruff format --config tools/ruff.toml
 ```
 
 **Configuration**:
 
 - Line length: 100 characters
-- isort profile: black (for compatibility)
+- Formatter and linter config: `tools/ruff.toml`
 
 ### Linting
 
-We use **Ruff** for fast linting and **mypy** for type checking:
+Use **Ruff** for linting and **mypy** as an optional type-checking pass when your change touches
+typed Python APIs.
 
 ```bash
 # Run all linters
-sage-dev quality check --check-only --all-files
+sage-dev quality check --all-files --readme
 
 # Or run individually:
-ruff check packages/ scripts/
-mypy packages/ --ignore-missing-imports
+ruff check --config tools/ruff.toml
+mypy src || true
 ```
 
 **Ruff Configuration** (in `pyproject.toml` or `.ruff.toml`):
 
 - Line length: 100
-- Target Python version: 3.10
+- Target Python version: 3.11
 - Enable modern Python features
 
 ### Shell Scripts
@@ -547,28 +547,22 @@ shellcheck scripts/**/*.sh tools/**/*.sh
 
 ```bash
 # Run all tests
-sage-dev project test
-
-# Run unit tests only
-sage-dev project test --test-type unit
-
-# Run integration tests only
-sage-dev project test --test-type integration
+sage-dev project test --coverage
 
 # Run specific test file
-pytest tests/test_specific.py -v
+pytest src/tests/test_cli_main.py -v
 
-# Run with coverage report
-pytest tests/ --cov=packages --cov-report=html
+# Run integration-marked tests only
+pytest src/tests -m integration -v
 ```
 
 ### Writing Tests
 
-- Place unit tests in `packages/*/tests/unit/`
-- Place integration tests in `packages/*/tests/integration/`
+- Place repository tests under `src/tests/`
+- Use `@pytest.mark.integration` for integration coverage
 - Use descriptive test names: `test_<function>_<scenario>_<expected_result>`
 - Use pytest fixtures for common setup
-- Mark integration tests with `@pytest.mark.integration`
+- Keep test imports rooted at the current in-tree surface
 
 Example:
 
@@ -593,15 +587,10 @@ def test_pipeline_execution_with_real_data():
 
 ## Documentation
 
-### Building Documentation
+### Documentation Placement
 
-```bash
-# Build documentation
-sage-dev docs build
-
-# Serve documentation locally
-sage-dev docs serve
-```
+User-facing documentation belongs in the separate `sage-docs` repository. In this meta repo, keep
+only root entry documents and machine-owned governance artifacts.
 
 ### Writing Documentation
 
@@ -630,7 +619,11 @@ sage-dev docs serve
        pass
    ```
 
-1. **User Guides**: Place in `docs/`
+1. **User guides**: update `sage-docs` instead of adding new duplicated user-facing pages under the
+   root `docs/` directory.
+
+1. **Repo-local docs**: limit changes here to root entry docs such as `README.md`, `DEVELOPER.md`,
+   `CONTRIBUTING.md`, or machine-owned governance artifacts.
 
 1. **Changelog**: 重要变更统一记录到 `CHANGELOG.md`
 
@@ -665,8 +658,8 @@ We follow [Semantic Versioning](https://semver.org/):
 
 1. **Update version numbers**
 
-   - Update version in `pyproject.toml`
-   - Update version in `__init__.py` files
+   - Update the version source referenced by `pyproject.toml`
+   - Keep changelog and release metadata aligned with the published package version
 
 1. **Run validation**
 

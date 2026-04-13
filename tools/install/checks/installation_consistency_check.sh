@@ -162,11 +162,11 @@ check_environment_consistency() {
         local python_major=$(echo "$python_version" | cut -d. -f1)
         local python_minor=$(echo "$python_version" | cut -d. -f2)
 
-        if [ "$python_major" -eq 3 ] && [ "$python_minor" -ge 10 ] && [ "$python_minor" -le 12 ]; then
-            print_check "pass" "Python 版本 $python_version （与 CI/CD 兼容: 3.10-3.12）"
+        if [ "$python_major" -eq 3 ] && [ "$python_minor" -ge 11 ] && [ "$python_minor" -le 12 ]; then
+            print_check "pass" "Python 版本 $python_version （与 CI/CD 兼容: 3.11-3.12）"
         else
             print_check "warn" "Python 版本 $python_version 可能不兼容"
-            echo -e "${DIM}     CI/CD 使用 Python 3.10-3.12${NC}"
+            echo -e "${DIM}     CI/CD 使用 Python 3.11-3.12${NC}"
         fi
     fi
 

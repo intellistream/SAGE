@@ -308,19 +308,8 @@ create_conda_environment() {
 
         # 检查常见问题
         if echo "$create_output" | grep -q "PackagesNotFoundError"; then
-            echo -e "${WARNING} Python 3.11 包未找到，尝试使用 Python 3.10"
-            echo -e "${DIM}执行命令: conda create -n $env_name python=3.10 -y --override-channels -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main${NC}"
-            local fallback_output=$(conda create -n "$env_name" python=3.10 -y --override-channels -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main 2>&1)
-            local fallback_status=$?
-            if [ $fallback_status -eq 0 ]; then
-                sleep 2
-                if conda env list | grep -q "^$env_name "; then
-                    echo -e "${CHECK} 环境创建成功 (使用 Python 3.10)"
-                    activate_conda_environment "$env_name"
-                    return 0
-                fi
-            fi
-            echo -e "${CROSS} Python 3.10 也失败了：$fallback_output"
+            echo -e "${CROSS} Python 3.11 包未找到：$create_output"
+            echo -e "${DIM}请检查 conda channels 或镜像配置，保持 Python >=3.11 基线${NC}"
         elif echo "$create_output" | grep -q "CondaHTTPError\|CondaSSLError"; then
             echo -e "${WARNING} 网络连接问题，请检查网络设置或使用国内镜像源"
             echo -e "${DIM}建议: conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/${NC}"

@@ -1,58 +1,57 @@
-# SAGE Configuration
+# SAGE 配置目录
 
-Unified configuration file for SAGE project.
+本目录保存仓库跟踪的配置样例与静态配置资源。当前主入口文件是 `config/config.yaml`。
 
-## File
+## 文件
 
-| File | Purpose | | ------------- | ---------------------------------------------- | |
-`config.yaml` | All configuration (cluster, services, runtime) |
+| 文件           | 作用                                                             |
+| -------------- | ---------------------------------------------------------------- |
+| `config.yaml`  | 统一配置样例，包含集群、远程环境、模型、gateway 和 studio 等设置 |
+| `cluster.yaml` | 集群相关补充配置样例                                             |
+| `models.json`  | 模型清单或静态模型元数据                                         |
 
-## Quick Start
+## 快速查看
 
 ```bash
-# 1. Review or edit the unified config directly
+# 编辑配置样例
 vi config/config.yaml
 
-# 2. Inspect current local status
+# 查看当前本地状态
 sage status
 
-# 3. Inspect runtime-visible nodes
+# 查看运行时可见节点
 sage runtime nodes
 
-# 4. If you integrate an external sagellm gateway, inspect the launch contract
+# 查看 gateway 集成契约
 sage serve gateway --json
-
-# 5. Record lightweight local index metadata when needed
-sage index ingest --source ./docs --index local-docs
 ```
 
-## Configuration Sections
+## config.yaml 当前主要配置段
 
-### Cluster
+- `cluster_name`: 集群标识
+- `auth`: SSH 与连接相关参数
+- `provider`: 头节点、工作节点与 provider 类型
+- `remote`: 远程 Python、Conda、SAGE 根路径等设置
+- `llm`: 模型、端口和推理相关参数
+- `embedding`: 向量模型与服务端口
+- `gateway`: OpenAI-compatible gateway 与 memory backend 设置
+- `studio`: Studio 前后端端口
+- `max_workers`: 本地或远程 worker 数量上限
 
-- `cluster_name` - Cluster identifier
-- `provider.head_ip` - Head node IP
-- `provider.worker_ips` - List of worker node IPs
-- `auth` - SSH authentication (key-based only)
-- `flutty` - Flutty runtime settings (ports, resources)
-- `remote` - Remote environment (conda, paths)
+当前 `config.yaml` 中仍包含部分历史分布式运行时字段，例如 `ray` 段。是否继续保留、迁移或收敛，应以当前代码读取路径和迁移计划为准；不要把未验证字段直接当作新的推荐配置面。
 
-### Services
+## 使用原则
 
-- `llm` - SageLLM service settings
-- `embedding` - Embedding service
-- `gateway` - OpenAI-compatible API gateway
-- `studio` - Web UI ports
+- 以当前代码和 CLI 行为为准更新配置说明
+- 不在文档中引入新的 venv 工作流
+- 端口策略应优先遵循仓库当前统一端口约定
+- 若用户文档需要扩展解释，请更新独立的 `sage-docs`，不要在主仓重复维护长篇说明
 
-## Directory Structure
+## 相关命令
 
-```text
-<project_root>/
-├── config/              # Configuration (git tracked)
-│   ├── config.yaml      # Unified config file
-│   └── README.md
-├── .sage/               # Temporary files (gitignored)
-│   ├── build/
-│   ├── cache/
-│   └── logs/
+```bash
+./quickstart.sh --doctor
+sage status
+sage runtime nodes
+sage serve gateway --probe --json
 ```

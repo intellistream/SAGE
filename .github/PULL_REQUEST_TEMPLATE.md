@@ -12,10 +12,10 @@
 
 ## Boundary & Dependency Checklist (Mandatory)
 
-- [ ] Change preserves strict layer direction: `L5 -> L4 -> L3 -> L2 -> L1`
+- [ ] Change preserves strict layer direction: `L4 -> L3 -> L2 -> L1`
 - [ ] No compatibility shim / re-export / fallback added
 - [ ] Capability ownership is explicit for independent sub-repos (including `sagellm`); no in-repo re-embedding
-- [ ] If touching capability families (`neuromem`/`sageVDB`/`sageFlow`/`sageTSDB`/`sagellm`), ownership and rollout order are explicitly stated
+- [ ] If touching capability families (`neuromem`/`sageVDB`/`sageFlownet`/`sagellm`), ownership and rollout order are explicitly stated
 - [ ] Algorithm-only contracts remain separate from runtime/service-bound implementation
 - [ ] No new `ray` import/dependency (Flownet-first)
 - [ ] Any dependency addition is necessary for current layer responsibilities

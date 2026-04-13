@@ -86,7 +86,7 @@ guide_install_conda() {
     echo ""
     echo -e "${BLUE}SAGE 强烈建议在 Conda 环境中运行，原因：${NC}"
     echo -e "  • 隔离依赖，避免污染系统 Python"
-    echo -e "  • 支持精确 Python 版本控制（需 >= 3.10）"
+    echo -e "  • 支持精确 Python 版本控制（需 >= 3.11）"
     echo -e "  • 多项目并行开发时互不干扰"
     echo -e "  • 与 Ascend / CUDA 硬件驱动环境兼容性更好"
     echo ""
