@@ -3952,12 +3952,16 @@ def _normalize_materialization_policy(
     backend_policy = _normalize_mapping(policy.get("backend"), field_name="backend")
     _raise_on_unknown_fields(
         backend_policy,
-        {"required_tags", "preferred_backend_id", "request_epoch_field"},
+        {"required_tags", "required_capabilities", "preferred_backend_id", "request_epoch_field"},
         field_name="backend",
     )
     backend_required_tags = _normalize_string_mapping(
         backend_policy.get("required_tags"),
         field_name="backend.required_tags",
+    )
+    backend_required_capabilities = _normalize_mapping(
+        backend_policy.get("required_capabilities"),
+        field_name="backend.required_capabilities",
     )
     backend_preferred_backend_id = _normalize_optional_non_empty(
         backend_policy.get("preferred_backend_id")
@@ -3983,6 +3987,7 @@ def _normalize_materialization_policy(
         },
         "backend": {
             "required_tags": backend_required_tags,
+            "required_capabilities": backend_required_capabilities,
             "preferred_backend_id": backend_preferred_backend_id,
             "request_epoch_field": backend_request_epoch_field,
         },
@@ -4034,6 +4039,10 @@ def _register_materialized_local_actor(
                 backend_policy.get("required_tags"),
                 field_name="materialization_policy.backend.required_tags",
             )
+            normalized_required_capabilities = _normalize_mapping(
+                backend_policy.get("required_capabilities"),
+                field_name="materialization_policy.backend.required_capabilities",
+            )
             normalized_preferred_backend_id = _normalize_optional_non_empty(
                 backend_policy.get("preferred_backend_id")
             )
@@ -4043,11 +4052,13 @@ def _register_materialized_local_actor(
             )
             if (
                 normalized_required_tags
+                or normalized_required_capabilities
                 or normalized_preferred_backend_id is not None
                 or normalized_request_epoch_field != "request_epoch"
             ):
                 backend_requirements = {
                     "required_tags": normalized_required_tags,
+                    "required_capabilities": normalized_required_capabilities,
                     "preferred_backend_id": normalized_preferred_backend_id,
                     "request_epoch_field": normalized_request_epoch_field,
                 }

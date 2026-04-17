@@ -248,6 +248,61 @@ def _normalize_backend_summary(payload: Any) -> dict[str, Any]:
         "schedulable": schedulable,
         "queue_depth": queue_depth,
         "inflight": inflight,
+        "inventory": _normalize_backend_inventory_summary(raw.get("inventory"), records=records),
+    }
+
+
+def _normalize_backend_inventory_summary(
+    payload: Any,
+    *,
+    records: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    raw = dict(payload) if isinstance(payload, Mapping) else {}
+    backend_ids = raw.get("backend_ids")
+    if not isinstance(backend_ids, Sequence) or isinstance(backend_ids, (str, bytes, bytearray)):
+        backend_ids = [record.get("backend_id") for record in records]
+    capability_keys = raw.get("capability_keys")
+    if not isinstance(capability_keys, Sequence) or isinstance(
+        capability_keys, (str, bytes, bytearray)
+    ):
+        capability_keys = [
+            key
+            for record in records
+            for key in _normalize_mapping(record.get("capabilities")).keys()
+        ]
+    tag_keys = raw.get("tag_keys")
+    if not isinstance(tag_keys, Sequence) or isinstance(tag_keys, (str, bytes, bytearray)):
+        tag_keys = [
+            key for record in records for key in _normalize_mapping(record.get("tags")).keys()
+        ]
+    return {
+        "backend_ids": sorted(
+            {
+                _normalize_non_empty_string(value, default="")
+                for value in backend_ids
+                if _normalize_non_empty_string(value, default="")
+            }
+        ),
+        "capability_keys": sorted(
+            {
+                _normalize_non_empty_string(value, default="")
+                for value in capability_keys
+                if _normalize_non_empty_string(value, default="")
+            }
+        ),
+        "tag_keys": sorted(
+            {
+                _normalize_non_empty_string(value, default="")
+                for value in tag_keys
+                if _normalize_non_empty_string(value, default="")
+            }
+        ),
+        "queue_depth": _coerce_non_negative_int(
+            raw.get("queue_depth", sum(int(record["queue_depth"]) for record in records))
+        ),
+        "inflight": _coerce_non_negative_int(
+            raw.get("inflight", sum(int(record["inflight"]) for record in records))
+        ),
     }
 
 
