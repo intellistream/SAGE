@@ -49,6 +49,28 @@ class V1RuntimeInspector:
         runtime_host = self._require_runtime_host()
         actor_records = runtime_host.actor_api.list_local_actors()
         actor_ids = [record.actor_id for record in actor_records]
+        endpoint_registry = getattr(runtime_host, "endpoint_registry", None)
+        published_endpoint_count = 0
+        if endpoint_registry is not None:
+            snapshot_fn = getattr(endpoint_registry, "observability_snapshot", None)
+            if callable(snapshot_fn):
+                try:
+                    published_endpoint_count = len(snapshot_fn(include_released=False))
+                except Exception:
+                    published_endpoint_count = 0
+        shared_state_registry = getattr(runtime_host, "shared_state_registry", None)
+        shared_state_service_count = 0
+        if shared_state_registry is not None:
+            snapshot_fn = getattr(shared_state_registry, "observability_snapshot", None)
+            if callable(snapshot_fn):
+                try:
+                    shared_state_service_count = len(snapshot_fn())
+                except Exception:
+                    shared_state_service_count = 0
+        governance = getattr(runtime_host, "governance", None)
+        governance_snapshot_fn = getattr(governance, "snapshot", None)
+        governance_snapshot = governance_snapshot_fn() if callable(governance_snapshot_fn) else {}
+        collective_executor_snapshot = runtime_host.list_collective_executors()
         callback_count: int | None
         try:
             callback_count = int(runtime_host.actor_api.active_topic_callback_count())
@@ -61,9 +83,15 @@ class V1RuntimeInspector:
             "runtime_loop_running": bool(runtime_host.runtime_loop.is_running),
             "user_loop_running": bool(runtime_host.user_loop.is_running),
             "actor_count": len(actor_ids),
+            "published_endpoint_count": int(published_endpoint_count),
+            "shared_state_service_count": int(shared_state_service_count),
+            "collective_executor_count": int(
+                collective_executor_snapshot.get("registration_count", 0)
+            ),
             "callback_count": callback_count,
             "topic_event_listener_count": runtime_host.topic_api.topic_event_listener_count(),
             "ingress_handler_registered": runtime_host.topic_api.has_ingress_event_handler(),
+            "governance": dict(governance_snapshot) if isinstance(governance_snapshot, Mapping) else {},
         }
         if include_actor_ids:
             snapshot["actor_ids"] = actor_ids
@@ -105,6 +133,24 @@ class V1RuntimeInspector:
             node_address=node_address,
         )
 
+    def list_shared_state_services(self, *, node_address: str | None = None) -> Any:
+        return self._call_node_control(
+            "list_shared_state_services",
+            node_address=node_address,
+        )
+
+    def list_published_endpoints(self, *, node_address: str | None = None) -> Any:
+        return self._call_node_control(
+            "list_published_endpoints",
+            node_address=node_address,
+        )
+
+    def list_collective_executors(self, *, node_address: str | None = None) -> Any:
+        return self._call_node_control(
+            "list_collective_executors",
+            node_address=node_address,
+        )
+
     def list_runtime_nodes(self, *, node_address: str | None = None) -> Any:
         return self._call_node_control(
             "list_runtime_nodes",
@@ -115,12 +161,14 @@ class V1RuntimeInspector:
         self,
         *,
         required_tags: Mapping[str, str] | None = None,
+        required_capabilities: Mapping[str, Any] | None = None,
         include_metrics: bool = True,
         node_address: str | None = None,
     ) -> Any:
         return self._call_node_control(
             "list_runtime_backend_containers",
             required_tags=_normalize_string_mapping(required_tags) or None,
+            required_capabilities=dict(required_capabilities or {}) or None,
             include_metrics=bool(include_metrics),
             node_address=node_address,
         )
@@ -129,12 +177,14 @@ class V1RuntimeInspector:
         self,
         *,
         required_tags: Mapping[str, str] | None = None,
+        required_capabilities: Mapping[str, Any] | None = None,
         include_metrics: bool = True,
         per_node_timeout_s: float | None = None,
         node_address: str | None = None,
     ) -> Any:
         kwargs: dict[str, Any] = {
             "required_tags": _normalize_string_mapping(required_tags) or None,
+            "required_capabilities": dict(required_capabilities or {}) or None,
             "include_metrics": bool(include_metrics),
         }
         if per_node_timeout_s is not None:
@@ -151,6 +201,7 @@ class V1RuntimeInspector:
         request: Mapping[str, Any],
         backend_id: str | None = None,
         required_tags: Mapping[str, str] | None = None,
+        required_capabilities: Mapping[str, Any] | None = None,
         preferred_backend_id: str | None = None,
         request_epoch: int | None = None,
         node_address: str | None = None,
@@ -161,6 +212,7 @@ class V1RuntimeInspector:
             "request": dict(request),
             "backend_id": backend_id,
             "required_tags": _normalize_string_mapping(required_tags) or None,
+            "required_capabilities": dict(required_capabilities or {}) or None,
             "preferred_backend_id": preferred_backend_id,
             "request_epoch": request_epoch,
         }

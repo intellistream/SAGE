@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import logging
 import threading
+import time
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Any
+
+from sage.foundation import Collector, CustomLogger, FlatMapFunction
+from sage.stream._runtime_kernel_types import Packet
 
 from .actor_wrappers import (
     FilterActorWrapper,
@@ -47,25 +53,272 @@ def _classify(t: Any) -> tuple[type, str, str]:
     return (ServiceActorWrapper, _OP_MAP, "process")
 
 
+def _uses_legacy_linear_wrapper(t: Any) -> bool:
+    return _transformation_name(t) in {
+        "MapTransformation",
+        "FlatMapTransformation",
+        "FilterTransformation",
+        "SinkTransformation",
+    }
+
+
+class _LightweightServiceFuture:
+    def __init__(
+        self,
+        future: concurrent.futures.Future,
+        progress_callback: Any | None = None,
+    ) -> None:
+        self._future = future
+        self._progress_callback = progress_callback
+
+    def result(self, timeout: float | None = None) -> Any:
+        if self._progress_callback is None:
+            return self._future.result(timeout=timeout)
+
+        deadline = None if timeout is None else time.monotonic() + timeout
+        while True:
+            if self._future.done():
+                return self._future.result()
+
+            progressed = bool(self._progress_callback())
+            if self._future.done():
+                return self._future.result()
+
+            if deadline is not None and time.monotonic() >= deadline:
+                raise TimeoutError("Local service call did not complete before timeout.")
+
+            if not progressed:
+                time.sleep(0.01)
+
+    def cancel(self) -> bool:
+        return self._future.cancel()
+
+    @property
+    def done(self) -> bool:
+        return self._future.done()
+
+
+class _LightweightExecutionContext:
+    def __init__(self, name: str, service_runtime: "_LightweightServiceRuntime | None") -> None:
+        self.name = name
+        self._service_runtime = service_runtime
+        self._logger = CustomLogger(name=name)
+        self._current_key: Any = None
+
+    @property
+    def logger(self) -> CustomLogger:
+        return self._logger
+
+    def set_current_key(self, key: Any) -> None:
+        self._current_key = key
+
+    def clear_key(self) -> None:
+        self._current_key = None
+
+    def get_key(self) -> Any:
+        return self._current_key
+
+    def get_service(self, service_name: str) -> Any:
+        if self._service_runtime is None:
+            raise RuntimeError(f"Service '{service_name}' is not available in the lightweight context")
+        return self._service_runtime.get_service(service_name)
+
+    def call_service(
+        self,
+        service_name: str,
+        *args: Any,
+        timeout: float | None = None,
+        method: str | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        if self._service_runtime is None:
+            raise RuntimeError(f"Service '{service_name}' is not available in the lightweight context")
+        return self._service_runtime.call_service(
+            service_name,
+            *args,
+            timeout=timeout,
+            method=method,
+            **kwargs,
+        )
+
+    def call_service_async(
+        self,
+        service_name: str,
+        *args: Any,
+        timeout: float | None = None,
+        method: str | None = None,
+        **kwargs: Any,
+    ) -> concurrent.futures.Future:
+        if self._service_runtime is None:
+            raise RuntimeError(f"Service '{service_name}' is not available in the lightweight context")
+        return self._service_runtime.call_service_async(
+            service_name,
+            *args,
+            timeout=timeout,
+            method=method,
+            **kwargs,
+        )
+
+
+class _LightweightServiceRuntime:
+    def __init__(
+        self,
+        service_factories: dict[str, Any],
+        *,
+        progress_callback: Any | None = None,
+    ) -> None:
+        self._service_factories = dict(service_factories)
+        self._services: dict[str, Any] = {}
+        self._lock = threading.RLock()
+        self._progress_callback = progress_callback
+        self._executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=max(4, len(service_factories) or 1),
+            thread_name_prefix="sage_local_service",
+        )
+
+    def _create_service(self, service_name: str) -> Any:
+        factory = self._service_factories.get(service_name)
+        if factory is None:
+            raise RuntimeError(f"Service '{service_name}' is not registered in this environment")
+
+        service_ctx = _LightweightExecutionContext(service_name, self)
+        service = factory.create_service(service_ctx)
+
+        setup = getattr(service, "setup", None)
+        if callable(setup):
+            setup()
+
+        start = getattr(service, "start", None)
+        if callable(start):
+            start()
+        else:
+            start_running = getattr(service, "start_running", None)
+            if callable(start_running):
+                start_running()
+
+        return service
+
+    def get_service(self, service_name: str) -> Any:
+        with self._lock:
+            if service_name not in self._services:
+                self._services[service_name] = self._create_service(service_name)
+            return self._services[service_name]
+
+    def _invoke_service(
+        self,
+        service_name: str,
+        *args: Any,
+        method: str | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        service = self.get_service(service_name)
+        candidate_methods = [method] if method else ["process", "execute", "call"]
+        for method_name in candidate_methods:
+            if method_name is None:
+                continue
+            target = getattr(service, method_name, None)
+            if callable(target):
+                return target(*args, **kwargs)
+        raise AttributeError(
+            f"Service '{service_name}' does not expose a callable method for {candidate_methods}."
+        )
+
+    def call_service(
+        self,
+        service_name: str,
+        *args: Any,
+        timeout: float | None = None,
+        method: str | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        return self.call_service_async(
+            service_name,
+            *args,
+            timeout=timeout,
+            method=method,
+            **kwargs,
+        ).result(timeout=timeout)
+
+    def call_service_async(
+        self,
+        service_name: str,
+        *args: Any,
+        timeout: float | None = None,
+        method: str | None = None,
+        **kwargs: Any,
+    ) -> _LightweightServiceFuture:
+        future = self._executor.submit(
+            self._invoke_service,
+            service_name,
+            *args,
+            method=method,
+            **kwargs,
+        )
+        return _LightweightServiceFuture(future, self._progress_callback)
+
+    def close(self) -> None:
+        with self._lock:
+            services = list(self._services.values())
+            self._services.clear()
+
+        for service in services:
+            stop = getattr(service, "stop", None)
+            if callable(stop):
+                stop()
+            else:
+                terminate = getattr(service, "terminate", None)
+                if callable(terminate):
+                    terminate()
+
+            cleanup = getattr(service, "cleanup", None)
+            if callable(cleanup):
+                cleanup()
+
+        self._executor.shutdown(wait=True)
+
+
 def _is_stop_signal(item: Any) -> bool:
     return item is None or type(item).__name__ == "StopSignal"
 
 
+def _is_batch_source(transformation: Any) -> bool:
+    return _transformation_name(transformation) == "BatchTransformation"
+
+
+def _is_stream_source(transformation: Any) -> bool:
+    return _transformation_name(transformation) == "SourceTransformation"
+
+
 class _StreamingFlowHandle:
     def __init__(
-        self, source_thread: threading.Thread | None, *, stop_event: threading.Event
+        self,
+        source_threads: list[threading.Thread] | threading.Thread | None,
+        *,
+        stop_event: threading.Event,
     ) -> None:
-        self._thread = source_thread
+        if source_threads is None:
+            self._threads: list[threading.Thread] = []
+        elif isinstance(source_threads, list):
+            self._threads = source_threads
+        else:
+            self._threads = [source_threads]
         self._stop_event = stop_event
 
     def stop(self, timeout: float = 30.0) -> None:
         self._stop_event.set()
-        if self._thread is not None and self._thread.is_alive():
-            self._thread.join(timeout=timeout)
+        if not self._threads:
+            return
+
+        deadline = time.monotonic() + timeout
+        for thread in self._threads:
+            if not thread.is_alive():
+                continue
+            remaining = max(0.0, deadline - time.monotonic())
+            thread.join(timeout=remaining)
 
     @property
     def is_running(self) -> bool:
-        return self._thread is not None and self._thread.is_alive()
+        return any(thread.is_alive() for thread in self._threads)
 
 
 @dataclass
@@ -74,6 +327,256 @@ class CompiledActorGraph:
     source_transformation: Any | None
     actor_handles: list[Any] = field(default_factory=list)
     adapter: Any = None
+    source_transformations: list[Any] = field(default_factory=list)
+    pipeline: list[Any] = field(default_factory=list)
+    downstream_edges: dict[str, list[tuple[Any, int]]] = field(default_factory=dict)
+    _instances: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
+    _dispatch_lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
+    _service_runtime: _LightweightServiceRuntime | None = field(default=None, init=False, repr=False)
+    _finalized: bool = field(default=False, init=False, repr=False)
+    _closed_sources: set[str] = field(default_factory=set, init=False, repr=False)
+
+    def _get_service_runtime(self) -> _LightweightServiceRuntime | None:
+        if self._service_runtime is not None:
+            return self._service_runtime
+        if not self.pipeline:
+            return None
+        env = getattr(self.pipeline[0], "env", None)
+        service_factories = getattr(env, "service_factories", {})
+        if not service_factories:
+            return None
+        self._service_runtime = _LightweightServiceRuntime(
+            service_factories,
+            progress_callback=self._cooperative_service_pump,
+        )
+        return self._service_runtime
+
+    def _cooperative_service_pump(self) -> bool:
+        if not self._instances:
+            return False
+        return self._pump_stream_sources_once(self._instances)
+
+    def _build_instances(self) -> dict[str, Any]:
+        if self._instances:
+            return self._instances
+
+        instances: dict[str, Any] = {}
+        service_runtime = self._get_service_runtime()
+        for transformation in self.pipeline:
+            function = transformation.function_class(
+                *transformation.function_args,
+                **transformation.function_kwargs,
+            )
+            function.ctx = _LightweightExecutionContext(transformation.basename, service_runtime)
+            instances[transformation.basename] = function
+        self._instances = instances
+        return instances
+
+    def _downstreams_for(self, transformation: Any) -> list[tuple[Any, int]]:
+        return self.downstream_edges.get(transformation.basename, [])
+
+    def _enqueue_downstreams(
+        self,
+        queue: deque[tuple[Any, Packet]],
+        transformation: Any,
+        packet: Packet,
+    ) -> None:
+        for downstream, input_index in self._downstreams_for(transformation):
+            forwarded = packet.copy()
+            forwarded.input_index = input_index
+            queue.append((downstream, forwarded))
+
+    def _normalize_outputs(self, result: Any, collector: Collector | None = None) -> list[Any]:
+        outputs: list[Any] = []
+        if result is not None:
+            if hasattr(result, "__iter__") and not isinstance(result, (str, bytes, dict)):
+                outputs.extend(list(result))
+            else:
+                outputs.append(result)
+        if collector is not None:
+            outputs.extend(collector.get_collected_data())
+        return outputs
+
+    def _process_packet(
+        self,
+        transformation: Any,
+        packet: Packet,
+        instances: dict[str, Any],
+        queue: deque[tuple[Any, Packet]],
+    ) -> None:
+        function = instances[transformation.basename]
+        transformation_name = type(transformation).__name__
+        function_ctx = getattr(function, "ctx", None)
+
+        if packet.payload is None:
+            return
+
+        if function_ctx is not None and hasattr(function_ctx, "set_current_key"):
+            function_ctx.set_current_key(packet.partition_key)
+
+        try:
+            if transformation_name == "KeyByTransformation":
+                key = function.execute(packet.payload)
+                self._enqueue_downstreams(
+                    queue,
+                    transformation,
+                    packet.update_key(key, getattr(transformation, "partition_strategy", None)),
+                )
+                return
+
+            if transformation_name == "FilterTransformation":
+                if function.execute(packet.payload):
+                    self._enqueue_downstreams(queue, transformation, packet)
+                return
+
+            if transformation_name == "FlatMapTransformation":
+                collector = Collector(logger=getattr(function, "logger", None))
+                if isinstance(function, FlatMapFunction):
+                    function.insert_collector(collector)
+                result = function.execute(packet.payload)
+                for item in self._normalize_outputs(result, collector):
+                    self._enqueue_downstreams(
+                        queue, transformation, packet.inherit_partition_info(item)
+                    )
+                return
+
+            if transformation_name == "JoinTransformation":
+                if not packet.is_keyed():
+                    logger.warning(
+                        "JoinTransformation '%s' received non-keyed packet; dropping payload.",
+                        transformation.basename,
+                    )
+                    return
+                result = function.execute(packet.payload, packet.partition_key, packet.input_index)
+                for item in self._normalize_outputs(result):
+                    self._enqueue_downstreams(
+                        queue, transformation, packet.inherit_partition_info(item)
+                    )
+                return
+
+            if transformation_name == "CoMapTransformation":
+                method = getattr(function, f"map{packet.input_index}")
+                result = method(packet.payload)
+                for item in self._normalize_outputs(result):
+                    self._enqueue_downstreams(
+                        queue, transformation, packet.inherit_partition_info(item)
+                    )
+                return
+
+            if transformation_name == "SinkTransformation":
+                function.execute(packet.payload)
+                return
+
+            result = function.execute(packet.payload)
+            for item in self._normalize_outputs(result):
+                self._enqueue_downstreams(
+                    queue, transformation, packet.inherit_partition_info(item)
+                )
+        finally:
+            if function_ctx is not None and hasattr(function_ctx, "clear_key"):
+                function_ctx.clear_key()
+
+    def _dispatch_from_source(
+        self,
+        source_transformation: Any,
+        item: Any,
+        instances: dict[str, Any],
+    ) -> None:
+        queue: deque[tuple[Any, Packet]] = deque()
+        source_packet = Packet(payload=item)
+        self._enqueue_downstreams(queue, source_transformation, source_packet)
+
+        while queue:
+            transformation, packet = queue.popleft()
+            self._process_packet(transformation, packet, instances, queue)
+
+    def _poll_source(
+        self,
+        transformation: Any,
+        instances: dict[str, Any],
+    ) -> tuple[str, Any | None]:
+        if transformation.basename in self._closed_sources:
+            return ("closed", None)
+
+        function = instances[transformation.basename]
+        try:
+            item = function.execute()
+        except StopIteration:
+            self._closed_sources.add(transformation.basename)
+            return ("closed", None)
+
+        if _is_batch_source(transformation):
+            if _is_stop_signal(item):
+                self._closed_sources.add(transformation.basename)
+                return ("closed", None)
+            return ("item", item)
+
+        if _is_stream_source(transformation):
+            if type(item).__name__ == "StopSignal":
+                self._closed_sources.add(transformation.basename)
+                return ("closed", None)
+            if item is None:
+                return ("idle", None)
+            return ("item", item)
+
+        if _is_stop_signal(item):
+            self._closed_sources.add(transformation.basename)
+            return ("closed", None)
+        return ("item", item)
+
+    def _pump_stream_sources_once(self, instances: dict[str, Any]) -> bool:
+        progressed = False
+        for transformation in self.source_transformations:
+            if not _is_stream_source(transformation):
+                continue
+            status, item = self._poll_source(transformation, instances)
+            if status != "item" or item is None:
+                continue
+            progressed = True
+            with self._dispatch_lock:
+                self._dispatch_from_source(transformation, item, instances)
+        return progressed
+
+    def _collect_source_items(self) -> list[tuple[Any, Any]]:
+        instances = self._build_instances()
+        active_sources = list(self.source_transformations)
+        items: list[tuple[Any, Any]] = []
+
+        while active_sources:
+            next_active: list[Any] = []
+            for transformation in active_sources:
+                status, item = self._poll_source(transformation, instances)
+                if status == "closed":
+                    continue
+                if status == "idle":
+                    next_active.append(transformation)
+                    continue
+                items.append((transformation, item))
+                next_active.append(transformation)
+            active_sources = next_active
+
+        logger.debug(
+            "Collected %d source item(s) from %d source(s).",
+            len(items),
+            len(self.source_transformations),
+        )
+        return items
+
+    def _finalize_functions(self, instances: dict[str, Any]) -> None:
+        if self._finalized:
+            return
+        self._finalized = True
+
+        for transformation in self.pipeline:
+            if type(transformation).__name__ != "SinkTransformation":
+                continue
+            function = instances.get(transformation.basename)
+            close = getattr(function, "close", None)
+            if callable(close):
+                close()
+
+        if self._service_runtime is not None:
+            self._service_runtime.close()
 
     def submit(self, autostop: bool = False) -> Any:
         if autostop:
@@ -111,67 +614,113 @@ class CompiledActorGraph:
         next_items = [method_ref.call(item) for item in items]
         return self._execute_chain(next_items, remaining)
 
-    def _collect_source_items(self) -> list[Any]:
-        t = self.source_transformation
-        if t is None:
+    def _submit_batch(self) -> None:
+        if not self.source_transformations:
+            logger.info("Pipeline has no source transformations; batch pipeline skipped.")
             return []
 
-        fn = t.function_class(*t.function_args, **t.function_kwargs)
-        items: list[Any] = []
-        while True:
-            item = fn.execute()
-            if _is_stop_signal(item):
+        instances = self._build_instances()
+        active_sources = list(self.source_transformations)
+        processed_items = 0
+        idle_rounds = 0
+
+        while active_sources:
+            next_active: list[Any] = []
+            emitted_in_round = False
+
+            for transformation in active_sources:
+                status, item = self._poll_source(transformation, instances)
+                if status == "closed":
+                    continue
+                if status == "idle":
+                    next_active.append(transformation)
+                    continue
+
+                emitted_in_round = True
+                processed_items += 1
+                next_active.append(transformation)
+                self._dispatch_from_source(transformation, item, instances)
+
+            if not next_active:
                 break
-            items.append(item)
 
-        logger.debug(
-            "Source '%s' drained: %d items collected.", t.function_class.__name__, len(items)
-        )
-        return items
+            active_sources = next_active
+            if emitted_in_round:
+                idle_rounds = 0
+                continue
 
-    def _submit_batch(self) -> None:
-        items = self._collect_source_items()
-        if not items:
+            idle_rounds += 1
+            if idle_rounds > 1000:
+                logger.warning(
+                    "Stopping batch run after %d idle polling rounds with no new source items.",
+                    idle_rounds,
+                )
+                break
+            time.sleep(0.01)
+
+        if processed_items == 0:
             logger.info("Source produced no items; batch pipeline skipped.")
             return None
 
-        logger.info("Processing batch of %d items through pipeline.", len(items))
-        for item in items:
-            self._execute_chain([item], self.stage_ops)
+        logger.info(
+            "Processing batch of %d item(s) through pipeline from %d source(s).",
+            processed_items,
+            len(self.source_transformations),
+        )
+        self._finalize_functions(instances)
         return None
 
     def _submit_streaming(self) -> _StreamingFlowHandle:
         stop_event = threading.Event()
-        source_thread: threading.Thread | None = None
+        instances = self._build_instances()
+        source_threads: list[threading.Thread] = []
 
-        if self.source_transformation is not None:
+        for transformation in self.source_transformations:
             source_thread = threading.Thread(
                 target=self._run_source_thread,
-                args=(stop_event,),
+                args=(transformation, instances, stop_event),
                 daemon=True,
-                name=f"sage-source-{self.source_transformation.basename}",
+                name=f"sage-source-{transformation.basename}",
             )
             source_thread.start()
+            source_threads.append(source_thread)
 
-        return _StreamingFlowHandle(source_thread, stop_event=stop_event)
+        return _StreamingFlowHandle(source_threads, stop_event=stop_event)
 
-    def _run_source_thread(self, stop_event: threading.Event) -> None:
-        t = self.source_transformation
-        fn = t.function_class(*t.function_args, **t.function_kwargs)
+    def _run_source_thread(
+        self,
+        transformation: Any,
+        instances: dict[str, Any],
+        stop_event: threading.Event,
+    ) -> None:
+        function = instances[transformation.basename]
 
         try:
             while not stop_event.is_set():
-                item = fn.execute()
-                if _is_stop_signal(item):
+                status, item = self._poll_source(transformation, instances)
+                if status == "closed":
                     break
-                self._execute_chain([item], self.stage_ops)
+                if status == "idle":
+                    time.sleep(getattr(transformation, "delay", 0.01))
+                    continue
+                with self._dispatch_lock:
+                    self._dispatch_from_source(transformation, item, instances)
         except Exception:
             logger.exception(
                 "Source function '%s' raised an exception in streaming mode.",
-                t.function_class.__name__,
+                transformation.function_class.__name__,
             )
         finally:
-            logger.debug("Source thread for '%s' exiting.", t.function_class.__name__)
+            logger.debug(
+                "Source thread for '%s' exiting.",
+                transformation.function_class.__name__,
+            )
+            if not any(
+                thread.is_alive()
+                for thread in threading.enumerate()
+                if thread.name.startswith("sage-source-")
+            ):
+                self._finalize_functions(instances)
 
 
 class PipelineCompiler:
@@ -183,25 +732,36 @@ class PipelineCompiler:
             )
 
         source_trans: Any | None = None
+        source_transforms: list[Any] = []
         proc_transformations: list[Any] = []
 
         for t in pipeline:
             _, op_type, _ = _classify(t)
             if op_type == "source":
-                if source_trans is not None:
-                    raise ValueError(
-                        "PipelineCompiler found more than one SourceTransformation in the pipeline. "
-                        "Only a single source is supported per compilation unit."
-                    )
-                source_trans = t
+                source_transforms.append(t)
+                if source_trans is None:
+                    source_trans = t
             else:
                 proc_transformations.append(t)
 
         actor_handles: list[Any] = []
         stage_ops: list[tuple[str, Any]] = []
+        downstream_edges: dict[str, list[tuple[Any, int]]] = {t.basename: [] for t in pipeline}
+
+        for downstream in pipeline:
+            for upstream in getattr(downstream, "upstreams", []):
+                input_index = upstream.downstreams.get(downstream.basename, 0)
+                downstream_edges.setdefault(upstream.basename, []).append((downstream, input_index))
 
         for t in proc_transformations:
             wrapper_cls, op_type, method_name = _classify(t)
+            if not _uses_legacy_linear_wrapper(t):
+                logger.debug(
+                    "Compiled DAG-native stage %s [%s] without legacy linear wrapper.",
+                    t.basename,
+                    _transformation_name(t),
+                )
+                continue
             handle = adapter.create(
                 wrapper_cls,
                 t.function_class,
@@ -225,4 +785,7 @@ class PipelineCompiler:
             source_transformation=source_trans,
             actor_handles=actor_handles,
             adapter=adapter,
+            source_transformations=source_transforms,
+            pipeline=list(pipeline),
+            downstream_edges=downstream_edges,
         )

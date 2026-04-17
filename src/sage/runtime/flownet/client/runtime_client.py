@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import inspect
 import json
 import time
 import uuid
 import warnings
+from collections import deque
 from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
 from queue import Empty, Queue
-from threading import Lock
+from threading import Lock, Thread
 from typing import Any
 from weakref import WeakKeyDictionary
 
@@ -23,6 +25,8 @@ from sage.runtime.flownet.api.declarations import (
     BoundSourceDeclaration,
     FlowDeclaration,
     NamedFlowDeclarationRef,
+    ServiceDeclaration,
+    SourceDeclaration,
     StatelessDeclaration,
 )
 from sage.runtime.flownet.client.handles import InstanceHandle, RegistrationHandle, ResourceKind
@@ -31,6 +35,28 @@ from sage.runtime.flownet.compiler.targets import (
     coerce_actor_symbol_target,
     coerce_flow_symbol_target,
     coerce_stateless_symbol_target,
+)
+from sage.runtime.flownet.contracts.endpoint_plane_contract import FlowEndpointDescriptor
+from sage.runtime.flownet.contracts.recovery_contract import (
+    RecoveryStatusSummary,
+    build_initial_recovery_summary,
+    build_recovery_success_summary,
+    normalize_recovery_policy,
+)
+from sage.runtime.flownet.contracts.shared_state_contract import (
+    normalize_shared_state_binding_specs,
+)
+from sage.runtime.flownet.data.connectors import (
+    build_connector_checkpoint_handler,
+    build_connector_checkpoint_scope,
+    resolve_connector_resume_offset,
+)
+from sage.runtime.flownet.runtime.governance import (
+    GovernanceDeniedError,
+    GovernanceQuotaExceededError,
+    evaluate_runtime_admission_policy,
+    normalize_runtime_admission_policy,
+    resolve_runtime_governance_identity,
 )
 
 _BINDING_KEYS = (
@@ -78,6 +104,7 @@ class V1RuntimeClient:
         runtime_host: object | None = None,
         io_contract_mode: str = "compat",
     ) -> None:
+        self.owner = _normalize_non_empty(owner, field_name="owner")
         self._id_factory = id_factory or (lambda: uuid.uuid4().hex)
         self.runtime_host = runtime_host
         self._io_contract_mode = _normalize_io_contract_mode(io_contract_mode)
@@ -150,6 +177,7 @@ class V1RuntimeClient:
             client=self,
             io_contract_mode=self._io_contract_mode,
         )
+        self.shared_state = _SharedStateClientSurface(runtime_host=runtime_host)
 
     def start_source(
         self,
@@ -175,6 +203,22 @@ class V1RuntimeClient:
 
     def stop_source(self, instance_or_id: InstanceHandle | str) -> bool:
         return self.sources.stop(instance_or_id)
+
+    def restart_source(
+        self,
+        instance_or_id: InstanceHandle | str,
+        *,
+        reason: str = "manual_restart",
+    ) -> InstanceHandle:
+        return self.sources.restart(instance_or_id, reason=reason)
+
+    def handle_source_failure(
+        self,
+        instance_or_id: InstanceHandle | str,
+        *,
+        error: Any | None = None,
+    ) -> InstanceHandle | None:
+        return self.sources.handle_failure(instance_or_id, error=error)
 
     def list_sources(self, *, include_stopped: bool = False) -> list[dict[str, Any]]:
         records = self.sources.query(include_stopped=include_stopped)
@@ -218,10 +262,37 @@ class V1RuntimeClient:
     def stop_service(self, instance_or_id: InstanceHandle | str) -> bool:
         return self.services.stop(instance_or_id)
 
+    def restart_service(
+        self,
+        instance_or_id: InstanceHandle | str,
+        *,
+        reason: str = "manual_restart",
+    ) -> InstanceHandle:
+        return self.services.restart(instance_or_id, reason=reason)
+
+    def handle_service_failure(
+        self,
+        instance_or_id: InstanceHandle | str,
+        *,
+        error: Any | None = None,
+    ) -> InstanceHandle | None:
+        return self.services.handle_failure(instance_or_id, error=error)
+
     def unbind_flow_process(self, flow_instance_or_id: InstanceHandle | str) -> bool:
         instance_id = _normalize_instance_id(flow_instance_or_id)
         if self.runtime_host is None:
             return False
+
+        release_endpoint_publications = getattr(
+            self.runtime_host,
+            "release_flow_instance_endpoints",
+            None,
+        )
+        if callable(release_endpoint_publications):
+            try:
+                release_endpoint_publications(instance_id)
+            except Exception:
+                pass
 
         topic_api = getattr(self.runtime_host, "topic_api", None)
         if topic_api is None:
@@ -273,9 +344,112 @@ class V1RuntimeClient:
             include_stopped=include_stopped,
         )
 
+    def publish_flow_endpoint(
+        self,
+        declaration_or_registration_or_instance_or_uri: Any,
+        *,
+        name: str,
+        namespace: str | None = None,
+        version: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+        in_topic: str | None = None,
+        out_topic: str | None = None,
+        config: Mapping[str, Any] | None = None,
+        policies: Mapping[str, Any] | None = None,
+        reuse_existing: bool = True,
+    ) -> FlowEndpoint:
+        return self.flows.publish_endpoint(
+            declaration_or_registration_or_instance_or_uri,
+            name=name,
+            namespace=namespace,
+            version=version,
+            metadata=metadata,
+            in_topic=in_topic,
+            out_topic=out_topic,
+            config=config,
+            policies=policies,
+            reuse_existing=reuse_existing,
+        )
+
+    def find_flow_endpoint(
+        self,
+        *,
+        name: str,
+        namespace: str | None = None,
+        flow_uri: str | None = None,
+    ) -> FlowEndpoint | None:
+        return self.flows.find_endpoint(
+            name=name,
+            namespace=namespace,
+            flow_uri=flow_uri,
+        )
+
+    def inspect_flow_endpoint(
+        self,
+        *,
+        endpoint_id: str | None = None,
+        name: str | None = None,
+        namespace: str | None = None,
+        flow_uri: str | None = None,
+    ) -> dict[str, Any] | None:
+        return self.flows.inspect_endpoint(
+            endpoint_id=endpoint_id,
+            name=name,
+            namespace=namespace,
+            flow_uri=flow_uri,
+        )
+
+    def list_flow_endpoints(
+        self,
+        *,
+        namespace: str | None = None,
+        flow_uri: str | None = None,
+        include_released: bool = True,
+    ) -> list[dict[str, Any]]:
+        return self.flows.list_endpoints(
+            namespace=namespace,
+            flow_uri=flow_uri,
+            include_released=include_released,
+        )
+
     def list_services(self, *, include_stopped: bool = False) -> list[dict[str, Any]]:
         records = self.services.query(include_stopped=include_stopped)
         return records if isinstance(records, list) else []
+
+    def start_shared_state_service(
+        self,
+        declaration_or_registration: Any,
+        *,
+        descriptor: Any,
+        args: tuple[Any, ...] = (),
+        kwargs: Mapping[str, Any] | None = None,
+        source_kind: str = "service",
+    ) -> Any:
+        return self.shared_state.start(
+            declaration_or_registration,
+            descriptor=descriptor,
+            args=args,
+            kwargs=kwargs,
+            source_kind=source_kind,
+        )
+
+    def list_shared_state_services(self) -> list[dict[str, Any]]:
+        return self.shared_state.list()
+
+    def recover_shared_state_service(
+        self,
+        descriptor_or_contract_id: Any,
+        *,
+        reason: str = "manual_recovery",
+    ) -> Any:
+        return self.shared_state.recover(descriptor_or_contract_id, reason=reason)
+
+    def release_shared_state_flow_claims(self, flow_instance_or_id: InstanceHandle | str) -> None:
+        runtime_host = self.runtime_host
+        registry = getattr(runtime_host, "shared_state_registry", None) if runtime_host is not None else None
+        if registry is None:
+            return
+        registry.release_flow_instance_claims(_normalize_instance_id(flow_instance_or_id))
 
     def query_service(
         self,
@@ -291,12 +465,61 @@ class V1RuntimeClient:
         )
 
 
+class _SharedStateClientSurface:
+    def __init__(self, *, runtime_host: object | None) -> None:
+        self._runtime_host = runtime_host
+
+    def start(
+        self,
+        declaration_or_registration: Any,
+        *,
+        descriptor: Any,
+        args: tuple[Any, ...] = (),
+        kwargs: Mapping[str, Any] | None = None,
+        source_kind: str = "service",
+    ) -> Any:
+        runtime_host = _require_shared_state_runtime_host(self._runtime_host)
+        registry = _resolve_runtime_shared_state_registry(runtime_host)
+        declaration = _resolve_shared_state_declaration(declaration_or_registration)
+        target = _resolve_shared_state_target(declaration)
+        service_object = target(*tuple(args), **dict(kwargs or {}))
+        return registry.register_service(
+            descriptor=descriptor,
+            service_object=service_object,
+            declaration=declaration,
+            source_kind=str(source_kind or "service").strip() or "service",
+            service_uri=_normalize_optional_non_empty(getattr(declaration, "uri", None)),
+            factory=target,
+            factory_args=tuple(args),
+            factory_kwargs=dict(kwargs or {}),
+        )
+
+    def list(self) -> list[dict[str, Any]]:
+        runtime_host = _require_shared_state_runtime_host(self._runtime_host)
+        return _resolve_runtime_shared_state_registry(runtime_host).observability_snapshot()
+
+    def recover(self, descriptor_or_contract_id: Any, *, reason: str = "manual_recovery") -> Any:
+        runtime_host = _require_shared_state_runtime_host(self._runtime_host)
+        return _resolve_runtime_shared_state_registry(runtime_host).recover_service(
+            descriptor_or_contract_id,
+            reason=reason,
+        )
+
+    def resolve(self, descriptor_or_contract_id: Any) -> Any | None:
+        runtime_host = _require_shared_state_runtime_host(self._runtime_host)
+        return _resolve_runtime_shared_state_registry(runtime_host).resolve_contract(
+            descriptor_or_contract_id
+        )
+
+
 @dataclass
 class _EndpointRequestState:
     request_id: str
     outputs: Queue[Any] = field(default_factory=Queue)
     finished: bool = False
     released: bool = False
+    admission_checked: bool = False
+    admission_identity: dict[str, str | None] | None = None
 
 
 class FlowRequestOutcomeError(RuntimeError):
@@ -440,7 +663,11 @@ class FlowEndpoint:
         self._id_factory = id_factory
         self._requests_lock = Lock()
         self._requests: dict[str, _EndpointRequestState] = {}
+        self._request_quota_windows: dict[str, deque[int]] = {}
         self._closed = False
+        self._published_endpoint_id: str | None = None
+        self._published_endpoint_name: str | None = None
+        self._published_endpoint_namespace: str | None = None
 
         in_route = topic_api.require_topic_route(
             _normalize_non_empty(in_topic, field_name="in_topic")
@@ -518,6 +745,72 @@ class FlowEndpoint:
         with self._requests_lock:
             self._requests.clear()
 
+    @property
+    def publication_id(self) -> str | None:
+        return self._published_endpoint_id
+
+    def publish(
+        self,
+        *,
+        name: str,
+        namespace: str | None = None,
+        version: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+        reuse_existing: bool = True,
+    ) -> FlowEndpoint:
+        return self.client.publish_flow_endpoint(
+            self.flow_instance,
+            name=name,
+            namespace=namespace,
+            version=version,
+            metadata=metadata,
+            in_topic=self.in_topic,
+            out_topic=self.out_topic,
+            reuse_existing=reuse_existing,
+        )
+
+    def inspect(self) -> dict[str, Any]:
+        if self._published_endpoint_id is not None:
+            snapshot = self.client.inspect_flow_endpoint(
+                endpoint_id=self._published_endpoint_id,
+            )
+            if snapshot is not None:
+                return snapshot
+        return {
+            "endpoint_id": None,
+            "name": self._published_endpoint_name,
+            "namespace": self._published_endpoint_namespace
+            or self._resolve_endpoint_namespace(),
+            "flow_uri": self.flow_instance.registration.uri,
+            "owner": self.flow_instance.registration.owner,
+            "version": _resolve_flow_endpoint_version(self.flow_instance.registration, None),
+            "flow_instance_id": self.flow_instance.instance_id,
+            "in_topic": self.in_topic,
+            "out_topic": self.out_topic,
+            "status": "ephemeral",
+            "flow_process_uri": _build_flow_process_uri(self.flow_instance.instance_id),
+            "declaration_id": _normalize_optional_non_empty(
+                self.flow_instance.registration.metadata.get("declaration_id")
+            ),
+            "definition_hash": _normalize_optional_non_empty(
+                self.flow_instance.registration.metadata.get("definition_hash")
+            ),
+            "bind_hash": _normalize_optional_non_empty(self.flow_instance.bindings.get("bind_hash")),
+            "shared_state_bindings": _normalize_endpoint_shared_state_bindings(
+                self.flow_instance.bindings.get("shared_state_bindings")
+            ),
+            "metadata": {},
+            "published_at_epoch_ms": None,
+        }
+
+    def _attach_publication_descriptor(self, descriptor: Mapping[str, Any]) -> None:
+        endpoint_id = _normalize_optional_non_empty(descriptor.get("endpoint_id"))
+        self._published_endpoint_id = endpoint_id
+        self._published_endpoint_name = _normalize_optional_non_empty(descriptor.get("name"))
+        self._published_endpoint_namespace = _normalize_optional_non_empty(
+            descriptor.get("namespace")
+        )
+
     def _on_topic_event(self, event_record: dict[str, Any]) -> None:
         if not isinstance(event_record, dict):
             return
@@ -554,6 +847,7 @@ class FlowEndpoint:
         normalized_tags = None
         if tags is not None:
             normalized_tags = {str(key): str(value) for key, value in dict(tags).items()}
+        self._ensure_request_admitted(state=state, tags=normalized_tags)
         return self._topic_api.publish_event(
             topic_uri=self.in_topic,
             event_group_id=request_id,
@@ -665,6 +959,229 @@ class FlowEndpoint:
             self._requests.pop(normalized_request_id, None)
         return True
 
+    def _ensure_request_admitted(
+        self,
+        *,
+        state: _EndpointRequestState,
+        tags: Mapping[str, str] | None,
+    ) -> None:
+        if state.admission_checked:
+            return
+        policy = self._resolve_endpoint_admission_policy()
+        identity = resolve_runtime_governance_identity(
+            tags,
+            default_principal=self.client.owner,
+            default_tenant=self._resolve_default_tenant(),
+        )
+        namespace = self._resolve_endpoint_namespace()
+        principal = _normalize_non_empty(identity["principal"], field_name="principal")
+        tenant = _normalize_optional_non_empty(identity.get("tenant"))
+        reason_code = evaluate_runtime_admission_policy(
+            policy,
+            principal=principal,
+            tenant=tenant,
+            namespace=namespace,
+        )
+        if reason_code != "ok":
+            details = {
+                "flow_uri": self.flow_instance.registration.uri,
+                "instance_id": self.flow_instance.instance_id,
+                "policy": dict(policy),
+                "in_topic": self.in_topic,
+                "out_topic": self.out_topic,
+            }
+            self._record_endpoint_admission(
+                principal=principal,
+                tenant=tenant,
+                namespace=namespace,
+                allowed=False,
+                reason_code=reason_code,
+                request_id=state.request_id,
+                details=details,
+            )
+            raise GovernanceDeniedError(
+                error_prefix="flow_endpoint_admission_denied",
+                reason_code=reason_code,
+                details=details,
+            )
+
+        quota = dict(policy.get("quota") or {})
+        quota_limit = quota.get("max_requests_per_window")
+        quota_value: int | None = None
+        if quota_limit is not None:
+            quota_scope = (
+                f"endpoint::{self.flow_instance.instance_id}::{principal}::"
+                f"{tenant or '-'}"
+            )
+            quota_window_ms = int(quota.get("window_ms") or 60_000)
+            governance_manager = self._resolve_governance_manager()
+            if governance_manager is not None:
+                allowed, quota_value = governance_manager.allow_window(
+                    scope=quota_scope,
+                    limit=int(quota_limit),
+                    window_ms=quota_window_ms,
+                )
+            else:
+                allowed, quota_value = self._allow_local_window(
+                    scope=quota_scope,
+                    limit=int(quota_limit),
+                    window_ms=quota_window_ms,
+                )
+            if not allowed:
+                details = {
+                    "flow_uri": self.flow_instance.registration.uri,
+                    "instance_id": self.flow_instance.instance_id,
+                    "policy": dict(policy),
+                    "in_topic": self.in_topic,
+                    "out_topic": self.out_topic,
+                }
+                self._record_endpoint_admission(
+                    principal=principal,
+                    tenant=tenant,
+                    namespace=namespace,
+                    allowed=False,
+                    reason_code="quota_exceeded",
+                    request_id=state.request_id,
+                    quota_name="max_requests_per_window",
+                    quota_limit=int(quota_limit),
+                    quota_value=quota_value,
+                    details=details,
+                )
+                raise GovernanceQuotaExceededError(
+                    error_prefix="flow_endpoint_admission_denied",
+                    details=details,
+                )
+
+        self._record_endpoint_admission(
+            principal=principal,
+            tenant=tenant,
+            namespace=namespace,
+            allowed=True,
+            reason_code="ok",
+            request_id=state.request_id,
+            quota_name=("max_requests_per_window" if quota_limit is not None else None),
+            quota_limit=(int(quota_limit) if quota_limit is not None else None),
+            quota_value=quota_value,
+            details={
+                "flow_uri": self.flow_instance.registration.uri,
+                "instance_id": self.flow_instance.instance_id,
+                "in_topic": self.in_topic,
+                "out_topic": self.out_topic,
+            },
+        )
+        state.admission_checked = True
+        state.admission_identity = {
+            "principal": principal,
+            "tenant": tenant,
+        }
+
+    def _record_endpoint_admission(
+        self,
+        *,
+        principal: str,
+        tenant: str | None,
+        namespace: str,
+        allowed: bool,
+        reason_code: str,
+        request_id: str,
+        quota_name: str | None = None,
+        quota_limit: int | None = None,
+        quota_value: int | None = None,
+        details: Mapping[str, Any] | None = None,
+    ) -> None:
+        governance_manager = self._resolve_governance_manager()
+        if governance_manager is None:
+            return
+        governance_manager.record_decision(
+            resource_kind="endpoint",
+            resource_id=self.flow_instance.instance_id,
+            resource_name=self.flow_instance.registration.uri,
+            namespace=namespace,
+            principal=principal,
+            tenant=tenant,
+            allowed=allowed,
+            reason_code=reason_code,
+            operation="request_write",
+            request_id=request_id,
+            flow_instance_id=self.flow_instance.instance_id,
+            quota_name=quota_name,
+            quota_limit=quota_limit,
+            quota_value=quota_value,
+            details=dict(details or {}),
+        )
+
+    def _resolve_governance_manager(self) -> Any | None:
+        runtime_host = getattr(self.client, "runtime_host", None)
+        return getattr(runtime_host, "governance", None)
+
+    def _resolve_default_tenant(self) -> str | None:
+        registration = self.flow_instance.registration
+        declaration_metadata = getattr(registration.declaration, "metadata", None)
+        if isinstance(registration.metadata, Mapping):
+            tenant = _normalize_optional_non_empty(registration.metadata.get("tenant"))
+            if tenant is not None:
+                return tenant
+        if isinstance(declaration_metadata, Mapping):
+            return _normalize_optional_non_empty(declaration_metadata.get("tenant"))
+        return None
+
+    def _resolve_endpoint_namespace(self) -> str:
+        registration = self.flow_instance.registration
+        declaration_namespace = _normalize_optional_non_empty(
+            getattr(registration.declaration, "namespace", None)
+        )
+        return (
+            _normalize_optional_non_empty(registration.metadata.get("namespace"))
+            or declaration_namespace
+            or "default"
+        )
+
+    def _resolve_endpoint_admission_policy(self) -> dict[str, Any]:
+        registration = self.flow_instance.registration
+        declaration_policies = getattr(registration.declaration, "policies", None)
+        base_policy = {}
+        if isinstance(declaration_policies, Mapping):
+            base_policy = declaration_policies.get("admission") or {}
+        override_policy = {}
+        if isinstance(self.flow_instance.policies, Mapping):
+            override_policy = self.flow_instance.policies.get("admission") or {}
+        normalized_base = normalize_runtime_admission_policy(base_policy)
+        normalized_override = normalize_runtime_admission_policy(override_policy)
+        merged = dict(normalized_base)
+        merged_quota = dict(normalized_base.get("quota") or {})
+        for key, value in normalized_override.items():
+            if key == "quota":
+                continue
+            if value in (None, [], {}):
+                continue
+            merged[key] = value
+        merged_quota.update(
+            {
+                key: value
+                for key, value in dict(normalized_override.get("quota") or {}).items()
+                if value is not None
+            }
+        )
+        merged["quota"] = merged_quota
+        return merged
+
+    def _allow_local_window(
+        self,
+        *,
+        scope: str,
+        limit: int,
+        window_ms: int,
+    ) -> tuple[bool, int]:
+        now_ms = int(time.time() * 1000)
+        window = self._request_quota_windows.setdefault(scope, deque())
+        floor_ms = now_ms - int(window_ms)
+        while window and int(window[0]) < floor_ms:
+            window.popleft()
+        if len(window) >= int(limit):
+            return False, len(window)
+        window.append(now_ms)
+        return True, len(window)
+
 
 class _ClientSurface:
     def __init__(
@@ -758,14 +1275,34 @@ class _ClientSurface:
         )
         if bind_hash is not None:
             bindings.setdefault("bind_hash", bind_hash)
+        instance_id = _normalize_non_empty(self._id_factory(), field_name="instance_id")
+        normalized_config = _normalize_mapping(config, field_name="config")
+        normalized_policies = _normalize_mapping(policies, field_name="policies")
+        shared_state_bindings = _resolve_instance_shared_state_bindings(
+            kind=self._kind,
+            registration=registration,
+            runtime_host=self._runtime_host,
+            consumer_instance_id=instance_id,
+        )
+        if shared_state_bindings:
+            bindings["shared_state_bindings"] = shared_state_bindings
         options = dict(instantiate_options)
+        if self._kind == "source":
+            options = _resolve_source_fault_tolerance_runtime_options(
+                runtime_host=self._runtime_host,
+                registration=registration,
+                config=normalized_config,
+                policies=normalized_policies,
+                bindings=bindings,
+                options=options,
+            )
         instance = InstanceHandle(
             kind=self._kind,
-            instance_id=_normalize_non_empty(self._id_factory(), field_name="instance_id"),
+            instance_id=instance_id,
             registration=registration,
             implicit_registration=implicit_registration,
-            config=_normalize_mapping(config, field_name="config"),
-            policies=_normalize_mapping(policies, field_name="policies"),
+            config=normalized_config,
+            policies=normalized_policies,
             bindings=bindings,
             options=options,
         )
@@ -785,6 +1322,8 @@ class _ClientSurface:
     ) -> FlowEndpoint:
         if self._kind != "flow":
             raise TypeError("endpoint is only available on flows surface.")
+        if not isinstance(reuse_existing, bool):
+            raise TypeError("reuse_existing must be bool.")
         if self._runtime_host is None:
             raise RuntimeError("flow_endpoint_requires_runtime_host")
         topic_api = getattr(self._runtime_host, "topic_api", None)
@@ -963,6 +1502,153 @@ class _ClientSurface:
             id_factory=self._id_factory,
         )
 
+    def publish_endpoint(
+        self,
+        declaration_or_registration_or_instance_or_uri: Any,
+        *,
+        name: str,
+        namespace: str | None = None,
+        version: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+        in_topic: str | None = None,
+        out_topic: str | None = None,
+        config: Mapping[str, Any] | None = None,
+        policies: Mapping[str, Any] | None = None,
+        reuse_existing: bool = True,
+    ) -> FlowEndpoint:
+        if self._kind != "flow":
+            raise TypeError("publish_endpoint is only available on flows surface.")
+        if not isinstance(reuse_existing, bool):
+            raise TypeError("reuse_existing must be bool.")
+        registry = _require_runtime_endpoint_registry(self._runtime_host)
+        normalized_name = _normalize_non_empty(name, field_name="name")
+        resolved_flow_uri = _resolve_flow_candidate_uri(
+            declaration_or_registration_or_instance_or_uri
+        )
+        resolved_namespace = _resolve_requested_endpoint_namespace(
+            declaration_or_registration_or_instance_or_uri,
+            explicit_namespace=namespace,
+        )
+        existing_record = registry.find_active(
+            name=normalized_name,
+            namespace=resolved_namespace,
+            flow_uri=resolved_flow_uri,
+        )
+        if existing_record is not None:
+            if not reuse_existing:
+                raise ValueError(
+                    "flow_endpoint_name_already_published:"
+                    f"namespace={resolved_namespace} name={normalized_name}"
+                )
+            _validate_existing_endpoint_binding_match(
+                existing_record.snapshot(),
+                in_topic=in_topic,
+                out_topic=out_topic,
+                topic_api=getattr(self._runtime_host, "topic_api", None),
+            )
+            return self._build_endpoint_from_published_record(existing_record)
+
+        endpoint = self.endpoint(
+            declaration_or_registration_or_instance_or_uri,
+            in_topic=in_topic,
+            out_topic=out_topic,
+            config=config,
+            policies=policies,
+            reuse_existing=reuse_existing,
+        )
+        published_namespace = _validate_endpoint_publication_namespace(
+            explicit_namespace=namespace,
+            flow_instance=endpoint.flow_instance,
+        )
+        descriptor = _build_published_flow_endpoint_descriptor(
+            endpoint=endpoint,
+            endpoint_id=_normalize_non_empty(self._id_factory(), field_name="endpoint_id"),
+            name=normalized_name,
+            namespace=published_namespace,
+            version=version,
+            metadata=metadata,
+        )
+        record = registry.publish(
+            descriptor=descriptor,
+            flow_instance=endpoint.flow_instance,
+            reuse_existing=reuse_existing,
+        )
+        if record.flow_instance.instance_id != endpoint.flow_instance.instance_id:
+            return self._build_endpoint_from_published_record(record)
+        endpoint._attach_publication_descriptor(record.snapshot())
+        return endpoint
+
+    def find_endpoint(
+        self,
+        *,
+        name: str,
+        namespace: str | None = None,
+        flow_uri: str | None = None,
+    ) -> FlowEndpoint | None:
+        if self._kind != "flow":
+            raise TypeError("find_endpoint is only available on flows surface.")
+        registry = _require_runtime_endpoint_registry(self._runtime_host)
+        normalized_namespace = _normalize_optional_non_empty(namespace) or "default"
+        record = registry.find_active(
+            name=_normalize_non_empty(name, field_name="name"),
+            namespace=normalized_namespace,
+            flow_uri=flow_uri,
+        )
+        if record is None:
+            return None
+        return self._build_endpoint_from_published_record(record)
+
+    def inspect_endpoint(
+        self,
+        *,
+        endpoint_id: str | None = None,
+        name: str | None = None,
+        namespace: str | None = None,
+        flow_uri: str | None = None,
+    ) -> dict[str, Any] | None:
+        if self._kind != "flow":
+            raise TypeError("inspect_endpoint is only available on flows surface.")
+        registry = _require_runtime_endpoint_registry(self._runtime_host)
+        if endpoint_id is None and (name is None or namespace is None):
+            raise ValueError("inspect_endpoint requires endpoint_id or name+namespace.")
+        return registry.inspect(
+            endpoint_id=endpoint_id,
+            name=name,
+            namespace=namespace,
+            flow_uri=flow_uri,
+        )
+
+    def list_endpoints(
+        self,
+        *,
+        namespace: str | None = None,
+        flow_uri: str | None = None,
+        include_released: bool = True,
+    ) -> list[dict[str, Any]]:
+        if self._kind != "flow":
+            raise TypeError("list_endpoints is only available on flows surface.")
+        registry = _require_runtime_endpoint_registry(self._runtime_host)
+        return registry.list_endpoints(
+            namespace=namespace,
+            flow_uri=flow_uri,
+            include_released=include_released,
+        )
+
+    def _build_endpoint_from_published_record(self, record: Any) -> FlowEndpoint:
+        topic_api = getattr(self._runtime_host, "topic_api", None)
+        if topic_api is None:
+            raise RuntimeError("flow_endpoint_requires_topic_api")
+        endpoint = FlowEndpoint(
+            client=self._client,
+            topic_api=topic_api,
+            flow_instance=record.flow_instance,
+            in_topic=record.descriptor.in_topic,
+            out_topic=record.descriptor.out_topic,
+            id_factory=self._id_factory,
+        )
+        endpoint._attach_publication_descriptor(record.snapshot())
+        return endpoint
+
     def _resolve_named_flow_instance(
         self, named_ref: NamedFlowDeclarationRef
     ) -> InstanceHandle | None:
@@ -1115,12 +1801,239 @@ def _build_flow_process_metadata(
     return metadata
 
 
+def _require_runtime_endpoint_registry(runtime_host: object | None) -> Any:
+    if runtime_host is None:
+        raise RuntimeError("flow_endpoint_publish_requires_runtime_host")
+    registry = getattr(runtime_host, "endpoint_registry", None)
+    if registry is None:
+        raise RuntimeError("flow_endpoint_registry_not_available")
+    return registry
+
+
+def _resolve_flow_candidate_uri(raw_candidate: Any) -> str | None:
+    if isinstance(raw_candidate, InstanceHandle):
+        if raw_candidate.kind != "flow":
+            raise TypeError("flow endpoint publication requires a flow instance.")
+        return raw_candidate.uri
+    if isinstance(raw_candidate, RegistrationHandle):
+        if raw_candidate.kind != "flow":
+            raise TypeError("flow endpoint publication requires a flow registration.")
+        return raw_candidate.uri
+    if isinstance(raw_candidate, NamedFlowDeclarationRef):
+        return _normalize_optional_non_empty(getattr(raw_candidate.declaration, "flow_uri", None))
+    if isinstance(raw_candidate, BoundFlowDeclaration):
+        return _normalize_optional_non_empty(raw_candidate.flow_uri)
+    if isinstance(raw_candidate, FlowDeclaration):
+        return _normalize_optional_non_empty(raw_candidate.flow_uri)
+    return _normalize_optional_non_empty(getattr(raw_candidate, "flow_uri", None))
+
+
+def _resolve_requested_endpoint_namespace(
+    raw_candidate: Any,
+    *,
+    explicit_namespace: str | None,
+) -> str:
+    expected_namespace = _resolve_flow_candidate_namespace(raw_candidate)
+    if explicit_namespace is None:
+        return expected_namespace
+    normalized_namespace = _normalize_non_empty(explicit_namespace, field_name="namespace")
+    if normalized_namespace != expected_namespace:
+        raise ValueError(
+            "flow_endpoint_namespace_mismatch:"
+            f" expected={expected_namespace} requested={normalized_namespace}"
+        )
+    return normalized_namespace
+
+
+def _resolve_flow_candidate_namespace(raw_candidate: Any) -> str:
+    if isinstance(raw_candidate, InstanceHandle):
+        return _resolve_instance_namespace(raw_candidate.bindings)
+    if isinstance(raw_candidate, RegistrationHandle):
+        registration_namespace = _normalize_optional_non_empty(
+            raw_candidate.metadata.get("namespace")
+        )
+        if registration_namespace is not None:
+            return registration_namespace
+        declaration_namespace = _normalize_optional_non_empty(
+            getattr(raw_candidate.declaration, "namespace", None)
+        )
+        if declaration_namespace is not None:
+            return declaration_namespace
+        declaration_metadata = getattr(raw_candidate.declaration, "metadata", None)
+        if isinstance(declaration_metadata, Mapping):
+            metadata_namespace = _normalize_optional_non_empty(declaration_metadata.get("namespace"))
+            if metadata_namespace is not None:
+                return metadata_namespace
+        return "default"
+    if isinstance(raw_candidate, NamedFlowDeclarationRef):
+        if raw_candidate.namespace is not None:
+            return raw_candidate.namespace
+        return _resolve_flow_candidate_namespace(raw_candidate.declaration)
+    if isinstance(raw_candidate, BoundFlowDeclaration):
+        return _resolve_flow_candidate_namespace(raw_candidate.flow_program)
+    if isinstance(raw_candidate, FlowDeclaration):
+        declaration_namespace = _normalize_optional_non_empty(raw_candidate.namespace)
+        if declaration_namespace is not None:
+            return declaration_namespace
+        metadata_namespace = _normalize_optional_non_empty(raw_candidate.metadata.get("namespace"))
+        if metadata_namespace is not None:
+            return metadata_namespace
+        return "default"
+    metadata = getattr(raw_candidate, "metadata", None)
+    if isinstance(metadata, Mapping):
+        metadata_namespace = _normalize_optional_non_empty(metadata.get("namespace"))
+        if metadata_namespace is not None:
+            return metadata_namespace
+    declaration_namespace = _normalize_optional_non_empty(getattr(raw_candidate, "namespace", None))
+    if declaration_namespace is not None:
+        return declaration_namespace
+    return "default"
+
+
+def _validate_endpoint_publication_namespace(
+    *,
+    explicit_namespace: str | None,
+    flow_instance: InstanceHandle,
+) -> str:
+    registration = flow_instance.registration
+    expected_namespace = (
+        _normalize_optional_non_empty(registration.metadata.get("namespace"))
+        or _normalize_optional_non_empty(getattr(registration.declaration, "namespace", None))
+        or _normalize_optional_non_empty(
+            getattr(getattr(registration, "declaration", None), "metadata", {}).get("namespace")
+            if isinstance(getattr(getattr(registration, "declaration", None), "metadata", None), Mapping)
+            else None
+        )
+        or "default"
+    )
+    if explicit_namespace is None:
+        return expected_namespace
+    normalized_namespace = _normalize_non_empty(explicit_namespace, field_name="namespace")
+    if normalized_namespace != expected_namespace:
+        raise ValueError(
+            "flow_endpoint_namespace_mismatch:"
+            f" expected={expected_namespace} requested={normalized_namespace}"
+        )
+    return normalized_namespace
+
+
+def _build_published_flow_endpoint_descriptor(
+    *,
+    endpoint: FlowEndpoint,
+    endpoint_id: str,
+    name: str,
+    namespace: str,
+    version: str | None,
+    metadata: Mapping[str, Any] | None,
+) -> FlowEndpointDescriptor:
+    registration = endpoint.flow_instance.registration
+    return FlowEndpointDescriptor(
+        endpoint_id=endpoint_id,
+        name=_normalize_non_empty(name, field_name="name"),
+        namespace=_normalize_non_empty(namespace, field_name="namespace"),
+        flow_uri=_normalize_non_empty(registration.uri, field_name="flow_uri"),
+        owner=_normalize_non_empty(registration.owner, field_name="owner"),
+        version=_resolve_flow_endpoint_version(registration, version),
+        flow_instance_id=_normalize_non_empty(
+            endpoint.flow_instance.instance_id,
+            field_name="flow_instance_id",
+        ),
+        in_topic=_normalize_non_empty(endpoint.in_topic, field_name="in_topic"),
+        out_topic=_normalize_non_empty(endpoint.out_topic, field_name="out_topic"),
+        flow_process_uri=_build_flow_process_uri(endpoint.flow_instance.instance_id),
+        declaration_id=_normalize_optional_non_empty(registration.metadata.get("declaration_id")),
+        definition_hash=_normalize_optional_non_empty(registration.metadata.get("definition_hash")),
+        bind_hash=_normalize_optional_non_empty(endpoint.flow_instance.bindings.get("bind_hash")),
+        shared_state_bindings=tuple(
+            _normalize_endpoint_shared_state_bindings(
+                endpoint.flow_instance.bindings.get("shared_state_bindings")
+            )
+        ),
+        metadata=_normalize_mapping(metadata, field_name="metadata"),
+    )
+
+
+def _resolve_flow_endpoint_version(
+    registration: RegistrationHandle,
+    explicit_version: str | None,
+) -> str:
+    normalized_version = _normalize_optional_non_empty(explicit_version)
+    if normalized_version is not None:
+        return normalized_version
+    return _resolve_program_rev_from_metadata(
+        registration_metadata=registration.metadata,
+        declaration=getattr(registration, "declaration", None),
+    )
+
+
+def _normalize_endpoint_shared_state_bindings(raw_value: Any) -> list[dict[str, Any]]:
+    if raw_value is None:
+        return []
+    if not isinstance(raw_value, list):
+        raise TypeError("shared_state_bindings must be a list when attached to endpoint bindings.")
+    normalized: list[dict[str, Any]] = []
+    for item in raw_value:
+        if not isinstance(item, Mapping):
+            raise TypeError("shared_state_bindings items must be mappings.")
+        normalized.append(dict(item))
+    return normalized
+
+
+def _validate_existing_endpoint_binding_match(
+    snapshot: Mapping[str, Any],
+    *,
+    in_topic: str | None,
+    out_topic: str | None,
+    topic_api: Any | None = None,
+) -> None:
+    normalized_in_topic = _normalize_topic_binding_for_conflict_check(in_topic, topic_api=topic_api)
+    normalized_out_topic = _normalize_topic_binding_for_conflict_check(
+        out_topic,
+        topic_api=topic_api,
+    )
+    if normalized_in_topic is not None and normalized_in_topic != _normalize_optional_non_empty(
+        snapshot.get("in_topic")
+    ):
+        raise ValueError(
+            "flow_endpoint_publish_binding_conflict:"
+            f" name={snapshot.get('name')} namespace={snapshot.get('namespace')} binding=in_topic"
+        )
+    if normalized_out_topic is not None and normalized_out_topic != _normalize_optional_non_empty(
+        snapshot.get("out_topic")
+    ):
+        raise ValueError(
+            "flow_endpoint_publish_binding_conflict:"
+            f" name={snapshot.get('name')} namespace={snapshot.get('namespace')} binding=out_topic"
+        )
+
+
+def _normalize_topic_binding_for_conflict_check(
+    raw_value: Any,
+    *,
+    topic_api: Any | None,
+) -> str | None:
+    normalized = _normalize_optional_non_empty(raw_value)
+    if normalized is None:
+        return None
+    require_topic_route = getattr(topic_api, "require_topic_route", None)
+    if not callable(require_topic_route):
+        return normalized
+    try:
+        route = require_topic_route(normalized)
+    except Exception:
+        return normalized
+    return _normalize_optional_non_empty(getattr(route, "topic_uri", None)) or normalized
+
+
 @dataclass
 class _LifecycleRecord:
     instance: InstanceHandle
     status: str
     started_at_epoch_ms: int
     stopped_at_epoch_ms: int | None = None
+    failure_reason: str | None = None
+    recovery_policy: str = "best_effort"
+    recovery_summary: RecoveryStatusSummary = field(default_factory=build_initial_recovery_summary)
 
 
 class _LifecycleStateStore:
@@ -1151,6 +2064,11 @@ class _LifecycleStateStore:
                 instance=instance,
                 status="running",
                 started_at_epoch_ms=started_at_epoch_ms,
+                recovery_policy=_resolve_instance_recovery_policy(instance),
+                recovery_summary=_resolve_instance_recovery_summary(
+                    instance,
+                    updated_at_epoch_ms=started_at_epoch_ms,
+                ),
             )
             self._active[instance.instance_id] = record
             self._history[instance.instance_id] = record
@@ -1174,7 +2092,40 @@ class _LifecycleStateStore:
                 self._active_instance_by_name.pop(scoped_name, None)
             record.status = "stopped"
             record.stopped_at_epoch_ms = _now_epoch_ms()
+            record.failure_reason = None
         return True
+
+    def fail(self, instance_or_id: InstanceHandle | str, *, error: Any | None = None) -> _LifecycleRecord | None:
+        instance_id = _normalize_instance_id(instance_or_id)
+        with self._lock:
+            record = self._active.pop(instance_id, None)
+            if record is None:
+                return None
+            if self._active_instance_by_uri.get(record.instance.uri) == instance_id:
+                self._active_instance_by_uri.pop(record.instance.uri, None)
+            scoped_name = _resolve_scoped_instance_name(record.instance.bindings)
+            if (
+                scoped_name is not None
+                and self._active_instance_by_name.get(scoped_name) == instance_id
+            ):
+                self._active_instance_by_name.pop(scoped_name, None)
+            record.status = "failed"
+            record.stopped_at_epoch_ms = _now_epoch_ms()
+            record.failure_reason = _normalize_failure_reason(error)
+            return record
+
+    def get_record(
+        self,
+        instance_or_id: InstanceHandle | str,
+        *,
+        include_history: bool = False,
+    ) -> _LifecycleRecord | None:
+        instance_id = _normalize_instance_id(instance_or_id)
+        with self._lock:
+            record = self._active.get(instance_id)
+            if record is None and include_history:
+                record = self._history.get(instance_id)
+            return record
 
     def query(
         self,
@@ -1284,6 +2235,8 @@ class _LifecycleClientSurface(_ClientSurface):
             io_contract_mode=io_contract_mode,
         )
         self._state_store = state_store
+        self._background_runners: dict[str, Thread] = {}
+        self._background_runner_lock = Lock()
 
     def start(
         self,
@@ -1300,20 +2253,111 @@ class _LifecycleClientSurface(_ClientSurface):
             **kwargs,
         )
         self._state_store.start(instance=instance)
+        if _should_launch_lifecycle_target(instance):
+            try:
+                self._launch_background_runner(instance)
+            except Exception as exc:
+                self._state_store.fail(instance.instance_id, error=exc)
+                raise
         return instance
 
     def stop(self, instance_or_id: InstanceHandle | str) -> bool:
+        instance_id = _normalize_instance_id(instance_or_id)
         stopped = self._state_store.stop(instance_or_id)
+        self._discard_background_runner(instance_id)
         if not stopped:
             return False
         if self._kind == "flow" and self._client is not None:
+            release_shared_state_claims = getattr(self._client, "release_shared_state_flow_claims", None)
+            if callable(release_shared_state_claims):
+                release_shared_state_claims(instance_id)
             unbind = getattr(self._client, "unbind_flow_process", None)
             if callable(unbind):
                 try:
-                    unbind(instance_or_id)
+                    unbind(instance_id)
                 except Exception:
                     pass
         return True
+
+    def _launch_background_runner(self, instance: InstanceHandle) -> None:
+        target = _resolve_lifecycle_target(instance)
+        if target is None:
+            return
+        runner = Thread(
+            target=self._run_background_runner,
+            args=(instance,),
+            name=f"flownet-{instance.kind}-{instance.instance_id[:12]}",
+            daemon=True,
+        )
+        with self._background_runner_lock:
+            self._background_runners[instance.instance_id] = runner
+        runner.start()
+
+    def _run_background_runner(self, instance: InstanceHandle) -> None:
+        target = _resolve_lifecycle_target(instance)
+        if target is None:
+            self._discard_background_runner(instance.instance_id)
+            return
+        try:
+            result = _invoke_lifecycle_target(
+                target,
+                instance=instance,
+                runtime_host=self._runtime_host,
+                client=self._client,
+            )
+            _drain_lifecycle_target_result(result, kind=instance.kind)
+        except Exception as exc:
+            try:
+                self.handle_failure(instance.instance_id, error=exc)
+            except Exception as recovery_exc:
+                warnings.warn(
+                    f"{instance.kind}_runner_failure_handler_error:"
+                    f" instance_id={instance.instance_id}"
+                    f" error={exc}"
+                    f" recovery_error={recovery_exc}",
+                    category=RuntimeWarning,
+                    stacklevel=2,
+                )
+        else:
+            try:
+                self.stop(instance.instance_id)
+            except Exception:
+                pass
+        finally:
+            self._discard_background_runner(instance.instance_id)
+
+    def _discard_background_runner(self, instance_id: str) -> None:
+        with self._background_runner_lock:
+            self._background_runners.pop(instance_id, None)
+
+    def restart(
+        self,
+        instance_or_id: InstanceHandle | str,
+        *,
+        reason: str = "manual_restart",
+    ) -> InstanceHandle:
+        record = self._state_store.get_record(instance_or_id, include_history=True)
+        if record is None:
+            raise ValueError(f"{self._kind}_instance_not_found:{_normalize_instance_id(instance_or_id)}")
+        if record.status == "running":
+            if not self.stop(record.instance.instance_id):
+                raise RuntimeError(f"{self._kind}_restart_stop_failed:{record.instance.instance_id}")
+        return self._restart_from_record(record, reason=reason, error=record.failure_reason)
+
+    def handle_failure(
+        self,
+        instance_or_id: InstanceHandle | str,
+        *,
+        error: Any | None = None,
+    ) -> InstanceHandle | None:
+        record = self._state_store.fail(instance_or_id, error=error)
+        if record is None:
+            return None
+        if self._kind != "source":
+            return None
+        if not _source_auto_restart_enabled(record.instance):
+            return None
+        return self._restart_from_record(record, reason="auto_restart", error=error)
 
     def query(
         self,
@@ -1364,6 +2408,31 @@ class _LifecycleClientSurface(_ClientSurface):
         return self._state_store.resolve_active_by_tag(
             tag=tag,
             namespace=namespace,
+        )
+
+    def _restart_from_record(
+        self,
+        record: _LifecycleRecord,
+        *,
+        reason: str,
+        error: Any | None,
+    ) -> InstanceHandle:
+        restart_kwargs = dict(record.instance.options)
+        restart_kwargs.pop("on_checkpoint", None)
+        restart_kwargs.pop("resume_offset", None)
+        restart_kwargs.pop("checkpoint_scope", None)
+        restart_kwargs.pop("fault_tolerance_runtime", None)
+        restart_kwargs.update(record.instance.bindings)
+        restart_kwargs["restart_count"] = int(restart_kwargs.get("restart_count", 0)) + 1
+        restart_kwargs["recovered_from_instance_id"] = record.instance.instance_id
+        restart_kwargs["recovery_reason"] = _normalize_optional_non_empty(reason) or "restart"
+        if error is not None:
+            restart_kwargs["previous_failure_reason"] = str(error)
+        return self.start(
+            record.instance.registration,
+            config=dict(record.instance.config),
+            policies=dict(record.instance.policies),
+            **restart_kwargs,
         )
 
 
@@ -1597,7 +2666,6 @@ def _compute_instance_bind_hash(
     }
     if not normalized_bindings and not _bind_hint_has_payload(normalized_hint):
         return None
-
     payload = {
         "kind": kind,
         "uri": registration.uri,
@@ -1914,6 +2982,7 @@ def _materialize_symbolic_target(
             symbolic_ref=actor_symbolic_ref,
             instance=instance,
             client=client,
+            runtime_host=runtime_host,
             actor_api=actor_api,
             local_address=local_address,
             actor_ids_by_symbol_key=actor_ids_by_symbol_key,
@@ -1948,6 +3017,7 @@ def _materialize_symbolic_actor_target(
     symbolic_ref: dict[str, Any],
     instance: InstanceHandle,
     client: Any | None,
+    runtime_host: object,
     actor_api: Any,
     local_address: str,
     actor_ids_by_symbol_key: dict[str, tuple[str, ...]],
@@ -1993,6 +3063,15 @@ def _materialize_symbolic_actor_target(
 
     actor_ids = actor_ids_by_symbol_key.get(symbol_key)
     if actor_ids is None:
+        resolved_shared_state_bindings = _merge_resolved_shared_state_bindings(
+            instance.bindings.get("shared_state_bindings"),
+            _resolve_actor_shared_state_bindings(
+                declaration=declaration,
+                registration_metadata=registration_metadata,
+                runtime_host=runtime_host,
+                instance=instance,
+            ),
+        )
         actor_ids = _register_materialized_local_actor_replicas(
             actor_api=actor_api,
             declaration=declaration,
@@ -2004,6 +3083,7 @@ def _materialize_symbolic_actor_target(
             name=named_ref,
             namespace=namespace,
             selector=selector,
+            shared_state_bindings=resolved_shared_state_bindings,
         )
         actor_ids_by_symbol_key[symbol_key] = actor_ids
     return _build_materialized_actor_target(
@@ -2921,6 +4001,7 @@ def _register_materialized_local_actor(
     name: str | None = None,
     namespace: str | None = None,
     selector: str | None = None,
+    shared_state_bindings: list[dict[str, Any]] | None = None,
     replica_index: int | None = None,
     replica_count: int = 1,
 ) -> str:
@@ -2983,6 +4064,8 @@ def _register_materialized_local_actor(
                 "bind_hash": _compute_symbolic_bind_hash(bind_args, bind_kwargs_dict),
             },
         }
+        if shared_state_bindings:
+            actor_config["shared_state_bindings"] = [dict(item) for item in shared_state_bindings]
         if backend_requirements is not None:
             actor_config["backend_requirements"] = dict(backend_requirements)
             actor_config["materialized_from"]["backend_requirements"] = dict(backend_requirements)
@@ -3014,6 +4097,7 @@ def _register_materialized_local_actor_replicas(
     name: str | None = None,
     namespace: str | None = None,
     selector: str | None = None,
+    shared_state_bindings: list[dict[str, Any]] | None = None,
 ) -> tuple[str, ...]:
     replica_policy = policy.get("replica_policy") if isinstance(policy, Mapping) else None
     replica_count = 1
@@ -3035,6 +4119,7 @@ def _register_materialized_local_actor_replicas(
                 name=name,
                 namespace=namespace,
                 selector=selector,
+                shared_state_bindings=shared_state_bindings,
                 replica_index=replica_index,
                 replica_count=replica_count,
             )
@@ -3047,6 +4132,550 @@ def _resolve_flow_transformations(flow_program: Any) -> list[Any]:
     if isinstance(pipeline, list):
         return list(pipeline)
     return []
+
+
+def _resolve_instance_shared_state_bindings(
+    *,
+    kind: ResourceKind,
+    registration: RegistrationHandle,
+    runtime_host: object | None,
+    consumer_instance_id: str,
+) -> list[dict[str, Any]]:
+    declared_bindings = list(
+        normalize_shared_state_binding_specs(getattr(registration.declaration, "metadata", None))
+    )
+    declared_bindings.extend(normalize_shared_state_binding_specs(registration.metadata))
+    if not declared_bindings:
+        return []
+    runtime_host_required = _require_shared_state_runtime_host(runtime_host)
+    registry = _resolve_runtime_shared_state_registry(runtime_host_required)
+    consumer_namespace = _normalize_optional_non_empty(registration.metadata.get("namespace")) or "default"
+    consumer_tenant = _resolve_registration_tenant(registration)
+
+    resolved_rows: list[dict[str, Any]] = []
+    for binding in declared_bindings:
+        record = registry.resolve_binding(
+            binding,
+            consumer_kind=kind,
+            consumer_owner=registration.owner,
+            consumer_namespace=consumer_namespace,
+            consumer_tenant=consumer_tenant,
+            consumer_instance_id=consumer_instance_id,
+            consumer_flow_instance_id=consumer_instance_id if kind == "flow" else None,
+        )
+        resolved_rows.append(_build_resolved_shared_state_binding_row(binding=binding, record=record))
+    return _merge_resolved_shared_state_bindings(resolved_rows)
+
+
+def _resolve_actor_shared_state_bindings(
+    *,
+    declaration: ActorDeclaration,
+    registration_metadata: Mapping[str, Any],
+    runtime_host: object,
+    instance: InstanceHandle,
+) -> list[dict[str, Any]]:
+    actor_bindings = normalize_shared_state_binding_specs(getattr(declaration, "metadata", None))
+    if not actor_bindings:
+        return []
+    registry = _resolve_runtime_shared_state_registry(runtime_host)
+    consumer_namespace = (
+        _normalize_optional_non_empty(registration_metadata.get("namespace"))
+        or _normalize_optional_non_empty(getattr(declaration, "namespace", None))
+        or _normalize_optional_non_empty(instance.registration.metadata.get("namespace"))
+        or "default"
+    )
+    consumer_tenant = (
+        _normalize_optional_non_empty(registration_metadata.get("tenant"))
+        or _resolve_registration_tenant(instance.registration)
+    )
+    resolved_rows: list[dict[str, Any]] = []
+    for binding in actor_bindings:
+        record = registry.resolve_binding(
+            binding,
+            consumer_kind="actor",
+            consumer_owner=instance.registration.owner,
+            consumer_namespace=consumer_namespace,
+            consumer_tenant=consumer_tenant,
+            consumer_instance_id=instance.instance_id,
+            consumer_flow_instance_id=instance.instance_id,
+        )
+        resolved_rows.append(_build_resolved_shared_state_binding_row(binding=binding, record=record))
+    resolved_rows.sort(key=lambda item: item["alias"])
+    return resolved_rows
+
+
+def _merge_resolved_shared_state_bindings(*raw_binding_groups: Any) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for raw_binding_group in raw_binding_groups:
+        if not isinstance(raw_binding_group, list):
+            continue
+        for raw_binding in raw_binding_group:
+            if not isinstance(raw_binding, Mapping):
+                continue
+            alias = _normalize_optional_non_empty(raw_binding.get("alias"))
+            contract_id = _normalize_optional_non_empty(raw_binding.get("contract_id"))
+            if alias is None or contract_id is None:
+                continue
+            existing = merged.get(alias)
+            if existing is not None and _normalize_optional_non_empty(existing.get("contract_id")) != contract_id:
+                raise ValueError(
+                    "shared_state_binding_alias_conflict:"
+                    f" alias={alias} existing_contract_id={existing.get('contract_id')}"
+                    f" incoming_contract_id={contract_id}"
+                )
+            merged[alias] = dict(raw_binding)
+    return [merged[alias] for alias in sorted(merged.keys())]
+
+
+def _build_resolved_shared_state_binding_row(*, binding: Any, record: Any) -> dict[str, Any]:
+    return {
+        "alias": binding.alias,
+        "required": bool(binding.required),
+        "binding_metadata": dict(binding.binding_metadata),
+        "contract_id": record.contract_id,
+        "descriptor": record.descriptor.to_dict(),
+    }
+
+
+def _require_shared_state_runtime_host(runtime_host: object | None) -> object:
+    if runtime_host is None:
+        raise RuntimeError("shared_state_binding_requires_runtime_host")
+    return runtime_host
+
+
+def _resolve_registration_tenant(registration: RegistrationHandle) -> str | None:
+    tenant = _normalize_optional_non_empty(registration.metadata.get("tenant"))
+    if tenant is not None:
+        return tenant
+    declaration_metadata = getattr(registration.declaration, "metadata", None)
+    if isinstance(declaration_metadata, Mapping):
+        return _normalize_optional_non_empty(declaration_metadata.get("tenant"))
+    return None
+
+
+def _resolve_runtime_shared_state_registry(runtime_host: object) -> Any:
+    registry = getattr(runtime_host, "shared_state_registry", None)
+    if registry is None:
+        raise RuntimeError("shared_state_registry_not_available")
+    return registry
+
+
+def _resolve_shared_state_declaration(declaration_or_registration: Any) -> Any:
+    if isinstance(declaration_or_registration, RegistrationHandle):
+        return declaration_or_registration.declaration
+    if isinstance(declaration_or_registration, BoundServiceDeclaration):
+        return declaration_or_registration.declaration
+    return declaration_or_registration
+
+
+def _resolve_shared_state_target(declaration: Any) -> Any:
+    if isinstance(declaration, ServiceDeclaration):
+        target = declaration.target
+    else:
+        target = getattr(declaration, "target", declaration)
+    if not callable(target):
+        raise TypeError("shared state service target must be callable.")
+    return target
+
+
+def _resolve_source_fault_tolerance_runtime_options(
+    *,
+    runtime_host: object | None,
+    registration: RegistrationHandle,
+    config: Mapping[str, Any],
+    policies: Mapping[str, Any],
+    bindings: Mapping[str, Any],
+    options: Mapping[str, Any],
+) -> dict[str, Any]:
+    declaration = registration.declaration
+    if not isinstance(declaration, SourceDeclaration):
+        return dict(options)
+
+    fault_tolerance_policy = _resolve_source_fault_tolerance_policy(
+        registration=registration,
+        policies=policies,
+    )
+    recovery_policy = _resolve_source_recovery_policy(
+        declaration=declaration,
+        registration=registration,
+        fault_tolerance_policy=fault_tolerance_policy,
+    )
+    if recovery_policy == "best_effort":
+        return dict(options)
+
+    if recovery_policy == "restart":
+        resolved_options = dict(options)
+        resolved_options["fault_tolerance_runtime"] = {
+            "strategy": "restart",
+            "recovery_policy": "restart",
+            "auto_restart": bool(fault_tolerance_policy.get("auto_restart", False)),
+        }
+        return resolved_options
+
+    shared_state_bindings = bindings.get("shared_state_bindings")
+    alias = (
+        _normalize_optional_non_empty(fault_tolerance_policy.get("checkpoint_store_alias"))
+        or "checkpoint_store"
+    )
+    checkpoint_binding = _find_shared_state_binding_by_alias(shared_state_bindings, alias)
+    if checkpoint_binding is None:
+        raise ValueError(
+            "source_checkpoint_store_binding_required:"
+            f" uri={registration.uri} alias={alias}"
+        )
+
+    runtime_host_required = _require_shared_state_runtime_host(runtime_host)
+    registry = _resolve_runtime_shared_state_registry(runtime_host_required)
+    store_record = registry.resolve_contract(checkpoint_binding["contract_id"])
+    if store_record is None:
+        raise ValueError(
+            "source_checkpoint_store_not_registered:"
+            f" uri={registration.uri} alias={alias} contract_id={checkpoint_binding['contract_id']}"
+        )
+
+    checkpoint_scope = _resolve_source_checkpoint_scope(
+        registration=registration,
+        config=config,
+        options=options,
+        fault_tolerance_policy=fault_tolerance_policy,
+    )
+    checkpoint_metadata = _resolve_source_checkpoint_metadata(
+        registration=registration,
+        checkpoint_scope=checkpoint_scope,
+        fault_tolerance_policy=fault_tolerance_policy,
+    )
+
+    resolved_options = dict(options)
+    checkpoint_every = fault_tolerance_policy.get("checkpoint_every")
+    if checkpoint_every is not None:
+        resolved_options.setdefault(
+            "checkpoint_every",
+            _normalize_positive_int(checkpoint_every, field_name="checkpoint_every"),
+        )
+    resolved_options["resume_offset"] = resolve_connector_resume_offset(
+        store_record,
+        checkpoint_scope,
+    )
+    resolved_options["on_checkpoint"] = build_connector_checkpoint_handler(
+        store_record,
+        checkpoint_scope,
+        metadata=checkpoint_metadata,
+    )
+    resolved_options["checkpoint_scope"] = checkpoint_scope
+    resolved_options["fault_tolerance_runtime"] = {
+        "strategy": "checkpoint",
+        "recovery_policy": "checkpoint_restore",
+        "checkpoint_store_alias": alias,
+        "checkpoint_scope": checkpoint_scope,
+        "auto_restart": bool(fault_tolerance_policy.get("auto_restart", False)),
+    }
+    return resolved_options
+
+
+def _resolve_source_recovery_policy(
+    *,
+    declaration: SourceDeclaration,
+    registration: RegistrationHandle,
+    fault_tolerance_policy: Mapping[str, Any],
+) -> str:
+    strategy = _normalize_optional_non_empty(fault_tolerance_policy.get("strategy"))
+    if strategy is None or strategy.lower() == "none":
+        return "best_effort"
+    if strategy.lower() == "restart":
+        return "restart"
+    if strategy.lower() != "checkpoint":
+        raise ValueError(f"source_fault_tolerance_strategy_unsupported:{strategy}")
+    if not bool(declaration.checkpoint_required):
+        raise ValueError(
+            "source_checkpoint_restore_not_supported:"
+            f"uri={registration.uri} checkpoint_required=false"
+        )
+    return "checkpoint_restore"
+
+
+def _resolve_source_fault_tolerance_policy(
+    *,
+    registration: RegistrationHandle,
+    policies: Mapping[str, Any],
+) -> dict[str, Any]:
+    declaration_policies = getattr(registration.declaration, "policies", None)
+    base = {}
+    if isinstance(declaration_policies, Mapping):
+        base = _normalize_mapping(
+            declaration_policies.get("fault_tolerance"),
+            field_name="fault_tolerance",
+        )
+    override = _normalize_mapping(policies.get("fault_tolerance"), field_name="fault_tolerance")
+    if not base:
+        return override
+    if not override:
+        return base
+    return _deep_merge_mapping(base, override)
+
+
+def _resolve_source_checkpoint_scope(
+    *,
+    registration: RegistrationHandle,
+    config: Mapping[str, Any],
+    options: Mapping[str, Any],
+    fault_tolerance_policy: Mapping[str, Any],
+) -> str:
+    explicit_scope = _normalize_optional_non_empty(fault_tolerance_policy.get("checkpoint_scope"))
+    if explicit_scope is not None:
+        return explicit_scope
+
+    connector = _first_non_empty(
+        fault_tolerance_policy.get("connector"),
+        options.get("connector"),
+        config.get("connector"),
+        _extract_mapping_value(getattr(registration.declaration, "metadata", None), "connector"),
+        "source",
+    )
+    path = _first_non_empty(
+        fault_tolerance_policy.get("path"),
+        options.get("path"),
+        options.get("dataset_uri"),
+        config.get("path"),
+        config.get("dataset_uri"),
+        config.get("uri"),
+        registration.uri,
+    )
+    namespace = (
+        _normalize_optional_non_empty(registration.metadata.get("namespace"))
+        or _normalize_optional_non_empty(getattr(registration.declaration, "namespace", None))
+    )
+    return build_connector_checkpoint_scope(
+        connector=_normalize_non_empty(connector, field_name="connector"),
+        path=_normalize_non_empty(path, field_name="path"),
+        source=registration.uri,
+        namespace=namespace,
+    )
+
+
+def _resolve_source_checkpoint_metadata(
+    *,
+    registration: RegistrationHandle,
+    checkpoint_scope: str,
+    fault_tolerance_policy: Mapping[str, Any],
+) -> dict[str, Any]:
+    metadata = _normalize_mapping(
+        fault_tolerance_policy.get("checkpoint_metadata"),
+        field_name="checkpoint_metadata",
+    )
+    metadata.setdefault("source_uri", registration.uri)
+    metadata.setdefault("source_owner", registration.owner)
+    metadata.setdefault("checkpoint_scope", checkpoint_scope)
+    return metadata
+
+
+def _find_shared_state_binding_by_alias(
+    raw_bindings: Any,
+    alias: str,
+) -> dict[str, Any] | None:
+    normalized_alias = _normalize_non_empty(alias, field_name="alias")
+    if not isinstance(raw_bindings, list):
+        return None
+    for raw_binding in raw_bindings:
+        if not isinstance(raw_binding, Mapping):
+            continue
+        if _normalize_optional_non_empty(raw_binding.get("alias")) != normalized_alias:
+            continue
+        return dict(raw_binding)
+    return None
+
+
+def _source_auto_restart_enabled(instance: InstanceHandle) -> bool:
+    policy = _resolve_source_fault_tolerance_policy(
+        registration=instance.registration,
+        policies=instance.policies,
+    )
+    return bool(policy.get("auto_restart", False))
+
+
+def _resolve_lifecycle_target(instance: InstanceHandle) -> Callable[..., Any] | None:
+    declaration = getattr(instance.registration, "declaration", None)
+    if instance.kind == "source" and isinstance(declaration, SourceDeclaration):
+        target = declaration.target
+    elif instance.kind == "service" and isinstance(declaration, ServiceDeclaration):
+        target = declaration.target
+    else:
+        return None
+    return target if callable(target) else None
+
+
+def _should_launch_lifecycle_target(instance: InstanceHandle) -> bool:
+    target = _resolve_lifecycle_target(instance)
+    if target is None:
+        return False
+    explicit = instance.options.get("run_target")
+    if explicit is not None:
+        return bool(explicit)
+    if instance.kind == "source":
+        if _normalize_optional_non_empty(instance.bindings.get("out_topic")) is not None:
+            return True
+        return _has_binding_collection(instance.bindings.get("publish_targets"))
+    return False
+
+
+def _invoke_lifecycle_target(
+    target: Callable[..., Any],
+    *,
+    instance: InstanceHandle,
+    runtime_host: object | None,
+    client: Any | None,
+) -> Any:
+    try:
+        signature = inspect.signature(target)
+    except (TypeError, ValueError):
+        return target(dict(instance.config))
+
+    keyword_context = {
+        "config": dict(instance.config),
+        "options": dict(instance.options),
+        "bindings": dict(instance.bindings),
+        "policies": dict(instance.policies),
+        "instance": instance,
+        "runtime_host": runtime_host,
+        "client": client,
+        "runtime_client": client,
+    }
+    positional_context = [
+        dict(instance.config),
+        dict(instance.options),
+        instance,
+    ]
+    args: list[Any] = []
+    kwargs: dict[str, Any] = {}
+    positional_index = 0
+
+    for parameter in signature.parameters.values():
+        if parameter.kind == inspect.Parameter.VAR_POSITIONAL:
+            while positional_index < len(positional_context):
+                args.append(positional_context[positional_index])
+                positional_index += 1
+            continue
+        if parameter.kind == inspect.Parameter.VAR_KEYWORD:
+            for name, value in keyword_context.items():
+                if name not in signature.parameters and name not in kwargs:
+                    kwargs[name] = value
+            continue
+        if (
+            parameter.kind != inspect.Parameter.POSITIONAL_ONLY
+            and parameter.name in keyword_context
+        ):
+            kwargs[parameter.name] = keyword_context[parameter.name]
+            continue
+        if parameter.kind in (
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        ) and positional_index < len(positional_context):
+            args.append(positional_context[positional_index])
+            positional_index += 1
+
+    return target(*tuple(args), **kwargs)
+
+
+def _drain_lifecycle_target_result(result: Any, *, kind: ResourceKind) -> None:
+    if result is None:
+        return
+    if inspect.isawaitable(result):
+        raise TypeError(f"{kind}_async_target_not_supported")
+    if isinstance(result, (str, bytes, bytearray, Mapping)):
+        return
+    if inspect.isgenerator(result):
+        for _ in result:
+            pass
+        return
+    if isinstance(result, (list, tuple, set, frozenset)):
+        return
+    iterator = getattr(result, "__iter__", None)
+    next_method = getattr(result, "__next__", None)
+    if callable(iterator) and callable(next_method):
+        for _ in result:
+            pass
+
+
+def _normalize_failure_reason(error: Any | None) -> str | None:
+    if error is None:
+        return None
+    normalized = str(error).strip()
+    return normalized or None
+
+
+def _resolve_instance_recovery_policy(instance: InstanceHandle) -> str:
+    runtime = instance.options.get("fault_tolerance_runtime")
+    if not isinstance(runtime, Mapping):
+        return "best_effort"
+    recovery_policy = runtime.get("recovery_policy")
+    if recovery_policy is None:
+        strategy = _normalize_optional_non_empty(runtime.get("strategy"))
+        if strategy == "checkpoint":
+            recovery_policy = "checkpoint_restore"
+        elif strategy == "restart":
+            recovery_policy = "restart"
+        else:
+            recovery_policy = "best_effort"
+    return normalize_recovery_policy(recovery_policy)
+
+
+def _resolve_instance_recovery_summary(
+    instance: InstanceHandle,
+    *,
+    updated_at_epoch_ms: int,
+) -> RecoveryStatusSummary:
+    recovery_policy = _resolve_instance_recovery_policy(instance)
+    recovered_from_instance_id = _normalize_optional_non_empty(
+        instance.options.get("recovered_from_instance_id")
+    )
+    if recovered_from_instance_id is None:
+        return build_initial_recovery_summary()
+
+    recovery_reason = _normalize_optional_non_empty(instance.options.get("recovery_reason"))
+    metadata = {"recovered_from_instance_id": recovered_from_instance_id}
+    previous_failure_reason = _normalize_optional_non_empty(
+        instance.options.get("previous_failure_reason")
+    )
+    if previous_failure_reason is not None:
+        metadata["previous_failure_reason"] = previous_failure_reason
+    runtime = instance.options.get("fault_tolerance_runtime")
+    if isinstance(runtime, Mapping):
+        checkpoint_scope = _normalize_optional_non_empty(runtime.get("checkpoint_scope"))
+        if checkpoint_scope is not None:
+            metadata["checkpoint_scope"] = checkpoint_scope
+
+    action = recovery_policy
+    if action == "best_effort":
+        action = "restart"
+    return build_recovery_success_summary(
+        action=action,
+        updated_at_epoch_ms=updated_at_epoch_ms,
+        detail=recovery_reason,
+        metadata=metadata,
+    )
+
+
+def _normalize_positive_int(raw_value: Any, *, field_name: str) -> int:
+    try:
+        normalized = int(raw_value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be a positive integer.") from exc
+    if normalized <= 0:
+        raise ValueError(f"{field_name} must be a positive integer.")
+    return normalized
+
+
+def _first_non_empty(*values: Any) -> str | None:
+    for value in values:
+        normalized = _normalize_optional_non_empty(value)
+        if normalized is not None:
+            return normalized
+    return None
+
+
+def _extract_mapping_value(raw_mapping: Any, key: str) -> Any | None:
+    if not isinstance(raw_mapping, Mapping):
+        return None
+    return raw_mapping.get(key)
 
 
 def _deep_merge_mapping(base: Mapping[str, Any], override: Mapping[str, Any]) -> dict[str, Any]:
@@ -3222,6 +4851,9 @@ def _lifecycle_snapshot(record: _LifecycleRecord) -> dict[str, Any]:
         "uri": registration.uri,
         "owner": registration.owner,
         "status": record.status,
+        "failure_reason": record.failure_reason,
+        "recovery_policy": record.recovery_policy,
+        "recovery_summary": record.recovery_summary.to_dict(),
         "implicit_registration": instance.implicit_registration,
         "started_at_epoch_ms": record.started_at_epoch_ms,
         "stopped_at_epoch_ms": record.stopped_at_epoch_ms,

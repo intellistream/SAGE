@@ -4,8 +4,13 @@ import hashlib
 import inspect
 import json
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Literal
+
+from sage.runtime.flownet.contracts.shared_state_contract import (
+    SharedStateServiceDescriptor,
+    with_shared_state_binding_metadata,
+)
 
 GroupPolicyDefault = Literal["automatic", "manual", "mixed"]
 ServiceStyle = Literal["event_driven", "periodic", "hybrid"]
@@ -84,6 +89,26 @@ class Declaration:
                 "Define DSL as module/static symbol.",
             )
         return self
+
+    def use_shared_state(
+        self,
+        alias: str,
+        descriptor: SharedStateServiceDescriptor | Mapping[str, Any],
+        *,
+        required: bool = True,
+        binding_metadata: Mapping[str, Any] | None = None,
+    ) -> Declaration:
+        return replace(
+            self,
+            metadata=with_shared_state_binding_metadata(
+                self.metadata,
+                alias=alias,
+                descriptor=descriptor,
+                required=required,
+                binding_metadata=binding_metadata,
+            ),
+            definition_hash="",
+        )
 
 
 @dataclass(frozen=True)
@@ -259,6 +284,31 @@ class ActorMethodSymbolRef:
         if self.selector is not None:
             object.__setattr__(self, "selector", str(self.selector).strip() or None)
 
+    def use_shared_state(
+        self,
+        alias: str,
+        descriptor: SharedStateServiceDescriptor | Mapping[str, Any],
+        *,
+        required: bool = True,
+        binding_metadata: Mapping[str, Any] | None = None,
+    ) -> ActorMethodSymbolRef:
+        return ActorMethodSymbolRef(
+            declaration=self.declaration.use_shared_state(
+                alias,
+                descriptor,
+                required=required,
+                binding_metadata=binding_metadata,
+            ),
+            method=self.method,
+            bind_args=self.bind_args,
+            bind_kwargs=self.bind_kwargs,
+            name=self.name,
+            namespace=self.namespace,
+            selector=self.selector,
+            materialization_policy_override=self.materialization_policy_override,
+            origin=self.origin,
+        )
+
 
 @dataclass(frozen=True)
 class BoundActorDeclaration:
@@ -312,6 +362,29 @@ class BoundActorDeclaration:
             selector=self.selector,
             materialization_policy_override=self.materialization_policy_override,
             origin="bound",
+        )
+
+    def use_shared_state(
+        self,
+        alias: str,
+        descriptor: SharedStateServiceDescriptor | Mapping[str, Any],
+        *,
+        required: bool = True,
+        binding_metadata: Mapping[str, Any] | None = None,
+    ) -> BoundActorDeclaration:
+        return BoundActorDeclaration(
+            declaration=self.declaration.use_shared_state(
+                alias,
+                descriptor,
+                required=required,
+                binding_metadata=binding_metadata,
+            ),
+            bind_args=self.bind_args,
+            bind_kwargs=self.bind_kwargs,
+            name=self.name,
+            namespace=self.namespace,
+            selector=self.selector,
+            materialization_policy_override=self.materialization_policy_override,
         )
 
     def default_method_ref(self) -> ActorMethodSymbolRef:
@@ -614,6 +687,59 @@ class FlowDeclaration:
     def endpoint(self, *, client=None, **kwargs):
         return self.compile().endpoint(client=client, **kwargs)
 
+    def publish(self, *, client=None, **kwargs):
+        return self.compile().publish(client=client, **kwargs)
+
+    def find_endpoint(
+        self,
+        *,
+        client=None,
+        name: str,
+        namespace: str | None = None,
+    ):
+        resolved_namespace = _resolve_ref_namespace(namespace=namespace, declaration=self)
+        return self.compile().find_endpoint(
+            client=client,
+            name=name,
+            namespace=resolved_namespace,
+        )
+
+    def inspect_endpoint(
+        self,
+        *,
+        client=None,
+        endpoint_id: str | None = None,
+        name: str | None = None,
+        namespace: str | None = None,
+    ):
+        resolved_namespace = None
+        if namespace is not None:
+            resolved_namespace = _resolve_ref_namespace(namespace=namespace, declaration=self)
+        elif name is not None:
+            resolved_namespace = _resolve_ref_namespace(namespace=None, declaration=self)
+        return self.compile().inspect_endpoint(
+            client=client,
+            endpoint_id=endpoint_id,
+            name=name,
+            namespace=resolved_namespace,
+        )
+
+    def list_endpoints(
+        self,
+        *,
+        client=None,
+        namespace: str | None = None,
+        include_released: bool = True,
+    ):
+        resolved_namespace = None
+        if namespace is not None:
+            resolved_namespace = _resolve_ref_namespace(namespace=namespace, declaration=self)
+        return self.compile().list_endpoints(
+            client=client,
+            namespace=resolved_namespace,
+            include_released=include_released,
+        )
+
     def call(self, payload, *, client=None, timeout: float = 5.0, **kwargs):
         return self.compile().call(payload, client=client, timeout=timeout, **kwargs)
 
@@ -657,6 +783,31 @@ class FlowDeclaration:
             "FlowDeclaration("
             f"flow_uri={self.flow_uri!r}, dsl_name={self.dsl_name!r}, "
             f"namespace={self.namespace!r})"
+        )
+
+    def use_shared_state(
+        self,
+        alias: str,
+        descriptor: SharedStateServiceDescriptor | Mapping[str, Any],
+        *,
+        required: bool = True,
+        binding_metadata: Mapping[str, Any] | None = None,
+    ) -> FlowDeclaration:
+        return FlowDeclaration(
+            target=self.target,
+            uri=self.flow_uri,
+            scheduler=self.scheduler,
+            resources=self.resources,
+            policies=self.policies,
+            metadata=with_shared_state_binding_metadata(
+                self.metadata,
+                alias=alias,
+                descriptor=descriptor,
+                required=required,
+                binding_metadata=binding_metadata,
+            ),
+            dsl_name=self.dsl_name,
+            namespace=self.namespace,
         )
 
 
@@ -725,6 +876,25 @@ class BoundFlowTemplate:
             flow_kwargs=self.flow_kwargs,
             in_binding=resolved_in,
             out_binding=resolved_out,
+        )
+
+    def use_shared_state(
+        self,
+        alias: str,
+        descriptor: SharedStateServiceDescriptor | Mapping[str, Any],
+        *,
+        required: bool = True,
+        binding_metadata: Mapping[str, Any] | None = None,
+    ) -> BoundFlowTemplate:
+        return BoundFlowTemplate(
+            declaration=self.declaration.use_shared_state(
+                alias,
+                descriptor,
+                required=required,
+                binding_metadata=binding_metadata,
+            ),
+            flow_args=self.flow_args,
+            flow_kwargs=self.flow_kwargs,
         )
 
 
@@ -827,6 +997,83 @@ class BoundFlowDeclaration:
             out_topic=resolved_out,
             reuse_existing=reuse_existing,
             **kwargs,
+        )
+
+    def publish(
+        self,
+        *,
+        client: Any | None = None,
+        name: str,
+        namespace: str | None = None,
+        version: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+        config: Mapping[str, Any] | None = None,
+        policies: Mapping[str, Any] | None = None,
+        in_topic: str | None = None,
+        out_topic: str | None = None,
+        reuse_existing: bool = True,
+    ) -> Any:
+        runtime_client = _resolve_runtime_client(client)
+        flow_surface = getattr(runtime_client, "flows", None)
+        publish_fn = getattr(flow_surface, "publish_endpoint", None)
+        if not callable(publish_fn):
+            raise RuntimeError("v1_runtime_client_missing_flow_publish_endpoint")
+        resolved_in, resolved_out = self._resolve_io_topics(
+            in_topic=in_topic,
+            out_topic=out_topic,
+        )
+        return publish_fn(
+            self.flow_program,
+            name=name,
+            namespace=namespace,
+            version=version,
+            metadata=metadata,
+            in_topic=resolved_in,
+            out_topic=resolved_out,
+            config=config,
+            policies=policies,
+            reuse_existing=reuse_existing,
+        )
+
+    def find_endpoint(
+        self,
+        *,
+        client: Any | None = None,
+        name: str,
+        namespace: str | None = None,
+    ) -> Any:
+        return self.flow_program.find_endpoint(
+            client=client,
+            name=name,
+            namespace=namespace or self.declaration.namespace,
+        )
+
+    def inspect_endpoint(
+        self,
+        *,
+        client: Any | None = None,
+        endpoint_id: str | None = None,
+        name: str | None = None,
+        namespace: str | None = None,
+    ) -> Any:
+        return self.flow_program.inspect_endpoint(
+            client=client,
+            endpoint_id=endpoint_id,
+            name=name,
+            namespace=namespace or self.declaration.namespace,
+        )
+
+    def list_endpoints(
+        self,
+        *,
+        client: Any | None = None,
+        namespace: str | None = None,
+        include_released: bool = True,
+    ) -> Any:
+        return self.flow_program.list_endpoints(
+            client=client,
+            namespace=namespace or self.declaration.namespace,
+            include_released=include_released,
         )
 
     def remote(
@@ -982,6 +1229,27 @@ class NamedFlowDeclarationRef:
             **options,
         )
 
+    def use_shared_state(
+        self,
+        alias: str,
+        descriptor: SharedStateServiceDescriptor | Mapping[str, Any],
+        *,
+        required: bool = True,
+        binding_metadata: Mapping[str, Any] | None = None,
+    ) -> BoundFlowDeclaration:
+        return BoundFlowDeclaration(
+            declaration=self.declaration.use_shared_state(
+                alias,
+                descriptor,
+                required=required,
+                binding_metadata=binding_metadata,
+            ),
+            flow_args=self.flow_args,
+            flow_kwargs=self.flow_kwargs,
+            in_binding=self.in_binding,
+            out_binding=self.out_binding,
+        )
+
 
 @dataclass(frozen=True)
 class BoundSourceDeclaration:
@@ -1044,6 +1312,25 @@ class BoundServiceDeclaration:
             config=config,
             policies=policies,
             **options,
+        )
+
+    def use_shared_state(
+        self,
+        alias: str,
+        descriptor: SharedStateServiceDescriptor | Mapping[str, Any],
+        *,
+        required: bool = True,
+        binding_metadata: Mapping[str, Any] | None = None,
+    ) -> BoundServiceDeclaration:
+        return BoundServiceDeclaration(
+            declaration=self.declaration.use_shared_state(
+                alias,
+                descriptor,
+                required=required,
+                binding_metadata=binding_metadata,
+            ),
+            in_binding=self.in_binding,
+            out_binding=self.out_binding,
         )
 
 

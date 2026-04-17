@@ -208,9 +208,17 @@ def submit_dataset_job(
     source_mode = _normalize_optional_non_empty(plan.source.get("mode"))
     if source_mode is not None:
         source_options.setdefault("mode", source_mode)
-    source_instance = resolved_client.sources.start(
+    source_config = dict(plan.source.get("config", {}))
+    dataset_uri = _normalize_optional_non_empty(plan.dataset.get("uri"))
+    if dataset_uri is not None:
+        source_config.setdefault("dataset_uri", dataset_uri)
+    source_registration = resolved_client.sources.register(
         plan.source_declaration,
-        config=dict(plan.source.get("config", {})),
+        uri=plan.source["uri"],
+    )
+    source_instance = resolved_client.sources.start(
+        source_registration,
+        config=source_config,
         policies=dict(plan.source.get("policies", {})),
         **source_options,
     )

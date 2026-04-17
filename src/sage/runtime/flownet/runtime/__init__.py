@@ -129,8 +129,18 @@ from sage.runtime.flownet.runtime.flowengine import (
     register_flow_program_pull_handler,
     require_event_cursor,
 )
+from sage.runtime.flownet.runtime.endpoint_registry import (
+    FlowEndpointRegistry,
+    PublishedFlowEndpointRecord,
+)
 from sage.runtime.flownet.runtime.loops import LoopThread
 from sage.runtime.flownet.runtime.runtime import V1RuntimeHost
+from sage.runtime.flownet.runtime.shared_state_registry import (
+    list_bound_shared_state_bindings,
+    resolve_bound_shared_state_service,
+    SharedStateServiceRecord,
+    SharedStateServiceRegistry,
+)
 from sage.runtime.flownet.runtime.topics import (
     CoordinatorTopicState,
     EventGroupLedger,
@@ -177,6 +187,12 @@ __all__ = [
     "build_actor_exception_handler_invoker",
     "register_topic_forward_handlers",
     "send_topic_forward_intent_via_comm",
+    "FlowEndpointRegistry",
+    "PublishedFlowEndpointRecord",
+    "SharedStateServiceRecord",
+    "SharedStateServiceRegistry",
+    "list_bound_shared_state_bindings",
+    "resolve_bound_shared_state_service",
     "V1ActorRef",
     "V1ActorRecord",
     "LocalActorRegistry",

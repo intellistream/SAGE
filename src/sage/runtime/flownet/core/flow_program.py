@@ -198,6 +198,126 @@ class FlowProgram:
             raise RuntimeError("v1_endpoint_client_surface_missing_flows_endpoint")
         return endpoint_fn(self, **kwargs)
 
+    def publish(
+        self,
+        *,
+        client=None,
+        name: str,
+        namespace: str | None = None,
+        version: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+        in_topic: str | None = None,
+        out_topic: str | None = None,
+        reuse_existing: bool = True,
+        config: Mapping[str, Any] | None = None,
+        policies: Mapping[str, Any] | None = None,
+    ):
+        resolved_client = client
+        if resolved_client is None:
+            from sage.runtime.flownet.client.runtime_client import get_scoped_runtime_client
+
+            resolved_client = get_scoped_runtime_client()
+        if resolved_client is None:
+            raise RuntimeError(
+                "flownet_session_scope_required:"
+                " provide client=... or use `with v1.connect(...):` / `with v1.client_scope(client):`.",
+            )
+        publish_fn = getattr(resolved_client, "publish_flow_endpoint", None)
+        if not callable(publish_fn):
+            raise RuntimeError("v1_endpoint_client_surface_missing_publish_flow_endpoint")
+        return publish_fn(
+            self,
+            name=name,
+            namespace=namespace,
+            version=version,
+            metadata=metadata,
+            in_topic=in_topic,
+            out_topic=out_topic,
+            reuse_existing=reuse_existing,
+            config=config,
+            policies=policies,
+        )
+
+    def find_endpoint(
+        self,
+        *,
+        client=None,
+        name: str,
+        namespace: str | None = None,
+    ):
+        resolved_client = client
+        if resolved_client is None:
+            from sage.runtime.flownet.client.runtime_client import get_scoped_runtime_client
+
+            resolved_client = get_scoped_runtime_client()
+        if resolved_client is None:
+            raise RuntimeError(
+                "flownet_session_scope_required:"
+                " provide client=... or use `with v1.connect(...):` / `with v1.client_scope(client):`.",
+            )
+        find_fn = getattr(resolved_client, "find_flow_endpoint", None)
+        if not callable(find_fn):
+            raise RuntimeError("v1_endpoint_client_surface_missing_find_flow_endpoint")
+        return find_fn(
+            name=name,
+            namespace=namespace,
+            flow_uri=self.flow_uri,
+        )
+
+    def inspect_endpoint(
+        self,
+        *,
+        client=None,
+        endpoint_id: str | None = None,
+        name: str | None = None,
+        namespace: str | None = None,
+    ):
+        resolved_client = client
+        if resolved_client is None:
+            from sage.runtime.flownet.client.runtime_client import get_scoped_runtime_client
+
+            resolved_client = get_scoped_runtime_client()
+        if resolved_client is None:
+            raise RuntimeError(
+                "flownet_session_scope_required:"
+                " provide client=... or use `with v1.connect(...):` / `with v1.client_scope(client):`.",
+            )
+        inspect_fn = getattr(resolved_client, "inspect_flow_endpoint", None)
+        if not callable(inspect_fn):
+            raise RuntimeError("v1_endpoint_client_surface_missing_inspect_flow_endpoint")
+        return inspect_fn(
+            endpoint_id=endpoint_id,
+            name=name,
+            namespace=namespace,
+            flow_uri=self.flow_uri,
+        )
+
+    def list_endpoints(
+        self,
+        *,
+        client=None,
+        namespace: str | None = None,
+        include_released: bool = True,
+    ):
+        resolved_client = client
+        if resolved_client is None:
+            from sage.runtime.flownet.client.runtime_client import get_scoped_runtime_client
+
+            resolved_client = get_scoped_runtime_client()
+        if resolved_client is None:
+            raise RuntimeError(
+                "flownet_session_scope_required:"
+                " provide client=... or use `with v1.connect(...):` / `with v1.client_scope(client):`.",
+            )
+        list_fn = getattr(resolved_client, "list_flow_endpoints", None)
+        if not callable(list_fn):
+            raise RuntimeError("v1_endpoint_client_surface_missing_list_flow_endpoints")
+        return list_fn(
+            namespace=namespace,
+            flow_uri=self.flow_uri,
+            include_released=include_released,
+        )
+
     def call(self, payload, *, client=None, timeout: float = 5.0, **kwargs):
         return self.endpoint(client=client, **kwargs).call(payload, timeout=timeout)
 

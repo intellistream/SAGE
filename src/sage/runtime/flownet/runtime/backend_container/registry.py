@@ -53,7 +53,7 @@ class BackendContainerRegistry:
         with self._lock:
             self._containers_by_id[backend_id] = container
             self._container_tags_by_id[backend_id] = _normalize_tags(tags)
-            self._container_capabilities_by_id[backend_id] = dict(capabilities or {})
+            self._container_capabilities_by_id[backend_id] = _normalize_capabilities(capabilities)
             self._container_metadata_by_id[backend_id] = dict(metadata or {})
 
     def unregister_container(self, backend_id: str) -> bool:
@@ -106,15 +106,25 @@ class BackendContainerRegistry:
         self,
         *,
         required_tags: Mapping[str, str] | None = None,
+        required_capabilities: Mapping[str, Any] | None = None,
         include_metrics: bool = True,
     ) -> tuple[dict[str, Any], ...]:
         normalized_required_tags = _normalize_tags(required_tags)
+        normalized_required_capabilities = _normalize_capabilities(required_capabilities)
         candidates: list[dict[str, Any]] = []
         for record in self.list_containers(include_metrics=include_metrics):
             tags = record.get("tags")
             if not isinstance(tags, Mapping):
                 continue
             if not _tags_match(candidate_tags=tags, required_tags=normalized_required_tags):
+                continue
+            capabilities = record.get("capabilities")
+            if not isinstance(capabilities, Mapping):
+                continue
+            if not _capabilities_match(
+                candidate_capabilities=capabilities,
+                required_capabilities=normalized_required_capabilities,
+            ):
                 continue
             candidates.append(record)
         return tuple(candidates)
@@ -149,6 +159,30 @@ def _normalize_tags(raw_tags: Mapping[str, Any] | None) -> dict[str, str]:
     return normalized
 
 
+def _normalize_capabilities(raw_capabilities: Mapping[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(raw_capabilities, Mapping):
+        return {}
+    normalized: dict[str, Any] = {}
+    for raw_key, raw_value in raw_capabilities.items():
+        key = str(raw_key or "").strip()
+        if not key:
+            continue
+        normalized[key] = _normalize_capability_value(raw_value)
+    return normalized
+
+
+def _normalize_capability_value(raw_value: Any) -> Any:
+    if isinstance(raw_value, Mapping):
+        return {
+            str(key): _normalize_capability_value(value)
+            for key, value in raw_value.items()
+            if str(key or "").strip()
+        }
+    if isinstance(raw_value, (list, tuple, set, frozenset)):
+        return [_normalize_capability_value(item) for item in raw_value]
+    return raw_value
+
+
 def _tags_match(
     *,
     candidate_tags: Mapping[str, Any],
@@ -163,6 +197,71 @@ def _tags_match(
         if str(actual).strip() != required_value:
             return False
     return True
+
+
+def _capabilities_match(
+    *,
+    candidate_capabilities: Mapping[str, Any],
+    required_capabilities: Mapping[str, Any],
+) -> bool:
+    if not required_capabilities:
+        return True
+    for key, required_value in required_capabilities.items():
+        if key not in candidate_capabilities:
+            return False
+        if not _capability_value_matches(candidate_capabilities[key], required_value):
+            return False
+    return True
+
+
+def _capability_value_matches(candidate_value: Any, required_value: Any) -> bool:
+    if isinstance(required_value, Mapping):
+        if not isinstance(candidate_value, Mapping):
+            return False
+        for key, nested_required in required_value.items():
+            if key not in candidate_value:
+                return False
+            if not _capability_value_matches(candidate_value[key], nested_required):
+                return False
+        return True
+
+    if isinstance(required_value, (list, tuple, set, frozenset)):
+        required_items = list(required_value)
+        if not required_items:
+            return True
+        if isinstance(candidate_value, (list, tuple, set, frozenset)):
+            candidate_items = list(candidate_value)
+            return all(
+                any(
+                    _capability_value_matches(candidate_item, required_item)
+                    for candidate_item in candidate_items
+                )
+                for required_item in required_items
+            )
+        if len(required_items) != 1:
+            return False
+        return _capability_value_matches(candidate_value, required_items[0])
+
+    if isinstance(candidate_value, (list, tuple, set, frozenset)):
+        return any(
+            _capability_value_matches(candidate_item, required_value)
+            for candidate_item in candidate_value
+        )
+
+    candidate_text = _normalize_optional_text(candidate_value)
+    required_text = _normalize_optional_text(required_value)
+    if candidate_text is not None or required_text is not None:
+        return candidate_text == required_text
+    return candidate_value == required_value
+
+
+def _normalize_optional_text(raw_value: Any) -> str | None:
+    if raw_value is None or isinstance(raw_value, bool):
+        return None
+    normalized = str(raw_value).strip()
+    if not normalized:
+        return None
+    return normalized
 
 
 __all__ = [

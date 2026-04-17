@@ -1,9 +1,18 @@
 from __future__ import annotations
 
+import queue
 import time
 
-from sage.foundation import BatchFunction, MapFunction, SinkFunction
-from sage.runtime import LocalEnvironment
+from sage.foundation import (
+    BaseCoMapFunction,
+    BaseJoinFunction,
+    BatchFunction,
+    KeyByFunction,
+    MapFunction,
+    SinkFunction,
+    SourceFunction,
+)
+from sage.runtime import BaseService, LocalEnvironment
 from sage.runtime.exception_hooks import (
     get_registered_exception_handler_hook,
     register_kernel_exception_handler_hook,
@@ -47,6 +56,168 @@ class SlowTickSource(BatchFunction):
         time.sleep(0.02)
         self._current += 1
         return self._current
+
+
+class JoinLeftSource(BatchFunction):
+    def __init__(self) -> None:
+        super().__init__()
+        self._items = [
+            {"id": 1, "msg": "Hello-1", "type": "hello"},
+            {"id": 2, "msg": "Hello-2", "type": "hello"},
+        ]
+
+    def execute(self):
+        if not self._items:
+            return StopSignal("left-done")
+        return self._items.pop(0)
+
+
+class JoinRightSource(BatchFunction):
+    def __init__(self) -> None:
+        super().__init__()
+        self._items = [
+            {"id": 1, "msg": "World-1", "type": "world"},
+            {"id": 2, "msg": "World-2", "type": "world"},
+        ]
+
+    def execute(self):
+        if not self._items:
+            return StopSignal("right-done")
+        return self._items.pop(0)
+
+
+class IdKey(KeyByFunction):
+    def execute(self, data):
+        return data["id"]
+
+
+class HelloWorldJoin(BaseJoinFunction):
+    def __init__(self) -> None:
+        super().__init__()
+        self._left: dict[int, list[dict[str, str]]] = {}
+        self._right: dict[int, list[dict[str, str]]] = {}
+
+    def execute(self, payload, key, tag):
+        results = []
+        if tag == 0:
+            self._left.setdefault(key, []).append(payload)
+            for right in self._right.get(key, []):
+                results.append({"id": key, "msg": f"{payload['msg']} + {right['msg']}"})
+        else:
+            self._right.setdefault(key, []).append(payload)
+            for left in self._left.get(key, []):
+                results.append({"id": key, "msg": f"{left['msg']} + {payload['msg']}"})
+        return results
+
+
+class CollectJoinSink(SinkFunction):
+    collected: list[dict[str, str]] = []
+
+    def execute(self, data):
+        type(self).collected.append(data)
+
+
+class CoMapLeftSource(BatchFunction):
+    def __init__(self) -> None:
+        super().__init__()
+        self._items = [{"msg": "Hello-1"}, {"msg": "Hello-2"}]
+
+    def execute(self):
+        if not self._items:
+            return StopSignal("comap-left-done")
+        return self._items.pop(0)
+
+
+class CoMapRightSource(BatchFunction):
+    def __init__(self) -> None:
+        super().__init__()
+        self._items = [{"msg": "World-1"}, {"msg": "World-2"}]
+
+    def execute(self):
+        if not self._items:
+            return StopSignal("comap-right-done")
+        return self._items.pop(0)
+
+
+class HelloWorldCoMap(BaseCoMapFunction):
+    def map0(self, data):
+        return f"left:{data['msg']}"
+
+    def map1(self, data):
+        return f"right:{data['msg']}"
+
+
+class CollectCoMapSink(SinkFunction):
+    collected: list[str] = []
+
+    def execute(self, data):
+        type(self).collected.append(data)
+
+
+class ServiceBridgeSource(SourceFunction):
+    def __init__(self, request_queue: queue.Queue):
+        super().__init__()
+        self._request_queue = request_queue
+
+    def execute(self, data=None):
+        try:
+            payload = self._request_queue.get_nowait()
+        except queue.Empty:
+            return None
+
+        if payload == "STOP":
+            return StopSignal("service-bridge-stop")
+        return payload
+
+
+class EchoPipelineService(BaseService):
+    def __init__(self, request_queue: queue.Queue, request_timeout: float = 2.0):
+        super().__init__()
+        self._request_queue = request_queue
+        self._request_timeout = request_timeout
+
+    def process(self, message: dict[str, int | str]):
+        if message.get("command") == "shutdown":
+            self._request_queue.put("STOP")
+            return {"status": "shutdown_requested"}
+
+        response_queue: queue.Queue[dict[str, int]] = queue.Queue(maxsize=1)
+        self._request_queue.put({"value": int(message["value"]), "response_queue": response_queue})
+        return response_queue.get(timeout=self._request_timeout)
+
+
+class EchoWorker(MapFunction):
+    def execute(self, payload: dict[str, object]):
+        value = int(payload["value"])
+        return {"value": value * 2, "response_queue": payload["response_queue"]}
+
+
+class EchoPublishSink(SinkFunction):
+    def execute(self, payload: dict[str, object]):
+        response_queue = payload["response_queue"]
+        assert isinstance(response_queue, queue.Queue)
+        response_queue.put({"value": int(payload["value"])})
+
+
+class InvokeEchoPipeline(MapFunction):
+    def execute(self, payload: dict[str, int | str]):
+        response = self.call_service("echo_pipeline", payload, timeout=2.0)
+        if payload.get("command") == "shutdown":
+            return {"type": "control", "response": response}
+        return {"type": "decision", "value": response["value"]}
+
+
+class CollectServiceSink(SinkFunction):
+    collected: list[int] = []
+    control_messages: list[dict[str, str]] = []
+
+    def execute(self, payload: dict[str, object]):
+        if payload["type"] == "decision":
+            type(self).collected.append(int(payload["value"]))
+        else:
+            response = payload["response"]
+            assert isinstance(response, dict)
+            type(self).control_messages.append(response)
 
 
 def test_packet_and_stop_signal_are_main_repo_owned() -> None:
@@ -101,6 +272,84 @@ def test_local_environment_streaming_job_can_be_stopped() -> None:
     env.stop()
     stopped_status = env.jobmanager.get_job_status(env_uuid)
     assert stopped_status["status"] == "stopped"
+
+
+def test_local_environment_batch_join_runs_with_two_sources() -> None:
+    CollectJoinSink.collected = []
+    JobManager().cleanup_all_jobs()
+
+    env = LocalEnvironment(name="join-test")
+    left = env.from_batch(JoinLeftSource)
+    right = env.from_batch(JoinRightSource)
+
+    left.keyby(IdKey).connect(right.keyby(IdKey)).join(HelloWorldJoin).sink(CollectJoinSink)
+
+    env_uuid = env.submit(autostop=True)
+    status = env.jobmanager.get_job_status(env_uuid)
+
+    assert CollectJoinSink.collected == [
+        {"id": 1, "msg": "Hello-1 + World-1"},
+        {"id": 2, "msg": "Hello-2 + World-2"},
+    ]
+    assert status["status"] == "stopped"
+    assert status["pipeline_size"] == 6
+
+
+def test_local_environment_batch_comap_runs_with_two_sources() -> None:
+    CollectCoMapSink.collected = []
+    JobManager().cleanup_all_jobs()
+
+    env = LocalEnvironment(name="comap-test")
+    left = env.from_batch(CoMapLeftSource)
+    right = env.from_batch(CoMapRightSource)
+
+    left.connect(right).comap(HelloWorldCoMap).sink(CollectCoMapSink)
+
+    env_uuid = env.submit(autostop=True)
+    status = env.jobmanager.get_job_status(env_uuid)
+
+    assert CollectCoMapSink.collected == [
+        "left:Hello-1",
+        "right:World-1",
+        "left:Hello-2",
+        "right:World-2",
+    ]
+    assert status["status"] == "stopped"
+    assert status["pipeline_size"] == 4
+
+
+def test_local_environment_pipeline_service_self_call_completes() -> None:
+    CollectServiceSink.collected = []
+    CollectServiceSink.control_messages = []
+    JobManager().cleanup_all_jobs()
+
+    env = LocalEnvironment(name="service-self-call-test")
+    request_queue: queue.Queue[object] = queue.Queue()
+
+    env.register_service("echo_pipeline", EchoPipelineService, request_queue)
+
+    (
+        env.from_source(ServiceBridgeSource, request_queue)
+        .map(EchoWorker)
+        .sink(EchoPublishSink)
+    )
+
+    (
+        env.from_batch([
+            {"value": 1},
+            {"value": 2},
+            {"command": "shutdown"},
+        ])
+        .map(InvokeEchoPipeline)
+        .sink(CollectServiceSink)
+    )
+
+    env_uuid = env.submit(autostop=True)
+    status = env.jobmanager.get_job_status(env_uuid)
+
+    assert CollectServiceSink.collected == [2, 4]
+    assert CollectServiceSink.control_messages == [{"status": "shutdown_requested"}]
+    assert status["status"] == "stopped"
 
 
 def test_exception_hook_registration_is_owned_in_tree() -> None:

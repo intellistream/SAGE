@@ -74,6 +74,7 @@ def normalize_runtime_scheduler_telemetry(payload: Any) -> dict[str, Any]:
             raw.get("scheduler_resource_fallback_rate"),
         ),
         "scheduler_spillover": _normalize_spillover_summary(raw.get("scheduler_spillover")),
+        "governance": _normalize_governance_summary(raw.get("governance")),
         "transport": _normalize_mapping(raw.get("transport")),
     }
 
@@ -89,6 +90,7 @@ def summarize_runtime_scheduler_observability(payload: Any) -> dict[str, Any]:
         "queue_delay_ms": dict(queue["delay_ms"]),
         "fallback": dict(telemetry["scheduler_resource_fallback_rate"]),
         "spillover": dict(telemetry["scheduler_spillover"]),
+        "governance": dict(telemetry["governance"]),
     }
 
 
@@ -344,6 +346,28 @@ def _normalize_spillover_summary(payload: Any) -> dict[str, Any]:
         "remote_used_count": _coerce_non_negative_int(raw.get("remote_used_count")),
         "remote_blocked_count": _coerce_non_negative_int(raw.get("remote_blocked_count")),
         "active_claims": _coerce_non_negative_int(raw.get("active_claims")),
+    }
+
+
+def _normalize_governance_summary(payload: Any) -> dict[str, Any]:
+    raw = dict(payload) if isinstance(payload, Mapping) else {}
+    normalized_reason_totals = _normalize_mapping(raw.get("reason_totals"))
+    return {
+        "admission_total": _coerce_non_negative_int(raw.get("admission_total")),
+        "allow_total": _coerce_non_negative_int(raw.get("allow_total")),
+        "deny_total": _coerce_non_negative_int(raw.get("deny_total")),
+        "quota_hit_total": _coerce_non_negative_int(raw.get("quota_hit_total")),
+        "active_claims": _coerce_non_negative_int(raw.get("active_claims")),
+        "endpoint_admission_total": _coerce_non_negative_int(raw.get("endpoint_admission_total")),
+        "shared_state_admission_total": _coerce_non_negative_int(
+            raw.get("shared_state_admission_total")
+        ),
+        "audit_entries": _coerce_non_negative_int(raw.get("audit_entries")),
+        "last_reason_code": _normalize_optional_non_empty(raw.get("last_reason_code")),
+        "reason_totals": {
+            str(key): _coerce_non_negative_int(value)
+            for key, value in normalized_reason_totals.items()
+        },
     }
 
 

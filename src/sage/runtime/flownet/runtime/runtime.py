@@ -25,7 +25,11 @@ from sage.runtime.flownet.runtime.backend_container import (
     BackendContainerPlugin,
     BackendContainerRegistry,
 )
-from sage.runtime.flownet.runtime.collective import CollectiveExecutor, CollectiveExecutorRegistry
+from sage.runtime.flownet.runtime.collective import (
+    CollectiveExecutor,
+    CollectiveExecutorRegistry,
+    ensure_default_collective_executors,
+)
 from sage.runtime.flownet.runtime.comm import (
     OP_CONTROL_TOPIC_EVENT_CHAIN_DONE_FORWARD,
     OP_CONTROL_TOPIC_PRODUCER_DONE_FORWARD,
@@ -48,7 +52,10 @@ from sage.runtime.flownet.runtime.flowengine import (
     build_flow_program_pull_resolver,
     register_flow_program_pull_handler,
 )
+from sage.runtime.flownet.runtime.endpoint_registry import FlowEndpointRegistry
+from sage.runtime.flownet.runtime.governance import RuntimeGovernanceManager
 from sage.runtime.flownet.runtime.loops import LoopThread
+from sage.runtime.flownet.runtime.shared_state_registry import SharedStateServiceRegistry
 from sage.runtime.flownet.runtime.topics import (
     FlowProgramRoutingDirectory,
     TopicAPI,
@@ -63,6 +70,7 @@ class ClusterBackendRouter(Protocol):
         self,
         *,
         required_tags: Mapping[str, str] | None = None,
+        required_capabilities: Mapping[str, Any] | None = None,
         include_metrics: bool = True,
     ) -> tuple[dict[str, Any], ...]: ...
 
@@ -73,6 +81,7 @@ class ClusterBackendRouter(Protocol):
         request: Mapping[str, Any],
         backend_id: str | None = None,
         required_tags: Mapping[str, str] | None = None,
+        required_capabilities: Mapping[str, Any] | None = None,
         preferred_backend_id: str | None = None,
         request_epoch: int | None = None,
     ) -> Mapping[str, Any]: ...
@@ -125,6 +134,8 @@ class V1RuntimeHost:
         gc_idle_ttl_seconds: float = 300.0,
         backend_container_registry: BackendContainerRegistry | None = None,
         collective_executor_registry: CollectiveExecutorRegistry | None = None,
+        endpoint_registry: FlowEndpointRegistry | None = None,
+        shared_state_registry: SharedStateServiceRegistry | None = None,
     ) -> None:
         if comm_hub is not None and comm_transport is not None:
             raise ValueError("comm_hub and comm_transport cannot both be provided.")
@@ -152,6 +163,13 @@ class V1RuntimeHost:
         self._collective_executor_registry = (
             collective_executor_registry or CollectiveExecutorRegistry()
         )
+        ensure_default_collective_executors(self._collective_executor_registry)
+        self.governance = RuntimeGovernanceManager()
+        self.endpoint_registry = endpoint_registry or FlowEndpointRegistry()
+        self.shared_state_registry = shared_state_registry or SharedStateServiceRegistry()
+        set_governance_manager = getattr(self.shared_state_registry, "set_governance_manager", None)
+        if callable(set_governance_manager):
+            set_governance_manager(self.governance)
         self._scheduler_observability_lock = Lock()
         self._scheduler_observability = {
             "selection_total": 0,
@@ -345,11 +363,13 @@ class V1RuntimeHost:
         self,
         *,
         required_tags: Mapping[str, str] | None = None,
+        required_capabilities: Mapping[str, Any] | None = None,
         include_metrics: bool = True,
     ) -> tuple[dict[str, Any], ...]:
         self._ensure_open()
         return self._backend_container_registry.find_containers(
             required_tags=required_tags,
+            required_capabilities=required_capabilities,
             include_metrics=include_metrics,
         )
 
@@ -378,6 +398,7 @@ class V1RuntimeHost:
         self,
         *,
         required_tags: Mapping[str, str] | None = None,
+        required_capabilities: Mapping[str, Any] | None = None,
         preferred_backend_id: str | None = None,
         request_epoch: int | None = None,
     ) -> dict[str, Any]:
@@ -385,13 +406,15 @@ class V1RuntimeHost:
         candidates = list(
             self._backend_container_registry.find_containers(
                 required_tags=required_tags,
+                required_capabilities=required_capabilities,
                 include_metrics=True,
             )
         )
         if not candidates:
             raise RuntimeError(
                 "backend_container_no_candidate:"
-                f"required_tags={_format_required_tags(required_tags)}",
+                f"required_tags={_format_required_tags(required_tags)},"
+                f"required_capabilities={_format_required_capabilities(required_capabilities)}",
             )
         try:
             return _select_backend_record_from_candidates(
@@ -405,7 +428,8 @@ class V1RuntimeHost:
             if message == "backend_container_no_schedulable_candidate":
                 raise RuntimeError(
                     "backend_container_no_schedulable_candidate:"
-                    f"required_tags={_format_required_tags(required_tags)}",
+                    f"required_tags={_format_required_tags(required_tags)},"
+                    f"required_capabilities={_format_required_capabilities(required_capabilities)}",
                 ) from exc
             raise
 
@@ -415,6 +439,7 @@ class V1RuntimeHost:
         request: Mapping[str, Any],
         backend_id: str | None = None,
         required_tags: Mapping[str, str] | None = None,
+        required_capabilities: Mapping[str, Any] | None = None,
         preferred_backend_id: str | None = None,
         request_epoch: int | None = None,
         timeout_seconds: float | None = None,
@@ -437,6 +462,7 @@ class V1RuntimeHost:
             try:
                 selection = self.select_backend_container(
                     required_tags=required_tags,
+                    required_capabilities=required_capabilities,
                     preferred_backend_id=preferred_backend_id,
                     request_epoch=normalized_request_epoch,
                 )
@@ -449,6 +475,9 @@ class V1RuntimeHost:
                     "epoch_fallback": selection.get("epoch_fallback"),
                     "selection_reason": selection.get("selection_reason"),
                     "required_tags": dict(required_tags or {}),
+                    "required_capabilities": _normalize_backend_capability_mapping(
+                        required_capabilities
+                    ),
                 }
             except RuntimeError as exc:
                 local_selection_error = exc
@@ -457,6 +486,7 @@ class V1RuntimeHost:
                 cluster_candidates = list(
                     cluster_router.list_cluster_backends(
                         required_tags=required_tags,
+                        required_capabilities=required_capabilities,
                         include_metrics=True,
                     )
                 )
@@ -483,6 +513,9 @@ class V1RuntimeHost:
                         "epoch_fallback": cluster_selection.get("epoch_fallback"),
                         "selection_reason": cluster_selection.get("selection_reason"),
                         "required_tags": dict(required_tags or {}),
+                        "required_capabilities": _normalize_backend_capability_mapping(
+                            required_capabilities
+                        ),
                     }
                     if remote_node_address == self.comm_hub.local_address:
                         remote_node_address = None
@@ -525,6 +558,9 @@ class V1RuntimeHost:
                                     "epoch_fallback": failover_selection.get("epoch_fallback"),
                                     "selection_reason": failover_selection.get("selection_reason"),
                                     "required_tags": dict(required_tags or {}),
+                                    "required_capabilities": _normalize_backend_capability_mapping(
+                                        required_capabilities
+                                    ),
                                     "fallback_used": True,
                                     "fallback_reason": "remote_transport_retry_once",
                                     "failed_node_address": remote_node_address,
@@ -544,6 +580,7 @@ class V1RuntimeHost:
                 cluster_candidates = list(
                     cluster_router.list_cluster_backends(
                         required_tags=None,
+                        required_capabilities=None,
                         include_metrics=True,
                     )
                 )
@@ -552,14 +589,16 @@ class V1RuntimeHost:
                     backend_id=normalized_backend_id,
                 )
                 if explicit_cluster_record is not None:
-                    if required_tags and not _record_matches_required_tags(
+                    if not _record_matches_backend_requirements(
                         explicit_cluster_record,
                         required_tags=required_tags,
+                        required_capabilities=required_capabilities,
                     ):
                         raise RuntimeError(
-                            "backend_container_tag_constraint_mismatch:"
+                            "backend_container_requirement_constraint_mismatch:"
                             "backend_id="
-                            f"{normalized_backend_id},required_tags={_format_required_tags(required_tags)}",
+                            f"{normalized_backend_id},required_tags={_format_required_tags(required_tags)},"
+                            f"required_capabilities={_format_required_capabilities(required_capabilities)}",
                         )
                     remote_node_address = _normalize_optional_non_empty(
                         explicit_cluster_record.get("node_address")
@@ -584,6 +623,9 @@ class V1RuntimeHost:
                             "epoch_fallback": epoch_policy != "match",
                             "selection_reason": "explicit_backend_id",
                             "required_tags": dict(required_tags or {}),
+                            "required_capabilities": _normalize_backend_capability_mapping(
+                                required_capabilities
+                            ),
                             "preferred_hit": False,
                         }
                         remote_submit_attempts.append(
@@ -605,9 +647,10 @@ class V1RuntimeHost:
                 raise local_selection_error
             raise RuntimeError("backend_container_selection_failed")
 
-        if remote_node_address is None and required_tags:
+        if remote_node_address is None and (required_tags or required_capabilities):
             tag_matched_records = self._backend_container_registry.find_containers(
                 required_tags=required_tags,
+                required_capabilities=required_capabilities,
                 include_metrics=False,
             )
             allowed_backend_ids = {
@@ -616,8 +659,9 @@ class V1RuntimeHost:
             }
             if normalized_backend_id not in allowed_backend_ids:
                 raise RuntimeError(
-                    "backend_container_tag_constraint_mismatch:"
-                    f"backend_id={normalized_backend_id},required_tags={_format_required_tags(required_tags)}",
+                    "backend_container_requirement_constraint_mismatch:"
+                    f"backend_id={normalized_backend_id},required_tags={_format_required_tags(required_tags)},"
+                    f"required_capabilities={_format_required_capabilities(required_capabilities)}",
                 )
 
         backend: BackendContainer | None = None
@@ -673,6 +717,7 @@ class V1RuntimeHost:
                             request=request_payload,
                             backend_id=attempt_backend_id,
                             required_tags=required_tags,
+                            required_capabilities=required_capabilities,
                             preferred_backend_id=preferred_backend_id,
                             request_epoch=normalized_request_epoch,
                         )
@@ -809,6 +854,7 @@ class V1RuntimeHost:
     def scheduler_observability_snapshot(self) -> dict[str, Any]:
         with self._scheduler_observability_lock:
             snapshot = dict(self._scheduler_observability)
+        governance_snapshot = getattr(self.governance, "snapshot", None)
         return {
             "selection_total": int(snapshot.get("selection_total", 0)),
             "fallback_count": int(snapshot.get("fallback_count", 0)),
@@ -818,7 +864,28 @@ class V1RuntimeHost:
                 "remote_blocked_count": int(snapshot.get("spillover_remote_blocked_count", 0)),
                 "active_claims": int(snapshot.get("spillover_active_claims", 0)),
             },
+            "governance": (
+                governance_snapshot() if callable(governance_snapshot) else {}
+            ),
         }
+
+    def list_shared_state_services(self) -> list[dict[str, Any]]:
+        return self.shared_state_registry.observability_snapshot()
+
+    def list_published_endpoints(self) -> list[dict[str, Any]]:
+        return self.endpoint_registry.observability_snapshot()
+
+    def resolve_shared_state_service(self, contract_id: str) -> Any:
+        record = self.shared_state_registry.resolve_contract(contract_id)
+        if record is None:
+            raise ValueError(f"shared_state_descriptor_not_registered:{contract_id}")
+        return record.service_object
+
+    def release_flow_instance_endpoints(self, flow_instance_id: str) -> int:
+        return self.endpoint_registry.release_flow_instance_endpoints(flow_instance_id)
+
+    def release_shared_state_flow_claims(self, flow_instance_id: str) -> None:
+        self.shared_state_registry.release_flow_instance_claims(flow_instance_id)
 
     def shutdown(self, *, wait: bool = True, cancel_futures: bool = False) -> None:
         if self._closed:
@@ -1281,30 +1348,33 @@ def _find_backend_record_in_candidates(
     return None
 
 
-def _record_matches_required_tags(
+def _record_matches_backend_requirements(
     record: Mapping[str, Any],
     *,
     required_tags: Mapping[str, str] | None,
+    required_capabilities: Mapping[str, Any] | None,
 ) -> bool:
-    if not isinstance(required_tags, Mapping):
-        return True
-    normalized_required_tags: dict[str, str] = {}
-    for raw_key, raw_value in required_tags.items():
-        key = _normalize_optional_non_empty(raw_key)
-        value = _normalize_optional_non_empty(raw_value)
-        if key is None or value is None:
-            continue
-        normalized_required_tags[key] = value
-    if not normalized_required_tags:
-        return True
-    raw_tags = record.get("tags")
-    if not isinstance(raw_tags, Mapping):
-        return False
-    for key, required_value in normalized_required_tags.items():
-        actual = _normalize_optional_non_empty(raw_tags.get(key))
-        if actual != required_value:
+    normalized_required_tags = _normalize_string_mapping(required_tags)
+    if normalized_required_tags:
+        raw_tags = record.get("tags")
+        if not isinstance(raw_tags, Mapping):
             return False
-    return True
+        for key, required_value in normalized_required_tags.items():
+            actual = _normalize_optional_non_empty(raw_tags.get(key))
+            if actual != required_value:
+                return False
+    normalized_required_capabilities = _normalize_backend_capability_mapping(
+        required_capabilities
+    )
+    if not normalized_required_capabilities:
+        return True
+    raw_capabilities = record.get("capabilities")
+    if not isinstance(raw_capabilities, Mapping):
+        return False
+    return _backend_capabilities_match(
+        candidate_capabilities=raw_capabilities,
+        required_capabilities=normalized_required_capabilities,
+    )
 
 
 def _is_retryable_cluster_transport_error(exc: Exception) -> bool:
@@ -1348,19 +1418,116 @@ def _coerce_float(raw_value: Any, *, default: float) -> float:
 
 
 def _format_required_tags(required_tags: Mapping[str, str] | None) -> str:
-    if not isinstance(required_tags, Mapping):
-        return "{}"
-    normalized: dict[str, str] = {}
-    for raw_key, raw_value in required_tags.items():
-        key = _normalize_optional_non_empty(raw_key)
-        value = _normalize_optional_non_empty(raw_value)
-        if key is None or value is None:
-            continue
-        normalized[key] = value
+    normalized = _normalize_string_mapping(required_tags)
     if not normalized:
         return "{}"
     parts = [f"{key}={normalized[key]}" for key in sorted(normalized.keys())]
     return "{" + ",".join(parts) + "}"
+
+
+def _format_required_capabilities(required_capabilities: Mapping[str, Any] | None) -> str:
+    normalized = _normalize_backend_capability_mapping(required_capabilities)
+    if not normalized:
+        return "{}"
+    parts = [f"{key}={normalized[key]!r}" for key in sorted(normalized.keys())]
+    return "{" + ",".join(parts) + "}"
+
+
+def _normalize_string_mapping(raw_value: Mapping[str, str] | None) -> dict[str, str]:
+    if not isinstance(raw_value, Mapping):
+        return {}
+    normalized: dict[str, str] = {}
+    for raw_key, raw_item in raw_value.items():
+        key = _normalize_optional_non_empty(raw_key)
+        value = _normalize_optional_non_empty(raw_item)
+        if key is None or value is None:
+            continue
+        normalized[key] = value
+    return normalized
+
+
+def _normalize_backend_capability_mapping(raw_value: Mapping[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(raw_value, Mapping):
+        return {}
+    normalized: dict[str, Any] = {}
+    for raw_key, raw_item in raw_value.items():
+        key = _normalize_optional_non_empty(raw_key)
+        if key is None:
+            continue
+        normalized[key] = _normalize_backend_capability_value(raw_item)
+    return normalized
+
+
+def _normalize_backend_capability_value(raw_value: Any) -> Any:
+    if isinstance(raw_value, Mapping):
+        return {
+            str(key): _normalize_backend_capability_value(value)
+            for key, value in raw_value.items()
+            if _normalize_optional_non_empty(key) is not None
+        }
+    if isinstance(raw_value, (list, tuple, set, frozenset)):
+        return [_normalize_backend_capability_value(item) for item in raw_value]
+    return raw_value
+
+
+def _backend_capabilities_match(
+    *,
+    candidate_capabilities: Mapping[str, Any],
+    required_capabilities: Mapping[str, Any],
+) -> bool:
+    for key, required_value in required_capabilities.items():
+        if key not in candidate_capabilities:
+            return False
+        if not _backend_capability_value_matches(candidate_capabilities[key], required_value):
+            return False
+    return True
+
+
+def _backend_capability_value_matches(candidate_value: Any, required_value: Any) -> bool:
+    if isinstance(required_value, Mapping):
+        if not isinstance(candidate_value, Mapping):
+            return False
+        for key, nested_required in required_value.items():
+            if key not in candidate_value:
+                return False
+            if not _backend_capability_value_matches(candidate_value[key], nested_required):
+                return False
+        return True
+    if isinstance(required_value, (list, tuple, set, frozenset)):
+        required_items = list(required_value)
+        if not required_items:
+            return True
+        if isinstance(candidate_value, (list, tuple, set, frozenset)):
+            candidate_items = list(candidate_value)
+            return all(
+                any(
+                    _backend_capability_value_matches(candidate_item, required_item)
+                    for candidate_item in candidate_items
+                )
+                for required_item in required_items
+            )
+        if len(required_items) != 1:
+            return False
+        return _backend_capability_value_matches(candidate_value, required_items[0])
+    if isinstance(candidate_value, (list, tuple, set, frozenset)):
+        return any(
+            _backend_capability_value_matches(candidate_item, required_value)
+            for candidate_item in candidate_value
+        )
+    candidate_text = _normalize_optional_scalar_text(candidate_value)
+    required_text = _normalize_optional_scalar_text(required_value)
+    if candidate_text is not None or required_text is not None:
+        return candidate_text == required_text
+    return candidate_value == required_value
+
+
+def _normalize_optional_scalar_text(raw_value: Any) -> str | None:
+    if raw_value is None or isinstance(raw_value, bool):
+        return None
+    normalized = str(raw_value).strip()
+    if not normalized:
+        return None
+    return normalized
 
 
 __all__ = ["V1RuntimeHost"]

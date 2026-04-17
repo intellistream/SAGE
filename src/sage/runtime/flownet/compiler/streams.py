@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
+from sage.runtime.flownet.contracts.recovery_contract import normalize_recovery_policy
 from sage.runtime.flownet.compiler.errors import FlowDefinitionError
 from sage.runtime.flownet.compiler.targets import ensure_flow_target, system_target
 from sage.runtime.flownet.compiler.transformation import Transformation
@@ -940,7 +941,7 @@ class PartitionedStream(DataStream):
         process_meta: dict[str, Any] = {
             "stage_id": effective_stage_id,
             "num_partitions": num_partitions,
-            "recovery_policy": str(recovery_policy),
+            "recovery_policy": normalize_recovery_policy(recovery_policy),
         }
         if state_ttl_s is not None:
             process_meta["state_ttl_s"] = float(state_ttl_s)

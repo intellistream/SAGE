@@ -501,6 +501,56 @@ class V1NodeRuntimeService:
             )
         return rows
 
+    def list_shared_state_services(self) -> list[dict[str, Any]]:
+        registry = getattr(self._runtime_host, "shared_state_registry", None)
+        snapshot = getattr(registry, "observability_snapshot", None)
+        if not callable(snapshot):
+            return []
+        rows = snapshot()
+        if not isinstance(rows, list):
+            return []
+        normalized_rows = [dict(row) for row in rows if isinstance(row, Mapping)]
+        normalized_rows.sort(
+            key=lambda item: (
+                str(item.get("namespace") or ""),
+                str(item.get("service_name") or ""),
+                str(item.get("contract_id") or ""),
+            )
+        )
+        return normalized_rows
+
+    def list_published_endpoints(self) -> list[dict[str, Any]]:
+        registry = getattr(self._runtime_host, "endpoint_registry", None)
+        snapshot = getattr(registry, "observability_snapshot", None)
+        if not callable(snapshot):
+            return []
+        rows = snapshot(include_released=True)
+        if not isinstance(rows, list):
+            return []
+        normalized_rows = [dict(row) for row in rows if isinstance(row, Mapping)]
+        normalized_rows.sort(
+            key=lambda item: (
+                str(item.get("namespace") or ""),
+                str(item.get("name") or ""),
+                str(item.get("version") or ""),
+            )
+        )
+        return normalized_rows
+
+    def list_collective_executors(self) -> list[dict[str, Any]]:
+        snapshot = self._runtime_host.list_collective_executors()
+        rows = snapshot.get("registrations", ()) if isinstance(snapshot, Mapping) else ()
+        if not isinstance(rows, (list, tuple)):
+            return []
+        normalized_rows = [dict(row) for row in rows if isinstance(row, Mapping)]
+        normalized_rows.sort(
+            key=lambda item: (
+                str(item.get("mode") or ""),
+                str(item.get("executor_type") or ""),
+            )
+        )
+        return normalized_rows
+
     def cluster_scheduler_metrics(self) -> dict[str, Any]:
         return _build_runtime_scheduler_telemetry(
             self._runtime_host,
@@ -1408,11 +1458,13 @@ class _RuntimeNodeControlClusterBackendRouter:
         self,
         *,
         required_tags: Mapping[str, str] | None = None,
+        required_capabilities: Mapping[str, Any] | None = None,
         include_metrics: bool = True,
     ) -> tuple[dict[str, Any], ...]:
         snapshot = self._call_node_control_with_transport_retry(
             "cluster_backend_container_snapshot",
             required_tags=_normalize_string_mapping(required_tags) or None,
+            required_capabilities=_normalize_mapping(required_capabilities) or None,
             include_metrics=bool(include_metrics),
             node_address=self._default_node_address,
         )
@@ -1435,6 +1487,7 @@ class _RuntimeNodeControlClusterBackendRouter:
         request: Mapping[str, Any],
         backend_id: str | None = None,
         required_tags: Mapping[str, str] | None = None,
+        required_capabilities: Mapping[str, Any] | None = None,
         preferred_backend_id: str | None = None,
         request_epoch: int | None = None,
     ) -> Mapping[str, Any]:
@@ -1443,6 +1496,7 @@ class _RuntimeNodeControlClusterBackendRouter:
             request=dict(request),
             backend_id=backend_id,
             required_tags=_normalize_string_mapping(required_tags) or None,
+            required_capabilities=_normalize_mapping(required_capabilities) or None,
             preferred_backend_id=preferred_backend_id,
             request_epoch=request_epoch,
             node_address=_normalize_node_address(node_address),
@@ -1554,6 +1608,15 @@ class _V1NodeControlService:
     def list_runtime_actors(self) -> list[dict[str, Any]]:
         return self._membership.list_runtime_actors()
 
+    def list_shared_state_services(self) -> list[dict[str, Any]]:
+        return self._membership.list_shared_state_services()
+
+    def list_published_endpoints(self) -> list[dict[str, Any]]:
+        return self._membership.list_published_endpoints()
+
+    def list_collective_executors(self) -> list[dict[str, Any]]:
+        return self._membership.list_collective_executors()
+
     def cluster_scheduler_metrics(self) -> dict[str, Any]:
         return self._membership.cluster_scheduler_metrics()
 
@@ -1561,13 +1624,16 @@ class _V1NodeControlService:
         self,
         *,
         required_tags: Mapping[str, str] | None = None,
+        required_capabilities: Mapping[str, Any] | None = None,
         include_metrics: bool = True,
     ) -> list[dict[str, Any]]:
         runtime_host = self._runtime_host
         normalized_required_tags = _normalize_string_mapping(required_tags)
-        if normalized_required_tags:
+        normalized_required_capabilities = _normalize_mapping(required_capabilities)
+        if normalized_required_tags or normalized_required_capabilities:
             records = runtime_host.find_backend_containers(
                 required_tags=normalized_required_tags,
+                required_capabilities=normalized_required_capabilities,
                 include_metrics=bool(include_metrics),
             )
         else:
@@ -1600,10 +1666,12 @@ class _V1NodeControlService:
         self,
         *,
         required_tags: Mapping[str, str] | None = None,
+        required_capabilities: Mapping[str, Any] | None = None,
         include_metrics: bool = True,
         per_node_timeout_s: float | None = None,
     ) -> dict[str, Any]:
         normalized_required_tags = _normalize_string_mapping(required_tags)
+        normalized_required_capabilities = _normalize_mapping(required_capabilities)
         timeout_s = float(getattr(self._membership, "_http_timeout_s", _DEFAULT_HTTP_TIMEOUT_S))
         if per_node_timeout_s is not None:
             timeout_s = _normalize_positive_float(
@@ -1633,6 +1701,7 @@ class _V1NodeControlService:
                 node_records = caller(
                     "list_runtime_backend_containers",
                     required_tags=normalized_required_tags or None,
+                    required_capabilities=normalized_required_capabilities or None,
                     include_metrics=bool(include_metrics),
                     node_address=node_address,
                 )
@@ -1682,6 +1751,7 @@ class _V1NodeControlService:
         request: Mapping[str, Any],
         backend_id: str | None = None,
         required_tags: Mapping[str, str] | None = None,
+        required_capabilities: Mapping[str, Any] | None = None,
         preferred_backend_id: str | None = None,
         request_epoch: int | None = None,
     ) -> dict[str, Any]:
@@ -1690,6 +1760,7 @@ class _V1NodeControlService:
         runtime_host = self._runtime_host
         normalized_backend_id = _normalize_optional_non_empty(backend_id)
         normalized_required_tags = _normalize_string_mapping(required_tags)
+        normalized_required_capabilities = _normalize_mapping(required_capabilities)
         normalized_preferred_backend_id = _normalize_optional_non_empty(preferred_backend_id)
         normalized_request_epoch = (
             _normalize_optional_epoch(request_epoch)
@@ -1701,6 +1772,7 @@ class _V1NodeControlService:
         if normalized_backend_id is None:
             selection = runtime_host.select_backend_container(
                 required_tags=normalized_required_tags or None,
+                required_capabilities=normalized_required_capabilities or None,
                 preferred_backend_id=normalized_preferred_backend_id,
                 request_epoch=normalized_request_epoch,
             )
@@ -1712,13 +1784,15 @@ class _V1NodeControlService:
                 "epoch_policy": selection.get("epoch_policy"),
                 "selection_reason": selection.get("selection_reason"),
                 "required_tags": dict(normalized_required_tags),
+                "required_capabilities": dict(normalized_required_capabilities),
             }
         if normalized_backend_id is None:
             raise RuntimeError("backend_container_selection_failed")
 
-        if normalized_required_tags:
+        if normalized_required_tags or normalized_required_capabilities:
             tag_matched_records = runtime_host.find_backend_containers(
                 required_tags=normalized_required_tags,
+                required_capabilities=normalized_required_capabilities,
                 include_metrics=False,
             )
             allowed_backend_ids = {
@@ -1727,7 +1801,7 @@ class _V1NodeControlService:
             }
             if normalized_backend_id not in allowed_backend_ids:
                 raise RuntimeError(
-                    f"backend_container_tag_constraint_mismatch:backend_id={normalized_backend_id}",
+                    f"backend_container_requirement_constraint_mismatch:backend_id={normalized_backend_id}",
                 )
 
         backend = runtime_host.get_backend_container(normalized_backend_id)
@@ -2653,6 +2727,12 @@ def _normalize_string_mapping(raw: Any) -> dict[str, str]:
     return normalized
 
 
+def _normalize_mapping(raw: Any) -> dict[str, Any]:
+    if not isinstance(raw, Mapping):
+        return {}
+    return dict(raw)
+
+
 def _normalize_optional_epoch(raw_value: Any) -> int | None:
     if raw_value is None:
         return None
@@ -2960,6 +3040,7 @@ def _build_runtime_scheduler_telemetry(
         "workload_lanes": _runtime_workload_lane_summary(runtime_host),
         "scheduler_resource_fallback_rate": scheduler_observability["fallback"],
         "scheduler_spillover": scheduler_observability["spillover"],
+        "governance": _runtime_governance_summary(runtime_host),
         "transport": _runtime_transport_summary(runtime_host),
     }
     return normalize_runtime_scheduler_telemetry(payload)
@@ -3025,6 +3106,27 @@ def _runtime_backend_summary(
         "schedulable": schedulable,
         "queue_depth": queue_depth,
         "inflight": inflight,
+        "inventory": {
+            "backend_ids": [str(record.get("backend_id") or "") for record in records],
+            "capability_keys": sorted(
+                {
+                    str(key)
+                    for record in records
+                    for key in dict(record.get("capabilities") or {}).keys()
+                    if str(key).strip()
+                }
+            ),
+            "tag_keys": sorted(
+                {
+                    str(key)
+                    for record in records
+                    for key in dict(record.get("tags") or {}).keys()
+                    if str(key).strip()
+                }
+            ),
+            "queue_depth": queue_depth,
+            "inflight": inflight,
+        },
     }
 
 
@@ -3166,6 +3268,18 @@ def _runtime_scheduler_observability_summary(runtime_host: V1RuntimeHost) -> dic
         },
         "spillover": spillover,
     }
+
+
+def _runtime_governance_summary(runtime_host: V1RuntimeHost) -> dict[str, Any]:
+    governance = getattr(runtime_host, "governance", None)
+    snapshot = getattr(governance, "snapshot", None)
+    if not callable(snapshot):
+        return {}
+    try:
+        raw = snapshot()
+    except Exception:
+        return {}
+    return dict(raw) if isinstance(raw, Mapping) else {}
 
 
 def _runtime_process_factory_summary(runtime_host: V1RuntimeHost) -> dict[str, Any]:

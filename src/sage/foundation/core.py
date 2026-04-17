@@ -143,6 +143,12 @@ class BaseCoMapFunction(BaseFunction):
 
     is_comap = True
 
+    def execute(self, *args, **kwargs) -> Any:
+        raise RuntimeError(
+            "BaseCoMapFunction.execute() should not be called directly. "
+            "Implement map0/map1/... methods and use the comap operator."
+        )
+
 
 class FutureFunction(BaseFunction):
     def __call__(self, *args, **kwargs) -> Any:
