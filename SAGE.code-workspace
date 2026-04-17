@@ -7,6 +7,14 @@
     {
       "name": "SAGE-Docs  [docs]",
       "path": "../SAGE-Docs"
+    },
+    {
+      "name": "sage-examples  [examples]",
+      "path": "../SAGE-dependents/sage-examples"
+    },
+    {
+      "name": "sage-tutorials  [tutorials]",
+      "path": "../SAGE-dependents/sage-tutorials"
     }
   ],
   "settings": {
