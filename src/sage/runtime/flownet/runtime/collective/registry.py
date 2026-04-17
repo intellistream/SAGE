@@ -83,9 +83,33 @@ class CollectiveExecutorRegistry:
 
     def snapshot(self) -> dict[str, Any]:
         with self._lock:
+            path_tags_by_executor_id: dict[int, list[str]] = {}
+            for path_tag, executor in self._executors_by_path_tag.items():
+                path_tags_by_executor_id.setdefault(id(executor), []).append(path_tag)
+
+            registrations: list[dict[str, Any]] = []
+            for mode, executor in sorted(self._executors_by_mode.items()):
+                row = {
+                    "mode": mode,
+                    "executor_type": type(executor).__name__,
+                    "executor_module": type(executor).__module__,
+                    "path_tags": tuple(sorted(path_tags_by_executor_id.get(id(executor), []))),
+                }
+                describe = getattr(executor, "describe", None)
+                if callable(describe):
+                    descriptor = describe()
+                    if isinstance(descriptor, dict):
+                        for key, value in descriptor.items():
+                            if key in row:
+                                row[f"executor_{key}"] = value
+                            else:
+                                row[key] = value
+                registrations.append(row)
             return {
                 "modes": tuple(sorted(self._executors_by_mode.keys())),
                 "path_tags": tuple(sorted(self._executors_by_path_tag.keys())),
+                "registration_count": len(registrations),
+                "registrations": tuple(registrations),
             }
 
 

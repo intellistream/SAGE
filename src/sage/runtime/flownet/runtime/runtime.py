@@ -44,6 +44,7 @@ from sage.runtime.flownet.runtime.comm import (
     V1CommHub,
     V1TransportBackend,
 )
+from sage.runtime.flownet.runtime.endpoint_registry import FlowEndpointRegistry
 from sage.runtime.flownet.runtime.flowengine import (
     CollectiveRuntime,
     FlowEngineV1,
@@ -52,7 +53,6 @@ from sage.runtime.flownet.runtime.flowengine import (
     build_flow_program_pull_resolver,
     register_flow_program_pull_handler,
 )
-from sage.runtime.flownet.runtime.endpoint_registry import FlowEndpointRegistry
 from sage.runtime.flownet.runtime.governance import RuntimeGovernanceManager
 from sage.runtime.flownet.runtime.loops import LoopThread
 from sage.runtime.flownet.runtime.shared_state_registry import SharedStateServiceRegistry

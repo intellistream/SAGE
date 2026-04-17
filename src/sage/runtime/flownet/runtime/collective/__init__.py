@@ -4,6 +4,7 @@ from .contracts import (
     CollectiveExecutor,
 )
 from .dispatch import build_dispatcher, dispatch_collective, dispatcher, get_default_dispatcher
+from .executors import LocalTopicFallbackCollectiveExecutor, ensure_default_collective_executors
 from .registry import (
     CollectiveExecutorRegistry,
     get_default_registry,
@@ -23,4 +24,6 @@ __all__ = [
     "build_dispatcher",
     "get_default_dispatcher",
     "dispatcher",
+    "LocalTopicFallbackCollectiveExecutor",
+    "ensure_default_collective_executors",
 ]

@@ -18,9 +18,12 @@ def dispatch_collective(
         path_tag=request.path_tag,
     )
     if executor is None:
+        snapshot = active_registry.snapshot()
         raise RuntimeError(
             "collective_executor_not_found:"
-            f"mode={request.backend_mode},path_tag={request.path_tag}",
+            f"mode={request.backend_mode},path_tag={request.path_tag},"
+            f"available_modes={','.join(snapshot.get('modes', ())) or '-'},"
+            f"available_path_tags={','.join(snapshot.get('path_tags', ())) or '-'}",
         )
     return executor.execute(request)
 

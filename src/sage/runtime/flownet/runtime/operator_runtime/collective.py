@@ -390,9 +390,13 @@ def _resolve_collective_outputs(
     )
     if executor is None:
         if _collective_dispatch_error_is_fatal(spec):
+            snapshot = executor_registry.snapshot()
             raise CollectiveContractError(
                 "collective_executor_not_found:"
-                f"stage_id={spec.stage_id},group={spec.group},backend={spec.backend},path_tag={spec.path_tag}",
+                f"stage_id={spec.stage_id},group={spec.group},backend={spec.backend},"
+                f"path_tag={spec.path_tag},"
+                f"available_modes={','.join(snapshot.get('modes', ())) or '-'},"
+                f"available_path_tags={','.join(snapshot.get('path_tags', ())) or '-'}",
             )
         return local_outputs, _collective_with_fallback_tags(
             local_tags,
