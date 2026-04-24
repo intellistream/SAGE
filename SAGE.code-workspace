@@ -10,11 +10,15 @@
     },
     {
       "name": "sage-examples  [examples]",
-      "path": "../SAGE-dependents/sage-examples"
+      "path": "../sage-examples"
     },
     {
       "name": "sage-tutorials  [tutorials]",
-      "path": "../SAGE-dependents/sage-tutorials"
+      "path": "../sage-tutorials"
+    },
+    {
+      "name": "vllm-hust  [engine]",
+      "path": "../vllm-hust"
     }
   ],
   "settings": {
