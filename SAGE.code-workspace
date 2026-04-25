@@ -15,11 +15,32 @@
     {
       "name": "sage-tutorials  [tutorials]",
       "path": "../SAGE-dependents/sage-tutorials"
+    },
+    {
+      "name": "sage-temporal-memory  [memory]",
+      "path": "../sage-temporal-memory"
+    },
+    {
+      "name": "VAMOS  [research]",
+      "path": "../SAGE-dependents/sage-slo-aware-llm-serving"
+    },
+    {
+      "name": "vllm-hust  [engine]",
+      "path": "../vllm-hust"
+    },
+    {
+      "name": "vllm-hust-dev-hub  [lab]",
+      "path": "../vllm-hust-dev-hub"
+    },
+    {
+      "name": "vllm-hust-docs  [engine-docs]",
+      "path": "../vllm-hust-docs"
     }
   ],
   "settings": {
     "python.analysis.extraPaths": [
-      "${workspaceFolder:SAGE  [meta]}/src"
+      "${workspaceFolder:SAGE  [meta]}/src",
+      "${workspaceFolder:sage-temporal-memory  [memory]}/src"
     ],
     "python.testing.pytestArgs": [
       "packages",

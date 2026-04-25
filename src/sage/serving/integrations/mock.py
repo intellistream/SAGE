@@ -20,6 +20,15 @@ from .contracts import (
 )
 
 
+def _serving_context_payload(request: WorkflowImportRequest | WorkflowJobSubmitRequest) -> dict[str, Any] | None:
+    serving_context = getattr(request, "serving_context", None)
+    if serving_context is None:
+        return None
+    if callable(getattr(serving_context, "to_dict", None)):
+        return dict(serving_context.to_dict())
+    return None
+
+
 @dataclass(frozen=True)
 class MockSageExecutable:
     executable_id: str
@@ -66,6 +75,7 @@ class MockWorkflowProductAdapter:
         source_payload = dict(request.workflow_payload)
         normalized_workflow = _normalize_external_workflow(source_payload)
         workflow_name = _normalize_optional_non_empty(source_payload.get("name"))
+        serving_context = _serving_context_payload(request)
 
         with self._lock:
             self._workflow_counter += 1
@@ -79,7 +89,10 @@ class MockWorkflowProductAdapter:
                 workflow_id=workflow_id,
                 workflow_name=workflow_name,
                 normalized_workflow=normalized_workflow,
-                metadata={"adapter": self.descriptor.integration_type},
+                metadata={
+                    "adapter": self.descriptor.integration_type,
+                    **({"serving_context": serving_context} if serving_context is not None else {}),
+                },
             )
             execution_target = WorkflowExecutionTarget(
                 target_type="sage_executable",
@@ -87,8 +100,12 @@ class MockWorkflowProductAdapter:
                 payload={
                     "execution_kind": "mock_sage_executable",
                     "workflow_id": workflow_id,
+                    **({"serving_context": serving_context} if serving_context is not None else {}),
                 },
-                metadata={"adapter": self.descriptor.integration_type},
+                metadata={
+                    "adapter": self.descriptor.integration_type,
+                    **({"serving_context": serving_context} if serving_context is not None else {}),
+                },
             )
         else:
             execution_target = WorkflowExecutionTarget(
@@ -100,9 +117,13 @@ class MockWorkflowProductAdapter:
                         "workflow_id": workflow_id,
                         "integration_type": self.descriptor.integration_type,
                         "workflow_name": workflow_name,
+                        **({"serving_context": serving_context} if serving_context is not None else {}),
                     },
                 },
-                metadata={"adapter": self.descriptor.integration_type},
+                metadata={
+                    "adapter": self.descriptor.integration_type,
+                    **({"serving_context": serving_context} if serving_context is not None else {}),
+                },
             )
 
         imported_workflow = ImportedWorkflow(
@@ -115,6 +136,7 @@ class MockWorkflowProductAdapter:
             metadata={
                 "adapter": self.descriptor.integration_type,
                 "node_count": len(normalized_workflow.get("nodes", [])),
+                **({"serving_context": serving_context} if serving_context is not None else {}),
             },
         )
         with self._lock:
@@ -131,7 +153,12 @@ class MockWorkflowProductAdapter:
         if imported_workflow.integration_type != self.descriptor.integration_type:
             raise ValueError("imported workflow does not belong to this adapter.")
 
-        submit_payload = self._build_submit_payload(imported_workflow, request.input_payload)
+        serving_context = _serving_context_payload(request)
+        submit_payload = self._build_submit_payload(
+            imported_workflow,
+            request.input_payload,
+            serving_context=serving_context,
+        )
 
         with self._lock:
             self._job_counter += 1
@@ -148,6 +175,7 @@ class MockWorkflowProductAdapter:
                     "normalized_workflow": dict(imported_workflow.normalized_workflow),
                     "submitted_input": request.input_payload,
                     "submit_payload": submit_payload,
+                    **({"serving_context": serving_context} if serving_context is not None else {}),
                 },
             }
 
@@ -158,7 +186,10 @@ class MockWorkflowProductAdapter:
             status="accepted",
             accepted=True,
             submit_payload=submit_payload,
-            metadata={"submit_mode": request.submit_mode},
+            metadata={
+                "submit_mode": request.submit_mode,
+                **({"serving_context": serving_context} if serving_context is not None else {}),
+            },
         )
 
     def poll_status(
@@ -215,6 +246,8 @@ class MockWorkflowProductAdapter:
         self,
         imported_workflow: ImportedWorkflow,
         input_payload: Any,
+        *,
+        serving_context: dict[str, Any] | None,
     ) -> dict[str, Any]:
         execution_target = imported_workflow.execution_target
         if execution_target.target_type == "sage_executable":
@@ -229,6 +262,7 @@ class MockWorkflowProductAdapter:
                 "workflow_id": imported_workflow.workflow_id,
                 "input": input_payload,
                 "executable": described,
+                **({"serving_context": serving_context} if serving_context is not None else {}),
             }
 
         endpoint_request = dict(execution_target.payload)
@@ -237,6 +271,8 @@ class MockWorkflowProductAdapter:
         endpoint_request["body"] = endpoint_body
         endpoint_request["submit_via"] = "endpoint_request"
         endpoint_request["workflow_id"] = imported_workflow.workflow_id
+        if serving_context is not None:
+            endpoint_request["serving_context"] = serving_context
         return endpoint_request
 
     def _require_job(self, job_id: str) -> dict[str, Any]:

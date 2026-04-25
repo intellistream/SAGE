@@ -94,6 +94,152 @@ def _coerce_int(raw_value: Any, *, field_name: str) -> int:
         raise ValueError(f"{field_name} must be an integer.") from exc
 
 
+def _coerce_optional_int(
+    raw_value: Any,
+    *,
+    field_name: str,
+    minimum: int | None = None,
+) -> int | None:
+    if raw_value is None:
+        return None
+    value = _coerce_int(raw_value, field_name=field_name)
+    if minimum is not None and value < minimum:
+        raise ValueError(f"{field_name} must be >= {minimum}.")
+    return value
+
+
+def _coerce_optional_float(
+    raw_value: Any,
+    *,
+    field_name: str,
+    minimum: float | None = None,
+) -> float | None:
+    if raw_value is None:
+        return None
+    try:
+        value = float(raw_value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be a float.") from exc
+    if minimum is not None and value < minimum:
+        raise ValueError(f"{field_name} must be >= {minimum}.")
+    return value
+
+
+def _coerce_optional_bool(raw_value: Any, *, field_name: str) -> bool | None:
+    if raw_value is None:
+        return None
+    if isinstance(raw_value, bool):
+        return raw_value
+    raise ValueError(f"{field_name} must be a bool when provided.")
+
+
+def _normalize_string_mapping(raw_value: Any, *, field_name: str) -> dict[str, str]:
+    if raw_value is None:
+        return {}
+    if not isinstance(raw_value, Mapping):
+        raise TypeError(f"{field_name} must be a mapping when provided.")
+    normalized: dict[str, str] = {}
+    for raw_key, raw_item in raw_value.items():
+        key = _normalize_non_empty(raw_key, field_name=field_name)
+        value = _normalize_non_empty(raw_item, field_name=field_name)
+        normalized[key] = value
+    return normalized
+
+
+@dataclass(frozen=True)
+class WorkflowServingRequestContext:
+    tenant_id: str | None = None
+    model_id: str | None = None
+    prompt_len: int | None = None
+    max_tokens: int | None = None
+    priority: int | None = None
+    deadline_class: str | None = None
+    target_ttft_ms: float | None = None
+    target_e2e_ms: float | None = None
+    accelerator_affinity: str | None = None
+    cost_class: str | None = None
+    streaming: bool | None = None
+    trace_tags: dict[str, str] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "tenant_id", _normalize_optional_non_empty(self.tenant_id))
+        object.__setattr__(self, "model_id", _normalize_optional_non_empty(self.model_id))
+        object.__setattr__(
+            self,
+            "prompt_len",
+            _coerce_optional_int(self.prompt_len, field_name="prompt_len", minimum=0),
+        )
+        object.__setattr__(
+            self,
+            "max_tokens",
+            _coerce_optional_int(self.max_tokens, field_name="max_tokens", minimum=0),
+        )
+        object.__setattr__(
+            self,
+            "priority",
+            _coerce_optional_int(self.priority, field_name="priority", minimum=0),
+        )
+        object.__setattr__(
+            self,
+            "deadline_class",
+            _normalize_optional_non_empty(self.deadline_class),
+        )
+        object.__setattr__(
+            self,
+            "target_ttft_ms",
+            _coerce_optional_float(self.target_ttft_ms, field_name="target_ttft_ms", minimum=0.0),
+        )
+        object.__setattr__(
+            self,
+            "target_e2e_ms",
+            _coerce_optional_float(self.target_e2e_ms, field_name="target_e2e_ms", minimum=0.0),
+        )
+        object.__setattr__(
+            self,
+            "accelerator_affinity",
+            _normalize_optional_non_empty(self.accelerator_affinity),
+        )
+        object.__setattr__(self, "cost_class", _normalize_optional_non_empty(self.cost_class))
+        object.__setattr__(
+            self,
+            "streaming",
+            _coerce_optional_bool(self.streaming, field_name="streaming"),
+        )
+        object.__setattr__(
+            self,
+            "trace_tags",
+            _normalize_string_mapping(self.trace_tags, field_name="trace_tags"),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "tenant_id": self.tenant_id,
+            "model_id": self.model_id,
+            "prompt_len": self.prompt_len,
+            "max_tokens": self.max_tokens,
+            "priority": self.priority,
+            "deadline_class": self.deadline_class,
+            "target_ttft_ms": self.target_ttft_ms,
+            "target_e2e_ms": self.target_e2e_ms,
+            "accelerator_affinity": self.accelerator_affinity,
+            "cost_class": self.cost_class,
+            "streaming": self.streaming,
+            "trace_tags": dict(self.trace_tags),
+        }
+
+
+def _normalize_serving_context(
+    raw_value: WorkflowServingRequestContext | Mapping[str, Any] | None,
+) -> WorkflowServingRequestContext | None:
+    if raw_value is None:
+        return None
+    if isinstance(raw_value, WorkflowServingRequestContext):
+        return raw_value
+    if isinstance(raw_value, Mapping):
+        return WorkflowServingRequestContext(**dict(raw_value))
+    raise TypeError("serving_context must be a WorkflowServingRequestContext or mapping.")
+
+
 @dataclass(frozen=True)
 class WorkflowIntegrationExtensionPoint:
     extension_point_id: str
@@ -239,6 +385,7 @@ class WorkflowIntegrationRequest:
     payload: dict[str, Any]
     schema_version: str = WORKFLOW_INTEGRATION_SCHEMA_VERSION
     metadata: dict[str, Any] = field(default_factory=dict)
+    serving_context: WorkflowServingRequestContext | Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -275,9 +422,10 @@ class WorkflowIntegrationRequest:
             "metadata",
             _normalize_mapping(self.metadata, field_name="metadata"),
         )
+        object.__setattr__(self, "serving_context", _normalize_serving_context(self.serving_context))
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result = {
             "schema_version": self.schema_version,
             "operation": self.operation,
             "integration_type": self.integration_type,
@@ -285,6 +433,9 @@ class WorkflowIntegrationRequest:
             "payload": dict(self.payload),
             "metadata": dict(self.metadata),
         }
+        if self.serving_context is not None:
+            result["serving_context"] = self.serving_context.to_dict()
+        return result
 
 
 @dataclass(frozen=True)
@@ -454,6 +605,7 @@ class WorkflowImportRequest:
     request_id: str = "workflow-import"
     options: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
+    serving_context: WorkflowServingRequestContext | Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -490,6 +642,7 @@ class WorkflowImportRequest:
             "metadata",
             _normalize_mapping(self.metadata, field_name="metadata"),
         )
+        object.__setattr__(self, "serving_context", _normalize_serving_context(self.serving_context))
 
     def to_integration_request(self) -> WorkflowIntegrationRequest:
         return WorkflowIntegrationRequest(
@@ -502,6 +655,7 @@ class WorkflowImportRequest:
                 "options": dict(self.options),
             },
             metadata=dict(self.metadata),
+            serving_context=self.serving_context,
         )
 
 
@@ -559,6 +713,7 @@ class WorkflowJobSubmitRequest:
     submit_mode: WorkflowSubmitMode = "async"
     request_id: str = "workflow-submit"
     metadata: dict[str, Any] = field(default_factory=dict)
+    serving_context: WorkflowServingRequestContext | Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -587,6 +742,7 @@ class WorkflowJobSubmitRequest:
             "metadata",
             _normalize_mapping(self.metadata, field_name="metadata"),
         )
+        object.__setattr__(self, "serving_context", _normalize_serving_context(self.serving_context))
 
     def to_integration_request(self) -> WorkflowIntegrationRequest:
         return WorkflowIntegrationRequest(
@@ -599,6 +755,7 @@ class WorkflowJobSubmitRequest:
                 "submit_mode": self.submit_mode,
             },
             metadata=dict(self.metadata),
+            serving_context=self.serving_context,
         )
 
 
@@ -871,6 +1028,7 @@ __all__ = [
     "WorkflowIntegrationOperation",
     "WorkflowIntegrationRequest",
     "WorkflowIntegrationResponse",
+    "WorkflowServingRequestContext",
     "WorkflowJobResultCollectRequest",
     "WorkflowJobResultCollectResponse",
     "WorkflowJobStatus",
