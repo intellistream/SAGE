@@ -21,8 +21,8 @@
       "path": "../sage-temporal-memory"
     },
     {
-      "name": "VAMOS  [research]",
-      "path": "../SAGE-dependents/sage-slo-aware-llm-serving"
+      "name": "vamos  [research]",
+      "path": "../SAGE-dependents/vamos"
     },
     {
       "name": "vllm-hust  [engine]",
