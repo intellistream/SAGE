@@ -17,14 +17,6 @@
       "path": "../SAGE-dependents/sage-tutorials"
     },
     {
-      "name": "sage-temporal-memory  [memory]",
-      "path": "../sage-temporal-memory"
-    },
-    {
-      "name": "vamos  [research]",
-      "path": "../SAGE-dependents/vamos"
-    },
-    {
       "name": "vllm-hust  [engine]",
       "path": "../vllm-hust"
     },
@@ -39,8 +31,7 @@
   ],
   "settings": {
     "python.analysis.extraPaths": [
-      "${workspaceFolder:SAGE  [meta]}/src",
-      "${workspaceFolder:sage-temporal-memory  [memory]}/src"
+      "${workspaceFolder:SAGE  [meta]}/src"
     ],
     "python.testing.pytestArgs": [
       "packages",
@@ -66,6 +57,22 @@
       ".sage/cache": true,
       "**/dist": true,
       "**/*.egg-info": true
+    },
+    "files.watcherExclude": {
+      "**/.git/objects/**": true,
+      "**/.git/subtree-cache/**": true,
+      "**/node_modules/**": true,
+      "**/__pycache__/**": true,
+      "**/.pytest_cache/**": true,
+      "**/.mypy_cache/**": true,
+      "**/.ruff_cache/**": true,
+      "**/*.egg-info/**": true,
+      "**/dist/**": true,
+      "**/build/**": true,
+      "**/site/**": true,
+      "**/results/**": true,
+      ".sage/build/**": true,
+      ".sage/cache/**": true
     },
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {

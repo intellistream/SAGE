@@ -5,6 +5,21 @@ from typing import Any
 
 RUNTIME_TELEMETRY_SCHEMA_VERSION = "flownet.runtime.telemetry.v1"
 
+_VAMOS_REQUIRED_RUNTIME_METRIC_FIELDS = (
+    "free_vram_bytes",
+    "reserved_vram_bytes",
+    "model_weight_bytes",
+    "model_residency_state",
+    "kv_cache_bytes",
+    "kv_cache_utilization",
+    "prefix_cache_hit_rate",
+    "queue_depth",
+    "inflight_requests",
+    "expected_ttft_ms",
+    "expected_tpot_ms",
+    "model_load_state",
+)
+
 
 def normalize_runtime_stream_tracker_summary(payload: Any) -> dict[str, Any]:
     raw = dict(payload) if isinstance(payload, Mapping) else {}
@@ -275,6 +290,44 @@ def _normalize_backend_inventory_summary(
         tag_keys = [
             key for record in records for key in _normalize_mapping(record.get("tags")).keys()
         ]
+    metadata_keys = raw.get("metadata_keys")
+    if not isinstance(metadata_keys, Sequence) or isinstance(
+        metadata_keys, (str, bytes, bytearray)
+    ):
+        metadata_keys = [
+            key for record in records for key in _normalize_mapping(record.get("metadata")).keys()
+        ]
+    runtime_metric_keys = raw.get("runtime_metric_keys")
+    if not isinstance(runtime_metric_keys, Sequence) or isinstance(
+        runtime_metric_keys, (str, bytes, bytearray)
+    ):
+        runtime_metric_keys = [
+            key
+            for record in records
+            for key in _normalize_mapping(record.get("runtime_metrics")).keys()
+        ]
+    accelerator_types = raw.get("accelerator_types")
+    if not isinstance(accelerator_types, Sequence) or isinstance(
+        accelerator_types, (str, bytes, bytearray)
+    ):
+        accelerator_types = [record.get("accelerator_type") for record in records]
+    model_families = raw.get("model_families")
+    if not isinstance(model_families, Sequence) or isinstance(
+        model_families, (str, bytes, bytearray)
+    ):
+        model_families = [record.get("model_family") for record in records]
+    precisions = raw.get("precisions")
+    if not isinstance(precisions, Sequence) or isinstance(precisions, (str, bytes, bytearray)):
+        precisions = [record.get("precision") for record in records]
+    resident_models = raw.get("resident_models")
+    if not isinstance(resident_models, Sequence) or isinstance(
+        resident_models, (str, bytes, bytearray)
+    ):
+        resident_models = [
+            model
+            for record in records
+            for model in _normalize_text_sequence(record.get("resident_models"))
+        ]
     return {
         "backend_ids": sorted(
             {
@@ -297,6 +350,24 @@ def _normalize_backend_inventory_summary(
                 if _normalize_non_empty_string(value, default="")
             }
         ),
+        "metadata_keys": sorted(
+            {
+                _normalize_non_empty_string(value, default="")
+                for value in metadata_keys
+                if _normalize_non_empty_string(value, default="")
+            }
+        ),
+        "runtime_metric_keys": sorted(
+            {
+                _normalize_non_empty_string(value, default="")
+                for value in runtime_metric_keys
+                if _normalize_non_empty_string(value, default="")
+            }
+        ),
+        "accelerator_types": _sorted_unique_non_empty_texts(accelerator_types),
+        "model_families": _sorted_unique_non_empty_texts(model_families),
+        "precisions": _sorted_unique_non_empty_texts(precisions),
+        "resident_models": _sorted_unique_non_empty_texts(resident_models),
         "queue_depth": _coerce_non_negative_int(
             raw.get("queue_depth", sum(int(record["queue_depth"]) for record in records))
         ),
@@ -315,19 +386,39 @@ def _normalize_backend_records(payload: Any) -> list[dict[str, Any]]:
             continue
         raw = dict(item)
         metrics = _normalize_mapping(raw.get("metrics"))
+        tags = _normalize_mapping(raw.get("tags"))
+        capabilities = _normalize_mapping(raw.get("capabilities"))
+        metadata = _normalize_mapping(raw.get("metadata"))
         row = {
             "backend_id": _normalize_non_empty_string(raw.get("backend_id"), default=""),
             "node_id": _normalize_optional_non_empty(raw.get("node_id")),
             "node_address": _normalize_optional_non_empty(raw.get("node_address")),
+            "health": bool(metrics.get("healthy", raw.get("healthy", False))),
             "healthy": bool(metrics.get("healthy", raw.get("healthy", False))),
             "schedulable": bool(metrics.get("schedulable", raw.get("schedulable", False))),
             "queue_depth": _coerce_non_negative_int(metrics.get("queue_depth")),
             "queue_capacity": _coerce_non_negative_int(metrics.get("queue_capacity")),
             "inflight": _coerce_non_negative_int(metrics.get("inflight")),
             "epoch": _coerce_optional_non_negative_int(metrics.get("epoch")),
-            "tags": _normalize_mapping(raw.get("tags")),
-            "capabilities": _normalize_mapping(raw.get("capabilities")),
-            "metadata": _normalize_mapping(raw.get("metadata")),
+            "tags": tags,
+            "capabilities": capabilities,
+            "metadata": metadata,
+            "accelerator_type": _normalize_optional_non_empty(
+                metadata.get("accelerator_type", tags.get("accelerator"))
+            ),
+            "model_family": _normalize_optional_non_empty(metadata.get("model_family")),
+            "precision": _normalize_optional_non_empty(
+                metadata.get("precision", capabilities.get("precision"))
+            ),
+            "parallelism": _normalize_parallelism_value(
+                metadata.get("parallelism", capabilities.get("parallelism"))
+            ),
+            "resident_models": _normalize_backend_resident_models(metadata, capabilities),
+            "runtime_metrics": _normalize_backend_runtime_metrics(
+                metadata.get("runtime_metrics"),
+                metrics=metrics,
+            ),
+            "metrics_error": _normalize_optional_non_empty(raw.get("metrics_error")),
         }
         rows.append(row)
     rows.sort(key=lambda item: (str(item["backend_id"]), str(item["node_address"] or "")))
@@ -479,6 +570,125 @@ def _normalize_delay_ms(
         "avg": round(avg, 3),
         "max": round(max_delay, 3),
     }
+
+
+def _normalize_backend_resident_models(
+    metadata: Mapping[str, Any], capabilities: Mapping[str, Any]
+) -> list[str]:
+    resident_models = _normalize_text_sequence(metadata.get("resident_models"))
+    if resident_models:
+        return resident_models
+    return _normalize_text_sequence(capabilities.get("models"))
+
+
+def _normalize_backend_runtime_metrics(
+    payload: Any,
+    *,
+    metrics: Mapping[str, Any],
+) -> dict[str, Any]:
+    raw = dict(payload) if isinstance(payload, Mapping) else {}
+    runtime_metrics: dict[str, Any] = {
+        "queue_depth": _coerce_non_negative_int(raw.get("queue_depth", metrics.get("queue_depth"))),
+        "inflight_requests": _coerce_non_negative_int(
+            raw.get("inflight_requests", metrics.get("inflight"))
+        ),
+    }
+
+    queue_capacity = _coerce_optional_non_negative_int(
+        raw.get("queue_capacity", metrics.get("queue_capacity"))
+    )
+    if queue_capacity is not None:
+        runtime_metrics["queue_capacity"] = queue_capacity
+
+    optional_int_fields = (
+        "free_vram_bytes",
+        "reserved_vram_bytes",
+        "model_weight_bytes",
+        "kv_cache_bytes",
+    )
+    for field_name in optional_int_fields:
+        field_value = _coerce_optional_non_negative_int(raw.get(field_name))
+        if field_value is not None:
+            runtime_metrics[field_name] = field_value
+
+    optional_float_fields = (
+        "kv_cache_utilization",
+        "prefix_cache_hit_rate",
+        "external_prefix_cache_hit_rate",
+        "expected_ttft_ms",
+        "expected_tpot_ms",
+        "ttft_p50_ms",
+        "ttft_p95_ms",
+        "tpot_p50_ms",
+        "tpot_p95_ms",
+        "prefill_p50_ms",
+        "decode_p50_ms",
+        "e2e_p95_ms",
+    )
+    for field_name in optional_float_fields:
+        source_value = raw.get(field_name)
+        if source_value is None and field_name == "kv_cache_utilization":
+            source_value = raw.get("kv_cache_usage", metrics.get("kv_cache_utilization"))
+        field_value = _coerce_optional_non_negative_float(source_value)
+        if field_value is not None:
+            runtime_metrics[field_name] = field_value
+
+    for field_name in ("model_residency_state", "model_load_state"):
+        field_value = _normalize_optional_non_empty(raw.get(field_name))
+        if field_value is not None:
+            runtime_metrics[field_name] = field_value
+
+    metric_gap_fields = set(_normalize_text_sequence(raw.get("metric_gap_fields")))
+    for required_field in _VAMOS_REQUIRED_RUNTIME_METRIC_FIELDS:
+        if required_field not in runtime_metrics:
+            metric_gap_fields.add(required_field)
+    runtime_metrics["metric_gap_fields"] = sorted(metric_gap_fields)
+
+    return runtime_metrics
+
+
+def _normalize_parallelism_value(value: Any) -> Any:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, Mapping):
+        return {
+            str(key): nested_value
+            for key, nested_value in value.items()
+            if str(key or "").strip()
+        }
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return [item for item in value]
+    normalized_int = _coerce_optional_non_negative_int(value)
+    if normalized_int is not None:
+        return normalized_int
+    return _normalize_optional_non_empty(value)
+
+
+def _normalize_text_sequence(payload: Any) -> list[str]:
+    if payload is None:
+        return []
+    if isinstance(payload, Sequence) and not isinstance(payload, (str, bytes, bytearray)):
+        values = payload
+    else:
+        values = [payload]
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = _normalize_optional_non_empty(value)
+        if text is None or text in seen:
+            continue
+        normalized.append(text)
+        seen.add(text)
+    return normalized
+
+
+def _sorted_unique_non_empty_texts(values: Sequence[Any]) -> list[str]:
+    normalized = {
+        text
+        for value in values
+        for text in _normalize_text_sequence(value)
+    }
+    return sorted(normalized)
 
 
 def _normalize_mapping(payload: Any) -> dict[str, Any]:

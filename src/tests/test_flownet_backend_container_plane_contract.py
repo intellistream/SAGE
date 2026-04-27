@@ -116,7 +116,26 @@ def test_backend_container_plane_supports_capability_selection_and_submit_poll_c
                 "models": ["chat-large", "embed-small"],
                 "precision": "fp16",
             },
-            metadata={"backend_type": "fake"},
+            metadata={
+                "backend_type": "fake",
+                "accelerator_type": "ascend-910b3",
+                "model_family": "chat",
+                "precision": "bf16",
+                "parallelism": {"tensor": 2, "pipeline": 1},
+                "resident_models": ["chat-large", "embed-small"],
+                "runtime_metrics": {
+                    "free_vram_bytes": 96_000_000_000,
+                    "reserved_vram_bytes": 32_000_000_000,
+                    "model_weight_bytes": 48_000_000_000,
+                    "model_residency_state": "resident",
+                    "kv_cache_bytes": 12_000_000_000,
+                    "kv_cache_utilization": 0.73,
+                    "prefix_cache_hit_rate": 0.44,
+                    "expected_ttft_ms": 135.5,
+                    "expected_tpot_ms": 21.0,
+                    "model_load_state": "ready",
+                },
+            },
         )
 
         capability_selection = runtime_host.select_backend_container(
@@ -156,15 +175,46 @@ def test_backend_container_plane_supports_capability_selection_and_submit_poll_c
         assert telemetry["node"]["backend_count"] == 2
         assert telemetry["backends"]["queue_depth"] == 1
         assert telemetry["backends"]["inflight"] == 1
+        assert telemetry["backends"]["inventory"]["accelerator_types"] == [
+            "ascend-910b3",
+            "cpu",
+        ]
         assert telemetry["backends"]["inventory"]["capability_keys"] == [
             "models",
             "precision",
             "tasks",
         ]
+        assert telemetry["backends"]["inventory"]["model_families"] == ["chat"]
+        assert telemetry["backends"]["inventory"]["precisions"] == ["bf16", "fp32"]
+        assert telemetry["backends"]["inventory"]["resident_models"] == [
+            "chat-large",
+            "embed-small",
+        ]
+        assert "free_vram_bytes" in telemetry["backends"]["inventory"]["runtime_metric_keys"]
         backend_row = next(
             row for row in telemetry["backends"]["records"] if row["backend_id"] == "fake-gpu-backend"
         )
+        assert backend_row["health"] is True
+        assert backend_row["accelerator_type"] == "ascend-910b3"
+        assert backend_row["model_family"] == "chat"
+        assert backend_row["precision"] == "bf16"
+        assert backend_row["parallelism"] == {"tensor": 2, "pipeline": 1}
         assert backend_row["capabilities"]["models"] == ["chat-large", "embed-small"]
+        assert backend_row["resident_models"] == ["chat-large", "embed-small"]
+        assert backend_row["runtime_metrics"]["queue_depth"] == 1
+        assert backend_row["runtime_metrics"]["inflight_requests"] == 1
+        assert backend_row["runtime_metrics"]["free_vram_bytes"] == 96_000_000_000
+        assert backend_row["runtime_metrics"]["kv_cache_utilization"] == 0.73
+        assert backend_row["runtime_metrics"]["metric_gap_fields"] == []
+
+        cpu_backend_row = next(
+            row for row in telemetry["backends"]["records"] if row["backend_id"] == "fake-cpu-backend"
+        )
+        assert cpu_backend_row["accelerator_type"] == "cpu"
+        assert cpu_backend_row["precision"] == "fp32"
+        assert cpu_backend_row["resident_models"] == ["embed-small"]
+        assert "free_vram_bytes" in cpu_backend_row["runtime_metrics"]["metric_gap_fields"]
+        assert "expected_ttft_ms" in cpu_backend_row["runtime_metrics"]["metric_gap_fields"]
 
         poll_response = inspector.poll_runtime_backend_job(
             submit_response["job_token"],
