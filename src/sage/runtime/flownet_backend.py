@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import concurrent.futures
+import hashlib
 from threading import Lock
 from typing import Any
+
+from sage.foundation import CustomLogger
 
 from .backend_protocol import (
     ActorHandleProtocol,
@@ -68,17 +72,161 @@ class _FlowNetMethodCallFuture(MethodCallFuture):
 
 
 class _FlowNetMethodRef(MethodRefProtocol):
-    __slots__ = ("_actor_id", "_method_name", "_registry")
+    __slots__ = ("_actor_api", "_actor_id", "_method_name")
 
-    def __init__(self, actor_id: str, method_name: str, registry: Any) -> None:
+    def __init__(self, actor_api: Any, actor_id: str, method_name: str) -> None:
+        self._actor_api = actor_api
         self._actor_id = actor_id
         self._method_name = method_name
-        self._registry = registry
 
     def call(self, *args: Any, **kwargs: Any) -> Any:
-        record = self._registry.resolve_local_actor(self._actor_id)
-        method = getattr(record.object, self._method_name)
-        return method(*args, **kwargs)
+        return _run_actor_api_call(
+            self._actor_api,
+            self._actor_id,
+            self._method_name,
+            *args,
+            **kwargs,
+        )
+
+    def async_call(self, *args: Any, **kwargs: Any) -> MethodCallFuture:
+        fut = _get_async_executor().submit(self.call, *args, **kwargs)
+        return _FlowNetMethodCallFuture(fut)
+
+    def cancel(self) -> bool:
+        return False
+
+
+def _stable_replica_index(route_key: Any, replica_count: int) -> int:
+    if replica_count <= 1:
+        return 0
+    digest = hashlib.blake2b(repr(route_key).encode("utf-8"), digest_size=8).digest()
+    return int.from_bytes(digest, byteorder="big", signed=False) % replica_count
+
+
+def _replica_count_from_actor_config(actor_config: Any) -> int:
+    if not isinstance(actor_config, dict):
+        return 1
+    raw_parallelism = actor_config.get("parallelism")
+    try:
+        if raw_parallelism is not None:
+            return max(1, int(raw_parallelism))
+    except (TypeError, ValueError):
+        pass
+
+    override = actor_config.get("materialization_policy_override")
+    if not isinstance(override, dict):
+        return 1
+    replica_policy = override.get("replica_policy")
+    if not isinstance(replica_policy, dict):
+        return 1
+    try:
+        return max(1, int(replica_policy.get("count", 1)))
+    except (TypeError, ValueError):
+        return 1
+
+
+def _extract_route_key(args: tuple[Any, ...], kwargs: dict[str, Any]) -> Any | None:
+    if kwargs.get("partition_key") is not None:
+        return kwargs["partition_key"]
+    if not args:
+        return None
+    candidate = args[0]
+    partition_key = getattr(candidate, "partition_key", None)
+    if partition_key is not None:
+        return partition_key
+    return None
+
+
+def _run_actor_api_call(
+    actor_api: Any,
+    actor_id: str,
+    method_name: str,
+    *args: Any,
+    **kwargs: Any,
+) -> Any:
+    coro = actor_api.call_local(actor_id, method_name, *args, **kwargs)
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    raise RuntimeError(
+        "FlowNet actor method refs require a synchronous caller outside a running event loop."
+    )
+
+
+class _FlowNetReplicaExecutionContext:
+    def __init__(self, name: str, *, parallel_index: int, parallelism: int) -> None:
+        self.name = name
+        self.parallel_index = parallel_index
+        self.parallelism = parallelism
+        self._logger = CustomLogger(name=name)
+        self._current_key: Any = None
+
+    @property
+    def logger(self) -> CustomLogger:
+        return self._logger
+
+    def set_current_key(self, key: Any) -> None:
+        self._current_key = key
+
+    def clear_key(self) -> None:
+        self._current_key = None
+
+    def get_key(self) -> Any:
+        return self._current_key
+
+
+def _build_flow_actor_instance(
+    actor_class: type,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+    *,
+    replica_index: int,
+    replica_count: int,
+) -> Any:
+    instance = actor_class(*args, **kwargs)
+    function = getattr(instance, "_fn", None)
+    if function is not None and getattr(function, "ctx", None) is None:
+        context_name = actor_class.__name__
+        if replica_count > 1:
+            context_name = f"{context_name}_r{replica_index}"
+        function.ctx = _FlowNetReplicaExecutionContext(
+            context_name,
+            parallel_index=replica_index,
+            parallelism=replica_count,
+        )
+    return instance
+
+
+class _FlowNetReplicaPoolMethodRef(MethodRefProtocol):
+    __slots__ = ("_actor_api", "_actor_ids", "_method_name", "_selection_lock", "_rr_cursor")
+
+    def __init__(self, actor_api: Any, actor_ids: tuple[str, ...], method_name: str) -> None:
+        self._actor_api = actor_api
+        self._actor_ids = actor_ids
+        self._method_name = method_name
+        self._selection_lock = Lock()
+        self._rr_cursor = 0
+
+    def _select_actor_id(self, *args: Any, **kwargs: Any) -> str:
+        route_key = _extract_route_key(args, kwargs)
+        if route_key is not None:
+            return self._actor_ids[_stable_replica_index(route_key, len(self._actor_ids))]
+
+        with self._selection_lock:
+            selected = self._actor_ids[self._rr_cursor % len(self._actor_ids)]
+            self._rr_cursor += 1
+            return selected
+
+    def call(self, *args: Any, **kwargs: Any) -> Any:
+        actor_id = self._select_actor_id(*args, **kwargs)
+        return _run_actor_api_call(
+            self._actor_api,
+            actor_id,
+            self._method_name,
+            *args,
+            **kwargs,
+        )
 
     def async_call(self, *args: Any, **kwargs: Any) -> MethodCallFuture:
         fut = _get_async_executor().submit(self.call, *args, **kwargs)
@@ -89,18 +237,32 @@ class _FlowNetMethodRef(MethodRefProtocol):
 
 
 class _FlowNetActorHandle(ActorHandleProtocol):
-    def __init__(self, actor_id: str, registry: Any) -> None:
-        object.__setattr__(self, "_actor_id", actor_id)
+    def __init__(self, actor_api: Any, actor_id: str | tuple[str, ...], registry: Any) -> None:
+        if isinstance(actor_id, tuple):
+            actor_ids = actor_id
+        else:
+            actor_ids = (actor_id,)
+        object.__setattr__(self, "_actor_api", actor_api)
+        object.__setattr__(self, "_actor_ids", actor_ids)
         object.__setattr__(self, "_registry", registry)
 
     def get_method(self, name: str) -> MethodRefProtocol:
-        return _FlowNetMethodRef(self._actor_id, name, self._registry)
+        if len(self._actor_ids) == 1:
+            return _FlowNetMethodRef(self._actor_api, self._actor_ids[0], name)
+        return _FlowNetReplicaPoolMethodRef(self._actor_api, self._actor_ids, name)
 
     def cancel(self) -> bool:
         try:
-            return bool(self._registry.delete_local_actor(self._actor_id))
+            deleted_any = False
+            for actor_id in self._actor_ids:
+                deleted_any = self._registry.delete_local_actor(actor_id) or deleted_any
+            return deleted_any
         except Exception:
             return False
+
+    @property
+    def replica_count(self) -> int:
+        return len(self._actor_ids)
 
 
 class _FlowNetFlowRunHandle(FlowRunHandleProtocol):
@@ -234,9 +396,19 @@ class FlowNetRuntimeAdapter(RuntimeBackendProtocol):
         **kwargs: Any,
     ) -> ActorHandleProtocol:
         self._assert_started("create")
-        instance = actor_class(*args, **kwargs)
-        actor_id = self._registry.register_local_actor(instance, config=actor_config)
-        return _FlowNetActorHandle(actor_id, self._registry)
+        replica_count = _replica_count_from_actor_config(actor_config)
+        actor_ids: list[str] = []
+        for replica_index in range(replica_count):
+            instance = _build_flow_actor_instance(
+                actor_class,
+                args,
+                kwargs,
+                replica_index=replica_index,
+                replica_count=replica_count,
+            )
+            actor_id = self._registry.register_local_actor(instance, config=actor_config)
+            actor_ids.append(actor_id)
+        return _FlowNetActorHandle(self._actor_api, tuple(actor_ids), self._registry)
 
     def submit(
         self,

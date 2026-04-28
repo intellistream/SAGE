@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import queue
+import threading
 import time
 
 from sage.foundation import (
@@ -44,6 +45,50 @@ class CollectSink(SinkFunction):
     collected: list[int] = []
 
     def execute(self, data: int) -> None:
+        type(self).collected.append(data)
+
+
+class RecordReplicaIndex(MapFunction):
+    def execute(self, data: int) -> dict[str, int]:
+        return {"value": data, "replica": int(getattr(self.ctx, "parallel_index", -1))}
+
+
+class RecordKeyReplica(MapFunction):
+    def execute(self, data: dict[str, int | str]) -> dict[str, int | str]:
+        return {
+            "key": str(data["key"]),
+            "replica": int(getattr(self.ctx, "parallel_index", -1)),
+        }
+
+
+class SlowConcurrentReplica(MapFunction):
+    active_calls = 0
+    max_active_calls = 0
+    _lock = threading.Lock()
+
+    @classmethod
+    def reset(cls) -> None:
+        with cls._lock:
+            cls.active_calls = 0
+            cls.max_active_calls = 0
+
+    def execute(self, data: int) -> int:
+        with type(self)._lock:
+            type(self).active_calls += 1
+            type(self).max_active_calls = max(type(self).max_active_calls, type(self).active_calls)
+
+        try:
+            time.sleep(0.05)
+            return data
+        finally:
+            with type(self)._lock:
+                type(self).active_calls -= 1
+
+
+class CollectReplicaAssignments(SinkFunction):
+    collected: list[dict[str, object]] = []
+
+    def execute(self, data: dict[str, object]) -> None:
         type(self).collected.append(data)
 
 
@@ -257,6 +302,81 @@ def test_local_environment_batch_submit_runs_without_kernel_dependency() -> None
     assert CollectSink.collected == [0, 2, 4, 6]
     assert status["status"] == "stopped"
     assert status["pipeline_size"] == 3
+
+
+def test_local_environment_round_robins_unkeyed_parallel_map_locally() -> None:
+    CollectReplicaAssignments.collected = []
+    JobManager().cleanup_all_jobs()
+
+    env = LocalEnvironment(name="local-parallel-map-round-robin")
+    env.from_batch([0, 1, 2, 3]).map(RecordReplicaIndex, parallelism=2).sink(
+        CollectReplicaAssignments
+    )
+
+    env_uuid = env.submit(autostop=True)
+    status = env.jobmanager.get_job_status(env_uuid)
+
+    assignment_by_value = {
+        int(item["value"]): int(item["replica"]) for item in CollectReplicaAssignments.collected
+    }
+
+    assert assignment_by_value == {
+        0: 0,
+        1: 1,
+        2: 0,
+        3: 1,
+    }
+    assert status["status"] == "stopped"
+
+
+def test_local_environment_parallel_map_executes_with_concurrent_workers() -> None:
+    CollectSink.collected = []
+    SlowConcurrentReplica.reset()
+    JobManager().cleanup_all_jobs()
+
+    env = LocalEnvironment(name="local-parallel-map-concurrent-workers")
+    env.from_batch([0, 1, 2, 3]).map(SlowConcurrentReplica, parallelism=2).sink(CollectSink)
+
+    env_uuid = env.submit(autostop=True)
+    status = env.jobmanager.get_job_status(env_uuid)
+
+    assert sorted(CollectSink.collected) == [0, 1, 2, 3]
+    assert SlowConcurrentReplica.max_active_calls >= 2
+    assert status["status"] == "stopped"
+
+
+def test_local_environment_keeps_keyed_parallel_map_on_stable_replica() -> None:
+    CollectReplicaAssignments.collected = []
+    JobManager().cleanup_all_jobs()
+
+    env = LocalEnvironment(name="local-parallel-map-keyed")
+    (
+        env.from_batch(
+            [
+                {"key": "alpha", "value": 1},
+                {"key": "beta", "value": 2},
+                {"key": "alpha", "value": 3},
+                {"key": "beta", "value": 4},
+            ]
+        )
+        .keyby(lambda item: item["key"])
+        .map(RecordKeyReplica, parallelism=2)
+        .sink(CollectReplicaAssignments)
+    )
+
+    env_uuid = env.submit(autostop=True)
+    status = env.jobmanager.get_job_status(env_uuid)
+
+    replica_by_key: dict[str, int] = {}
+    for item in CollectReplicaAssignments.collected:
+        key = str(item["key"])
+        replica_index = int(item["replica"])
+        assert isinstance(key, str)
+        previous = replica_by_key.setdefault(key, replica_index)
+        assert previous == replica_index
+
+    assert set(replica_by_key) == {"alpha", "beta"}
+    assert status["status"] == "stopped"
 
 
 def test_local_environment_streaming_job_can_be_stopped() -> None:
