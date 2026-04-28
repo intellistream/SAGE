@@ -3,6 +3,8 @@ from __future__ import annotations
 import queue
 import time
 
+import pytest
+
 from sage.foundation import (
     BaseCoMapFunction,
     BaseJoinFunction,
@@ -257,6 +259,16 @@ def test_local_environment_batch_submit_runs_without_kernel_dependency() -> None
     assert CollectSink.collected == [0, 2, 4, 6]
     assert status["status"] == "stopped"
     assert status["pipeline_size"] == 3
+
+
+def test_local_environment_rejects_transformation_parallelism_gt_one() -> None:
+    JobManager().cleanup_all_jobs()
+
+    env = LocalEnvironment(name="local-parallelism-unsupported")
+    env.from_batch(NumberBatchSource).map(DoubleValue, parallelism=2).sink(CollectSink)
+
+    with pytest.raises(RuntimeError, match="LocalEnvironment does not support transformation parallelism > 1"):
+        env.submit(autostop=True)
 
 
 def test_local_environment_streaming_job_can_be_stopped() -> None:

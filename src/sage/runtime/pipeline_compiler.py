@@ -62,6 +62,28 @@ def _uses_legacy_linear_wrapper(t: Any) -> bool:
     }
 
 
+def _validate_local_parallelism(pipeline: list[Any]) -> None:
+    unsupported: list[str] = []
+    for transformation in pipeline:
+        if _classify(transformation)[1] == "source":
+            continue
+
+        parallelism = int(getattr(transformation, "parallelism", 1) or 1)
+        if parallelism == 1:
+            continue
+
+        unsupported.append(
+            f"{transformation.basename}({type(transformation).__name__},parallelism={parallelism})"
+        )
+
+    if unsupported:
+        joined = ", ".join(unsupported)
+        raise RuntimeError(
+            "LocalEnvironment does not support transformation parallelism > 1; "
+            f"unsupported={joined}. Use parallelism=1 locally or switch to FlowNetEnvironment."
+        )
+
+
 class _LightweightServiceFuture:
     def __init__(
         self,
@@ -730,6 +752,9 @@ class PipelineCompiler:
                 "PipelineCompiler.compile() received an empty pipeline. "
                 "Build a pipeline with env.from_source(...).map(...).sink(...) before calling env.submit()."
             )
+
+        if pipeline and getattr(pipeline[0].env, "platform", None) == "local":
+            _validate_local_parallelism(pipeline)
 
         source_trans: Any | None = None
         source_transforms: list[Any] = []
