@@ -467,18 +467,11 @@ class V1RuntimeHost:
                     request_epoch=normalized_request_epoch,
                 )
                 normalized_backend_id = _normalize_optional_non_empty(selection.get("backend_id"))
-                selection_trace = {
-                    "backend_id": selection.get("backend_id"),
-                    "request_epoch": selection.get("request_epoch"),
-                    "matched_request_epoch": selection.get("matched_request_epoch"),
-                    "epoch_policy": selection.get("epoch_policy"),
-                    "epoch_fallback": selection.get("epoch_fallback"),
-                    "selection_reason": selection.get("selection_reason"),
-                    "required_tags": dict(required_tags or {}),
-                    "required_capabilities": _normalize_backend_capability_mapping(
-                        required_capabilities
-                    ),
-                }
+                selection_trace = _build_backend_selection_trace(
+                    selection=selection,
+                    required_tags=required_tags,
+                    required_capabilities=required_capabilities,
+                )
             except RuntimeError as exc:
                 local_selection_error = exc
 
@@ -503,20 +496,11 @@ class V1RuntimeHost:
                     remote_node_address = _normalize_optional_non_empty(
                         cluster_selection.get("node_address")
                     )
-                    selection_trace = {
-                        "backend_id": cluster_selection.get("backend_id"),
-                        "node_id": cluster_selection.get("node_id"),
-                        "node_address": cluster_selection.get("node_address"),
-                        "request_epoch": cluster_selection.get("request_epoch"),
-                        "matched_request_epoch": cluster_selection.get("matched_request_epoch"),
-                        "epoch_policy": cluster_selection.get("epoch_policy"),
-                        "epoch_fallback": cluster_selection.get("epoch_fallback"),
-                        "selection_reason": cluster_selection.get("selection_reason"),
-                        "required_tags": dict(required_tags or {}),
-                        "required_capabilities": _normalize_backend_capability_mapping(
-                            required_capabilities
-                        ),
-                    }
+                    selection_trace = _build_backend_selection_trace(
+                        selection=cluster_selection,
+                        required_tags=required_tags,
+                        required_capabilities=required_capabilities,
+                    )
                     if remote_node_address == self.comm_hub.local_address:
                         remote_node_address = None
                     elif remote_node_address is not None and normalized_backend_id is not None:
@@ -546,25 +530,14 @@ class V1RuntimeHost:
                                 and failover_node_address is not None
                                 and failover_node_address != self.comm_hub.local_address
                             ):
-                                failover_trace = {
-                                    "backend_id": failover_selection.get("backend_id"),
-                                    "node_id": failover_selection.get("node_id"),
-                                    "node_address": failover_selection.get("node_address"),
-                                    "request_epoch": failover_selection.get("request_epoch"),
-                                    "matched_request_epoch": failover_selection.get(
-                                        "matched_request_epoch"
-                                    ),
-                                    "epoch_policy": failover_selection.get("epoch_policy"),
-                                    "epoch_fallback": failover_selection.get("epoch_fallback"),
-                                    "selection_reason": failover_selection.get("selection_reason"),
-                                    "required_tags": dict(required_tags or {}),
-                                    "required_capabilities": _normalize_backend_capability_mapping(
-                                        required_capabilities
-                                    ),
-                                    "fallback_used": True,
-                                    "fallback_reason": "remote_transport_retry_once",
-                                    "failed_node_address": remote_node_address,
-                                }
+                                failover_trace = _build_backend_selection_trace(
+                                    selection=failover_selection,
+                                    required_tags=required_tags,
+                                    required_capabilities=required_capabilities,
+                                )
+                                failover_trace["fallback_used"] = True
+                                failover_trace["fallback_reason"] = "remote_transport_retry_once"
+                                failover_trace["failed_node_address"] = remote_node_address
                                 remote_submit_attempts.append(
                                     {
                                         "node_address": failover_node_address,
@@ -1299,7 +1272,162 @@ def _select_backend_record_from_candidates(
     selected_record["epoch_fallback"] = selected["epoch_policy"] != "match"
     selected_record["preferred_hit"] = bool(selected["preferred_hit"])
     selected_record["selection_reason"] = selection_reason
+    selected_record["selection_reason_codes"] = _build_selection_reason_codes(
+        selected=selected,
+        selection_reason=selection_reason,
+    )
+    selected_record["selected_backend_state"] = _summarize_backend_selection_item(
+        selected,
+        selected=True,
+    )
+    selected_record["candidate_backend_states"] = [
+        _summarize_backend_selection_item(item, selected=(item is selected))
+        for item in epoch_pool
+    ]
+    selected_record["excluded_backend_states"] = [
+        _summarize_backend_selection_item(item, exclusion_reason=exclusion_reason)
+        for item in scored
+        if (exclusion_reason := _determine_backend_selection_exclusion_reason(
+            item=item,
+            selected=selected,
+            epoch_pool=epoch_pool,
+        ))
+        is not None
+    ]
     return selected_record
+
+
+def _build_backend_selection_trace(
+    *,
+    selection: Mapping[str, Any],
+    required_tags: Mapping[str, str] | None,
+    required_capabilities: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    trace = {
+        "backend_id": selection.get("backend_id"),
+        "node_id": selection.get("node_id"),
+        "node_address": selection.get("node_address"),
+        "request_epoch": selection.get("request_epoch"),
+        "matched_request_epoch": selection.get("matched_request_epoch"),
+        "epoch_policy": selection.get("epoch_policy"),
+        "epoch_fallback": selection.get("epoch_fallback"),
+        "selection_reason": selection.get("selection_reason"),
+        "required_tags": dict(required_tags or {}),
+        "required_capabilities": _normalize_backend_capability_mapping(required_capabilities),
+    }
+    reason_codes = selection.get("selection_reason_codes")
+    if isinstance(reason_codes, (list, tuple)):
+        trace["selection_reason_codes"] = [
+            code for code in (_normalize_optional_non_empty(item) for item in reason_codes) if code
+        ]
+    selected_backend_state = selection.get("selected_backend_state")
+    if isinstance(selected_backend_state, Mapping):
+        trace["selected_backend_state"] = _copy_selection_trace_value(selected_backend_state)
+    for field_name in ("candidate_backend_states", "excluded_backend_states"):
+        raw_value = selection.get(field_name)
+        if isinstance(raw_value, (list, tuple)):
+            trace[field_name] = [
+                _copy_selection_trace_value(item)
+                for item in raw_value
+                if isinstance(item, Mapping)
+            ]
+    return trace
+
+
+def _build_selection_reason_codes(*, selected: Mapping[str, Any], selection_reason: str) -> list[str]:
+    codes = [selection_reason]
+    epoch_policy = _normalize_optional_non_empty(selected.get("epoch_policy"))
+    if epoch_policy is not None:
+        codes.append(f"epoch_policy_{epoch_policy}")
+    if bool(selected.get("preferred_hit")):
+        codes.append("preferred_backend")
+    if bool(selected.get("local_hit")):
+        codes.append("local_node")
+    return codes
+
+
+def _determine_backend_selection_exclusion_reason(
+    *,
+    item: Mapping[str, Any],
+    selected: Mapping[str, Any],
+    epoch_pool: list[Mapping[str, Any]],
+) -> str | None:
+    if not bool(item.get("healthy")):
+        return "unhealthy"
+    if not bool(item.get("schedulable")):
+        return "unschedulable"
+    if item not in epoch_pool:
+        epoch_policy = _normalize_optional_non_empty(item.get("epoch_policy")) or "unknown"
+        return f"epoch_policy_{epoch_policy}_filtered"
+    if item is selected:
+        return None
+    return "ranked_lower"
+
+
+def _summarize_backend_selection_item(
+    item: Mapping[str, Any],
+    *,
+    selected: bool = False,
+    exclusion_reason: str | None = None,
+) -> dict[str, Any]:
+    raw_record = item.get("record")
+    record = dict(raw_record) if isinstance(raw_record, Mapping) else {}
+    raw_metrics = record.get("metrics")
+    metrics = dict(raw_metrics) if isinstance(raw_metrics, Mapping) else {}
+    raw_metadata = record.get("metadata")
+    metadata = dict(raw_metadata) if isinstance(raw_metadata, Mapping) else {}
+    runtime_metrics = metadata.get("runtime_metrics")
+
+    summary: dict[str, Any] = {
+        "backend_id": _normalize_optional_non_empty(item.get("backend_id")),
+        "node_id": _normalize_optional_non_empty(record.get("node_id")),
+        "node_address": _normalize_optional_non_empty(item.get("node_address") or record.get("node_address")),
+        "healthy": bool(item.get("healthy")),
+        "schedulable": bool(item.get("schedulable")),
+        "selected": bool(selected),
+        "epoch": _normalize_optional_epoch(metrics.get("epoch")),
+        "epoch_policy": _normalize_optional_non_empty(item.get("epoch_policy")),
+        "queue_depth": _coerce_float(metrics.get("queue_depth"), default=0.0),
+        "queue_capacity": _coerce_float(metrics.get("queue_capacity"), default=1.0),
+        "inflight": _coerce_float(metrics.get("inflight"), default=0.0),
+        "queue_pressure": round(_coerce_float(item.get("queue_pressure"), default=0.0), 4),
+        "preferred_hit": bool(item.get("preferred_hit")),
+        "local_hit": bool(item.get("local_hit")),
+        "tags": _normalize_string_mapping(record.get("tags") if isinstance(record.get("tags"), Mapping) else None),
+        "capabilities": _normalize_backend_capability_mapping(
+            record.get("capabilities") if isinstance(record.get("capabilities"), Mapping) else None
+        ),
+    }
+
+    for field_name in ("accelerator_type", "model_family", "precision"):
+        field_value = _normalize_optional_non_empty(metadata.get(field_name))
+        if field_value is not None:
+            summary[field_name] = field_value
+
+    resident_models = metadata.get("resident_models")
+    if isinstance(resident_models, (list, tuple)):
+        summary["resident_models"] = [
+            model for model in (_normalize_optional_non_empty(item) for item in resident_models) if model
+        ]
+
+    parallelism = metadata.get("parallelism")
+    if isinstance(parallelism, Mapping):
+        summary["parallelism"] = _copy_selection_trace_value(parallelism)
+
+    if isinstance(runtime_metrics, Mapping):
+        summary["runtime_metrics"] = _copy_selection_trace_value(runtime_metrics)
+
+    if exclusion_reason is not None:
+        summary["exclusion_reason"] = exclusion_reason
+    return summary
+
+
+def _copy_selection_trace_value(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {str(key): _copy_selection_trace_value(nested) for key, nested in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_copy_selection_trace_value(item) for item in value]
+    return value
 
 
 def _select_cluster_failover_record(

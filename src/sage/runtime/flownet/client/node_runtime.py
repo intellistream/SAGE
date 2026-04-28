@@ -1786,6 +1786,26 @@ class _V1NodeControlService:
                 "required_tags": dict(normalized_required_tags),
                 "required_capabilities": dict(normalized_required_capabilities),
             }
+            if isinstance(selection.get("selection_reason_codes"), list):
+                selection_trace["selection_reason_codes"] = list(
+                    selection["selection_reason_codes"]
+                )
+            if isinstance(selection.get("selected_backend_state"), Mapping):
+                selection_trace["selected_backend_state"] = dict(
+                    selection["selected_backend_state"]
+                )
+            if isinstance(selection.get("candidate_backend_states"), list):
+                selection_trace["candidate_backend_states"] = [
+                    dict(item)
+                    for item in selection["candidate_backend_states"]
+                    if isinstance(item, Mapping)
+                ]
+            if isinstance(selection.get("excluded_backend_states"), list):
+                selection_trace["excluded_backend_states"] = [
+                    dict(item)
+                    for item in selection["excluded_backend_states"]
+                    if isinstance(item, Mapping)
+                ]
         if normalized_backend_id is None:
             raise RuntimeError("backend_container_selection_failed")
 

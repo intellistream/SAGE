@@ -45,6 +45,12 @@ def submit_backend_job(
                 continue
             merged_required_capabilities[key] = _normalize_capability_value(raw_value)
 
+    _merge_serving_context_backend_requirements(
+        request=request,
+        required_tags=merged_required_tags,
+        required_capabilities=merged_required_capabilities,
+    )
+
     resolved_preferred_backend_id = _normalize_optional_non_empty(
         preferred_backend_id
     ) or _normalize_optional_non_empty(requirements.get("preferred_backend_id"))
@@ -123,6 +129,42 @@ def _resolve_actor_request_epoch(
             normalized = _normalize_optional_epoch(candidate)
             if normalized is not None:
                 return normalized
+    return None
+
+
+def _merge_serving_context_backend_requirements(
+    *,
+    request: Mapping[str, Any],
+    required_tags: dict[str, str],
+    required_capabilities: dict[str, Any],
+) -> None:
+    serving_context = _resolve_request_serving_context(request)
+    if serving_context is None:
+        return
+
+    if "accelerator" not in required_tags:
+        accelerator_affinity = _normalize_optional_non_empty(
+            serving_context.get("accelerator_affinity")
+        )
+        if accelerator_affinity is not None:
+            required_tags["accelerator"] = accelerator_affinity
+
+    if "models" not in required_capabilities:
+        model_id = _normalize_optional_non_empty(serving_context.get("model_id"))
+        if model_id is not None:
+            required_capabilities["models"] = model_id
+
+
+def _resolve_request_serving_context(request: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    serving_context = request.get("serving_context")
+    if isinstance(serving_context, Mapping):
+        return serving_context
+
+    metadata = request.get("metadata")
+    if isinstance(metadata, Mapping):
+        metadata_serving_context = metadata.get("serving_context")
+        if isinstance(metadata_serving_context, Mapping):
+            return metadata_serving_context
     return None
 
 
