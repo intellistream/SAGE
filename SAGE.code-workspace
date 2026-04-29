@@ -15,18 +15,6 @@
     {
       "name": "sage-tutorials  [tutorials]",
       "path": "../sage-tutorials"
-    },
-    {
-      "name": "vllm-hust  [engine]",
-      "path": "../vllm-hust"
-    },
-    {
-      "name": "vllm-hust-dev-hub  [lab]",
-      "path": "../vllm-hust-dev-hub"
-    },
-    {
-      "name": "vllm-hust-docs  [engine-docs]",
-      "path": "../vllm-hust-docs"
     }
   ],
   "settings": {
