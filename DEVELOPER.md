@@ -79,6 +79,16 @@ git checkout main
 
 > 💡 **注意**: 用户文档已迁移到独立的 [sage-docs](https://github.com/intellistream/sage-docs) 仓库。
 
+### Runtime Parallelism Contract
+
+当前主仓运行时对 `parallelism` 的约定如下：
+
+- `LocalEnvironment` 对非 source transformation 生效，会创建本地 in-process replica worker。
+- replica 上下文会暴露 `ctx.parallel_index` 与 `ctx.parallelism`，便于算子感知自身副本编号。
+- keyed 数据流在本地运行时按稳定分区路由到固定 replica；非 keyed 数据流按 round-robin 分发。
+- source transformation 仍由本地 source polling 路径驱动，不会因为 `parallelism` 自动变成多个独立本地 source 进程。
+- `FlowNetEnvironment` 会把相同的 `parallelism` hint 编译到 FlowNet actor replica 配置中；本地与 FlowNet 的用户侧并行语义保持一致。
+
 ### Initial Setup
 
 1. Clone and switch to canonical branch

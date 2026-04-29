@@ -73,6 +73,18 @@ The recommended main-repo surface is the in-tree core:
 RAG, memory, intent, and tool-use capabilities are optional adapters. They should be installed
 explicitly instead of being treated as the default root-package contract.
 
+### Runtime parallelism semantics
+
+- `LocalEnvironment` now honors transformation `parallelism` for non-source operators.
+- In local mode, SAGE creates in-process worker replicas for eligible transformations and exposes
+  `ctx.parallel_index` plus `ctx.parallelism` on each replica.
+- Keyed streams keep stable key-to-replica routing locally; unkeyed streams use round-robin routing
+  across local replicas.
+- Source transformations are still polled locally in-process; `parallelism` applies to downstream
+  transformation replicas rather than spawning multiple independent local source processes.
+- `FlowNetEnvironment` compiles the same `parallelism` hints into FlowNet actor replica counts, so
+  local and FlowNet execution share the same user-facing operator parallelism contract.
+
 ### Minimal local pipeline
 
 ```python
