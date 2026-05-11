@@ -38,10 +38,7 @@ def _wait_for(predicate, *, timeout: float = 2.0) -> None:
 def test_shared_state_checkpoint_store_restores_jsonl_resume_offset(tmp_path) -> None:
     dataset_path = tmp_path / "orders.jsonl"
     dataset_path.write_text(
-        "\n".join(
-            json.dumps({"id": idx, "value": f"order-{idx}"}) for idx in range(1, 6)
-        )
-        + "\n",
+        "\n".join(json.dumps({"id": idx, "value": f"order-{idx}"}) for idx in range(1, 6)) + "\n",
         encoding="utf-8",
     )
 
@@ -350,7 +347,9 @@ def test_source_failure_auto_restart_reuses_checkpoint_resume_offset(tmp_path) -
         assert restarted.options["recovery_reason"] == "auto_restart"
         assert restarted.options["previous_failure_reason"] == "simulated-crash"
 
-        failed_snapshot = client.query_source(instance_id=instance.instance_id, include_stopped=True)
+        failed_snapshot = client.query_source(
+            instance_id=instance.instance_id, include_stopped=True
+        )
         assert isinstance(failed_snapshot, dict)
         assert failed_snapshot["status"] == "failed"
         assert failed_snapshot["failure_reason"] == "simulated-crash"
@@ -543,7 +542,9 @@ def test_source_checkpoint_restore_requires_checkpoint_capable_declaration(tmp_p
             dsl_name="checkpoint_required_false_source",
         )
 
-        with pytest.raises(ValueError, match="source_checkpoint_restore_not_supported:.*checkpoint_required=false"):
+        with pytest.raises(
+            ValueError, match="source_checkpoint_restore_not_supported:.*checkpoint_required=false"
+        ):
             client.sources.start(
                 source_declaration,
                 config={"path": str(dataset_path)},

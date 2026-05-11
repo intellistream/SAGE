@@ -446,7 +446,11 @@ class V1RuntimeClient:
 
     def release_shared_state_flow_claims(self, flow_instance_or_id: InstanceHandle | str) -> None:
         runtime_host = self.runtime_host
-        registry = getattr(runtime_host, "shared_state_registry", None) if runtime_host is not None else None
+        registry = (
+            getattr(runtime_host, "shared_state_registry", None)
+            if runtime_host is not None
+            else None
+        )
         if registry is None:
             return
         registry.release_flow_instance_claims(_normalize_instance_id(flow_instance_or_id))
@@ -779,8 +783,7 @@ class FlowEndpoint:
         return {
             "endpoint_id": None,
             "name": self._published_endpoint_name,
-            "namespace": self._published_endpoint_namespace
-            or self._resolve_endpoint_namespace(),
+            "namespace": self._published_endpoint_namespace or self._resolve_endpoint_namespace(),
             "flow_uri": self.flow_instance.registration.uri,
             "owner": self.flow_instance.registration.owner,
             "version": _resolve_flow_endpoint_version(self.flow_instance.registration, None),
@@ -795,7 +798,9 @@ class FlowEndpoint:
             "definition_hash": _normalize_optional_non_empty(
                 self.flow_instance.registration.metadata.get("definition_hash")
             ),
-            "bind_hash": _normalize_optional_non_empty(self.flow_instance.bindings.get("bind_hash")),
+            "bind_hash": _normalize_optional_non_empty(
+                self.flow_instance.bindings.get("bind_hash")
+            ),
             "shared_state_bindings": _normalize_endpoint_shared_state_bindings(
                 self.flow_instance.bindings.get("shared_state_bindings")
             ),
@@ -1010,8 +1015,7 @@ class FlowEndpoint:
         quota_value: int | None = None
         if quota_limit is not None:
             quota_scope = (
-                f"endpoint::{self.flow_instance.instance_id}::{principal}::"
-                f"{tenant or '-'}"
+                f"endpoint::{self.flow_instance.instance_id}::{principal}::{tenant or '-'}"
             )
             quota_window_ms = int(quota.get("window_ms") or 60_000)
             governance_manager = self._resolve_governance_manager()
@@ -1861,7 +1865,9 @@ def _resolve_flow_candidate_namespace(raw_candidate: Any) -> str:
             return declaration_namespace
         declaration_metadata = getattr(raw_candidate.declaration, "metadata", None)
         if isinstance(declaration_metadata, Mapping):
-            metadata_namespace = _normalize_optional_non_empty(declaration_metadata.get("namespace"))
+            metadata_namespace = _normalize_optional_non_empty(
+                declaration_metadata.get("namespace")
+            )
             if metadata_namespace is not None:
                 return metadata_namespace
         return "default"
@@ -1901,7 +1907,9 @@ def _validate_endpoint_publication_namespace(
         or _normalize_optional_non_empty(getattr(registration.declaration, "namespace", None))
         or _normalize_optional_non_empty(
             getattr(getattr(registration, "declaration", None), "metadata", {}).get("namespace")
-            if isinstance(getattr(getattr(registration, "declaration", None), "metadata", None), Mapping)
+            if isinstance(
+                getattr(getattr(registration, "declaration", None), "metadata", None), Mapping
+            )
             else None
         )
         or "default"
@@ -2095,7 +2103,9 @@ class _LifecycleStateStore:
             record.failure_reason = None
         return True
 
-    def fail(self, instance_or_id: InstanceHandle | str, *, error: Any | None = None) -> _LifecycleRecord | None:
+    def fail(
+        self, instance_or_id: InstanceHandle | str, *, error: Any | None = None
+    ) -> _LifecycleRecord | None:
         instance_id = _normalize_instance_id(instance_or_id)
         with self._lock:
             record = self._active.pop(instance_id, None)
@@ -2268,7 +2278,9 @@ class _LifecycleClientSurface(_ClientSurface):
         if not stopped:
             return False
         if self._kind == "flow" and self._client is not None:
-            release_shared_state_claims = getattr(self._client, "release_shared_state_flow_claims", None)
+            release_shared_state_claims = getattr(
+                self._client, "release_shared_state_flow_claims", None
+            )
             if callable(release_shared_state_claims):
                 release_shared_state_claims(instance_id)
             unbind = getattr(self._client, "unbind_flow_process", None)
@@ -2338,10 +2350,14 @@ class _LifecycleClientSurface(_ClientSurface):
     ) -> InstanceHandle:
         record = self._state_store.get_record(instance_or_id, include_history=True)
         if record is None:
-            raise ValueError(f"{self._kind}_instance_not_found:{_normalize_instance_id(instance_or_id)}")
+            raise ValueError(
+                f"{self._kind}_instance_not_found:{_normalize_instance_id(instance_or_id)}"
+            )
         if record.status == "running":
             if not self.stop(record.instance.instance_id):
-                raise RuntimeError(f"{self._kind}_restart_stop_failed:{record.instance.instance_id}")
+                raise RuntimeError(
+                    f"{self._kind}_restart_stop_failed:{record.instance.instance_id}"
+                )
         return self._restart_from_record(record, reason=reason, error=record.failure_reason)
 
     def handle_failure(
@@ -4160,7 +4176,9 @@ def _resolve_instance_shared_state_bindings(
         return []
     runtime_host_required = _require_shared_state_runtime_host(runtime_host)
     registry = _resolve_runtime_shared_state_registry(runtime_host_required)
-    consumer_namespace = _normalize_optional_non_empty(registration.metadata.get("namespace")) or "default"
+    consumer_namespace = (
+        _normalize_optional_non_empty(registration.metadata.get("namespace")) or "default"
+    )
     consumer_tenant = _resolve_registration_tenant(registration)
 
     resolved_rows: list[dict[str, Any]] = []
@@ -4174,7 +4192,9 @@ def _resolve_instance_shared_state_bindings(
             consumer_instance_id=consumer_instance_id,
             consumer_flow_instance_id=consumer_instance_id if kind == "flow" else None,
         )
-        resolved_rows.append(_build_resolved_shared_state_binding_row(binding=binding, record=record))
+        resolved_rows.append(
+            _build_resolved_shared_state_binding_row(binding=binding, record=record)
+        )
     return _merge_resolved_shared_state_bindings(resolved_rows)
 
 
@@ -4195,10 +4215,9 @@ def _resolve_actor_shared_state_bindings(
         or _normalize_optional_non_empty(instance.registration.metadata.get("namespace"))
         or "default"
     )
-    consumer_tenant = (
-        _normalize_optional_non_empty(registration_metadata.get("tenant"))
-        or _resolve_registration_tenant(instance.registration)
-    )
+    consumer_tenant = _normalize_optional_non_empty(
+        registration_metadata.get("tenant")
+    ) or _resolve_registration_tenant(instance.registration)
     resolved_rows: list[dict[str, Any]] = []
     for binding in actor_bindings:
         record = registry.resolve_binding(
@@ -4210,7 +4229,9 @@ def _resolve_actor_shared_state_bindings(
             consumer_instance_id=instance.instance_id,
             consumer_flow_instance_id=instance.instance_id,
         )
-        resolved_rows.append(_build_resolved_shared_state_binding_row(binding=binding, record=record))
+        resolved_rows.append(
+            _build_resolved_shared_state_binding_row(binding=binding, record=record)
+        )
     resolved_rows.sort(key=lambda item: item["alias"])
     return resolved_rows
 
@@ -4228,7 +4249,10 @@ def _merge_resolved_shared_state_bindings(*raw_binding_groups: Any) -> list[dict
             if alias is None or contract_id is None:
                 continue
             existing = merged.get(alias)
-            if existing is not None and _normalize_optional_non_empty(existing.get("contract_id")) != contract_id:
+            if (
+                existing is not None
+                and _normalize_optional_non_empty(existing.get("contract_id")) != contract_id
+            ):
                 raise ValueError(
                     "shared_state_binding_alias_conflict:"
                     f" alias={alias} existing_contract_id={existing.get('contract_id')}"
@@ -4331,8 +4355,7 @@ def _resolve_source_fault_tolerance_runtime_options(
     checkpoint_binding = _find_shared_state_binding_by_alias(shared_state_bindings, alias)
     if checkpoint_binding is None:
         raise ValueError(
-            "source_checkpoint_store_binding_required:"
-            f" uri={registration.uri} alias={alias}"
+            f"source_checkpoint_store_binding_required: uri={registration.uri} alias={alias}"
         )
 
     runtime_host_required = _require_shared_state_runtime_host(runtime_host)
@@ -4451,10 +4474,9 @@ def _resolve_source_checkpoint_scope(
         config.get("uri"),
         registration.uri,
     )
-    namespace = (
-        _normalize_optional_non_empty(registration.metadata.get("namespace"))
-        or _normalize_optional_non_empty(getattr(registration.declaration, "namespace", None))
-    )
+    namespace = _normalize_optional_non_empty(
+        registration.metadata.get("namespace")
+    ) or _normalize_optional_non_empty(getattr(registration.declaration, "namespace", None))
     return build_connector_checkpoint_scope(
         connector=_normalize_non_empty(connector, field_name="connector"),
         path=_normalize_non_empty(path, field_name="path"),

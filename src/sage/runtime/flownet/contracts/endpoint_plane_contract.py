@@ -31,33 +31,59 @@ class FlowEndpointDescriptor:
     published_at_epoch_ms: int = field(default_factory=lambda: int(time.time() * 1000))
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "endpoint_id", _normalize_non_empty(self.endpoint_id, field_name="endpoint_id"))
+        object.__setattr__(
+            self, "endpoint_id", _normalize_non_empty(self.endpoint_id, field_name="endpoint_id")
+        )
         object.__setattr__(self, "name", _normalize_non_empty(self.name, field_name="name"))
-        object.__setattr__(self, "namespace", _normalize_non_empty(self.namespace, field_name="namespace"))
-        object.__setattr__(self, "flow_uri", _normalize_non_empty(self.flow_uri, field_name="flow_uri"))
+        object.__setattr__(
+            self, "namespace", _normalize_non_empty(self.namespace, field_name="namespace")
+        )
+        object.__setattr__(
+            self, "flow_uri", _normalize_non_empty(self.flow_uri, field_name="flow_uri")
+        )
         object.__setattr__(self, "owner", _normalize_non_empty(self.owner, field_name="owner"))
-        object.__setattr__(self, "version", _normalize_non_empty(self.version, field_name="version"))
-        object.__setattr__(self, "flow_instance_id", _normalize_non_empty(self.flow_instance_id, field_name="flow_instance_id"))
-        object.__setattr__(self, "in_topic", _normalize_non_empty(self.in_topic, field_name="in_topic"))
-        object.__setattr__(self, "out_topic", _normalize_non_empty(self.out_topic, field_name="out_topic"))
+        object.__setattr__(
+            self, "version", _normalize_non_empty(self.version, field_name="version")
+        )
+        object.__setattr__(
+            self,
+            "flow_instance_id",
+            _normalize_non_empty(self.flow_instance_id, field_name="flow_instance_id"),
+        )
+        object.__setattr__(
+            self, "in_topic", _normalize_non_empty(self.in_topic, field_name="in_topic")
+        )
+        object.__setattr__(
+            self, "out_topic", _normalize_non_empty(self.out_topic, field_name="out_topic")
+        )
         normalized_status = _normalize_non_empty(self.status, field_name="status").lower()
         if normalized_status not in _FLOW_ENDPOINT_STATUSES:
             raise ValueError("status must be one of: published, released.")
         object.__setattr__(self, "status", normalized_status)
-        object.__setattr__(self, "flow_process_uri", _normalize_optional_non_empty(self.flow_process_uri))
-        object.__setattr__(self, "declaration_id", _normalize_optional_non_empty(self.declaration_id))
-        object.__setattr__(self, "definition_hash", _normalize_optional_non_empty(self.definition_hash))
+        object.__setattr__(
+            self, "flow_process_uri", _normalize_optional_non_empty(self.flow_process_uri)
+        )
+        object.__setattr__(
+            self, "declaration_id", _normalize_optional_non_empty(self.declaration_id)
+        )
+        object.__setattr__(
+            self, "definition_hash", _normalize_optional_non_empty(self.definition_hash)
+        )
         object.__setattr__(self, "bind_hash", _normalize_optional_non_empty(self.bind_hash))
         object.__setattr__(
             self,
             "shared_state_bindings",
             tuple(_normalize_shared_state_bindings(self.shared_state_bindings)),
         )
-        object.__setattr__(self, "metadata", _normalize_mapping(self.metadata, field_name="metadata"))
+        object.__setattr__(
+            self, "metadata", _normalize_mapping(self.metadata, field_name="metadata")
+        )
         object.__setattr__(
             self,
             "published_at_epoch_ms",
-            _normalize_non_negative_int(self.published_at_epoch_ms, field_name="published_at_epoch_ms"),
+            _normalize_non_negative_int(
+                self.published_at_epoch_ms, field_name="published_at_epoch_ms"
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:

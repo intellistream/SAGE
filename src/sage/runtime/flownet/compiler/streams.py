@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-from sage.runtime.flownet.contracts.recovery_contract import normalize_recovery_policy
 from sage.runtime.flownet.compiler.errors import FlowDefinitionError
 from sage.runtime.flownet.compiler.targets import ensure_flow_target, system_target
 from sage.runtime.flownet.compiler.transformation import Transformation
+from sage.runtime.flownet.contracts.recovery_contract import normalize_recovery_policy
 
 if TYPE_CHECKING:
     from sage.runtime.flownet.core.flow_program import FlowProgram

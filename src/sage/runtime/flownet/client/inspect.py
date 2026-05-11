@@ -91,7 +91,9 @@ class V1RuntimeInspector:
             "callback_count": callback_count,
             "topic_event_listener_count": runtime_host.topic_api.topic_event_listener_count(),
             "ingress_handler_registered": runtime_host.topic_api.has_ingress_event_handler(),
-            "governance": dict(governance_snapshot) if isinstance(governance_snapshot, Mapping) else {},
+            "governance": dict(governance_snapshot)
+            if isinstance(governance_snapshot, Mapping)
+            else {},
         }
         if include_actor_ids:
             snapshot["actor_ids"] = actor_ids

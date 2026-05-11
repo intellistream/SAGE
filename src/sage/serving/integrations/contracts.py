@@ -19,9 +19,7 @@ WorkflowSubmitMode = Literal["sync", "async"]
 COMFY_FIRST_EXTENSION_POINT = "workflow_product.comfy_first"
 LANGGRAPH_SECOND_EXTENSION_POINT = "workflow_product.langgraph_second"
 
-_WORKFLOW_OPERATIONS = frozenset(
-    {"workflow_import", "job_submit", "status_poll", "result_collect"}
-)
+_WORKFLOW_OPERATIONS = frozenset({"workflow_import", "job_submit", "status_poll", "result_collect"})
 _WORKFLOW_TARGET_TYPES = frozenset({"sage_executable", "endpoint_request"})
 _WORKFLOW_JOB_STATUSES = frozenset({"accepted", "running", "completed", "failed", "cancelled"})
 _WORKFLOW_SUBMIT_MODES = frozenset({"sync", "async"})
@@ -422,7 +420,9 @@ class WorkflowIntegrationRequest:
             "metadata",
             _normalize_mapping(self.metadata, field_name="metadata"),
         )
-        object.__setattr__(self, "serving_context", _normalize_serving_context(self.serving_context))
+        object.__setattr__(
+            self, "serving_context", _normalize_serving_context(self.serving_context)
+        )
 
     def to_dict(self) -> dict[str, Any]:
         result = {
@@ -540,7 +540,9 @@ class WorkflowExecutionTarget:
         return {
             "target_type": self.target_type,
             "payload": dict(self.payload),
-            "executable_type": type(self.executable).__name__ if self.executable is not None else None,
+            "executable_type": type(self.executable).__name__
+            if self.executable is not None
+            else None,
             "metadata": dict(self.metadata),
         }
 
@@ -642,7 +644,9 @@ class WorkflowImportRequest:
             "metadata",
             _normalize_mapping(self.metadata, field_name="metadata"),
         )
-        object.__setattr__(self, "serving_context", _normalize_serving_context(self.serving_context))
+        object.__setattr__(
+            self, "serving_context", _normalize_serving_context(self.serving_context)
+        )
 
     def to_integration_request(self) -> WorkflowIntegrationRequest:
         return WorkflowIntegrationRequest(
@@ -742,7 +746,9 @@ class WorkflowJobSubmitRequest:
             "metadata",
             _normalize_mapping(self.metadata, field_name="metadata"),
         )
-        object.__setattr__(self, "serving_context", _normalize_serving_context(self.serving_context))
+        object.__setattr__(
+            self, "serving_context", _normalize_serving_context(self.serving_context)
+        )
 
     def to_integration_request(self) -> WorkflowIntegrationRequest:
         return WorkflowIntegrationRequest(

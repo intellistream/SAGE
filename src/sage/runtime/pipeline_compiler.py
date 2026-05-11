@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import concurrent.futures
 import hashlib
+import json
 import logging
+import os
 import queue as queue_module
 import threading
 import time
@@ -32,6 +34,21 @@ _OP_FLATMAP = "flatmap"
 _OP_FILTER = "filter"
 _OP_SINK = "sink"
 _WORKER_STOP = object()
+
+
+def _percentile(values: list[float], percentile: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return ordered[0]
+    position = max(0.0, min(1.0, percentile)) * (len(ordered) - 1)
+    lower = int(position)
+    upper = min(lower + 1, len(ordered) - 1)
+    if lower == upper:
+        return ordered[lower]
+    fraction = position - lower
+    return ordered[lower] + (ordered[upper] - ordered[lower]) * fraction
 
 
 def _transformation_name(t: Any) -> str:
@@ -159,7 +176,9 @@ class _LightweightExecutionContext:
 
     def get_service(self, service_name: str) -> Any:
         if self._service_runtime is None:
-            raise RuntimeError(f"Service '{service_name}' is not available in the lightweight context")
+            raise RuntimeError(
+                f"Service '{service_name}' is not available in the lightweight context"
+            )
         return self._service_runtime.get_service(service_name)
 
     def call_service(
@@ -171,7 +190,9 @@ class _LightweightExecutionContext:
         **kwargs: Any,
     ) -> Any:
         if self._service_runtime is None:
-            raise RuntimeError(f"Service '{service_name}' is not available in the lightweight context")
+            raise RuntimeError(
+                f"Service '{service_name}' is not available in the lightweight context"
+            )
         return self._service_runtime.call_service(
             service_name,
             *args,
@@ -189,7 +210,9 @@ class _LightweightExecutionContext:
         **kwargs: Any,
     ) -> concurrent.futures.Future:
         if self._service_runtime is None:
-            raise RuntimeError(f"Service '{service_name}' is not available in the lightweight context")
+            raise RuntimeError(
+                f"Service '{service_name}' is not available in the lightweight context"
+            )
         return self._service_runtime.call_service_async(
             service_name,
             *args,
@@ -381,11 +404,15 @@ class CompiledActorGraph:
     downstream_edges: dict[str, list[tuple[Any, int]]] = field(default_factory=dict)
     _instances: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
     _dispatch_lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
-    _service_runtime: _LightweightServiceRuntime | None = field(default=None, init=False, repr=False)
+    _service_runtime: _LightweightServiceRuntime | None = field(
+        default=None, init=False, repr=False
+    )
     _finalized: bool = field(default=False, init=False, repr=False)
     _closed_sources: set[str] = field(default_factory=set, init=False, repr=False)
     _replica_round_robin: dict[str, int] = field(default_factory=dict, init=False, repr=False)
-    _source_poll_locks: dict[str, threading.Lock] = field(default_factory=dict, init=False, repr=False)
+    _source_poll_locks: dict[str, threading.Lock] = field(
+        default_factory=dict, init=False, repr=False
+    )
     _worker_queues: dict[str, list[queue_module.Queue[Any]]] = field(
         default_factory=dict, init=False, repr=False
     )
@@ -396,6 +423,22 @@ class CompiledActorGraph:
     )
     _worker_failure: BaseException | None = field(default=None, init=False, repr=False)
     _active_stream_sources: int = field(default=0, init=False, repr=False)
+    _metrics_output_path: str | None = field(
+        default_factory=lambda: (
+            os.getenv("SAGE_OPERATOR_METRICS_PATH") or os.getenv("SAGE_OPC_METRICS_PATH")
+        ),
+        init=False,
+        repr=False,
+    )
+    _telemetry_lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
+    _stage_telemetry: dict[str, dict[str, Any]] = field(
+        default_factory=dict, init=False, repr=False
+    )
+    _run_started_at: float | None = field(default=None, init=False, repr=False)
+    _run_finished_at: float | None = field(default=None, init=False, repr=False)
+    _run_started_monotonic: float | None = field(default=None, init=False, repr=False)
+    _telemetry_status: str = field(default="created", init=False, repr=False)
+    _last_telemetry_flush: float = field(default=0.0, init=False, repr=False)
 
     def _platform(self) -> str | None:
         if not self.pipeline:
@@ -415,7 +458,9 @@ class CompiledActorGraph:
             return False
 
         proc_transformations = [
-            transformation for transformation in self.pipeline if _classify(transformation)[1] != "source"
+            transformation
+            for transformation in self.pipeline
+            if _classify(transformation)[1] != "source"
         ]
         if len(proc_transformations) != len(self.stage_ops):
             return False
@@ -426,6 +471,165 @@ class CompiledActorGraph:
             if len(self.downstream_edges.get(transformation.basename, [])) > 1:
                 return False
         return True
+
+    def _telemetry_enabled(self) -> bool:
+        return bool(self._metrics_output_path)
+
+    def _ensure_stage_telemetry(self, transformation: Any) -> dict[str, Any]:
+        stage_name = transformation.basename
+        metric = self._stage_telemetry.get(stage_name)
+        if metric is not None:
+            return metric
+
+        _, op_type, _ = _classify(transformation)
+        metric = {
+            "stage_name": stage_name,
+            "transformation_type": _transformation_name(transformation),
+            "op_type": op_type,
+            "parallelism": _replica_count_for(transformation),
+            "invocations": 0,
+            "input_items": 0,
+            "output_items": 0,
+            "errors": 0,
+            "total_duration_ms": 0.0,
+            "min_latency_ms": None,
+            "max_latency_ms": None,
+            "last_latency_ms": None,
+            "latency_ms_samples": [],
+            "max_queue_depth": 0,
+            "last_queue_depth": 0,
+        }
+        self._stage_telemetry[stage_name] = metric
+        return metric
+
+    def _initialize_telemetry(self) -> None:
+        if not self._telemetry_enabled():
+            return
+        with self._telemetry_lock:
+            for transformation in self.pipeline:
+                self._ensure_stage_telemetry(transformation)
+            if self._run_started_at is None:
+                self._run_started_at = time.time()
+                self._run_started_monotonic = time.monotonic()
+            self._telemetry_status = "running"
+        self._flush_telemetry_snapshot(force=True)
+
+    def _record_stage_execution(
+        self,
+        transformation: Any,
+        duration_seconds: float,
+        *,
+        input_items: int = 1,
+        output_items: int = 0,
+        failed: bool = False,
+    ) -> None:
+        if not self._telemetry_enabled():
+            return
+        duration_ms = round(max(duration_seconds, 0.0) * 1000.0, 4)
+        with self._telemetry_lock:
+            metric = self._ensure_stage_telemetry(transformation)
+            metric["invocations"] += 1
+            metric["input_items"] += max(0, input_items)
+            metric["output_items"] += max(0, output_items)
+            metric["total_duration_ms"] = round(metric["total_duration_ms"] + duration_ms, 4)
+            metric["last_latency_ms"] = duration_ms
+            metric["min_latency_ms"] = (
+                duration_ms
+                if metric["min_latency_ms"] is None
+                else min(metric["min_latency_ms"], duration_ms)
+            )
+            metric["max_latency_ms"] = (
+                duration_ms
+                if metric["max_latency_ms"] is None
+                else max(metric["max_latency_ms"], duration_ms)
+            )
+            metric["latency_ms_samples"].append(duration_ms)
+            if failed:
+                metric["errors"] += 1
+        self._flush_telemetry_snapshot()
+
+    def _record_queue_depth(self, transformation: Any, queue_depth: int) -> None:
+        if not self._telemetry_enabled():
+            return
+        with self._telemetry_lock:
+            metric = self._ensure_stage_telemetry(transformation)
+            metric["last_queue_depth"] = max(0, int(queue_depth))
+            metric["max_queue_depth"] = max(metric["max_queue_depth"], metric["last_queue_depth"])
+        self._flush_telemetry_snapshot()
+
+    def _build_telemetry_payload(self) -> dict[str, Any]:
+        with self._telemetry_lock:
+            if self._run_started_at is None:
+                started_at = time.time()
+                started_monotonic = time.monotonic()
+            else:
+                started_at = self._run_started_at
+                started_monotonic = self._run_started_monotonic or time.monotonic()
+            finished_at = self._run_finished_at
+            wall_time_ms = round(
+                max((finished_at or time.time()) - started_at, 0.0) * 1000.0,
+                3,
+            )
+            stages: list[dict[str, Any]] = []
+            for transformation in self.pipeline:
+                metric = dict(self._ensure_stage_telemetry(transformation))
+                latencies = list(metric.pop("latency_ms_samples", []))
+                total_duration_ms = float(metric["total_duration_ms"])
+                invocations = int(metric["invocations"])
+                metric["avg_latency_ms"] = (
+                    round(total_duration_ms / invocations, 4) if invocations else None
+                )
+                p95 = _percentile(latencies, 0.95)
+                metric["p95_latency_ms"] = round(p95, 4) if p95 is not None else None
+                metric["throughput_items_per_sec"] = (
+                    round(metric["input_items"] / (total_duration_ms / 1000.0), 4)
+                    if total_duration_ms > 0
+                    else None
+                )
+                metric["downstreams"] = [
+                    downstream.basename for downstream, _ in self._downstreams_for(transformation)
+                ]
+                metric["upstreams"] = [
+                    upstream.basename for upstream in getattr(transformation, "upstreams", [])
+                ]
+                stages.append(metric)
+
+            return {
+                "schema_version": "sage.local.operator.metrics.v1",
+                "status": self._telemetry_status,
+                "started_at_epoch_s": started_at,
+                "finished_at_epoch_s": finished_at,
+                "wall_time_ms": wall_time_ms,
+                "pipeline_stage_count": len(self.pipeline),
+                "source_stage_count": len(self.source_transformations),
+                "stages": stages,
+            }
+
+    def _flush_telemetry_snapshot(self, *, force: bool = False) -> None:
+        if not self._telemetry_enabled() or not self._metrics_output_path:
+            return
+        now = time.monotonic()
+        if not force and now - self._last_telemetry_flush < 0.5:
+            return
+        path = self._metrics_output_path
+        parent = os.path.dirname(path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        try:
+            with open(path, "w", encoding="utf-8") as handle:
+                json.dump(self._build_telemetry_payload(), handle, ensure_ascii=False, indent=2)
+        except Exception as exc:
+            logger.warning("Failed to write local operator telemetry to %s: %s", path, exc)
+            return
+        self._last_telemetry_flush = now
+
+    def _finish_telemetry(self, status: str) -> None:
+        if not self._telemetry_enabled():
+            return
+        with self._telemetry_lock:
+            self._telemetry_status = status
+            self._run_finished_at = time.time()
+        self._flush_telemetry_snapshot(force=True)
 
     def _get_service_runtime(self) -> _LightweightServiceRuntime | None:
         if self._service_runtime is not None:
@@ -485,7 +689,9 @@ class CompiledActorGraph:
         with self._dispatch_lock:
             return self._source_poll_locks.setdefault(transformation.basename, threading.Lock())
 
-    def _select_replica_index(self, transformation: Any, packet: Packet | None, replica_count: int) -> int:
+    def _select_replica_index(
+        self, transformation: Any, packet: Packet | None, replica_count: int
+    ) -> int:
         if replica_count <= 1:
             return 0
         if packet is not None and packet.is_keyed():
@@ -553,6 +759,7 @@ class CompiledActorGraph:
 
         replica_index = self._select_replica_index(transformation, packet, len(replica_queues))
         replica_queues[replica_index].put(packet)
+        self._record_queue_depth(transformation, replica_queues[replica_index].qsize())
 
     def _enqueue_downstreams(
         self,
@@ -601,12 +808,17 @@ class CompiledActorGraph:
         if packet.payload is None:
             return
 
+        started = time.perf_counter()
+        emitted_items = 0
+        failed = False
+
         if function_ctx is not None and hasattr(function_ctx, "set_current_key"):
             function_ctx.set_current_key(packet.partition_key)
 
         try:
             if transformation_name == "KeyByTransformation":
                 key = function.execute(packet.payload)
+                emitted_items = 1
                 self._enqueue_downstreams(
                     transformation,
                     packet.update_key(key, getattr(transformation, "partition_strategy", None)),
@@ -616,6 +828,7 @@ class CompiledActorGraph:
 
             if transformation_name == "FilterTransformation":
                 if function.execute(packet.payload):
+                    emitted_items = 1
                     self._enqueue_downstreams(transformation, packet, instances)
                 return
 
@@ -624,8 +837,12 @@ class CompiledActorGraph:
                 if isinstance(function, FlatMapFunction):
                     function.insert_collector(collector)
                 result = function.execute(packet.payload)
-                for item in self._normalize_outputs(result, collector):
-                    self._enqueue_downstreams(transformation, packet.inherit_partition_info(item), instances)
+                outputs = self._normalize_outputs(result, collector)
+                emitted_items = len(outputs)
+                for item in outputs:
+                    self._enqueue_downstreams(
+                        transformation, packet.inherit_partition_info(item), instances
+                    )
                 return
 
             if transformation_name == "JoinTransformation":
@@ -636,15 +853,23 @@ class CompiledActorGraph:
                     )
                     return
                 result = function.execute(packet.payload, packet.partition_key, packet.input_index)
-                for item in self._normalize_outputs(result):
-                    self._enqueue_downstreams(transformation, packet.inherit_partition_info(item), instances)
+                outputs = self._normalize_outputs(result)
+                emitted_items = len(outputs)
+                for item in outputs:
+                    self._enqueue_downstreams(
+                        transformation, packet.inherit_partition_info(item), instances
+                    )
                 return
 
             if transformation_name == "CoMapTransformation":
                 method = getattr(function, f"map{packet.input_index}")
                 result = method(packet.payload)
-                for item in self._normalize_outputs(result):
-                    self._enqueue_downstreams(transformation, packet.inherit_partition_info(item), instances)
+                outputs = self._normalize_outputs(result)
+                emitted_items = len(outputs)
+                for item in outputs:
+                    self._enqueue_downstreams(
+                        transformation, packet.inherit_partition_info(item), instances
+                    )
                 return
 
             if transformation_name == "SinkTransformation":
@@ -652,9 +877,23 @@ class CompiledActorGraph:
                 return
 
             result = function.execute(packet.payload)
-            for item in self._normalize_outputs(result):
-                self._enqueue_downstreams(transformation, packet.inherit_partition_info(item), instances)
+            outputs = self._normalize_outputs(result)
+            emitted_items = len(outputs)
+            for item in outputs:
+                self._enqueue_downstreams(
+                    transformation, packet.inherit_partition_info(item), instances
+                )
+        except Exception:
+            failed = True
+            raise
         finally:
+            self._record_stage_execution(
+                transformation,
+                time.perf_counter() - started,
+                input_items=1,
+                output_items=emitted_items,
+                failed=failed,
+            )
             if function_ctx is not None and hasattr(function_ctx, "clear_key"):
                 function_ctx.clear_key()
 
@@ -694,7 +933,9 @@ class CompiledActorGraph:
     def _raise_if_worker_failed(self) -> None:
         if self._worker_failure is None:
             return
-        raise RuntimeError("Local worker thread failed during pipeline execution.") from self._worker_failure
+        raise RuntimeError(
+            "Local worker thread failed during pipeline execution."
+        ) from self._worker_failure
 
     def _wait_for_worker_drain(self) -> None:
         for replica_queues in self._worker_queues.values():
@@ -727,9 +968,11 @@ class CompiledActorGraph:
             if worker is current_thread:
                 continue
             worker.join(timeout=30.0)
-
-        self._finalize_functions(instances)
-        self._raise_if_worker_failed()
+        try:
+            self._finalize_functions(instances)
+            self._raise_if_worker_failed()
+        finally:
+            self._finish_telemetry("failed" if self._worker_failure is not None else "completed")
 
     def _dispatch_from_source(
         self,
@@ -750,16 +993,21 @@ class CompiledActorGraph:
                 return ("closed", None)
 
             function = self._replicas_for(transformation, instances)[0]
+            started = time.perf_counter()
             try:
                 item = function.execute()
             except StopIteration:
                 self._closed_sources.add(transformation.basename)
                 return ("closed", None)
+            duration = time.perf_counter() - started
 
             if _is_batch_source(transformation):
                 if _is_stop_signal(item):
                     self._closed_sources.add(transformation.basename)
                     return ("closed", None)
+                self._record_stage_execution(
+                    transformation, duration, input_items=1, output_items=1
+                )
                 return ("item", item)
 
             if _is_stream_source(transformation):
@@ -768,11 +1016,15 @@ class CompiledActorGraph:
                     return ("closed", None)
                 if item is None:
                     return ("idle", None)
+                self._record_stage_execution(
+                    transformation, duration, input_items=1, output_items=1
+                )
                 return ("item", item)
 
             if _is_stop_signal(item):
                 self._closed_sources.add(transformation.basename)
                 return ("closed", None)
+            self._record_stage_execution(transformation, duration, input_items=1, output_items=1)
             return ("item", item)
 
     def _pump_stream_sources_once(self, instances: dict[str, Any]) -> bool:
@@ -831,6 +1083,7 @@ class CompiledActorGraph:
             self._service_runtime.close()
 
     def submit(self, autostop: bool = False) -> Any:
+        self._initialize_telemetry()
         if autostop and self._can_submit_via_stage_ops():
             return self._submit_batch_via_stage_ops()
         if autostop:
@@ -896,7 +1149,9 @@ class CompiledActorGraph:
                 continue
 
             if op_type == _OP_FILTER:
-                current_items = [item for item, accepted in zip(current_items, results, strict=False) if accepted]
+                current_items = [
+                    item for item, accepted in zip(current_items, results, strict=False) if accepted
+                ]
                 continue
 
             current_items = results
@@ -921,7 +1176,10 @@ class CompiledActorGraph:
             return None
         finally:
             self._cleanup_actor_handles()
-            self._finalize_functions(instances)
+            try:
+                self._finalize_functions(instances)
+            finally:
+                self._finish_telemetry("completed")
 
     def _submit_batch(self) -> None:
         if not self.source_transformations:
@@ -1010,6 +1268,7 @@ class CompiledActorGraph:
         self._start_worker_runtime(instances, stop_event)
         source_threads: list[threading.Thread] = []
         self._active_stream_sources = len(self.source_transformations)
+        self._flush_telemetry_snapshot(force=True)
 
         for transformation in self.source_transformations:
             source_thread = threading.Thread(

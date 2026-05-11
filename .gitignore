@@ -111,6 +111,7 @@ third_party/
 tmp_ray/
 dist/
 test_checkpoints/
+evaluation/results/
 
 recommended_tests.txt
 local_workflow_logs/

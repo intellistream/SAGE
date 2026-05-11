@@ -448,18 +448,16 @@ def test_local_environment_pipeline_service_self_call_completes() -> None:
 
     env.register_service("echo_pipeline", EchoPipelineService, request_queue)
 
-    (
-        env.from_source(ServiceBridgeSource, request_queue)
-        .map(EchoWorker)
-        .sink(EchoPublishSink)
-    )
+    (env.from_source(ServiceBridgeSource, request_queue).map(EchoWorker).sink(EchoPublishSink))
 
     (
-        env.from_batch([
-            {"value": 1},
-            {"value": 2},
-            {"command": "shutdown"},
-        ])
+        env.from_batch(
+            [
+                {"value": 1},
+                {"value": 2},
+                {"command": "shutdown"},
+            ]
+        )
         .map(InvokeEchoPipeline)
         .sink(CollectServiceSink)
     )

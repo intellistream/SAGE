@@ -11,9 +11,9 @@ from sage.runtime.flownet.api import (
     NamedActorDeclarationRef,
     NamedFlowDeclarationRef,
     ProcessDeclaration,
+    ServiceDeclaration,
     SharedStateBindingSpec,
     SharedStateServiceDescriptor,
-    ServiceDeclaration,
     SourceDeclaration,
     StatelessDeclaration,
     actor,
@@ -86,8 +86,8 @@ from sage.runtime.flownet.runtime import (
     current_event_cursor,
     current_event_meta,
     list_bound_shared_state_bindings,
-    resolve_bound_shared_state_service,
     require_event_cursor,
+    resolve_bound_shared_state_service,
     submit_backend_job,
 )
 

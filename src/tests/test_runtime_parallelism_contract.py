@@ -90,7 +90,9 @@ def test_flownet_linear_batch_submit_uses_actor_stage_path(monkeypatch: pytest.M
         compiled = PipelineCompiler().compile(env.pipeline, backend)
 
         def _fail_worker_runtime(*args, **kwargs):
-            raise AssertionError("FlowNet linear batch submit should not start local worker runtime")
+            raise AssertionError(
+                "FlowNet linear batch submit should not start local worker runtime"
+            )
 
         monkeypatch.setattr(compiled, "_start_worker_runtime", _fail_worker_runtime)
 

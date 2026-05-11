@@ -106,8 +106,7 @@ class SharedStateServiceRegistry:
         with self._lock:
             if resolved_descriptor.contract_id in self._records:
                 raise ValueError(
-                    "shared_state_descriptor_already_registered:"
-                    f"{resolved_descriptor.contract_id}"
+                    f"shared_state_descriptor_already_registered:{resolved_descriptor.contract_id}"
                 )
             record = SharedStateServiceRecord(
                 descriptor=resolved_descriptor,
@@ -219,7 +218,9 @@ class SharedStateServiceRegistry:
                 if governance_manager is None:
                     continue
                 governance_manager.release_claim(
-                    _shared_state_claim_key(contract_id=contract_id, flow_instance_id=flow_instance_id)
+                    _shared_state_claim_key(
+                        contract_id=contract_id, flow_instance_id=flow_instance_id
+                    )
                 )
         return removed is not None
 
@@ -243,7 +244,9 @@ class SharedStateServiceRegistry:
         )
         resolved_consumer_tenant = _normalize_optional_non_empty(consumer_tenant)
         resolved_consumer_instance_id = _normalize_optional_non_empty(consumer_instance_id)
-        resolved_consumer_flow_instance_id = _normalize_optional_non_empty(consumer_flow_instance_id)
+        resolved_consumer_flow_instance_id = _normalize_optional_non_empty(
+            consumer_flow_instance_id
+        )
 
         with self._lock:
             record = self._records.get(resolved_binding.descriptor.contract_id)
@@ -308,7 +311,9 @@ class SharedStateServiceRegistry:
             return self._records.get(contract_id)
 
     def release_flow_instance_claims(self, flow_instance_id: str) -> None:
-        resolved_flow_instance_id = _normalize_non_empty(flow_instance_id, field_name="flow_instance_id")
+        resolved_flow_instance_id = _normalize_non_empty(
+            flow_instance_id, field_name="flow_instance_id"
+        )
         with self._lock:
             empty_contract_ids: list[str] = []
             for contract_id, claimed_flow_ids in self._flow_claims.items():
@@ -329,7 +334,13 @@ class SharedStateServiceRegistry:
     def list_records(self) -> list[SharedStateServiceRecord]:
         with self._lock:
             records = list(self._records.values())
-        records.sort(key=lambda item: (item.descriptor.namespace, item.descriptor.service_name, item.contract_id))
+        records.sort(
+            key=lambda item: (
+                item.descriptor.namespace,
+                item.descriptor.service_name,
+                item.contract_id,
+            )
+        )
         return records
 
     def observability_snapshot(self) -> list[dict[str, Any]]:
@@ -566,7 +577,11 @@ def resolve_bound_shared_state_service(alias: str | None = None) -> Any:
         selected = binding_rows[0]
     else:
         selected = next(
-            (row for row in binding_rows if _normalize_optional_non_empty(row.get("alias")) == resolved_alias),
+            (
+                row
+                for row in binding_rows
+                if _normalize_optional_non_empty(row.get("alias")) == resolved_alias
+            ),
             None,
         )
         if selected is None:
