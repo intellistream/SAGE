@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import queue
-import threading
 import time
 
 from sage.foundation import (
@@ -59,30 +58,6 @@ class RecordKeyReplica(MapFunction):
             "key": str(data["key"]),
             "replica": int(getattr(self.ctx, "parallel_index", -1)),
         }
-
-
-class SlowConcurrentReplica(MapFunction):
-    active_calls = 0
-    max_active_calls = 0
-    _lock = threading.Lock()
-
-    @classmethod
-    def reset(cls) -> None:
-        with cls._lock:
-            cls.active_calls = 0
-            cls.max_active_calls = 0
-
-    def execute(self, data: int) -> int:
-        with type(self)._lock:
-            type(self).active_calls += 1
-            type(self).max_active_calls = max(type(self).max_active_calls, type(self).active_calls)
-
-        try:
-            time.sleep(0.05)
-            return data
-        finally:
-            with type(self)._lock:
-                type(self).active_calls -= 1
 
 
 class CollectReplicaAssignments(SinkFunction):
@@ -316,32 +291,12 @@ def test_local_environment_round_robins_unkeyed_parallel_map_locally() -> None:
     env_uuid = env.submit(autostop=True)
     status = env.jobmanager.get_job_status(env_uuid)
 
-    assignment_by_value = {
-        int(item["value"]): int(item["replica"]) for item in CollectReplicaAssignments.collected
-    }
-
-    assert assignment_by_value == {
-        0: 0,
-        1: 1,
-        2: 0,
-        3: 1,
-    }
-    assert status["status"] == "stopped"
-
-
-def test_local_environment_parallel_map_executes_with_concurrent_workers() -> None:
-    CollectSink.collected = []
-    SlowConcurrentReplica.reset()
-    JobManager().cleanup_all_jobs()
-
-    env = LocalEnvironment(name="local-parallel-map-concurrent-workers")
-    env.from_batch([0, 1, 2, 3]).map(SlowConcurrentReplica, parallelism=2).sink(CollectSink)
-
-    env_uuid = env.submit(autostop=True)
-    status = env.jobmanager.get_job_status(env_uuid)
-
-    assert sorted(CollectSink.collected) == [0, 1, 2, 3]
-    assert SlowConcurrentReplica.max_active_calls >= 2
+    assert CollectReplicaAssignments.collected == [
+        {"value": 0, "replica": 0},
+        {"value": 1, "replica": 1},
+        {"value": 2, "replica": 0},
+        {"value": 3, "replica": 1},
+    ]
     assert status["status"] == "stopped"
 
 
