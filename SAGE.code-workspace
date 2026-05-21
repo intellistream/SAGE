@@ -15,6 +15,14 @@
     {
       "name": "sage-tutorials  [tutorials]",
       "path": "../sage-tutorials"
+    },
+    {
+      "name": "vamos  [research]",
+      "path": "../vamos"
+    },
+    {
+      "name": "vllm-hust  [engine]",
+      "path": "../vllm-hust"
     }
   ],
   "settings": {
@@ -35,12 +43,16 @@
       "**/.pytest_cache": true,
       "**/.mypy_cache": true,
       "**/*.egg-info": true,
+      "external/SAGE": true,
+      "external/vllm-hust": true,
       ".sage/build": true,
       ".sage/cache": true
     },
     "search.exclude": {
       "**/node_modules": true,
       "**/.git": true,
+      "external/SAGE": true,
+      "external/vllm-hust": true,
       ".sage/build": true,
       ".sage/cache": true,
       "**/dist": true,
@@ -59,6 +71,8 @@
       "**/build/**": true,
       "**/site/**": true,
       "**/results/**": true,
+      "**/external/SAGE/**": true,
+      "**/external/vllm-hust/**": true,
       ".sage/build/**": true,
       ".sage/cache/**": true
     },
@@ -74,6 +88,10 @@
     "ruff.configuration": "${workspaceFolder:SAGE  [meta]}/tools/ruff.toml",
     "git.enableSmartCommit": true,
     "git.confirmSync": false,
+    "git.ignoredRepositories": [
+      "/home/shuhao/vamos/external/SAGE",
+      "/home/shuhao/vamos/external/vllm-hust"
+    ],
     "python-envs.workspaceSearchPaths": []
   },
   "extensions": {
