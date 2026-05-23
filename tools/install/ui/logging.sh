@@ -61,11 +61,7 @@ _log_timestamp() {
 # 安全转义 JSON 文本
 _escape_json() {
     local raw="$1"
-    printf '%s' "$raw" \
-        | sed -e 's/\\/\\\\/g' \
-               -e 's/"/\\"/g' \
-               -e 's/\t/\\t/g' \
-               -e ':a;N;$!ba;s/\n/\\n/g'
+    printf '%s' "$raw" | python3 -c 'import json, sys; print(json.dumps(sys.stdin.read())[1:-1])'
 }
 
 # 写入日志文件（JSON 格式）

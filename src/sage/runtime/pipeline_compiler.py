@@ -116,7 +116,7 @@ class _LightweightExecutionContext:
     def __init__(
         self,
         name: str,
-        service_runtime: "_LightweightServiceRuntime | None",
+        service_runtime: _LightweightServiceRuntime | None,
         *,
         parallel_index: int = 0,
         parallelism: int = 1,
@@ -143,7 +143,9 @@ class _LightweightExecutionContext:
 
     def get_service(self, service_name: str) -> Any:
         if self._service_runtime is None:
-            raise RuntimeError(f"Service '{service_name}' is not available in the lightweight context")
+            raise RuntimeError(
+                f"Service '{service_name}' is not available in the lightweight context"
+            )
         return self._service_runtime.get_service(service_name)
 
     def call_service(
@@ -155,7 +157,9 @@ class _LightweightExecutionContext:
         **kwargs: Any,
     ) -> Any:
         if self._service_runtime is None:
-            raise RuntimeError(f"Service '{service_name}' is not available in the lightweight context")
+            raise RuntimeError(
+                f"Service '{service_name}' is not available in the lightweight context"
+            )
         return self._service_runtime.call_service(
             service_name,
             *args,
@@ -173,7 +177,9 @@ class _LightweightExecutionContext:
         **kwargs: Any,
     ) -> concurrent.futures.Future:
         if self._service_runtime is None:
-            raise RuntimeError(f"Service '{service_name}' is not available in the lightweight context")
+            raise RuntimeError(
+                f"Service '{service_name}' is not available in the lightweight context"
+            )
         return self._service_runtime.call_service_async(
             service_name,
             *args,
@@ -355,7 +361,9 @@ class CompiledActorGraph:
     downstream_edges: dict[str, list[tuple[Any, int]]] = field(default_factory=dict)
     _instances: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
     _dispatch_lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
-    _service_runtime: _LightweightServiceRuntime | None = field(default=None, init=False, repr=False)
+    _service_runtime: _LightweightServiceRuntime | None = field(
+        default=None, init=False, repr=False
+    )
     _finalized: bool = field(default=False, init=False, repr=False)
     _closed_sources: set[str] = field(default_factory=set, init=False, repr=False)
     _replica_round_robin: dict[str, int] = field(default_factory=dict, init=False, repr=False)
@@ -414,7 +422,9 @@ class CompiledActorGraph:
             return replica_group
         return [replica_group]
 
-    def _select_replica_index(self, transformation: Any, packet: Packet | None, replica_count: int) -> int:
+    def _select_replica_index(
+        self, transformation: Any, packet: Packet | None, replica_count: int
+    ) -> int:
         if replica_count <= 1:
             return 0
         if packet is not None and packet.is_keyed():
@@ -755,8 +765,6 @@ class CompiledActorGraph:
         instances: dict[str, Any],
         stop_event: threading.Event,
     ) -> None:
-        function = instances[transformation.basename]
-
         try:
             while not stop_event.is_set():
                 status, item = self._poll_source(transformation, instances)

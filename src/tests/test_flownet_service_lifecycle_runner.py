@@ -14,7 +14,9 @@ def _wait_for(predicate, *, timeout: float = 2.0) -> None:
     raise AssertionError("condition_not_met_before_timeout")
 
 
-def test_service_runner_failure_records_failed_status_and_manual_restart_reexecutes_target() -> None:
+def test_service_runner_failure_records_failed_status_and_manual_restart_reexecutes_target() -> (
+    None
+):
     bootstrap = bootstrap_runtime(local_address="127.0.0.1:19448")
     try:
         client = build_runtime_client(owner="alice", runtime_host=bootstrap.runtime_host)

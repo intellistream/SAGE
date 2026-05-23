@@ -8,6 +8,12 @@ from sage.runtime.flownet import (
     bootstrap_runtime,
     build_runtime_inspector,
 )
+from sage.runtime.flownet.runtime.actors.backend_jobs import (
+    submit_backend_job as actor_submit_backend_job,
+)
+from sage.runtime.flownet.runtime.actors.execution_context import (
+    bind_actor_execution_context,
+)
 
 
 class FakeBackendContainer:
@@ -170,6 +176,18 @@ def test_backend_container_plane_supports_capability_selection_and_submit_poll_c
         assert gpu_backend.submitted_requests[-1]["backend_selection"]["required_capabilities"] == {
             "models": "chat-large"
         }
+        assert (
+            gpu_backend.submitted_requests[-1]["backend_selection"]["selected_backend_state"][
+                "runtime_metrics"
+            ]["free_vram_bytes"]
+            == 96_000_000_000
+        )
+        assert (
+            gpu_backend.submitted_requests[-1]["backend_selection"]["candidate_backend_states"][0][
+                "backend_id"
+            ]
+            == "fake-gpu-backend"
+        )
 
         telemetry = node_runtime.cluster_scheduler_metrics()
         assert telemetry["node"]["backend_count"] == 2
@@ -192,7 +210,9 @@ def test_backend_container_plane_supports_capability_selection_and_submit_poll_c
         ]
         assert "free_vram_bytes" in telemetry["backends"]["inventory"]["runtime_metric_keys"]
         backend_row = next(
-            row for row in telemetry["backends"]["records"] if row["backend_id"] == "fake-gpu-backend"
+            row
+            for row in telemetry["backends"]["records"]
+            if row["backend_id"] == "fake-gpu-backend"
         )
         assert backend_row["health"] is True
         assert backend_row["accelerator_type"] == "ascend-910b3"
@@ -208,7 +228,9 @@ def test_backend_container_plane_supports_capability_selection_and_submit_poll_c
         assert backend_row["runtime_metrics"]["metric_gap_fields"] == []
 
         cpu_backend_row = next(
-            row for row in telemetry["backends"]["records"] if row["backend_id"] == "fake-cpu-backend"
+            row
+            for row in telemetry["backends"]["records"]
+            if row["backend_id"] == "fake-cpu-backend"
         )
         assert cpu_backend_row["accelerator_type"] == "cpu"
         assert cpu_backend_row["precision"] == "fp32"
@@ -229,10 +251,13 @@ def test_backend_container_plane_supports_capability_selection_and_submit_poll_c
             request={"prompt": "cancel me", "request_epoch": 3},
             required_tags={"zone": "az-a"},
         )
-        assert inspector.cancel_runtime_backend_job(
-            cancel_response["job_token"],
-            reason="test-cancel",
-        ) is True
+        assert (
+            inspector.cancel_runtime_backend_job(
+                cancel_response["job_token"],
+                reason="test-cancel",
+            )
+            is True
+        )
         assert cpu_backend.cancelled_jobs[cancel_response["job_id"]] == "test-cancel"
     finally:
         bootstrap.shutdown()
@@ -243,12 +268,27 @@ def test_runtime_host_submit_backend_job_auto_polls_selected_backend() -> None:
     try:
         runtime_host = bootstrap.runtime_host
         backend = FakeBackendContainer("fake-runtime-backend", queue_capacity=3, epoch=11)
+        blocked_backend = FakeBackendContainer(
+            "fake-runtime-backend-blocked",
+            queue_capacity=0,
+            epoch=11,
+        )
         runtime_host.register_backend_container(
             backend,
             tags={"accelerator": "gpu", "zone": "az-c"},
             capabilities={
                 "tasks": ["chat"],
                 "models": ["chat-runtime"],
+                "precision": "fp16",
+            },
+            metadata={"backend_type": "fake"},
+        )
+        runtime_host.register_backend_container(
+            blocked_backend,
+            tags={"accelerator": "gpu", "zone": "az-c"},
+            capabilities={
+                "tasks": ["chat"],
+                "models": ["chat-runtime-blocked"],
                 "precision": "fp16",
             },
             metadata={"backend_type": "fake"},
@@ -262,7 +302,119 @@ def test_runtime_host_submit_backend_job_auto_polls_selected_backend() -> None:
 
         assert result["status"] == "completed"
         assert result["result"]["backend_id"] == "fake-runtime-backend"
-        assert backend.submitted_requests[-1]["backend_selection"]["selection_reason"] == "request_epoch_match"
+        assert (
+            backend.submitted_requests[-1]["backend_selection"]["selection_reason"]
+            == "request_epoch_match"
+        )
+        assert backend.submitted_requests[-1]["backend_selection"]["selection_reason_codes"] == [
+            "request_epoch_match",
+            "epoch_policy_match",
+        ]
+        assert backend.submitted_requests[-1]["backend_selection"]["selected_backend_state"] == {
+            "backend_id": "fake-runtime-backend",
+            "node_id": None,
+            "node_address": None,
+            "healthy": True,
+            "schedulable": True,
+            "selected": True,
+            "epoch": 11,
+            "epoch_policy": "match",
+            "queue_depth": 0.0,
+            "queue_capacity": 3.0,
+            "inflight": 0.0,
+            "queue_pressure": 0.0,
+            "preferred_hit": False,
+            "local_hit": False,
+            "tags": {"accelerator": "gpu", "zone": "az-c"},
+            "capabilities": {
+                "tasks": ["chat"],
+                "models": ["chat-runtime"],
+                "precision": "fp16",
+            },
+        }
+        assert backend.submitted_requests[-1]["backend_selection"]["excluded_backend_states"] == [
+            {
+                "backend_id": "fake-runtime-backend-blocked",
+                "node_id": None,
+                "node_address": None,
+                "healthy": True,
+                "schedulable": False,
+                "selected": False,
+                "epoch": 11,
+                "epoch_policy": "match",
+                "queue_depth": 0.0,
+                "queue_capacity": 0.0,
+                "inflight": 0.0,
+                "queue_pressure": 0.0,
+                "preferred_hit": False,
+                "local_hit": False,
+                "tags": {"accelerator": "gpu", "zone": "az-c"},
+                "capabilities": {
+                    "tasks": ["chat"],
+                    "models": ["chat-runtime-blocked"],
+                    "precision": "fp16",
+                },
+                "exclusion_reason": "unschedulable",
+            }
+        ]
         assert backend.acked_job_ids == [result["job_id"]]
+    finally:
+        bootstrap.shutdown()
+
+
+def test_actor_submit_backend_job_uses_serving_context_defaults_for_selection() -> None:
+    bootstrap = bootstrap_runtime(local_address="127.0.0.1:19463")
+    try:
+        runtime_host = bootstrap.runtime_host
+        cpu_backend = FakeBackendContainer("fake-actor-cpu-backend", queue_capacity=2, epoch=3)
+        gpu_backend = FakeBackendContainer("fake-actor-gpu-backend", queue_capacity=4, epoch=7)
+
+        runtime_host.register_backend_container(
+            cpu_backend,
+            tags={"accelerator": "cpu", "zone": "az-a"},
+            capabilities={
+                "tasks": ["embed"],
+                "models": ["embed-small"],
+                "precision": "fp32",
+            },
+            metadata={"backend_type": "fake"},
+        )
+        runtime_host.register_backend_container(
+            gpu_backend,
+            tags={"accelerator": "gpu", "zone": "az-b"},
+            capabilities={
+                "tasks": ["chat", "embed"],
+                "models": ["chat-large", "embed-small"],
+                "precision": "fp16",
+            },
+            metadata={"backend_type": "fake"},
+        )
+
+        with bind_actor_execution_context(
+            actor_id="actor-serving-context",
+            actor_config=None,
+            runtime_host=runtime_host,
+        ):
+            future = actor_submit_backend_job(
+                request={
+                    "prompt": "route using serving context",
+                    "request_epoch": 7,
+                    "serving_context": {
+                        "model_id": "chat-large",
+                        "accelerator_affinity": "gpu",
+                    },
+                }
+            )
+            result = future.result(timeout=5.0)
+
+        assert result["status"] == "completed"
+        assert result["result"]["backend_id"] == "fake-actor-gpu-backend"
+        assert gpu_backend.submitted_requests[-1]["backend_selection"]["required_tags"] == {
+            "accelerator": "gpu"
+        }
+        assert gpu_backend.submitted_requests[-1]["backend_selection"]["required_capabilities"] == {
+            "models": "chat-large"
+        }
+        assert gpu_backend.acked_job_ids == [result["job_id"]]
     finally:
         bootstrap.shutdown()

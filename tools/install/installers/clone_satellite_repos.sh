@@ -21,10 +21,20 @@ load_repos_from_workspace() {
         return 1
     fi
 
-    # JSONC 兼容解析：直接从 path 字段提取仓库名（避免 jq/json 对注释报错）
-    grep -oP '"path":\s*"\K[^"]+(?=")' "$workspace_file" | \
-        grep -v '^\.$' | \
-        awk -F'/' '{print $NF}'
+    # JSONC 兼容解析：使用 Python 提取 path 字段，避免依赖 GNU grep -P。
+    python3 - "$workspace_file" <<'PY'
+import pathlib
+import re
+import sys
+
+workspace_file = pathlib.Path(sys.argv[1])
+content = workspace_file.read_text(encoding="utf-8")
+for match in re.finditer(r'"path"\s*:\s*"([^"]+)"', content):
+    repo_path = match.group(1)
+    if repo_path == ".":
+        continue
+    print(pathlib.PurePosixPath(repo_path).name)
+PY
 }
 
 # 构建仓库 URL
@@ -45,31 +55,13 @@ clone_single_repo() {
     if [ -d "$repo_path" ]; then
         echo -e "${YELLOW}⚠️  $repo_name 已存在${NC}"
 
-        # 尝试切换到 main-dev 分支
+        # 保持现有分支；主仓策略只使用 main，不再探测 legacy main-dev。
         if cd "$repo_path" 2>/dev/null; then
             # 检查是否是 git 仓库
             if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
                 # 获取当前分支
                 local current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-
-                # 检查 main-dev 分支是否存在（本地）
-                if git rev-parse --verify main-dev 2>/dev/null; then
-                    # 本地存在 main-dev，直接切换
-                    if git checkout main-dev >/dev/null 2>&1; then
-                        echo -e "${GREEN}   ✓ 已切换到 main-dev 分支${NC}"
-                    else
-                        echo -e "${YELLOW}   ⚠️  无法切换到 main-dev 分支${NC}"
-                    fi
-                elif git fetch origin main-dev 2>/dev/null; then
-                    # 远程存在 main-dev，先 fetch 再创建
-                    if git checkout -b main-dev origin/main-dev 2>/dev/null; then
-                        echo -e "${GREEN}   ✓ 已创建并切换到 main-dev 分支${NC}"
-                    else
-                        echo -e "${YELLOW}   ⚠️  无法创建/切换到 main-dev 分支${NC}"
-                    fi
-                else
-                    echo -e "${DIM}   ℹ️  main-dev 分支不存在（当前分支: $current_branch）${NC}"
-                fi
+                echo -e "${DIM}   ℹ️  保留当前分支: ${current_branch}${NC}"
             else
                 echo -e "${YELLOW}   ⚠️  不是有效的 git 仓库${NC}"
             fi
@@ -104,18 +96,10 @@ clone_single_repo() {
     if $clone_ok; then
         echo -e "${GREEN}✅ $repo_name 克隆成功${NC}"
 
-        # 克隆成功后，尝试切换到 main-dev 分支
+        # 克隆成功后保留默认分支；仓库策略不再使用 legacy main-dev。
         if cd "$repo_path" 2>/dev/null; then
-            # 检查远程是否有 main-dev 分支
-            if git fetch origin main-dev 2>/dev/null && git rev-parse origin/main-dev 2>/dev/null; then
-                if git checkout -b main-dev origin/main-dev 2>/dev/null; then
-                    echo -e "${GREEN}   ✓ 已切换到 main-dev 分支${NC}"
-                fi
-            else
-                # 如果没有 main-dev，保持默认分支
-                local default_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-                echo -e "${DIM}   ℹ️  使用默认分支: $default_branch${NC}"
-            fi
+            local default_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+            echo -e "${DIM}   ℹ️  使用默认分支: ${default_branch}${NC}"
             cd - >/dev/null 2>&1
         fi
         return 0

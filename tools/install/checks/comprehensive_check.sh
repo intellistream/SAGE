@@ -119,11 +119,21 @@ check_system_runtime() {
     output_info "检查系统运行环境..."
 
     # 检查内存
-    local total_mem=$(free -h | awk 'NR==2{print $2}')
+    local total_mem="未知"
+    if command -v free >/dev/null 2>&1; then
+        total_mem=$(free -h | awk 'NR==2{print $2}')
+    elif command -v sysctl >/dev/null 2>&1; then
+        total_mem=$(sysctl -n hw.memsize 2>/dev/null | awk '{printf "%.1fGiB", $1 / 1024 / 1024 / 1024}')
+    fi
     output_check "系统内存: $total_mem"
 
     # 检查磁盘空间并警告
-    local disk_space_gb=$(df -BG . | awk 'NR==2{print $4}' | sed 's/G//')
+    local disk_space_gb="0"
+    if df -BG . >/dev/null 2>&1; then
+        disk_space_gb=$(df -BG . | awk 'NR==2{print $4}' | sed 's/G//')
+    else
+        disk_space_gb=$(df -k . | awk 'NR==2{printf "%d", $4 / 1024 / 1024}')
+    fi
     local disk_space=$(df -h . | awk 'NR==2{print $4}')
     output_check "可用磁盘空间: $disk_space"
 

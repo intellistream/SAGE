@@ -144,10 +144,14 @@ def test_flow_can_bind_and_read_shared_state_service(runtime_client_pair) -> Non
     )
     client.start_shared_state_service(CounterStateService, descriptor=descriptor)
 
-    endpoint = shared_state_flow.use_shared_state("counter", descriptor).bind(
-        "shared-state-input-a",
-        "shared-state-output-a",
-    ).endpoint(client=client, reuse_existing=False)
+    endpoint = (
+        shared_state_flow.use_shared_state("counter", descriptor)
+        .bind(
+            "shared-state-input-a",
+            "shared-state-output-a",
+        )
+        .endpoint(client=client, reuse_existing=False)
+    )
 
     assert endpoint.call({"delta": 1}, timeout=5.0) == [1]
     assert endpoint.flow_instance.bindings["shared_state_bindings"][0]["alias"] == "counter"
@@ -188,10 +192,14 @@ def test_public_shared_state_visibility_allows_different_owner(runtime_client_pa
     )
     client.start_shared_state_service(CounterStateService, descriptor=descriptor)
 
-    endpoint = gamma_namespace_flow.use_shared_state("counter", descriptor).bind(
-        "shared-state-public-input",
-        "shared-state-public-output",
-    ).endpoint(client=foreign_client, reuse_existing=False)
+    endpoint = (
+        gamma_namespace_flow.use_shared_state("counter", descriptor)
+        .bind(
+            "shared-state-public-input",
+            "shared-state-public-output",
+        )
+        .endpoint(client=foreign_client, reuse_existing=False)
+    )
 
     assert endpoint.call({"delta": 2}, timeout=5.0) == [2]
 
@@ -328,7 +336,9 @@ def test_shared_state_checkpoint_restore_preserves_state(runtime_client_pair) ->
     assert recovered.recovery_summary.last_action == "checkpoint_restore"
 
 
-def test_shared_state_restart_recreates_service_without_restoring_state(runtime_client_pair) -> None:
+def test_shared_state_restart_recreates_service_without_restoring_state(
+    runtime_client_pair,
+) -> None:
     _, client, _ = runtime_client_pair
     descriptor = SharedStateServiceDescriptor(
         service_name="restart-counter",
@@ -363,7 +373,10 @@ def test_shared_state_checkpoint_restore_requires_snapshot_methods(runtime_clien
     )
     client.start_shared_state_service(NonCheckpointCounterStateService, descriptor=descriptor)
 
-    with pytest.raises(RuntimeError, match="shared_state_checkpoint_restore_not_supported:.*missing_methods=snapshot_state,restore_state"):
+    with pytest.raises(
+        RuntimeError,
+        match="shared_state_checkpoint_restore_not_supported:.*missing_methods=snapshot_state,restore_state",
+    ):
         client.recover_shared_state_service(descriptor, reason="test-unsupported")
 
     rows = client.list_shared_state_services()
@@ -384,10 +397,14 @@ def test_shared_state_claim_quota_success_updates_governance_metrics(runtime_cli
     )
     client.start_shared_state_service(CounterStateService, descriptor=descriptor)
 
-    endpoint = shared_state_flow.use_shared_state("counter", descriptor).bind(
-        "shared-state-governance-input-ok",
-        "shared-state-governance-output-ok",
-    ).endpoint(client=client, reuse_existing=False)
+    endpoint = (
+        shared_state_flow.use_shared_state("counter", descriptor)
+        .bind(
+            "shared-state-governance-input-ok",
+            "shared-state-governance-output-ok",
+        )
+        .endpoint(client=client, reuse_existing=False)
+    )
 
     assert endpoint.call({"delta": 1}, timeout=5.0) == [1]
 
@@ -406,7 +423,9 @@ def test_shared_state_claim_quota_success_updates_governance_metrics(runtime_cli
     assert governance["deny_total"] == 0
 
 
-def test_shared_state_namespace_forbidden_is_recorded_in_governance_audit(runtime_client_pair) -> None:
+def test_shared_state_namespace_forbidden_is_recorded_in_governance_audit(
+    runtime_client_pair,
+) -> None:
     bootstrap, client, _ = runtime_client_pair
     descriptor = SharedStateServiceDescriptor(
         service_name="namespace-guarded-counter",
@@ -418,7 +437,9 @@ def test_shared_state_namespace_forbidden_is_recorded_in_governance_audit(runtim
     )
     client.start_shared_state_service(CounterStateService, descriptor=descriptor)
 
-    with pytest.raises(PermissionError, match="shared_state_descriptor_not_visible:namespace_forbidden"):
+    with pytest.raises(
+        PermissionError, match="shared_state_descriptor_not_visible:namespace_forbidden"
+    ):
         beta_namespace_flow.use_shared_state("counter", descriptor).bind(
             "shared-state-governance-input-ns-deny",
             "shared-state-governance-output-ns-deny",
@@ -478,7 +499,9 @@ def test_flow_endpoint_tenant_mismatch_fails_fast_with_reason_code(runtime_clien
         policies={"admission": {"tenant": "tenant-a"}},
     )
 
-    with pytest.raises(PermissionError, match="flow_endpoint_admission_denied:tenant_mismatch") as exc_info:
+    with pytest.raises(
+        PermissionError, match="flow_endpoint_admission_denied:tenant_mismatch"
+    ) as exc_info:
         endpoint.call({"value": 3}, timeout=5.0, tags={"tenant": "tenant-b"})
 
     assert getattr(exc_info.value, "reason_code", None) == "tenant_mismatch"

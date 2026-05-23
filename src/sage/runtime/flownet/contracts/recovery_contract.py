@@ -51,7 +51,9 @@ class RecoveryStatusSummary:
                 raise ValueError("updated_at_epoch_ms must be >= 0 when provided.")
         object.__setattr__(self, "updated_at_epoch_ms", updated_at_epoch_ms)
         object.__setattr__(self, "detail", _normalize_optional_non_empty(self.detail))
-        object.__setattr__(self, "metadata", _normalize_mapping(self.metadata, field_name="metadata"))
+        object.__setattr__(
+            self, "metadata", _normalize_mapping(self.metadata, field_name="metadata")
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -63,7 +65,9 @@ class RecoveryStatusSummary:
         }
 
 
-def normalize_recovery_policy(raw_value: Any, *, field_name: str = "recovery_policy") -> RecoveryPolicy:
+def normalize_recovery_policy(
+    raw_value: Any, *, field_name: str = "recovery_policy"
+) -> RecoveryPolicy:
     return _normalize_choice(raw_value, field_name=field_name, allowed=_RECOVERY_POLICIES)
 
 
@@ -156,11 +160,11 @@ def require_checkpoint_restore_support(
 
 
 def snapshot_checkpoint_state(target: Any) -> Any:
-    return getattr(target, "snapshot_state")()
+    return target.snapshot_state()
 
 
 def restore_checkpoint_state(target: Any, snapshot: Any) -> None:
-    getattr(target, "restore_state")(snapshot)
+    target.restore_state(snapshot)
 
 
 def _format_error(error_prefix: str, details: Mapping[str, Any]) -> str:
@@ -176,7 +180,9 @@ def _format_error(error_prefix: str, details: Mapping[str, Any]) -> str:
     return ":".join(parts)
 
 
-def _normalize_choice(raw_value: Any, *, field_name: str, allowed: set[str] | frozenset[str]) -> str:
+def _normalize_choice(
+    raw_value: Any, *, field_name: str, allowed: set[str] | frozenset[str]
+) -> str:
     normalized = _normalize_non_empty(raw_value, field_name=field_name).lower()
     if normalized not in allowed:
         raise ValueError(f"{field_name} must be one of: {', '.join(sorted(allowed))}.")

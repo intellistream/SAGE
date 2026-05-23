@@ -224,9 +224,14 @@ check_and_install_build_tools() {
         arch|manjaro)
             log_command "SysDeps" "Install" "$SUDO pacman -S --noconfirm base-devel cmake pkg-config"
             ;;
+        darwin)
+            log_warn "macOS 未提供自动系统依赖安装，将继续后续步骤" "SysDeps"
+            echo -e "${WARNING} macOS 未提供自动系统依赖安装，请按需手动准备: ${missing_tools[*]}"
+            return 0
+            ;;
         *)
-            log_warn "未知操作系统: $OS，请手动安装构建工具" "SysDeps"
-            echo -e "${WARNING} 未知操作系统: $OS，请手动安装构建工具"
+            log_warn "未知操作系统: ${OS}，请手动安装构建工具" "SysDeps"
+            echo -e "${WARNING} 未知操作系统: ${OS}，请手动安装构建工具"
             return 1
             ;;
     esac
@@ -302,9 +307,14 @@ check_and_install_math_libraries() {
         arch|manjaro)
             log_command "SysDeps" "Install" "$SUDO pacman -S --noconfirm openblas lapack atlas-lapack"
             ;;
+        darwin)
+            log_warn "macOS 未提供自动 BLAS/LAPACK 安装，将继续后续步骤" "SysDeps"
+            echo -e "${WARNING} macOS 未提供自动 BLAS/LAPACK 安装，请按需手动准备相关库"
+            return 0
+            ;;
         *)
-            log_warn "未知操作系统: $OS，请手动安装BLAS/LAPACK库" "SysDeps"
-            echo -e "${WARNING} 未知操作系统: $OS，请手动安装BLAS/LAPACK库"
+            log_warn "未知操作系统: ${OS}，请手动安装BLAS/LAPACK库" "SysDeps"
+            echo -e "${WARNING} 未知操作系统: ${OS}，请手动安装BLAS/LAPACK库"
             return 1
             ;;
     esac

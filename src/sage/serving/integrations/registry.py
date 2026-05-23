@@ -48,8 +48,7 @@ class WorkflowIntegrationRegistry:
             existing = self._adapters_by_type.get(descriptor.integration_type)
             if existing is not None and existing is not adapter:
                 raise ValueError(
-                    "workflow integration type already registered: "
-                    f"{descriptor.integration_type}"
+                    f"workflow integration type already registered: {descriptor.integration_type}"
                 )
             self._adapters_by_type[descriptor.integration_type] = adapter
         return descriptor
@@ -80,7 +79,10 @@ class WorkflowIntegrationRegistry:
         with self._lock:
             descriptors = tuple(
                 sorted(
-                    (validate_workflow_product_adapter(adapter) for adapter in self._adapters_by_type.values()),
+                    (
+                        validate_workflow_product_adapter(adapter)
+                        for adapter in self._adapters_by_type.values()
+                    ),
                     key=lambda descriptor: descriptor.integration_type,
                 )
             )
@@ -124,7 +126,9 @@ class WorkflowIntegrationRegistry:
 
     def submit_job(self, request: WorkflowJobSubmitRequest) -> WorkflowJobSubmitResponse:
         adapter = self.require_adapter(request.integration_type)
-        _validate_imported_workflow(request.imported_workflow, integration_type=request.integration_type)
+        _validate_imported_workflow(
+            request.imported_workflow, integration_type=request.integration_type
+        )
         response = adapter.submit_job(request)
         _validate_adapter_response(
             request_integration_type=request.integration_type,
@@ -199,7 +203,9 @@ def _validate_adapter_response(
         )
 
 
-def _validate_imported_workflow(imported_workflow: ImportedWorkflow, *, integration_type: str) -> None:
+def _validate_imported_workflow(
+    imported_workflow: ImportedWorkflow, *, integration_type: str
+) -> None:
     if imported_workflow.integration_type != integration_type:
         raise ValueError(
             "imported_workflow integration_type mismatch: "
