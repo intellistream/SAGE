@@ -9,8 +9,8 @@
 1. 真实公开数据进入 SAGE pipeline，而不是 handcrafted replay 或 mock data。
 2. 数据经过真实 embedding 模型生成向量，并进入 SageFlow runtime。
 3. SageFlow runtime 在流式窗口中产生 vector join、cluster、snapshot contract 和 runtime counters。
-4. Snapshot contract 被送入真实 vLLM/OpenAI-compatible LLM 节点。
-5. UI 展示 vLLM 的真实输出、证据来源、pipeline 节点状态和 runtime 指标。
+4. Snapshot contract 被送入真实 OpenAI-compatible LLM API 节点。
+5. UI 展示 LLM API 的真实输出、证据来源、pipeline 节点状态和 runtime 指标。
 6. Paper 中的实验表格和图只报告可复现的真实测量结果。
 
 ICPP 2026 demo paper 上限为 4 页，正文必须清楚覆盖 Motivation、System Overview、Demonstration Plan，并说明现场展示内容和观众交互方式。
@@ -34,7 +34,7 @@ Real data source
   -> SageFlow runtime join service
   -> Snapshot contract builder
   -> Prompt builder
-  -> vLLM/OpenAI-compatible generation step
+  -> OpenAI-compatible LLM generation step
   -> Answer sink
   -> UI
 ```
@@ -232,17 +232,17 @@ python -m sage.apps.sageflow_service_demo.build_dataset --source nvd --source ci
 python -m sage.apps.sageflow_service_demo.describe_dataset data/icpp_demo/manifest.json
 ```
 
-#### T0.3 Add a real vLLM generation node
+#### T0.3 Add a real LLM API generation node
 
 Scope:
 
-- Make the final pipeline output come from vLLM/OpenAI-compatible chat completion.
+- Make the final pipeline output come from OpenAI-compatible chat completion.
 
 Implementation tasks:
 
 - Add `SnapshotContractBuilderStep`.
 - Add `PromptBuilderStep`.
-- Add `VLLMResponseStep` that calls `/v1/chat/completions`.
+- Add an LLM response step that calls `/chat/completions`.
 - Capture `model`, `latency_ms`, token usage if returned, evidence ids, and prompt hash.
 - Add a strict offline fallback mode only for tests, clearly labeled as `template_fallback`.
 
