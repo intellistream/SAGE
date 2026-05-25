@@ -864,9 +864,7 @@ class V1RuntimeHost:
                 "remote_blocked_count": int(snapshot.get("spillover_remote_blocked_count", 0)),
                 "active_claims": int(snapshot.get("spillover_active_claims", 0)),
             },
-            "governance": (
-                governance_snapshot() if callable(governance_snapshot) else {}
-            ),
+            "governance": (governance_snapshot() if callable(governance_snapshot) else {}),
         }
 
     def list_shared_state_services(self) -> list[dict[str, Any]]:
@@ -1363,9 +1361,7 @@ def _record_matches_backend_requirements(
             actual = _normalize_optional_non_empty(raw_tags.get(key))
             if actual != required_value:
                 return False
-    normalized_required_capabilities = _normalize_backend_capability_mapping(
-        required_capabilities
-    )
+    normalized_required_capabilities = _normalize_backend_capability_mapping(required_capabilities)
     if not normalized_required_capabilities:
         return True
     raw_capabilities = record.get("capabilities")

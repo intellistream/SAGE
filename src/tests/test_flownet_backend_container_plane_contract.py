@@ -192,7 +192,9 @@ def test_backend_container_plane_supports_capability_selection_and_submit_poll_c
         ]
         assert "free_vram_bytes" in telemetry["backends"]["inventory"]["runtime_metric_keys"]
         backend_row = next(
-            row for row in telemetry["backends"]["records"] if row["backend_id"] == "fake-gpu-backend"
+            row
+            for row in telemetry["backends"]["records"]
+            if row["backend_id"] == "fake-gpu-backend"
         )
         assert backend_row["health"] is True
         assert backend_row["accelerator_type"] == "ascend-910b3"
@@ -208,7 +210,9 @@ def test_backend_container_plane_supports_capability_selection_and_submit_poll_c
         assert backend_row["runtime_metrics"]["metric_gap_fields"] == []
 
         cpu_backend_row = next(
-            row for row in telemetry["backends"]["records"] if row["backend_id"] == "fake-cpu-backend"
+            row
+            for row in telemetry["backends"]["records"]
+            if row["backend_id"] == "fake-cpu-backend"
         )
         assert cpu_backend_row["accelerator_type"] == "cpu"
         assert cpu_backend_row["precision"] == "fp32"
@@ -229,10 +233,13 @@ def test_backend_container_plane_supports_capability_selection_and_submit_poll_c
             request={"prompt": "cancel me", "request_epoch": 3},
             required_tags={"zone": "az-a"},
         )
-        assert inspector.cancel_runtime_backend_job(
-            cancel_response["job_token"],
-            reason="test-cancel",
-        ) is True
+        assert (
+            inspector.cancel_runtime_backend_job(
+                cancel_response["job_token"],
+                reason="test-cancel",
+            )
+            is True
+        )
         assert cpu_backend.cancelled_jobs[cancel_response["job_id"]] == "test-cancel"
     finally:
         bootstrap.shutdown()
@@ -262,7 +269,10 @@ def test_runtime_host_submit_backend_job_auto_polls_selected_backend() -> None:
 
         assert result["status"] == "completed"
         assert result["result"]["backend_id"] == "fake-runtime-backend"
-        assert backend.submitted_requests[-1]["backend_selection"]["selection_reason"] == "request_epoch_match"
+        assert (
+            backend.submitted_requests[-1]["backend_selection"]["selection_reason"]
+            == "request_epoch_match"
+        )
         assert backend.acked_job_ids == [result["job_id"]]
     finally:
         bootstrap.shutdown()

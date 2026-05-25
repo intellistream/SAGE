@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any
 
 from .contracts import CollectiveExecutionRequest, CollectiveExecutionResponse
@@ -100,8 +99,7 @@ def _reduce_collective_values(*, values: tuple[Any, ...], reduce_op: str) -> Any
             acc = acc + value
         return acc / len(values)
     raise RuntimeError(
-        "collective_reduce_op_not_supported:"
-        f"reduce_op={reduce_op},supported=sum,max,min,mean"
+        f"collective_reduce_op_not_supported:reduce_op={reduce_op},supported=sum,max,min,mean"
     )
 
 

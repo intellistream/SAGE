@@ -652,9 +652,7 @@ def _normalize_parallelism_value(value: Any) -> Any:
         return None
     if isinstance(value, Mapping):
         return {
-            str(key): nested_value
-            for key, nested_value in value.items()
-            if str(key or "").strip()
+            str(key): nested_value for key, nested_value in value.items() if str(key or "").strip()
         }
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
         return [item for item in value]
@@ -683,11 +681,7 @@ def _normalize_text_sequence(payload: Any) -> list[str]:
 
 
 def _sorted_unique_non_empty_texts(values: Sequence[Any]) -> list[str]:
-    normalized = {
-        text
-        for value in values
-        for text in _normalize_text_sequence(value)
-    }
+    normalized = {text for value in values for text in _normalize_text_sequence(value)}
     return sorted(normalized)
 
 

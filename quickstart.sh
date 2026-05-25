@@ -581,7 +581,7 @@ main() {
                     run_background=true
                 fi
 
-                local hooks_cmd="$sage_dev_cmd maintain hooks install --mode=$hooks_profile --quiet"
+                local hooks_cmd="$sage_dev_cmd maintain hooks install --profile=$hooks_profile"
                 echo -e "${DIM}   配置 Git hooks（代码质量检查）...${NC}"
                 if [ "$run_background" = "true" ]; then
                     echo -e "${YELLOW}   ⏳ 后台安装 hooks（首次可能需要 5-10 分钟下载工具链）...${NC}"

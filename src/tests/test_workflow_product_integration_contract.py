@@ -6,12 +6,12 @@ from sage.serving import (
     COMFY_FIRST_EXTENSION_POINT,
     LANGGRAPH_SECOND_EXTENSION_POINT,
     MockWorkflowProductAdapter,
-    WorkflowServingRequestContext,
     WorkflowImportRequest,
     WorkflowIntegrationRegistry,
     WorkflowJobResultCollectRequest,
     WorkflowJobStatusPollRequest,
     WorkflowJobSubmitRequest,
+    WorkflowServingRequestContext,
 )
 
 
@@ -322,7 +322,9 @@ def test_registry_submit_surfaces_serving_context_for_adapter_consumers() -> Non
         )
     )
 
-    assert submit_response.submit_payload["serving_context"]["model_id"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert (
+        submit_response.submit_payload["serving_context"]["model_id"] == "Qwen/Qwen2.5-7B-Instruct"
+    )
     assert submit_response.metadata["serving_context"]["tenant_id"] == "tenant-b"
     assert result_response.result["serving_context"]["trace_tags"] == {"path": "submit"}
 
@@ -394,7 +396,12 @@ def test_registry_supports_two_slo_classes_and_multi_model_routing_contexts() ->
         )
     )
 
-    assert interactive_submit.submit_payload["serving_context"]["deadline_class"] == "interactive-high"
-    assert interactive_submit.submit_payload["serving_context"]["model_id"] == "meta-llama/Llama-3.1-8B-Instruct"
+    assert (
+        interactive_submit.submit_payload["serving_context"]["deadline_class"] == "interactive-high"
+    )
+    assert (
+        interactive_submit.submit_payload["serving_context"]["model_id"]
+        == "meta-llama/Llama-3.1-8B-Instruct"
+    )
     assert batch_submit.submit_payload["serving_context"]["deadline_class"] == "batch-standard"
     assert batch_submit.submit_payload["serving_context"]["model_id"] == "Qwen/Qwen2.5-7B-Instruct"

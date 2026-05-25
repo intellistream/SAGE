@@ -38,6 +38,12 @@ collect_direct_sage_packages_to_remove() {
     done | awk '!seen[$0]++'
 }
 
+collect_legacy_workspace_editables_to_remove() {
+    eval "$PIP_CMD list --editable" 2>/dev/null | \
+    awk 'NR > 2 && $0 ~ /\/SAGE-dependents\// {print $1}' | \
+        awk '!seen[$0]++'
+}
+
 installed_packages=$(eval "$PIP_CMD list --format=freeze" 2>/dev/null || true)
 package_names=$(collect_direct_sage_packages_to_remove "$installed_packages" | tr '\n' ' ')
 
@@ -51,6 +57,16 @@ else
     echo -e "${DIM}未检测到需要清理的主仓安装包${NC}"
 fi
 echo -e "${DIM}保留独立包: isagellm / isage-benchmark / sage-docs / zoo packages${NC}"
+
+legacy_editable_packages=$(collect_legacy_workspace_editables_to_remove | tr '\n' ' ')
+if [ -n "$legacy_editable_packages" ]; then
+    echo -e "${DIM}清理历史 SAGE-dependents editable 包...${NC}"
+    echo -e "${DIM}将卸载: $legacy_editable_packages${NC}"
+    eval "$PIP_CMD uninstall -y $legacy_editable_packages" >/dev/null 2>&1 || true
+    legacy_pkg_count=$(echo "$legacy_editable_packages" | wc -w)
+    echo -e "${GREEN}✅ 清理了 $legacy_pkg_count 个历史 editable 包${NC}"
+    removed_count=$((removed_count + legacy_pkg_count))
+fi
 
 # 清理 Python 缓存文件
 echo -e "${DIM}清理 __pycache__ 目录...${NC}"

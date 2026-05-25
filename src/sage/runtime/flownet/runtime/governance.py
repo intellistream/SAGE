@@ -70,9 +70,7 @@ class RuntimeGovernanceManager:
             "quota_hit_total": int(stats.get("quota_hit_total", 0)),
             "active_claims": int(stats.get("active_claims", 0)),
             "endpoint_admission_total": int(stats.get("endpoint_admission_total", 0)),
-            "shared_state_admission_total": int(
-                stats.get("shared_state_admission_total", 0)
-            ),
+            "shared_state_admission_total": int(stats.get("shared_state_admission_total", 0)),
             "last_reason_code": _normalize_optional_non_empty(stats.get("last_reason_code")),
             "reason_totals": reason_totals,
             "audit_entries": len(self._audit),
@@ -204,9 +202,7 @@ class RuntimeGovernanceManager:
             else:
                 self._stats["deny_total"] = int(self._stats.get("deny_total", 0)) + 1
                 if normalized_reason_code == "quota_exceeded":
-                    self._stats["quota_hit_total"] = (
-                        int(self._stats.get("quota_hit_total", 0)) + 1
-                    )
+                    self._stats["quota_hit_total"] = int(self._stats.get("quota_hit_total", 0)) + 1
             self._stats["last_reason_code"] = normalized_reason_code
             self._reason_totals[normalized_reason_code] = (
                 int(self._reason_totals.get(normalized_reason_code, 0)) + 1

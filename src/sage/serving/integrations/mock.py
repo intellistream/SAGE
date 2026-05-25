@@ -20,7 +20,9 @@ from .contracts import (
 )
 
 
-def _serving_context_payload(request: WorkflowImportRequest | WorkflowJobSubmitRequest) -> dict[str, Any] | None:
+def _serving_context_payload(
+    request: WorkflowImportRequest | WorkflowJobSubmitRequest,
+) -> dict[str, Any] | None:
     serving_context = getattr(request, "serving_context", None)
     if serving_context is None:
         return None
@@ -81,7 +83,9 @@ class MockWorkflowProductAdapter:
             self._workflow_counter += 1
             workflow_id = _normalize_optional_non_empty(source_payload.get("workflow_id"))
             if workflow_id is None:
-                workflow_id = f"{self.descriptor.integration_type}:workflow:{self._workflow_counter}"
+                workflow_id = (
+                    f"{self.descriptor.integration_type}:workflow:{self._workflow_counter}"
+                )
 
         if request.desired_target == "sage_executable":
             executable = MockSageExecutable(
@@ -117,7 +121,11 @@ class MockWorkflowProductAdapter:
                         "workflow_id": workflow_id,
                         "integration_type": self.descriptor.integration_type,
                         "workflow_name": workflow_name,
-                        **({"serving_context": serving_context} if serving_context is not None else {}),
+                        **(
+                            {"serving_context": serving_context}
+                            if serving_context is not None
+                            else {}
+                        ),
                     },
                 },
                 metadata={

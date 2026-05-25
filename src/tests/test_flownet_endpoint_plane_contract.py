@@ -201,13 +201,17 @@ def test_published_endpoint_inventory_includes_shared_state_bindings(runtime_cli
     )
     client.start_shared_state_service(EndpointCounterService, descriptor=descriptor)
 
-    published = endpoint_shared_state_flow.use_shared_state("counter", descriptor).bind(
-        "endpoint-plane-input-shared-state",
-        "endpoint-plane-output-shared-state",
-    ).publish(
-        client=client,
-        name="shared-state-endpoint",
-        reuse_existing=False,
+    published = (
+        endpoint_shared_state_flow.use_shared_state("counter", descriptor)
+        .bind(
+            "endpoint-plane-input-shared-state",
+            "endpoint-plane-output-shared-state",
+        )
+        .publish(
+            client=client,
+            name="shared-state-endpoint",
+            reuse_existing=False,
+        )
     )
 
     snapshot = published.inspect()
