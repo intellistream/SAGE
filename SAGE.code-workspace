@@ -17,6 +17,14 @@
       "path": "../sage-tutorials"
     },
     {
+      "name": "sage-faculty-twin  [app]",
+      "path": "../sage-faculty-twin"
+    },
+    {
+      "name": "sageVDB  [vdb]",
+      "path": "../sageVDB"
+    },
+    {
       "name": "vamos  [research]",
       "path": "../vamos"
     },
@@ -27,7 +35,9 @@
   ],
   "settings": {
     "python.analysis.extraPaths": [
-      "${workspaceFolder:SAGE  [meta]}/src"
+      "${workspaceFolder:SAGE  [meta]}/src",
+      "${workspaceFolder:sage-faculty-twin  [app]}/src",
+      "${workspaceFolder:sageVDB  [vdb]}"
     ],
     "python.testing.pytestArgs": [
       "packages",
