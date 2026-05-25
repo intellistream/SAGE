@@ -265,6 +265,19 @@ def _normalize_response_metadata(raw_metadata: Any) -> dict[str, str]:
     return normalized
 
 
+def _response_metadata_uses_spillover(response_metadata: dict[str, str]) -> bool:
+    backend_scope = str(response_metadata.get("x-vllm-backend-scope") or "").strip().lower()
+    route_outcome = str(response_metadata.get("x-vllm-route-outcome") or "").strip().lower()
+    if backend_scope and backend_scope not in {"local", "local_only", "local-only"}:
+        return True
+    return (
+        "spillover" in route_outcome
+        or route_outcome.startswith("remote")
+        or route_outcome.endswith("remote")
+        or "_remote" in route_outcome
+    )
+
+
 def _git_commit(repo_root: Path) -> str | None:
     if not repo_root.exists():
         return None
@@ -715,6 +728,7 @@ async def _run_one_request(
         session,
     )
     response_metadata = _normalize_response_metadata(getattr(output, "response_metadata", None))
+    used_spillover = _response_metadata_uses_spillover(response_metadata)
 
     started_at_s = output.start_time - start_perf
     completed_at_s = started_at_s + output.latency
@@ -745,7 +759,7 @@ async def _run_one_request(
         "deadline_class": deadline_class,
         "priority": serving_context.get("priority"),
         "decision": decision,
-        "used_spillover": False,
+        "used_spillover": used_spillover,
         "policy_mode": policy_trace["policy_mode"],
         "policy_reason": policy_trace["policy_reason"],
         "dispatch_delay_s": policy_trace["dispatch_delay_s"],
@@ -787,6 +801,7 @@ def _build_metrics(
     if rows:
         duration_s = max(float(row.get("completed_at_s") or 0.0) for row in rows)
         duration_s = max(duration_s, 1e-9)
+    spillover_count = sum(1 for row in rows if row.get("used_spillover"))
 
     metrics: dict[str, Any] = {
         "ttft_p50_ms": _quantile(ttft_values, 50.0),
@@ -799,7 +814,7 @@ def _build_metrics(
         "free_vram_bytes": None,
         "reserved_vram_bytes": None,
         "slo_violation_rate": round(violation_count / total_requests, 6) if total_requests else None,
-        "spillover_rate": 0.0,
+        "spillover_rate": round(spillover_count / total_requests, 6) if total_requests else None,
         "reject_rate": round(reject_count / total_requests, 6) if total_requests else None,
         "delayed_request_rate": round(delayed_count / total_requests, 6) if total_requests else None,
     }
