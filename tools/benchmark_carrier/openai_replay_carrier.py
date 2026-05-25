@@ -904,6 +904,14 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
     metrics = _build_metrics(run_plan, rows, peak_load)
     phase_counts = Counter(str(row.get("phase") or "unknown") for row in rows)
     class_counts = Counter(str(row.get("deadline_class") or "unknown") for row in rows)
+    route_outcome_counts = Counter(
+        str((row.get("response_metadata") or {}).get("x-vllm-route-outcome") or "unknown")
+        for row in rows
+    )
+    backend_scope_counts = Counter(
+        str((row.get("response_metadata") or {}).get("x-vllm-backend-scope") or "unknown")
+        for row in rows
+    )
     trace_rows = [
         {
             "request_id": row["request_id"],
@@ -979,6 +987,8 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
         "request_mix": {
             "phase_counts": dict(phase_counts),
             "deadline_class_counts": dict(class_counts),
+            "route_outcome_counts": dict(route_outcome_counts),
+            "backend_scope_counts": dict(backend_scope_counts),
         },
     }
 

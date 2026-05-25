@@ -472,6 +472,8 @@ def test_openai_replay_carrier_persists_response_metadata_in_raw_log_and_trace(
     }
     assert raw_row["used_spillover"] is False
     assert summary["metrics"]["spillover_rate"] == 0.0
+    assert summary["request_mix"]["route_outcome_counts"] == {"local_only": 1}
+    assert summary["request_mix"]["backend_scope_counts"] == {"local": 1}
     assert trace_row["decision_trace"]["response_metadata"] == raw_row["response_metadata"]
 
 
@@ -493,3 +495,5 @@ def test_openai_replay_carrier_derives_spillover_rate_from_response_metadata(
     assert raw_row["used_spillover"] is True
     assert trace_row["decision_trace"]["used_spillover"] is True
     assert summary["metrics"]["spillover_rate"] == 1.0
+    assert summary["request_mix"]["route_outcome_counts"] == {"spillover_remote": 1}
+    assert summary["request_mix"]["backend_scope_counts"] == {"remote": 1}
