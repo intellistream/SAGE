@@ -69,12 +69,17 @@ class FlowEndpointRegistry:
         namespace: str,
         flow_uri: str | None = None,
     ) -> PublishedFlowEndpointRecord | None:
-        scoped_name = (_normalize_non_empty(namespace, field_name="namespace"), _normalize_non_empty(name, field_name="name"))
+        scoped_name = (
+            _normalize_non_empty(namespace, field_name="namespace"),
+            _normalize_non_empty(name, field_name="name"),
+        )
         with self._lock:
             record = self._resolve_active_record_locked(scoped_name)
             if record is None:
                 return None
-            if flow_uri is not None and record.descriptor.flow_uri != _normalize_non_empty(flow_uri, field_name="flow_uri"):
+            if flow_uri is not None and record.descriptor.flow_uri != _normalize_non_empty(
+                flow_uri, field_name="flow_uri"
+            ):
                 return None
             return record
 
@@ -107,19 +112,30 @@ class FlowEndpointRegistry:
         normalized_flow_uri = _normalize_optional_non_empty(flow_uri)
         with self._lock:
             if endpoint_id is not None:
-                record = self._records_by_id.get(_normalize_non_empty(endpoint_id, field_name="endpoint_id"))
+                record = self._records_by_id.get(
+                    _normalize_non_empty(endpoint_id, field_name="endpoint_id")
+                )
                 if record is None:
                     return None
-                if normalized_flow_uri is not None and record.descriptor.flow_uri != normalized_flow_uri:
+                if (
+                    normalized_flow_uri is not None
+                    and record.descriptor.flow_uri != normalized_flow_uri
+                ):
                     return None
                 return record
             if name is None or namespace is None:
                 raise ValueError("endpoint resolve requires endpoint_id or name+namespace.")
-            scoped_name = (_normalize_non_empty(namespace, field_name="namespace"), _normalize_non_empty(name, field_name="name"))
+            scoped_name = (
+                _normalize_non_empty(namespace, field_name="namespace"),
+                _normalize_non_empty(name, field_name="name"),
+            )
             record = self._resolve_active_record_locked(scoped_name)
             if record is None:
                 return None
-            if normalized_flow_uri is not None and record.descriptor.flow_uri != normalized_flow_uri:
+            if (
+                normalized_flow_uri is not None
+                and record.descriptor.flow_uri != normalized_flow_uri
+            ):
                 return None
             return record
 

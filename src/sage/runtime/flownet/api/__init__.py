@@ -15,14 +15,14 @@ from sage.runtime.flownet.api.declarations import (
     SourceDeclaration,
     StatelessDeclaration,
 )
-from sage.runtime.flownet.contracts.shared_state_contract import (
-    SharedStateBindingSpec,
-    SharedStateServiceDescriptor,
-)
 from sage.runtime.flownet.api.decorators import actor, flow, process, service, source, stateless
 from sage.runtime.flownet.api.flow_exception_handlers import (
     exception_handler,
     flow_exception_handler,
+)
+from sage.runtime.flownet.contracts.shared_state_contract import (
+    SharedStateBindingSpec,
+    SharedStateServiceDescriptor,
 )
 from sage.runtime.flownet.core import FlowProgram
 

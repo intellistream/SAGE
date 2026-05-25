@@ -114,6 +114,10 @@ from sage.runtime.flownet.runtime.comm import (
     make_envelope,
     validate_envelope,
 )
+from sage.runtime.flownet.runtime.endpoint_registry import (
+    FlowEndpointRegistry,
+    PublishedFlowEndpointRecord,
+)
 from sage.runtime.flownet.runtime.flowengine import (
     FlowEngineV1,
     FlowExecutionOutput,
@@ -129,17 +133,13 @@ from sage.runtime.flownet.runtime.flowengine import (
     register_flow_program_pull_handler,
     require_event_cursor,
 )
-from sage.runtime.flownet.runtime.endpoint_registry import (
-    FlowEndpointRegistry,
-    PublishedFlowEndpointRecord,
-)
 from sage.runtime.flownet.runtime.loops import LoopThread
 from sage.runtime.flownet.runtime.runtime import V1RuntimeHost
 from sage.runtime.flownet.runtime.shared_state_registry import (
-    list_bound_shared_state_bindings,
-    resolve_bound_shared_state_service,
     SharedStateServiceRecord,
     SharedStateServiceRegistry,
+    list_bound_shared_state_bindings,
+    resolve_bound_shared_state_service,
 )
 from sage.runtime.flownet.runtime.topics import (
     CoordinatorTopicState,

@@ -34,14 +34,36 @@ class SharedStateServiceDescriptor:
     contract_id: str = ""
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "service_name", _normalize_non_empty(self.service_name, field_name="service_name"))
-        object.__setattr__(self, "namespace", _normalize_non_empty(self.namespace, field_name="namespace"))
+        object.__setattr__(
+            self, "service_name", _normalize_non_empty(self.service_name, field_name="service_name")
+        )
+        object.__setattr__(
+            self, "namespace", _normalize_non_empty(self.namespace, field_name="namespace")
+        )
         object.__setattr__(self, "owner", _normalize_non_empty(self.owner, field_name="owner"))
-        object.__setattr__(self, "visibility", _normalize_choice(self.visibility, field_name="visibility", allowed=_VISIBILITIES))
-        object.__setattr__(self, "reuse_policy", _normalize_choice(self.reuse_policy, field_name="reuse_policy", allowed=_REUSE_POLICIES))
+        object.__setattr__(
+            self,
+            "visibility",
+            _normalize_choice(self.visibility, field_name="visibility", allowed=_VISIBILITIES),
+        )
+        object.__setattr__(
+            self,
+            "reuse_policy",
+            _normalize_choice(
+                self.reuse_policy, field_name="reuse_policy", allowed=_REUSE_POLICIES
+            ),
+        )
         object.__setattr__(self, "recovery_policy", normalize_recovery_policy(self.recovery_policy))
-        object.__setattr__(self, "admission_policy", _normalize_mapping(self.admission_policy, field_name="admission_policy"))
-        object.__setattr__(self, "binding_metadata", _normalize_mapping(self.binding_metadata, field_name="binding_metadata"))
+        object.__setattr__(
+            self,
+            "admission_policy",
+            _normalize_mapping(self.admission_policy, field_name="admission_policy"),
+        )
+        object.__setattr__(
+            self,
+            "binding_metadata",
+            _normalize_mapping(self.binding_metadata, field_name="binding_metadata"),
+        )
         contract_id = _normalize_optional_non_empty(self.contract_id)
         if contract_id is None:
             contract_id = _build_contract_id(self)
@@ -70,9 +92,15 @@ class SharedStateBindingSpec:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "alias", _normalize_non_empty(self.alias, field_name="alias"))
-        object.__setattr__(self, "descriptor", normalize_shared_state_service_descriptor(self.descriptor))
+        object.__setattr__(
+            self, "descriptor", normalize_shared_state_service_descriptor(self.descriptor)
+        )
         object.__setattr__(self, "required", bool(self.required))
-        object.__setattr__(self, "binding_metadata", _normalize_mapping(self.binding_metadata, field_name="binding_metadata"))
+        object.__setattr__(
+            self,
+            "binding_metadata",
+            _normalize_mapping(self.binding_metadata, field_name="binding_metadata"),
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -89,7 +117,9 @@ def normalize_shared_state_service_descriptor(
     if isinstance(raw_value, SharedStateServiceDescriptor):
         return raw_value
     if not isinstance(raw_value, Mapping):
-        raise TypeError("shared state descriptor must be a SharedStateServiceDescriptor or mapping.")
+        raise TypeError(
+            "shared state descriptor must be a SharedStateServiceDescriptor or mapping."
+        )
     return SharedStateServiceDescriptor(
         service_name=raw_value.get("service_name"),
         namespace=raw_value.get("namespace"),
@@ -97,8 +127,12 @@ def normalize_shared_state_service_descriptor(
         visibility=raw_value.get("visibility", "private"),
         reuse_policy=raw_value.get("reuse_policy", "flow"),
         recovery_policy=raw_value.get("recovery_policy", "best_effort"),
-        admission_policy=_normalize_mapping(raw_value.get("admission_policy"), field_name="admission_policy"),
-        binding_metadata=_normalize_mapping(raw_value.get("binding_metadata"), field_name="binding_metadata"),
+        admission_policy=_normalize_mapping(
+            raw_value.get("admission_policy"), field_name="admission_policy"
+        ),
+        binding_metadata=_normalize_mapping(
+            raw_value.get("binding_metadata"), field_name="binding_metadata"
+        ),
         contract_id=_normalize_optional_non_empty(raw_value.get("contract_id")) or "",
     )
 
@@ -114,7 +148,9 @@ def normalize_shared_state_binding_spec(
         alias=raw_value.get("alias"),
         descriptor=normalize_shared_state_service_descriptor(raw_value.get("descriptor") or {}),
         required=bool(raw_value.get("required", True)),
-        binding_metadata=_normalize_mapping(raw_value.get("binding_metadata"), field_name="binding_metadata"),
+        binding_metadata=_normalize_mapping(
+            raw_value.get("binding_metadata"), field_name="binding_metadata"
+        ),
     )
 
 
@@ -129,14 +165,19 @@ def normalize_shared_state_binding_specs(raw_value: Any) -> tuple[SharedStateBin
     if isinstance(payload, Mapping):
         return (normalize_shared_state_binding_spec(payload),)
     if not isinstance(payload, Sequence) or isinstance(payload, (str, bytes, bytearray)):
-        raise TypeError("shared state bindings payload must be a binding spec or sequence of binding specs.")
+        raise TypeError(
+            "shared state bindings payload must be a binding spec or sequence of binding specs."
+        )
 
     normalized: list[SharedStateBindingSpec] = []
     aliases: dict[str, str] = {}
     for item in payload:
         binding = normalize_shared_state_binding_spec(item)
         existing_contract_id = aliases.get(binding.alias)
-        if existing_contract_id is not None and existing_contract_id != binding.descriptor.contract_id:
+        if (
+            existing_contract_id is not None
+            and existing_contract_id != binding.descriptor.contract_id
+        ):
             raise ValueError(
                 "shared_state_binding_alias_conflict:"
                 f" alias={binding.alias} existing_contract_id={existing_contract_id}"
@@ -144,7 +185,8 @@ def normalize_shared_state_binding_specs(raw_value: Any) -> tuple[SharedStateBin
             )
         aliases[binding.alias] = binding.descriptor.contract_id
         if any(
-            existing.alias == binding.alias and existing.descriptor.contract_id == binding.descriptor.contract_id
+            existing.alias == binding.alias
+            and existing.descriptor.contract_id == binding.descriptor.contract_id
             for existing in normalized
         ):
             continue
@@ -189,7 +231,9 @@ def with_shared_state_binding_metadata(
         break
     if not replaced:
         bindings.append(new_binding)
-    resolved_metadata[SHARED_STATE_BINDINGS_METADATA_KEY] = serialize_shared_state_binding_specs(bindings)
+    resolved_metadata[SHARED_STATE_BINDINGS_METADATA_KEY] = serialize_shared_state_binding_specs(
+        bindings
+    )
     return resolved_metadata
 
 
@@ -239,12 +283,12 @@ def _normalize_optional_non_empty(raw_value: Any) -> str | None:
     return normalized
 
 
-def _normalize_choice(raw_value: Any, *, field_name: str, allowed: set[str] | frozenset[str]) -> str:
+def _normalize_choice(
+    raw_value: Any, *, field_name: str, allowed: set[str] | frozenset[str]
+) -> str:
     normalized = _normalize_non_empty(raw_value, field_name=field_name).lower()
     if normalized not in allowed:
-        raise ValueError(
-            f"{field_name} must be one of: {', '.join(sorted(allowed))}."
-        )
+        raise ValueError(f"{field_name} must be one of: {', '.join(sorted(allowed))}.")
     return normalized
 
 

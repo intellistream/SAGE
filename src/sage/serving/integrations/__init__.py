@@ -13,7 +13,6 @@ from .contracts import (
     WorkflowIntegrationOperation,
     WorkflowIntegrationRequest,
     WorkflowIntegrationResponse,
-    WorkflowServingRequestContext,
     WorkflowJobResultCollectRequest,
     WorkflowJobResultCollectResponse,
     WorkflowJobStatus,
@@ -23,6 +22,7 @@ from .contracts import (
     WorkflowJobSubmitResponse,
     WorkflowProductAdapter,
     WorkflowProductAdapterDescriptor,
+    WorkflowServingRequestContext,
     WorkflowSubmitMode,
     default_workflow_product_extension_points,
 )
