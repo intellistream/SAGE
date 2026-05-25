@@ -254,6 +254,17 @@ def _quantile(values: list[float], percentile: float) -> float | None:
     return round(ordered[rank], 6)
 
 
+def _normalize_response_metadata(raw_metadata: Any) -> dict[str, str]:
+    if not isinstance(raw_metadata, dict):
+        return {}
+    normalized: dict[str, str] = {}
+    for key, value in raw_metadata.items():
+        if value is None:
+            continue
+        normalized[str(key)] = str(value)
+    return normalized
+
+
 def _git_commit(repo_root: Path) -> str | None:
     if not repo_root.exists():
         return None
@@ -679,6 +690,7 @@ async def _run_one_request(
             "target_e2e_ms": serving_context.get("target_e2e_ms"),
             "slo_violated": True,
             "error": "rejected_by_policy",
+            "response_metadata": {},
             "trace_tags": trace_tags,
         }
 
@@ -702,6 +714,7 @@ async def _run_one_request(
         ),
         session,
     )
+    response_metadata = _normalize_response_metadata(getattr(output, "response_metadata", None))
 
     started_at_s = output.start_time - start_perf
     completed_at_s = started_at_s + output.latency
@@ -747,6 +760,7 @@ async def _run_one_request(
         "target_e2e_ms": target_e2e_ms,
         "slo_violated": slo_violated,
         "error": output.error or None,
+        "response_metadata": response_metadata,
         "trace_tags": trace_tags,
     }
 
@@ -898,6 +912,7 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
                 "success": row["success"],
                 "ttft_ms": row["ttft_ms"],
                 "e2e_ms": row["e2e_ms"],
+                "response_metadata": row["response_metadata"],
             },
         }
         for row in rows
@@ -937,6 +952,7 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
         "metrics": metrics,
         "notes": [
             "Real execution-plane replay against OpenAI-compatible vllm-hust endpoints.",
+            "Request-level raw logs and traces capture OpenAI response routing metadata when the endpoint exports x-vllm-* headers.",
             "baseline:load-aware defers lower-priority batch requests when live endpoint load exceeds configured thresholds.",
             "baseline:no-memory-aware keeps live running and waiting thresholds but ignores KV-cache pressure when deciding whether to defer lower-priority batch requests.",
             "baseline:full-policy adds a direct-endpoint admission-control gate that rejects lower-priority batch requests when overload persists after the bounded defer window.",
