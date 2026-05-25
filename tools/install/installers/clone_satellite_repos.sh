@@ -34,6 +34,36 @@ get_repo_url() {
     echo "https://github.com/intellistream/${repo_name}.git"
 }
 
+ensure_canonical_branch() {
+    local current_branch="$1"
+
+    if [ "$current_branch" = "main" ]; then
+        echo -e "${DIM}   ℹ️  当前已在默认分支: main${NC}"
+        return 0
+    fi
+
+    if git rev-parse --verify main >/dev/null 2>&1; then
+        if git checkout main >/dev/null 2>&1; then
+            echo -e "${GREEN}   ✓ 已切换到默认分支: main${NC}"
+            return 0
+        fi
+        echo -e "${YELLOW}   ⚠️  无法切换到默认分支: main${NC}"
+        return 1
+    fi
+
+    if git fetch origin main >/dev/null 2>&1; then
+        if git checkout -b main origin/main >/dev/null 2>&1; then
+            echo -e "${GREEN}   ✓ 已创建并切换到默认分支: main${NC}"
+            return 0
+        fi
+        echo -e "${YELLOW}   ⚠️  无法创建/切换到默认分支: main${NC}"
+        return 1
+    fi
+
+    echo -e "${DIM}   ℹ️  保持当前分支: ${current_branch:-unknown}${NC}"
+    return 0
+}
+
 # 克隆单个仓库
 clone_single_repo() {
     local repo_name="$1"
@@ -45,31 +75,14 @@ clone_single_repo() {
     if [ -d "$repo_path" ]; then
         echo -e "${YELLOW}⚠️  $repo_name 已存在${NC}"
 
-        # 尝试切换到 main-dev 分支
+        # 已存在仓库按 canonical branch(main) 处理，避免遗留 main-dev 误报。
         if cd "$repo_path" 2>/dev/null; then
             # 检查是否是 git 仓库
             if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
                 # 获取当前分支
                 local current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
 
-                # 检查 main-dev 分支是否存在（本地）
-                if git rev-parse --verify main-dev 2>/dev/null; then
-                    # 本地存在 main-dev，直接切换
-                    if git checkout main-dev >/dev/null 2>&1; then
-                        echo -e "${GREEN}   ✓ 已切换到 main-dev 分支${NC}"
-                    else
-                        echo -e "${YELLOW}   ⚠️  无法切换到 main-dev 分支${NC}"
-                    fi
-                elif git fetch origin main-dev 2>/dev/null; then
-                    # 远程存在 main-dev，先 fetch 再创建
-                    if git checkout -b main-dev origin/main-dev 2>/dev/null; then
-                        echo -e "${GREEN}   ✓ 已创建并切换到 main-dev 分支${NC}"
-                    else
-                        echo -e "${YELLOW}   ⚠️  无法创建/切换到 main-dev 分支${NC}"
-                    fi
-                else
-                    echo -e "${DIM}   ℹ️  main-dev 分支不存在（当前分支: $current_branch）${NC}"
-                fi
+                ensure_canonical_branch "$current_branch"
             else
                 echo -e "${YELLOW}   ⚠️  不是有效的 git 仓库${NC}"
             fi
@@ -104,18 +117,10 @@ clone_single_repo() {
     if $clone_ok; then
         echo -e "${GREEN}✅ $repo_name 克隆成功${NC}"
 
-        # 克隆成功后，尝试切换到 main-dev 分支
+        # 新克隆仓库通常已在远端默认分支；若存在 canonical branch(main) 则对齐。
         if cd "$repo_path" 2>/dev/null; then
-            # 检查远程是否有 main-dev 分支
-            if git fetch origin main-dev 2>/dev/null && git rev-parse origin/main-dev 2>/dev/null; then
-                if git checkout -b main-dev origin/main-dev 2>/dev/null; then
-                    echo -e "${GREEN}   ✓ 已切换到 main-dev 分支${NC}"
-                fi
-            else
-                # 如果没有 main-dev，保持默认分支
-                local default_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-                echo -e "${DIM}   ℹ️  使用默认分支: $default_branch${NC}"
-            fi
+            local current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+            ensure_canonical_branch "$current_branch"
             cd - >/dev/null 2>&1
         fi
         return 0
