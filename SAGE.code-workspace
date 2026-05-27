@@ -9,6 +9,26 @@
       "path": "../SAGE-Docs"
     },
     {
+      "name": "my-twin  [app]",
+      "path": "../sage-faculty-twin"
+    },
+    {
+      "name": "personal-homepage  [profile]",
+      "path": "../shuhaozhangtony.github.io"
+    },
+    {
+      "name": "sageVDB  [vdb]",
+      "path": "../sageVDB"
+    },
+    {
+      "name": "neuromem  [memory]",
+      "path": "../neuromem"
+    },
+    {
+      "name": "vllm-hust  [engine]",
+      "path": "../vllm-hust"
+    },
+    {
       "name": "sage-examples  [examples]",
       "path": "../sage-examples"
     },
@@ -17,27 +37,16 @@
       "path": "../sage-tutorials"
     },
     {
-      "name": "sage-faculty-twin  [app]",
-      "path": "../sage-faculty-twin"
-    },
-    {
-      "name": "sageVDB  [vdb]",
-      "path": "../sageVDB"
-    },
-    {
       "name": "vamos  [research]",
       "path": "../vamos"
-    },
-    {
-      "name": "vllm-hust  [engine]",
-      "path": "../vllm-hust"
     }
   ],
   "settings": {
     "python.analysis.extraPaths": [
       "${workspaceFolder:SAGE  [meta]}/src",
-      "${workspaceFolder:sage-faculty-twin  [app]}/src",
-      "${workspaceFolder:sageVDB  [vdb]}"
+      "${workspaceFolder:my-twin  [app]}/src",
+      "${workspaceFolder:sageVDB  [vdb]}",
+      "${workspaceFolder:neuromem  [memory]}"
     ],
     "python.testing.pytestArgs": [
       "packages",
@@ -133,6 +142,25 @@
         }
       },
       {
+        "name": "my-twin: Uvicorn (local neuromem)",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "uvicorn",
+        "args": [
+          "sage_faculty_twin.api:app",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "8010",
+          "--reload"
+        ],
+        "console": "integratedTerminal",
+        "cwd": "${workspaceFolder:my-twin  [app]}",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder:my-twin  [app]}/src:${workspaceFolder:SAGE  [meta]}/src:${workspaceFolder:sageVDB  [vdb]}:${workspaceFolder:neuromem  [memory]}"
+        }
+      },
+      {
         "name": "Python: sage-dev CLI",
         "type": "debugpy",
         "request": "launch",
@@ -220,6 +248,26 @@
         "isBackground": true,
         "options": {
           "cwd": "${workspaceFolder:SAGE-Docs  [docs]}"
+        }
+      },
+      {
+        "label": "Run my-twin (local neuromem)",
+        "type": "shell",
+        "command": "PYTHONPATH=${workspaceFolder:my-twin  [app]}/src:${workspaceFolder:SAGE  [meta]}/src:${workspaceFolder:sageVDB  [vdb]}:${workspaceFolder:neuromem  [memory]} uvicorn sage_faculty_twin.api:app --host 127.0.0.1 --port 8010 --reload",
+        "group": "build",
+        "problemMatcher": [],
+        "options": {
+          "cwd": "${workspaceFolder:my-twin  [app]}"
+        }
+      },
+      {
+        "label": "Sync Homepage Knowledge (offline)",
+        "type": "shell",
+        "command": "PYTHONPATH=${workspaceFolder:my-twin  [app]}/src:${workspaceFolder:SAGE  [meta]}/src:${workspaceFolder:neuromem  [memory]} python -m sage_faculty_twin.knowledge_import --homepage-dir ${workspaceFolder:personal-homepage  [profile]} --knowledge-dir ${workspaceFolder:my-twin  [app]}/data/knowledge_base --knowledge-backend neuromem",
+        "group": "build",
+        "problemMatcher": [],
+        "options": {
+          "cwd": "${workspaceFolder:my-twin  [app]}"
         }
       }
     ]
