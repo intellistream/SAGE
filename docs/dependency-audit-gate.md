@@ -95,7 +95,7 @@ The repo no longer treats the retired split-package layout as a set of direct de
 
 - Packages: `fastapi`, `uvicorn`, `httpx`, `pytest`, `pytest-cov`, `pytest-asyncio`, `pytest-mock`,
   `ruff`, `mypy`, `pre-commit`,
-  `wheelwright @ git+https://github.com/intellistream/wheelwright.git@main`
+  `sagepypi @ git+https://github.com/intellistream/sagepypi.git@main`
 - Callsite: `DEVELOPER.md`
 - Rationale: in-tree `sage-dev` developer workflow, validation, and release tooling.
 

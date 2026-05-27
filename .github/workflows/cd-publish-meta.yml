@@ -54,7 +54,7 @@ jobs:
       - name: Install tooling
         run: |
           pip install --upgrade pip build wheel twine
-          pip install "wheelwright @ git+https://github.com/intellistream/wheelwright.git@main"
+          pip install "sagepypi @ git+https://github.com/intellistream/sagepypi.git@main"
 
       - name: Determine target repository
         id: repo
