@@ -54,7 +54,7 @@ jobs:
       - name: Install tooling
         run: |
           pip install --upgrade pip build wheel twine
-          pip install "isage-pypi-publisher>=0.2.0"
+          pip install "wheelwright @ git+https://github.com/intellistream/wheelwright.git@main"
 
       - name: Determine target repository
         id: repo

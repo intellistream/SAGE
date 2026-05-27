@@ -136,8 +136,8 @@ has_pypi_token() {
 
 # Resolve publisher CLI command (binary first, then python -m fallback)
 resolve_publisher_cmd() {
-    if command -v sage-pypi-publisher &> /dev/null; then
-        PUBLISH_CMD=(sage-pypi-publisher)
+    if command -v wheelwright &> /dev/null; then
+        PUBLISH_CMD=(wheelwright)
         return 0
     fi
 
@@ -145,10 +145,10 @@ resolve_publisher_cmd() {
         if python3 - <<'PY_HOOK' >/dev/null 2>&1
 import importlib.util
 import sys
-sys.exit(0 if importlib.util.find_spec("pypi_publisher") else 1)
+sys.exit(0 if importlib.util.find_spec("wheelwright") else 1)
 PY_HOOK
         then
-            PUBLISH_CMD=(python3 -m pypi_publisher.cli)
+            PUBLISH_CMD=(python3 -m wheelwright.cli)
             return 0
         fi
     fi
@@ -162,8 +162,8 @@ schedule_publish() {
     local package="$2"
 
     if ! resolve_publisher_cmd; then
-        echo -e "${YELLOW}⚠ sage-pypi-publisher not found, skipping auto-publish${NC}"
-        echo -e "${DIM}  Install: python -m pip install isage-pypi-publisher${NC}"
+        echo -e "${YELLOW}⚠ wheelwright not found, skipping auto-publish${NC}"
+        echo -e "${DIM}  Install: python -m pip install \"wheelwright @ git+https://github.com/intellistream/wheelwright.git@main\"${NC}"
         return
     fi
 
@@ -207,7 +207,7 @@ schedule_publish() {
                 _pub_exit=$?
                 echo ""
                 echo "✗ Failed to upload to PyPI (exit code: ${_pub_exit})"
-                echo "  Re-run: sage-pypi-publisher build . --upload --no-dry-run --mode ${PUBLISH_MODE}"
+                echo "  Re-run: wheelwright build . --upload --no-dry-run --mode ${PUBLISH_MODE}"
             fi
         } >> "$PUBLISH_LOG" 2>&1
 
