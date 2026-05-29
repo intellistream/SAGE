@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import sys
 from pathlib import Path
 
@@ -11,13 +12,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from evaluation.langchain_rag import (
-    DEFAULT_VARIANT_ORDER,
-    run_shared_workload_comparison,
-    supported_framework_names,
-    supported_variant_names,
-    supported_workload_names,
-)
+langchain_rag = importlib.import_module("evaluation.langchain_rag")
+DEFAULT_VARIANT_ORDER = langchain_rag.DEFAULT_VARIANT_ORDER
+run_shared_workload_comparison = langchain_rag.run_shared_workload_comparison
+supported_framework_names = langchain_rag.supported_framework_names
+supported_variant_names = langchain_rag.supported_variant_names
+supported_workload_names = langchain_rag.supported_workload_names
 
 
 def _parse_csv(value: str) -> tuple[str, ...]:
@@ -43,7 +43,7 @@ def main() -> int:
     parser.add_argument(
         "--frameworks",
         default="sage",
-        help="Comma-separated framework names. Supported: sage, langchain_native.",
+        help="Comma-separated framework names. Supported: sage, langchain_native, langchain_rpc.",
     )
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--max-requests-per-workload", type=int, default=None)
@@ -60,8 +60,20 @@ def main() -> int:
     parser.add_argument("--embedding-base-url", default=None)
     parser.add_argument("--embedding-api-key", default="EMPTY")
     parser.add_argument("--temperature", type=float, default=0.0)
+    parser.add_argument("--langchain-native-parallelism", type=int, default=1)
     parser.add_argument("--generation-parallelism", type=int, default=1)
     parser.add_argument("--source-request-rate-qps", type=float, default=None)
+    parser.add_argument("--retrieval-index-backend", default="faiss_offline")
+    parser.add_argument("--sage-runtime-platform", default="local")
+    parser.add_argument("--flownet-session-mode", default="cluster")
+    parser.add_argument("--flownet-entry-node", default=None)
+    parser.add_argument("--flownet-cluster", default=None)
+    parser.add_argument("--flownet-config-path", default=None)
+    parser.add_argument("--flownet-clusters-dir", default=None)
+    parser.add_argument("--flownet-connect-timeout", type=float, default=None)
+    parser.add_argument("--langchain-rpc-endpoints", default="")
+    parser.add_argument("--langchain-rpc-parallelism", type=int, default=1)
+    parser.add_argument("--langchain-rpc-timeout-s", type=float, default=300.0)
     parser.add_argument("--output-root", default=None)
     parser.add_argument("--list-workloads", action="store_true")
     parser.add_argument("--list-variants", action="store_true")
@@ -99,8 +111,20 @@ def main() -> int:
             embedding_base_url=args.embedding_base_url,
             embedding_api_key=args.embedding_api_key,
             temperature=args.temperature,
+            langchain_native_parallelism=args.langchain_native_parallelism,
             generation_parallelism=args.generation_parallelism,
             source_request_rate_qps=args.source_request_rate_qps,
+            retrieval_index_backend=args.retrieval_index_backend,
+            sage_runtime_platform=args.sage_runtime_platform,
+            flownet_session_mode=args.flownet_session_mode,
+            flownet_entry_node=args.flownet_entry_node,
+            flownet_cluster=args.flownet_cluster,
+            flownet_config_path=args.flownet_config_path,
+            flownet_clusters_dir=args.flownet_clusters_dir,
+            flownet_connect_timeout=args.flownet_connect_timeout,
+            langchain_rpc_endpoints=_parse_csv(args.langchain_rpc_endpoints),
+            langchain_rpc_parallelism=args.langchain_rpc_parallelism,
+            langchain_rpc_timeout_s=args.langchain_rpc_timeout_s,
         )
     except Exception as exc:  # noqa: BLE001
         print(exc, file=sys.stderr)

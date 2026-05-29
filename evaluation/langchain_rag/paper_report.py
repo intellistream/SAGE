@@ -357,7 +357,7 @@ def _plot_stage_breakdown(stage_summary: pd.DataFrame, output_dir: Path) -> None
     fig, axes = plt.subplots(
         1, len(frameworks), figsize=(4.8 * len(frameworks), 4.0), squeeze=False
     )
-    for axis, framework_name in zip(axes[0], frameworks):
+    for axis, framework_name in zip(axes[0], frameworks, strict=True):
         ordered = stage_summary[stage_summary["framework_name"] == framework_name].copy()
         x = np.arange(len(VARIANT_ORDER))
         bottoms = np.zeros(len(VARIANT_ORDER))
@@ -425,7 +425,7 @@ def _plot_relative_overhead(overhead_summary: pd.DataFrame, output_dir: Path) ->
     fig, axes = plt.subplots(
         1, len(frameworks), figsize=(4.6 * len(frameworks), 5.4), squeeze=False
     )
-    for axis, framework_name in zip(axes[0], frameworks):
+    for axis, framework_name in zip(axes[0], frameworks, strict=True):
         frame = overhead_summary[overhead_summary["framework_name"] == framework_name].sort_values(
             "full_rag_vs_direct",
             ascending=False,

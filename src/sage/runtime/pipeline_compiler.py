@@ -397,6 +397,7 @@ class _StreamingFlowHandle:
 class CompiledActorGraph:
     stage_ops: list[tuple[str, Any]]
     source_transformation: Any | None
+    stage_close_ops: list[Any] = field(default_factory=list)
     actor_handles: list[Any] = field(default_factory=list)
     adapter: Any = None
     source_transformations: list[Any] = field(default_factory=list)
@@ -496,6 +497,11 @@ class CompiledActorGraph:
             "max_latency_ms": None,
             "last_latency_ms": None,
             "latency_ms_samples": [],
+            "total_queue_wait_ms": 0.0,
+            "min_queue_wait_ms": None,
+            "max_queue_wait_ms": None,
+            "last_queue_wait_ms": None,
+            "queue_wait_ms_samples": [],
             "max_queue_depth": 0,
             "last_queue_depth": 0,
         }
@@ -557,14 +563,36 @@ class CompiledActorGraph:
             metric["max_queue_depth"] = max(metric["max_queue_depth"], metric["last_queue_depth"])
         self._flush_telemetry_snapshot()
 
+    def _record_queue_wait(self, transformation: Any, wait_seconds: float) -> None:
+        if not self._telemetry_enabled():
+            return
+        wait_ms = round(max(wait_seconds, 0.0) * 1000.0, 4)
+        with self._telemetry_lock:
+            metric = self._ensure_stage_telemetry(transformation)
+            metric["total_queue_wait_ms"] = round(
+                float(metric["total_queue_wait_ms"]) + wait_ms,
+                4,
+            )
+            metric["last_queue_wait_ms"] = wait_ms
+            metric["min_queue_wait_ms"] = (
+                wait_ms
+                if metric["min_queue_wait_ms"] is None
+                else min(metric["min_queue_wait_ms"], wait_ms)
+            )
+            metric["max_queue_wait_ms"] = (
+                wait_ms
+                if metric["max_queue_wait_ms"] is None
+                else max(metric["max_queue_wait_ms"], wait_ms)
+            )
+            metric["queue_wait_ms_samples"].append(wait_ms)
+        self._flush_telemetry_snapshot()
+
     def _build_telemetry_payload(self) -> dict[str, Any]:
         with self._telemetry_lock:
             if self._run_started_at is None:
                 started_at = time.time()
-                started_monotonic = time.monotonic()
             else:
                 started_at = self._run_started_at
-                started_monotonic = self._run_started_monotonic or time.monotonic()
             finished_at = self._run_finished_at
             wall_time_ms = round(
                 max((finished_at or time.time()) - started_at, 0.0) * 1000.0,
@@ -574,13 +602,22 @@ class CompiledActorGraph:
             for transformation in self.pipeline:
                 metric = dict(self._ensure_stage_telemetry(transformation))
                 latencies = list(metric.pop("latency_ms_samples", []))
+                queue_waits = list(metric.pop("queue_wait_ms_samples", []))
                 total_duration_ms = float(metric["total_duration_ms"])
+                total_queue_wait_ms = float(metric["total_queue_wait_ms"])
                 invocations = int(metric["invocations"])
                 metric["avg_latency_ms"] = (
                     round(total_duration_ms / invocations, 4) if invocations else None
                 )
                 p95 = _percentile(latencies, 0.95)
                 metric["p95_latency_ms"] = round(p95, 4) if p95 is not None else None
+                metric["avg_queue_wait_ms"] = (
+                    round(total_queue_wait_ms / invocations, 4) if invocations else None
+                )
+                queue_wait_p95 = _percentile(queue_waits, 0.95)
+                metric["p95_queue_wait_ms"] = (
+                    round(queue_wait_p95, 4) if queue_wait_p95 is not None else None
+                )
                 metric["throughput_items_per_sec"] = (
                     round(metric["input_items"] / (total_duration_ms / 1000.0), 4)
                     if total_duration_ms > 0
@@ -758,6 +795,7 @@ class CompiledActorGraph:
             )
 
         replica_index = self._select_replica_index(transformation, packet, len(replica_queues))
+        packet._sage_enqueued_at_monotonic_ns = time.monotonic_ns()
         replica_queues[replica_index].put(packet)
         self._record_queue_depth(transformation, replica_queues[replica_index].qsize())
 
@@ -910,6 +948,12 @@ class CompiledActorGraph:
             try:
                 if item is _WORKER_STOP:
                     return
+                enqueued_at = getattr(item, "_sage_enqueued_at_monotonic_ns", None)
+                if enqueued_at is not None:
+                    self._record_queue_wait(
+                        transformation,
+                        (time.monotonic_ns() - int(enqueued_at)) / 1_000_000_000.0,
+                    )
                 self._process_packet(
                     transformation,
                     item,
@@ -1066,18 +1110,19 @@ class CompiledActorGraph:
         )
         return items
 
-    def _finalize_functions(self, instances: dict[str, Any]) -> None:
+    def _finalize_functions(self, instances: dict[str, Any], *, close_sinks: bool = True) -> None:
         if self._finalized:
             return
         self._finalized = True
 
-        for transformation in self.pipeline:
-            if type(transformation).__name__ != "SinkTransformation":
-                continue
-            for function in self._replicas_for(transformation, instances):
-                close = getattr(function, "close", None)
-                if callable(close):
-                    close()
+        if close_sinks:
+            for transformation in self.pipeline:
+                if type(transformation).__name__ != "SinkTransformation":
+                    continue
+                for function in self._replicas_for(transformation, instances):
+                    close = getattr(function, "close", None)
+                    if callable(close):
+                        close()
 
         if self._service_runtime is not None:
             self._service_runtime.close()
@@ -1175,9 +1220,16 @@ class CompiledActorGraph:
             )
             return None
         finally:
+            for close_ref in self.stage_close_ops:
+                try:
+                    close_ref.call()
+                except Exception:
+                    logger.exception(
+                        "Failed to finalize FlowNet sink actor during stage-ops batch."
+                    )
             self._cleanup_actor_handles()
             try:
-                self._finalize_functions(instances)
+                self._finalize_functions(instances, close_sinks=False)
             finally:
                 self._finish_telemetry("completed")
 
@@ -1352,6 +1404,7 @@ class PipelineCompiler:
 
         actor_handles: list[Any] = []
         stage_ops: list[tuple[str, Any]] = []
+        stage_close_ops: list[Any] = []
         downstream_edges: dict[str, list[tuple[Any, int]]] = {t.basename: [] for t in pipeline}
 
         for downstream in pipeline:
@@ -1378,6 +1431,8 @@ class PipelineCompiler:
             actor_handles.append(handle)
             method_ref = handle.get_method(method_name)
             stage_ops.append((op_type, method_ref))
+            if op_type == _OP_SINK:
+                stage_close_ops.append(handle.get_method("close"))
 
             logger.debug(
                 "Compiled stage %s → %s.%s() [op=%s]",
@@ -1389,6 +1444,7 @@ class PipelineCompiler:
 
         return CompiledActorGraph(
             stage_ops=stage_ops,
+            stage_close_ops=stage_close_ops,
             source_transformation=source_trans,
             actor_handles=actor_handles,
             adapter=adapter,

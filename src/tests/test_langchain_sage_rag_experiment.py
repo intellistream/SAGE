@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import importlib
 import importlib.util
 import json
+import socket
 import sys
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -25,6 +29,10 @@ SPEC = importlib.util.spec_from_file_location(
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+runner_module = importlib.import_module("evaluation.langchain_rag.runner")
+create_langchain_rpc_worker_server = importlib.import_module(
+    "evaluation.langchain_rag.rpc"
+).create_langchain_rpc_worker_server
 
 
 def test_shared_workload_comparison_writes_separated_batch_outputs(tmp_path: Path) -> None:
@@ -52,6 +60,7 @@ def test_shared_workload_comparison_writes_separated_batch_outputs(tmp_path: Pat
     )
     run_dir = batch_dir / "runs" / "rag-followup" / "full_rag"
     summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
+    runtime_metrics = json.loads((run_dir / "runtime_metrics.json").read_text(encoding="utf-8"))
     source_stage = json.loads(
         (run_dir / "stage_metrics" / "source.json").read_text(encoding="utf-8")
     )
@@ -62,7 +71,9 @@ def test_shared_workload_comparison_writes_separated_batch_outputs(tmp_path: Pat
     assert manifest["status"] == "completed"
     assert manifest["frameworks"] == ["sage"]
     assert manifest["run_count"] == 2
+    assert manifest["langchain_native_parallelism"] == 1
     assert manifest["generation_parallelism"] == 1
+    assert manifest["retrieval_index_backend"] == "faiss_offline"
     assert manifest["variant_execution_policy"] == "deterministic_rotation_by_workload_and_seed"
     assert set(manifest["workload_variant_orders"]["rag-followup"]) == {
         "full_rag",
@@ -74,6 +85,8 @@ def test_shared_workload_comparison_writes_separated_batch_outputs(tmp_path: Pat
     assert len(matrix["rows"]) == 2
     assert summary["query_count"] == 4
     assert summary["throughput_qps"] > 0
+    assert runtime_metrics["status"] == "completed"
+    assert any(stage["avg_queue_wait_ms"] is not None for stage in runtime_metrics["stages"])
     assert summary["stage_latency_ms"]["source"]["source_load_ms"] >= 0
     assert summary["stage_latency_ms"]["retrieval"]["document_count"] > 0
     assert source_stage["queries"]
@@ -81,6 +94,8 @@ def test_shared_workload_comparison_writes_separated_batch_outputs(tmp_path: Pat
     assert by_variant["variants"][0]["aggregate_method"] == "micro_by_query_count"
     assert stage_latency["aggregate_method"] == "micro_by_query_count"
     assert fairness_audit["variant_aggregate_method"] == "micro_by_query_count"
+    assert fairness_audit["framework_parallelism_policy"]["langchain_native_parallelism"] == 1
+    assert fairness_audit["retrieval_index_policy"]["backend"] == "faiss_offline"
     assert fairness_audit["generation_backend_policy"]["mixed_backends_allowed"] is False
     assert fairness_audit["workloads"][0]["execution_order_matches_matrix"] is True
     assert matrix["rows"][0]["framework_name"] == "sage"
@@ -135,6 +150,182 @@ def test_shared_workload_comparison_supports_framework_comparison(tmp_path: Path
     assert framework_names == {"langchain_native", "sage"}
     assert by_variant_frameworks == {"langchain_native", "sage"}
     assert len(manifest["completed_runs"]) == 2
+
+
+def test_shared_workload_comparison_supports_flownet_sage_runtime(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    adapter_calls: list[tuple[str, object | None]] = []
+
+    class _FakeAdapter:
+        def start(self, config=None) -> None:
+            adapter_calls.append(("start", dict(config or {})))
+
+        def stop(self) -> None:
+            adapter_calls.append(("stop", None))
+
+    monkeypatch.setattr(runner_module, "FlowNetEnvironment", runner_module.LocalEnvironment)
+    monkeypatch.setattr(
+        runner_module,
+        "get_flownet_adapter",
+        lambda auto_start=False: _FakeAdapter(),
+    )
+
+    batch_dir = MODULE.run_shared_workload_comparison(
+        output_root=tmp_path,
+        framework_names=("sage",),
+        workload_names=("rag-followup",),
+        variant_names=("direct_generation",),
+        max_requests_per_workload=2,
+        seed=7,
+        sage_runtime_platform="flownet",
+        flownet_session_mode="connect",
+        flownet_entry_node="sage-node-1:19001",
+        flownet_cluster="cluster8",
+        flownet_connect_timeout=5.0,
+    )
+
+    manifest = json.loads((batch_dir / "manifest.json").read_text(encoding="utf-8"))
+    fairness_audit = json.loads(
+        (batch_dir / "comparison" / "fairness_audit.json").read_text(encoding="utf-8")
+    )
+
+    assert manifest["sage_runtime_platform"] == "flownet"
+    assert manifest["flownet_session_mode"] == "connect"
+    assert fairness_audit["runtime_environment_policy"] == {
+        "sage_runtime_platform": "flownet",
+        "flownet_session_mode": "connect",
+        "flownet_entry_node": "sage-node-1:19001",
+        "flownet_cluster": "cluster8",
+    }
+    assert adapter_calls[0] == ("stop", None)
+    assert adapter_calls[1] == (
+        "start",
+        {
+            "mode": "connect",
+            "owner": "langchain-rag-benchmark",
+            "entry_node": "sage-node-1:19001",
+            "cluster": "cluster8",
+            "connect_timeout": 5.0,
+        },
+    )
+    assert adapter_calls[-1] == ("stop", None)
+
+
+def test_shared_workload_comparison_supports_langchain_native_parallelism(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    counters = {"in_flight": 0, "max_in_flight": 0}
+    counter_lock = threading.Lock()
+    original_execute = runner_module.LangChainGenerationStage.execute
+
+    def instrumented_execute(self, item):
+        with counter_lock:
+            counters["in_flight"] += 1
+            counters["max_in_flight"] = max(counters["max_in_flight"], counters["in_flight"])
+        try:
+            time.sleep(0.05)
+            return original_execute(self, item)
+        finally:
+            with counter_lock:
+                counters["in_flight"] -= 1
+
+    monkeypatch.setattr(
+        runner_module.LangChainGenerationStage,
+        "execute",
+        instrumented_execute,
+    )
+
+    batch_dir = MODULE.run_shared_workload_comparison(
+        output_root=tmp_path,
+        framework_names=("langchain_native",),
+        workload_names=("rag-followup",),
+        variant_names=("direct_generation",),
+        max_requests_per_workload=4,
+        seed=7,
+        langchain_native_parallelism=2,
+    )
+
+    manifest = json.loads((batch_dir / "manifest.json").read_text(encoding="utf-8"))
+
+    assert manifest["langchain_native_parallelism"] == 2
+    assert manifest["retrieval_index_backend"] == "faiss_offline"
+    assert counters["max_in_flight"] >= 2
+
+
+def test_shared_workload_comparison_parallel_langchain_retrieval_builds_index(
+    tmp_path: Path,
+) -> None:
+    batch_dir = MODULE.run_shared_workload_comparison(
+        output_root=tmp_path,
+        framework_names=("langchain_native",),
+        workload_names=("rag-followup",),
+        variant_names=("retrieval_only",),
+        max_requests_per_workload=4,
+        seed=7,
+        langchain_native_parallelism=2,
+    )
+
+    run_dir = batch_dir / "runs" / "rag-followup" / "langchain_native" / "retrieval_only"
+    index_dir = run_dir / "retrieval_index"
+    retrieval_stage = json.loads(
+        (run_dir / "stage_metrics" / "retrieval.json").read_text(encoding="utf-8")
+    )
+
+    assert (index_dir / "index.faiss").exists()
+    assert (index_dir / "records.json").exists()
+    assert retrieval_stage["summary"]["chunk_count"] > 0
+    assert retrieval_stage["summary"]["index_build_ms"] > 0.0
+    assert all(query["retrieved_count"] > 0 for query in retrieval_stage["queries"])
+
+
+def test_shared_workload_comparison_supports_langchain_rpc(tmp_path: Path) -> None:
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        rpc_port = probe.getsockname()[1]
+
+    server = create_langchain_rpc_worker_server(
+        host="127.0.0.1",
+        port=rpc_port,
+        node_id="rpc-node-1",
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    try:
+        batch_dir = MODULE.run_shared_workload_comparison(
+            output_root=tmp_path,
+            framework_names=("langchain_rpc",),
+            workload_names=("rag-followup",),
+            variant_names=("direct_generation",),
+            max_requests_per_workload=4,
+            seed=7,
+            langchain_rpc_endpoints=(f"127.0.0.1:{rpc_port}",),
+            langchain_rpc_parallelism=2,
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2.0)
+
+    manifest = json.loads((batch_dir / "manifest.json").read_text(encoding="utf-8"))
+    fairness_audit = json.loads(
+        (batch_dir / "comparison" / "fairness_audit.json").read_text(encoding="utf-8")
+    )
+    run_dir = batch_dir / "runs" / "rag-followup" / "langchain_rpc" / "direct_generation"
+    summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
+    query_results = json.loads((run_dir / "query_results.json").read_text(encoding="utf-8"))
+
+    assert manifest["frameworks"] == ["langchain_rpc"]
+    assert manifest["langchain_rpc_parallelism"] == 2
+    assert manifest["langchain_rpc_endpoints"] == [f"127.0.0.1:{rpc_port}"]
+    assert fairness_audit["framework_parallelism_policy"]["langchain_rpc_parallelism"] == 2
+    assert fairness_audit["framework_parallelism_policy"]["langchain_rpc_endpoint_count"] == 1
+    assert summary["query_count"] == 4
+    assert summary["throughput_qps"] > 0
+    assert all(result["rpc_node_id"] == "rpc-node-1" for result in query_results["results"])
 
 
 def test_shared_workload_comparison_records_rotated_variant_orders(tmp_path: Path) -> None:

@@ -93,6 +93,15 @@ else:
 
 
 try:
+    import faiss
+except ImportError as exc:  # pragma: no cover - exercised by CLI/runtime only
+    FAISS_IMPORT_ERROR: ImportError | None = exc
+    faiss = None
+else:
+    FAISS_IMPORT_ERROR = None
+
+
+try:
     from llm_serving_workloads import (
         DEFAULT_WORKLOAD_DATASET_ORDER,
         WORKLOAD_BENCHMARK_SHAPE_CATALOG,
@@ -143,6 +152,14 @@ def require_openai() -> None:
     ) from OPENAI_IMPORT_ERROR
 
 
+def require_faiss() -> None:
+    if FAISS_IMPORT_ERROR is None:
+        return
+    raise RuntimeError(
+        "This evaluation requires the faiss Python package for offline FAISS retrieval indexes."
+    ) from FAISS_IMPORT_ERROR
+
+
 def dependency_status() -> dict[str, Any]:
     return {
         "repo_root": str(REPO_ROOT),
@@ -151,6 +168,7 @@ def dependency_status() -> dict[str, Any]:
         "shared_workload_src_dir": str(SHARED_WORKLOAD_SRC_DIR),
         "langchain_available": LANGCHAIN_IMPORT_ERROR is None,
         "openai_available": OPENAI_IMPORT_ERROR is None,
+        "faiss_available": FAISS_IMPORT_ERROR is None,
         "shared_workloads_available": SHARED_WORKLOAD_IMPORT_ERROR is None,
     }
 
@@ -162,6 +180,7 @@ __all__ = [
     "DEFAULT_WORKLOAD_DATASET_ORDER",
     "Document",
     "Embeddings",
+    "faiss",
     "HumanMessage",
     "InMemoryChatMessageHistory",
     "InMemoryVectorStore",
@@ -179,6 +198,7 @@ __all__ = [
     "generate_repo_local_workload_requests",
     "init_chat_model",
     "normalize_repo_local_metadata",
+    "require_faiss",
     "require_openai",
     "require_langchain",
     "require_shared_workloads",

@@ -47,6 +47,7 @@ allowed_patterns=(
     "^docs/dependency-audit-gate\.md$"
     "^docs/layer-manifest\.json$"
     "^docker/.*\.md$"
+    "^evaluation/README\.md$"
     "^src/.*/docs/"
     "^src/.*/README\.md$"
     "^src/.*/README_[^/]+\.md$"

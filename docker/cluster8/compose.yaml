@@ -1,0 +1,157 @@
+name: sage-cluster8
+
+x-sage-node: &sage-node
+  build:
+    context: .
+    dockerfile: Dockerfile
+    args:
+      SAGE_BASE_IMAGE: ${SAGE_BASE_IMAGE:-sage-cluster-runtime-base:current}
+      SAGE_RUNTIME_ENV_NAME: ${SAGE_RUNTIME_ENV_NAME:-sagellm}
+      SAGE_RUNTIME_ENV_FILE: ${SAGE_RUNTIME_ENV_FILE:-generated/sagellm-linux-64.lock.yml}
+      SAGE_RUNTIME_PIP_FILE: ${SAGE_RUNTIME_PIP_FILE:-generated/sagellm-linux-64.lock.pip.txt}
+  image: ${SAGE_CLUSTER_IMAGE:-sage-cluster-node}:${SAGE_CLUSTER_IMAGE_TAG:-latest}
+  init: true
+  restart: unless-stopped
+  extra_hosts:
+  - host.docker.internal:host-gateway
+  working_dir: /workspace/SAGE
+  environment: &sage-node-env
+    HF_HOME: /shared/cache/huggingface
+    HUGGINGFACE_HUB_CACHE: /shared/cache/huggingface/hub
+    SAGE_CLUSTER_SSH_DIR: /opt/sage-cluster/ssh
+    SAGE_REPO_ROOT: /workspace/SAGE
+    SAGE_RUNTIME_ENV_NAME: ${SAGE_RUNTIME_ENV_NAME:-sagellm}
+    SAGE_SHARED_CACHE_ROOT: /shared/cache
+    SAGE_SHARED_DATA_ROOT: /shared/datasets
+    SAGE_SHARED_LOG_ROOT: /shared/logs
+    SAGE_SHARED_RESULTS_ROOT: /shared/results
+    SAGE_WORKLOADS_ROOT: /workspace/llm-serving-workloads
+    SAGE_WORKSPACE_ROOT: /workspace
+    TRANSFORMERS_CACHE: /shared/cache/huggingface/transformers
+  volumes:
+  - ${SAGE_HOST_WORKSPACE_ROOT:?set-SAGE_HOST_WORKSPACE_ROOT}:/workspace:rw
+  - ${SAGE_HOST_SHARED_ROOT:?set-SAGE_HOST_SHARED_ROOT}/cache:/shared/cache:rw
+  - ${SAGE_HOST_SHARED_ROOT:?set-SAGE_HOST_SHARED_ROOT}/datasets:/shared/datasets:rw
+  - ${SAGE_HOST_SHARED_ROOT:?set-SAGE_HOST_SHARED_ROOT}/logs:/shared/logs:rw
+  - ${SAGE_HOST_SHARED_ROOT:?set-SAGE_HOST_SHARED_ROOT}/results:/shared/results:rw
+  - ${SAGE_HOST_SHARED_ROOT:?set-SAGE_HOST_SHARED_ROOT}/ssh:/opt/sage-cluster/ssh:ro
+  healthcheck:
+    test: ["CMD-SHELL", "test -f /tmp/sage-node-ready && pgrep -x sshd >/dev/null"]
+    interval: 20s
+    timeout: 5s
+    retries: 20
+    start_period: 90s
+  networks:
+  - sage-cluster
+
+services:
+  sage-node-1:
+    <<: *sage-node
+    container_name: sage-node-1
+    hostname: sage-node-1
+    cpus: ${SAGE_HEAD_CPUS:-8}
+    mem_limit: ${SAGE_HEAD_MEM_LIMIT:-16g}
+    mem_reservation: ${SAGE_HEAD_MEM_RESERVATION:-12g}
+    environment:
+      <<: *sage-node-env
+      SAGE_BIND_ADDRESS: sage-node-1:19001
+      SAGE_NODE_ID: sage-node-1
+      SAGE_NODE_ROLE: head
+    ports:
+    - ${SAGE_HEAD_SSH_PORT:-2221}:22
+    - ${SAGE_HEAD_RUNTIME_PORT:-19001}:19001
+
+  sage-node-2:
+    <<: *sage-node
+    container_name: sage-node-2
+    hostname: sage-node-2
+    cpus: ${SAGE_WORKER_CPUS:-8}
+    mem_limit: ${SAGE_WORKER_MEM_LIMIT:-12g}
+    mem_reservation: ${SAGE_WORKER_MEM_RESERVATION:-8g}
+    environment:
+      <<: *sage-node-env
+      SAGE_BIND_ADDRESS: sage-node-2:19001
+      SAGE_NODE_ID: sage-node-2
+      SAGE_NODE_ROLE: worker
+
+  sage-node-3:
+    <<: *sage-node
+    container_name: sage-node-3
+    hostname: sage-node-3
+    cpus: ${SAGE_WORKER_CPUS:-8}
+    mem_limit: ${SAGE_WORKER_MEM_LIMIT:-12g}
+    mem_reservation: ${SAGE_WORKER_MEM_RESERVATION:-8g}
+    environment:
+      <<: *sage-node-env
+      SAGE_BIND_ADDRESS: sage-node-3:19001
+      SAGE_NODE_ID: sage-node-3
+      SAGE_NODE_ROLE: worker
+
+  sage-node-4:
+    <<: *sage-node
+    container_name: sage-node-4
+    hostname: sage-node-4
+    cpus: ${SAGE_WORKER_CPUS:-8}
+    mem_limit: ${SAGE_WORKER_MEM_LIMIT:-12g}
+    mem_reservation: ${SAGE_WORKER_MEM_RESERVATION:-8g}
+    environment:
+      <<: *sage-node-env
+      SAGE_BIND_ADDRESS: sage-node-4:19001
+      SAGE_NODE_ID: sage-node-4
+      SAGE_NODE_ROLE: worker
+
+  sage-node-5:
+    <<: *sage-node
+    container_name: sage-node-5
+    hostname: sage-node-5
+    cpus: ${SAGE_WORKER_CPUS:-8}
+    mem_limit: ${SAGE_WORKER_MEM_LIMIT:-12g}
+    mem_reservation: ${SAGE_WORKER_MEM_RESERVATION:-8g}
+    environment:
+      <<: *sage-node-env
+      SAGE_BIND_ADDRESS: sage-node-5:19001
+      SAGE_NODE_ID: sage-node-5
+      SAGE_NODE_ROLE: worker
+
+  sage-node-6:
+    <<: *sage-node
+    container_name: sage-node-6
+    hostname: sage-node-6
+    cpus: ${SAGE_WORKER_CPUS:-8}
+    mem_limit: ${SAGE_WORKER_MEM_LIMIT:-12g}
+    mem_reservation: ${SAGE_WORKER_MEM_RESERVATION:-8g}
+    environment:
+      <<: *sage-node-env
+      SAGE_BIND_ADDRESS: sage-node-6:19001
+      SAGE_NODE_ID: sage-node-6
+      SAGE_NODE_ROLE: worker
+
+  sage-node-7:
+    <<: *sage-node
+    container_name: sage-node-7
+    hostname: sage-node-7
+    cpus: ${SAGE_WORKER_CPUS:-8}
+    mem_limit: ${SAGE_WORKER_MEM_LIMIT:-12g}
+    mem_reservation: ${SAGE_WORKER_MEM_RESERVATION:-8g}
+    environment:
+      <<: *sage-node-env
+      SAGE_BIND_ADDRESS: sage-node-7:19001
+      SAGE_NODE_ID: sage-node-7
+      SAGE_NODE_ROLE: worker
+
+  sage-node-8:
+    <<: *sage-node
+    container_name: sage-node-8
+    hostname: sage-node-8
+    cpus: ${SAGE_WORKER_CPUS:-8}
+    mem_limit: ${SAGE_WORKER_MEM_LIMIT:-12g}
+    mem_reservation: ${SAGE_WORKER_MEM_RESERVATION:-8g}
+    environment:
+      <<: *sage-node-env
+      SAGE_BIND_ADDRESS: sage-node-8:19001
+      SAGE_NODE_ID: sage-node-8
+      SAGE_NODE_ROLE: worker
+
+networks:
+  sage-cluster:
+    name: ${SAGE_DOCKER_NETWORK:-sage-cluster8-net}

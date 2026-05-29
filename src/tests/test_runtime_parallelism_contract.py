@@ -59,6 +59,22 @@ class CollectAssignments(SinkFunction):
         type(self).collected.append(data)
 
 
+class CloseTrackingSink(SinkFunction):
+    collected: list[int] = []
+    close_calls = 0
+
+    @classmethod
+    def reset(cls) -> None:
+        cls.collected = []
+        cls.close_calls = 0
+
+    def execute(self, data: int) -> None:
+        type(self).collected.append(int(data))
+
+    def close(self) -> None:
+        type(self).close_calls += 1
+
+
 def test_pipeline_compiler_bridges_parallelism_to_flownet_actor_replicas() -> None:
     adapter = FlowNetRuntimeAdapter()
     adapter.start()
@@ -100,6 +116,25 @@ def test_flownet_linear_batch_submit_uses_actor_stage_path(monkeypatch: pytest.M
 
         assert sorted(CollectItems.collected) == [0, 1, 2, 3]
         assert SlowParallelMap.max_active_calls >= 2
+    finally:
+        backend.stop()
+
+
+def test_flownet_stage_ops_batch_closes_only_actor_sink_once() -> None:
+    CloseTrackingSink.reset()
+
+    backend = get_runtime_backend()
+    backend.stop()
+    backend.start()
+    try:
+        env = FlowNetEnvironment(name="flownet-stage-ops-sink-close")
+        env.from_batch([0, 1]).map(SlowParallelMap, parallelism=2).sink(CloseTrackingSink)
+
+        compiled = PipelineCompiler().compile(env.pipeline, backend)
+        compiled.submit(autostop=True)
+
+        assert sorted(CloseTrackingSink.collected) == [0, 1]
+        assert CloseTrackingSink.close_calls == 1
     finally:
         backend.stop()
 

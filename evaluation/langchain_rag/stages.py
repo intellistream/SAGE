@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 import re
+import threading
 import time
 from pathlib import Path
 from typing import Any
+
+import numpy as np
 
 from sage.foundation import BatchFunction, MapFunction, SinkFunction
 
@@ -17,11 +21,12 @@ from .dependencies import (
     Embeddings,
     HumanMessage,
     InMemoryChatMessageHistory,
-    InMemoryVectorStore,
     OpenAI,
     RecursiveCharacterTextSplitter,
     RunnableLambda,
+    faiss,
     init_chat_model,
+    require_faiss,
     require_langchain,
     require_openai,
 )
@@ -99,6 +104,136 @@ def _compress_generation_context(retrieved_context: str, memory_context: str) ->
     )
     compact_memory = _truncate_for_generation(memory_context, token_limit=128, char_limit=1024)
     return compact_retrieval, compact_memory
+
+
+def _normalize_faiss_matrix(matrix: np.ndarray) -> np.ndarray:
+    normalized = np.asarray(matrix, dtype="float32")
+    if normalized.size == 0:
+        return normalized
+    assert faiss is not None
+    faiss.normalize_L2(normalized)
+    return normalized
+
+
+def _build_split_documents(
+    documents: list[dict[str, str]],
+    *,
+    chunk_size: int,
+    chunk_overlap: int,
+) -> list[Document]:
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        separators=["\n\n", "\n", ". ", "。", " ", ""],
+    )
+    base_documents = [
+        Document(
+            page_content=document["text"],
+            metadata={
+                "source_id": document["source_id"],
+                "title": document["title"],
+            },
+        )
+        for document in documents
+    ]
+    split_documents = splitter.split_documents(base_documents)
+    for index, document in enumerate(split_documents, start=1):
+        document.metadata["chunk_id"] = f"chunk-{index}"
+    return split_documents
+
+
+def _resolve_embeddings(
+    *,
+    embedding_dimensions: int,
+    embedding_model: str | None,
+    embedding_base_url: str | None,
+    embedding_api_key: str,
+) -> Embeddings:
+    if embedding_model and embedding_base_url:
+        return RemoteOpenAIEmbeddings(
+            model=embedding_model,
+            base_url=embedding_base_url,
+            api_key=embedding_api_key,
+        )
+    return KeywordHashEmbeddings(embedding_dimensions)
+
+
+def build_offline_faiss_index(
+    *,
+    index_dir: str | Path,
+    documents: list[dict[str, str]],
+    chunk_size: int,
+    chunk_overlap: int,
+    embedding_dimensions: int = 256,
+    embedding_model: str | None = None,
+    embedding_base_url: str | None = None,
+    embedding_api_key: str | None = None,
+) -> dict[str, Any]:
+    require_langchain()
+    require_faiss()
+    assert faiss is not None
+
+    started = time.perf_counter()
+    resolved_index_dir = Path(index_dir)
+    resolved_index_dir.mkdir(parents=True, exist_ok=True)
+
+    split_documents = _build_split_documents(
+        documents,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+    )
+    embeddings = _resolve_embeddings(
+        embedding_dimensions=embedding_dimensions,
+        embedding_model=embedding_model,
+        embedding_base_url=embedding_base_url,
+        embedding_api_key=embedding_api_key or "EMPTY",
+    )
+    chunk_texts = [document.page_content for document in split_documents]
+    matrix = _normalize_faiss_matrix(
+        np.asarray(embeddings.embed_documents(chunk_texts), dtype="float32")
+    )
+    if matrix.ndim != 2 or matrix.shape[0] != len(split_documents):
+        raise RuntimeError("offline FAISS build produced invalid embedding matrix")
+
+    index = faiss.IndexFlatIP(int(matrix.shape[1]))
+    index.add(matrix)
+    faiss.write_index(index, str(resolved_index_dir / "index.faiss"))
+
+    records = [
+        {
+            "page_content": document.page_content,
+            "metadata": {key: str(value) for key, value in dict(document.metadata).items()},
+        }
+        for document in split_documents
+    ]
+    metadata = {
+        "backend": "faiss_offline",
+        "embedding_backend": (
+            f"openai-compatible-embeddings:{embedding_model}"
+            if embedding_model and embedding_base_url
+            else f"keyword-hash:{embedding_dimensions}"
+        ),
+        "document_count": len(documents),
+        "chunk_count": len(records),
+        "index_build_ms": round((time.perf_counter() - started) * 1000.0, 3),
+    }
+    (resolved_index_dir / "records.json").write_text(
+        json.dumps({"metadata": metadata, "records": records}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return metadata
+
+
+def load_offline_faiss_index(
+    index_dir: str | Path,
+) -> tuple[Any, list[dict[str, Any]], dict[str, Any]]:
+    require_faiss()
+    assert faiss is not None
+
+    resolved_index_dir = Path(index_dir)
+    index = faiss.read_index(str(resolved_index_dir / "index.faiss"))
+    payload = json.loads((resolved_index_dir / "records.json").read_text(encoding="utf-8"))
+    return index, list(payload.get("records") or []), dict(payload.get("metadata") or {})
 
 
 def _message_role(message: BaseMessage) -> str:
@@ -272,6 +407,7 @@ class LangChainRetrievalStage(MapFunction):
         embedding_model: str | None = None,
         embedding_base_url: str | None = None,
         embedding_api_key: str | None = None,
+        offline_index_dir: str | None = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -284,7 +420,15 @@ class LangChainRetrievalStage(MapFunction):
         self.embedding_model = embedding_model
         self.embedding_base_url = embedding_base_url
         self.embedding_api_key = embedding_api_key or "EMPTY"
-        self._vector_store: InMemoryVectorStore | None = None
+        self.offline_index_dir = Path(offline_index_dir) if offline_index_dir else None
+        self._faiss_index: Any | None = None
+        self._faiss_records: list[dict[str, Any]] = []
+        self._embeddings = _resolve_embeddings(
+            embedding_dimensions=self.embedding_dimensions,
+            embedding_model=self.embedding_model,
+            embedding_base_url=self.embedding_base_url,
+            embedding_api_key=self.embedding_api_key,
+        )
         self._index_build_ms = 0.0
         self._document_count = len(self.documents)
         self._chunk_count = 0
@@ -293,45 +437,31 @@ class LangChainRetrievalStage(MapFunction):
             if self.embedding_model and self.embedding_base_url
             else f"keyword-hash:{self.embedding_dimensions}"
         )
+        self._index_backend = "faiss_offline"
+        self._index_lock = threading.Lock()
+        if self.enable_retrieval:
+            self._load_index()
 
-    def _ensure_index(self) -> None:
-        if not self.enable_retrieval or self._vector_store is not None:
+    def _load_index(self) -> None:
+        if not self.enable_retrieval or self._faiss_index is not None:
             return
-        require_langchain()
-
-        started = time.perf_counter()
-        splitter = RecursiveCharacterTextSplitter(
-            chunk_size=self.chunk_size,
-            chunk_overlap=self.chunk_overlap,
-            separators=["\n\n", "\n", ". ", "。", " ", ""],
-        )
-        base_documents = [
-            Document(
-                page_content=document["text"],
-                metadata={
-                    "source_id": document["source_id"],
-                    "title": document["title"],
-                },
+        with self._index_lock:
+            if not self.enable_retrieval or self._faiss_index is not None:
+                return
+            if self.offline_index_dir is None:
+                raise RuntimeError(
+                    "offline FAISS index directory is required when retrieval is enabled"
+                )
+            index, records, metadata = load_offline_faiss_index(self.offline_index_dir)
+            self._faiss_index = index
+            self._faiss_records = records
+            self._document_count = int(metadata.get("document_count") or self._document_count)
+            self._chunk_count = int(metadata.get("chunk_count") or len(records))
+            self._index_build_ms = round(float(metadata.get("index_build_ms") or 0.0), 3)
+            self._embedding_backend = str(
+                metadata.get("embedding_backend") or self._embedding_backend
             )
-            for document in self.documents
-        ]
-        split_documents = splitter.split_documents(base_documents)
-        for index, document in enumerate(split_documents, start=1):
-            document.metadata["chunk_id"] = f"chunk-{index}"
-
-        if self.embedding_model and self.embedding_base_url:
-            embeddings = RemoteOpenAIEmbeddings(
-                model=self.embedding_model,
-                base_url=self.embedding_base_url,
-                api_key=self.embedding_api_key,
-            )
-        else:
-            embeddings = KeywordHashEmbeddings(self.embedding_dimensions)
-
-        self._vector_store = InMemoryVectorStore(embeddings)
-        self._vector_store.add_documents(split_documents)
-        self._chunk_count = len(split_documents)
-        self._index_build_ms = round((time.perf_counter() - started) * 1000.0, 3)
+            self._index_backend = str(metadata.get("backend") or self._index_backend)
 
     def execute(self, item: dict[str, Any]) -> dict[str, Any]:
         payload = dict(item)
@@ -345,31 +475,43 @@ class LangChainRetrievalStage(MapFunction):
                 "chunk_count": 0,
                 "index_build_ms": 0.0,
                 "embedding_backend": self._embedding_backend,
+                "index_backend": self._index_backend,
             }
             payload["citations"] = []
             payload["retrieved_context"] = "Retrieval disabled for this variant."
             payload["latency_ms"]["retrieval"] = 0.0
             return payload
 
-        self._ensure_index()
-        assert self._vector_store is not None
+        self._load_index()
+        assert self._faiss_index is not None
 
         started = time.perf_counter()
         question = str(payload.get("question") or "")
-        retrieved = self._vector_store.similarity_search(question, k=self.top_k)
+        query_matrix = _normalize_faiss_matrix(
+            np.asarray([self._embeddings.embed_query(question)], dtype="float32")
+        )
+        limit = min(self.top_k, len(self._faiss_records))
+        if limit <= 0:
+            indices = np.empty((1, 0), dtype="int64")
+        else:
+            _, indices = self._faiss_index.search(query_matrix, limit)
         retrieval_ms = round((time.perf_counter() - started) * 1000.0, 3)
 
         citations: list[dict[str, Any]] = []
-        for rank, document in enumerate(retrieved, start=1):
-            excerpt = " ".join(document.page_content.split())
+        for rank, record_index in enumerate(indices[0], start=1):
+            if int(record_index) < 0:
+                continue
+            record = self._faiss_records[int(record_index)]
+            metadata = dict(record.get("metadata") or {})
+            excerpt = " ".join(str(record.get("page_content") or "").split())
             if len(excerpt) > 220:
                 excerpt = f"{excerpt[:217].rstrip()}..."
             citations.append(
                 {
                     "rank": rank,
-                    "source_id": str(document.metadata.get("source_id") or f"doc-{rank}"),
-                    "title": str(document.metadata.get("title") or "document"),
-                    "chunk_id": str(document.metadata.get("chunk_id") or f"chunk-{rank}"),
+                    "source_id": str(metadata.get("source_id") or f"doc-{rank}"),
+                    "title": str(metadata.get("title") or "document"),
+                    "chunk_id": str(metadata.get("chunk_id") or f"chunk-{rank}"),
                     "excerpt": excerpt,
                 }
             )
@@ -382,6 +524,7 @@ class LangChainRetrievalStage(MapFunction):
             "chunk_count": self._chunk_count,
             "index_build_ms": self._index_build_ms,
             "embedding_backend": self._embedding_backend,
+            "index_backend": self._index_backend,
         }
         payload["citations"] = citations
         payload["retrieved_context"] = (
@@ -401,6 +544,7 @@ class LangChainMemoryStage(MapFunction):
         self.max_turns = max_turns
         self.enable_memory = enable_memory
         self._histories: dict[str, InMemoryChatMessageHistory] = {}
+        self._history_lock = threading.Lock()
 
     def execute(self, item: dict[str, Any]) -> dict[str, Any]:
         payload = dict(item)
@@ -421,7 +565,8 @@ class LangChainMemoryStage(MapFunction):
         require_langchain()
         started = time.perf_counter()
         session_id = str(payload.get("session_id") or "default-session")
-        history = self._histories.setdefault(session_id, InMemoryChatMessageHistory())
+        with self._history_lock:
+            history = self._histories.setdefault(session_id, InMemoryChatMessageHistory())
         payload["memory_history"] = history
         payload["memory"] = {
             "enabled": True,

@@ -62,6 +62,11 @@ class SinkActorWrapper:
     def consume(self, item: Any) -> None:
         self._fn.execute(item)
 
+    def close(self) -> None:
+        close = getattr(self._fn, "close", None)
+        if callable(close):
+            close()
+
 
 class ServiceActorWrapper:
     def __init__(self, fn_class: type, *fn_args: Any, **fn_kwargs: Any) -> None:

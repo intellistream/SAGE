@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import shlex
 import signal
 import subprocess
@@ -1124,7 +1125,7 @@ def _cmd_cluster_up(args: argparse.Namespace) -> int:
         start_args = [
             str(args.remote_python or "python"),
             "-m",
-            "flownet.node.cli",
+            "sage.runtime.flownet.node.cli",
             "cluster",
             "start",
             "--node-id",
@@ -2216,7 +2217,7 @@ def _cluster_start_remote_node(
     start_args = [
         str(getattr(args, "remote_python", "python") or "python"),
         "-m",
-        "flownet.node.cli",
+        "sage.runtime.flownet.node.cli",
         "cluster",
         "start",
         "--node-id",
@@ -2400,6 +2401,8 @@ def _resolve_node_ssh_auth(
 
 
 def _build_ssh_base_args(*, args: argparse.Namespace, identity_file: str) -> list[str]:
+    ssh_connect_timeout = float(args.ssh_connect_timeout)
+    connect_timeout_value = str(math.ceil(ssh_connect_timeout)) if ssh_connect_timeout > 0 else "0"
     base = [
         "ssh",
         "-i",
@@ -2407,7 +2410,7 @@ def _build_ssh_base_args(*, args: argparse.Namespace, identity_file: str) -> lis
         "-p",
         str(int(args.ssh_port)),
         "-o",
-        f"ConnectTimeout={float(args.ssh_connect_timeout)}",
+        f"ConnectTimeout={connect_timeout_value}",
         "-o",
         f"StrictHostKeyChecking={str(args.ssh_strict_host_key_checking)}",
         "-o",

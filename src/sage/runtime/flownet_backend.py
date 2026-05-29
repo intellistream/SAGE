@@ -333,6 +333,7 @@ class FlowNetRuntimeAdapter(RuntimeBackendProtocol):
             cfg: dict[str, Any] = dict(config) if isinstance(config, dict) else {}
             mode = str(cfg.get("mode", "lightweight")).strip().lower()
             local_address = str(cfg.get("local_address", _DEFAULT_LOCAL_ADDRESS)).strip()
+            owner = str(cfg.get("owner", "sage-runtime")).strip() or "sage-runtime"
 
             from sage.runtime.flownet.runtime.actors import ActorAPI
             from sage.runtime.flownet.runtime.actors.registry import LocalActorRegistry
@@ -340,11 +341,27 @@ class FlowNetRuntimeAdapter(RuntimeBackendProtocol):
             self._registry = LocalActorRegistry(local_address=local_address)
             self._actor_api = ActorAPI(local_address=local_address, registry=self._registry)
 
-            if mode == "cluster":
+            if mode in {"cluster", "local_runtime"}:
                 import sage.runtime.flownet as flownet
 
                 self._session = flownet.init_local(
-                    owner="sage-runtime", local_address=local_address
+                    owner=owner,
+                    local_address=local_address,
+                    entry_node=cfg.get("entry_node"),
+                    connect_timeout=cfg.get("connect_timeout"),
+                )
+            elif mode in {"connect", "remote"}:
+                import sage.runtime.flownet as flownet
+
+                self._session = flownet.connect(
+                    owner=owner,
+                    local_address=local_address,
+                    entry_node=cfg.get("entry_node"),
+                    cluster=cfg.get("cluster"),
+                    config_path=cfg.get("config_path"),
+                    clusters_dir=cfg.get("clusters_dir"),
+                    connect_timeout=cfg.get("connect_timeout"),
+                    mode="connect",
                 )
 
             self._register_exception_hooks()
@@ -421,7 +438,7 @@ class FlowNetRuntimeAdapter(RuntimeBackendProtocol):
         self._assert_started("submit")
         if self._session is None:
             raise RuntimeError(
-                "FlowNetRuntimeAdapter.submit() requires cluster mode. Start with config={'mode': 'cluster'}."
+                "FlowNetRuntimeAdapter.submit() requires a FlowNet session. Start with config={'mode': 'cluster'} or config={'mode': 'connect'}."
             )
 
         endpoint_fn = getattr(flow_obj, "endpoint", None)
