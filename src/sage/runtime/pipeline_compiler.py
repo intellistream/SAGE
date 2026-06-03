@@ -368,6 +368,11 @@ class CompiledActorGraph:
     _closed_sources: set[str] = field(default_factory=set, init=False, repr=False)
     _replica_round_robin: dict[str, int] = field(default_factory=dict, init=False, repr=False)
 
+    def _start_worker_runtime(self) -> None:
+        """Legacy compatibility hook retained for tests guarding the actor-stage path."""
+
+        return None
+
     def _get_service_runtime(self) -> _LightweightServiceRuntime | None:
         if self._service_runtime is not None:
             return self._service_runtime
@@ -458,10 +463,20 @@ class CompiledActorGraph:
             forwarded.input_index = input_index
             queue.append((downstream, forwarded))
 
-    def _normalize_outputs(self, result: Any, collector: Collector | None = None) -> list[Any]:
+    def _normalize_outputs(
+        self,
+        result: Any,
+        collector: Collector | None = None,
+        *,
+        flatten: bool = False,
+    ) -> list[Any]:
         outputs: list[Any] = []
         if result is not None:
-            if hasattr(result, "__iter__") and not isinstance(result, (str, bytes, dict)):
+            if (
+                flatten
+                and hasattr(result, "__iter__")
+                and not isinstance(result, (str, bytes, dict))
+            ):
                 outputs.extend(list(result))
             else:
                 outputs.append(result)
@@ -506,7 +521,7 @@ class CompiledActorGraph:
                 if isinstance(function, FlatMapFunction):
                     function.insert_collector(collector)
                 result = function.execute(packet.payload)
-                for item in self._normalize_outputs(result, collector):
+                for item in self._normalize_outputs(result, collector, flatten=True):
                     self._enqueue_downstreams(
                         queue, transformation, packet.inherit_partition_info(item)
                     )
@@ -520,7 +535,7 @@ class CompiledActorGraph:
                     )
                     return
                 result = function.execute(packet.payload, packet.partition_key, packet.input_index)
-                for item in self._normalize_outputs(result):
+                for item in self._normalize_outputs(result, flatten=True):
                     self._enqueue_downstreams(
                         queue, transformation, packet.inherit_partition_info(item)
                     )
@@ -669,8 +684,9 @@ class CompiledActorGraph:
 
         if op_type == _OP_FLATMAP:
             next_items: list[Any] = []
-            for item in items:
-                result = method_ref.call(item)
+            futures = [method_ref.async_call(item) for item in items]
+            for future in futures:
+                result = future.result()
                 if result is None:
                     continue
                 if hasattr(result, "__iter__") and not isinstance(result, (str, bytes)):
@@ -680,16 +696,50 @@ class CompiledActorGraph:
             return self._execute_chain(next_items, remaining)
 
         if op_type == _OP_FILTER:
-            next_items = [item for item in items if method_ref.call(item)]
+            futures = [method_ref.async_call(item) for item in items]
+            next_items = [
+                item for item, future in zip(items, futures, strict=False) if future.result()
+            ]
             return self._execute_chain(next_items, remaining)
 
-        next_items = [method_ref.call(item) for item in items]
+        futures = [method_ref.async_call(item) for item in items]
+        next_items = [future.result() for future in futures]
         return self._execute_chain(next_items, remaining)
+
+    def _can_execute_linear_actor_batch(self) -> bool:
+        if not self.stage_ops or len(self.source_transformations) != 1:
+            return False
+
+        linear_ops = {
+            "BatchTransformation",
+            "MapTransformation",
+            "FlatMapTransformation",
+            "FilterTransformation",
+            "SinkTransformation",
+        }
+        return all(type(transformation).__name__ in linear_ops for transformation in self.pipeline)
+
+    def _submit_linear_actor_batch(self) -> None:
+        source_items = [item for _, item in self._collect_source_items()]
+        if not source_items:
+            logger.info("Source produced no items; batch pipeline skipped.")
+            return None
+
+        logger.info(
+            "Processing batch of %d item(s) through actor stage pipeline from %d source(s).",
+            len(source_items),
+            len(self.source_transformations),
+        )
+        self._execute_chain(source_items, self.stage_ops)
+        return None
 
     def _submit_batch(self) -> None:
         if not self.source_transformations:
             logger.info("Pipeline has no source transformations; batch pipeline skipped.")
             return []
+
+        if self._can_execute_linear_actor_batch():
+            return self._submit_linear_actor_batch()
 
         instances = self._build_instances()
         active_sources = list(self.source_transformations)
@@ -836,6 +886,7 @@ class PipelineCompiler:
                 wrapper_cls,
                 t.function_class,
                 *t.function_args,
+                actor_config={"parallelism": _replica_count_for(t)},
                 **t.function_kwargs,
             )
             actor_handles.append(handle)

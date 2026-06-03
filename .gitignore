@@ -263,7 +263,7 @@ FUNDING_INFO.md
 /docs/papers/*
 /docs/proposals/*
 # ============================================
-# PyPI 发布产物 (sage-pypi-publisher)
+# PyPI 发布产物 (sagepypi)
 # ============================================
 # Wheel 文件和构建目录
 *.whl
@@ -271,7 +271,8 @@ FUNDING_INFO.md
 **/*.tar.gz
 **/sdist/
 
-# sage-pypi-publisher 临时文件
-/tmp/pypi_publisher_*/
+# sagepypi 临时文件
+/tmp/sagepypi_*/
 benchmark/experiments/exp1_single_vs_multi/results/*
 SAGE.code-workspace
+.qoder

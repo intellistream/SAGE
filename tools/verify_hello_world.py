@@ -21,6 +21,10 @@ if SRC_DIR.exists():
     sys.path.insert(0, str(SRC_DIR))
 
 
+def _module_version(module: object) -> str:
+    return getattr(module, "__version__", "unknown")
+
+
 def main() -> int:
     """Verify SAGE installation by testing core imports."""
     print("=" * 50)
@@ -35,7 +39,7 @@ def main() -> int:
     try:
         import sage.common
 
-        print(f"ℹ️  sage.common {sage.common.__version__} (transitional)")
+        print(f"ℹ️  sage.common {_module_version(sage.common)} (transitional)")
     except ImportError as e:
         print(f"⚠️  sage.common: {e} (transitional)")
         transitional.append("sage.common")
@@ -44,7 +48,7 @@ def main() -> int:
     try:
         import sage.libs
 
-        print(f"ℹ️  sage.libs {sage.libs.__version__} (transitional)")
+        print(f"ℹ️  sage.libs {_module_version(sage.libs)} (transitional)")
     except ImportError as e:
         print(f"⚠️  sage.libs: {e} (transitional)")
         transitional.append("sage.libs")
@@ -53,7 +57,7 @@ def main() -> int:
     try:
         import sage.platform
 
-        print(f"ℹ️  sage.platform {sage.platform.__version__} (transitional)")
+        print(f"ℹ️  sage.platform {_module_version(sage.platform)} (transitional)")
     except ImportError as e:
         print(f"⚠️  sage.platform: {e} (transitional)")
         transitional.append("sage.platform")
@@ -62,7 +66,7 @@ def main() -> int:
     try:
         import sage.kernel
 
-        print(f"ℹ️  sage.kernel {sage.kernel.__version__} (transitional)")
+        print(f"ℹ️  sage.kernel {_module_version(sage.kernel)} (transitional)")
     except ImportError as e:
         print(f"⚠️  sage.kernel: {e} (transitional)")
         transitional.append("sage.kernel")
@@ -71,7 +75,7 @@ def main() -> int:
     try:
         import sage.middleware
 
-        print(f"ℹ️  sage.middleware {sage.middleware.__version__} (transitional)")
+        print(f"ℹ️  sage.middleware {_module_version(sage.middleware)} (transitional)")
     except ImportError as e:
         print(f"⚠️  sage.middleware: {e} (transitional)")
         transitional.append("sage.middleware")

@@ -1,11 +1,6 @@
 ﻿# SAGE - Streaming-Augmented Generative Execution
 
-> A declarative, composable framework for building transparent LLM-powered systems through dataflow
-> abstractions.
-
-## 🚀 Quick Start
-
-______________________________________________________________________
+> A dataflow-native framework for modular, controllable, and transparent LLM-augmented reasoning.
 
 [![Build & Test](https://github.com/intellistream/SAGE/actions/workflows/ci-build-test.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/ci-build-test.yml)
 [![codecov](https://codecov.io/gh/intellistream/SAGE/branch/main/graph/badge.svg)](https://codecov.io/gh/intellistream/SAGE)
@@ -15,41 +10,31 @@ ______________________________________________________________________
 [![GitHub Issues](https://img.shields.io/github/issues/intellistream/SAGE)](https://github.com/intellistream/SAGE/issues)
 [![GitHub Stars](https://img.shields.io/github/stars/intellistream/SAGE?style=social)](https://github.com/intellistream/SAGE/stargazers)
 
-**SAGE** is a high-performance streaming framework for building AI-powered data processing
-pipelines. Transform complex LLM reasoning workflows into transparent, scalable, and maintainable
-systems through declarative dataflow abstractions.
+**SAGE** turns LLM reasoning workflows into explicit dataflow pipelines. It is designed for
+streaming execution, transparent orchestration, controllable serving, and modular integration with
+retrieval, memory, tool-use, and inference-engine backends.
 
-## 2026 Focus Reset
+## News
 
-SAGE is being refocused into a **stream-first inference service system** instead of a broad
-collection of loosely coupled apps.
+- **May 2026**: The SAGE paper was accepted to **ICML 2026**: *SAGE: A Dataflow-Native Framework for
+  Modular, Controllable, and Transparent LLM-Augmented Reasoning*. An author PDF is available from
+  the project maintainer's
+  [publication page](https://shuhaozhangtony.github.io/contents/research_papers/2026/2026_sage_icml_2026.pdf).
 
-- **Keep the stream core**: `DataStream` + declarative pipeline composition remain the product
-  identity
-- **Keep the execution core**: `LocalEnvironment`, `JobManager`, scheduling, service runtime
-- **Keep the serving integration plane**: OpenAI-compatible gateway access, model lifecycle entry,
-  and control-plane integration contracts
-- **Keep distributed execution optional**: `FlowNetEnvironment` remains the FlowNet-first optional
-  distributed runtime entry, instead of falling back to new Ray-based paths
-- **Keep the operating substrate**: centralized ports, XDG user paths, model registry, logs,
-  health/status surfaces
-- **De-emphasize apps**: UI-first repos are no longer the product center; optional apps should sit
-  outside the core or be retired
+## Current Scope
 
-This direction also makes SAGE easier to position as a **SAGE Zoo member**: a reusable
-stream-oriented runtime + serving component that other systems can call through stable APIs instead
-of embedding internal implementation details.
+The main repository now provides the installable SAGE core:
 
-Important boundary: `isagellm` remains an **independent inference engine**. SAGE integrates with it
-as an external engine/service capability; SAGE should not absorb `isagellm` internals into the main
-repository.
+- **Dataflow API**: `DataStream` and declarative stream pipeline composition
+- **Runtime**: `LocalEnvironment`, `FlowNetEnvironment`, `JobManager`, scheduling, and execution
+  services
+- **Serving integration**: OpenAI-compatible gateway contracts and external inference-engine hooks
+- **Foundation**: centralized ports, XDG user paths, config, logging, and model registry utilities
+- **CLI**: compact `sage` commands for verification, status, runtime inspection, serving, chat, and
+  lightweight indexing
 
-Preferred in-tree surface during consolidation:
-
-- `from sage.stream import DataStream`
-- `from sage.runtime import LocalEnvironment, FlowNetEnvironment, JobManager`
-- `from sage.foundation import SagePorts, SageUserPaths`
-- `from sage.serving import SageServeConfig, build_sagellm_gateway_command, probe_gateway`
+Optional RAG, memory, intent, tool-use, data, and inference-engine capabilities remain explicit
+extras or independent packages rather than implicit default dependencies.
 
 ## Key Features
 
@@ -159,46 +144,27 @@ sage chat --ask "Hello, SAGE!"
 
 ## Architecture
 
-Current baseline is a **4-tier workspace architecture (L1-L4)**:
+The public package surface follows a small layered core:
 
 ```text
-L4: application repos (optional)      # App / UI / benchmark
-L3: sage.cli                          # CLI entrypoint        (in-tree)
-L2: sage.runtime + sage.stream        # Runtime / scheduler   (in-tree)
-L1: sage.foundation                   # Foundation            (in-tree)
+L3 Interface : sage.cli + sage.serving
+L2 Runtime   : sage.runtime + sage.stream
+L1 Base      : sage.foundation
+Optional     : sage.edge + external adapters and engines
 ```
 
-Notes:
-
-- Historical split packages may still exist as transitional published compatibility channels.
-- The main repository now owns the preferred product surface directly: `sage.foundation` +
-  `sage.stream` + `sage.runtime` + `sage.serving` + `sage.cli`.
-- Historical split foundation/runtime/CLI repos are therefore no longer the desired long-term
-  product boundary, even when some transitional imports still exist outside the main install
-  contract.
-
-Target product convergence is narrower than the historical workspace shape:
+Default installs focus on `sage.foundation`, `sage.stream`, `sage.runtime`, `sage.serving`, and
+`sage.cli`. Distributed execution is exposed through `FlowNetEnvironment`; local development and
+single-process deployments use `LocalEnvironment`.
 
 ```text
-SAGE Inference Service System
-L3 Interface   : CLI + OpenAI-compatible service entry + external integration surface
-L2 Runtime     : LocalEnvironment + DataStream + JobManager + scheduler + execution services
-Optional Dist. : FlowNetEnvironment (FlowNet-backed distributed execution)
-L1 Foundation  : config + ports + user paths + model registry + logging
-Optional       : RAG / memory / tool-use / benchmark adapters
+Local mode       : LocalEnvironment + in-process operator replicas
+Distributed mode : FlowNetEnvironment + FlowNet actor replicas
+Serving mode     : sage.serving + OpenAI-compatible gateway contracts
+Adapter mode     : explicit extras for RAG, memory, intent, tool-use, and data packages
 ```
 
-In other words, SAGE is moving toward a smaller, sharper center: **stream + runtime + serving +
-operations**, with distributed execution available as an optional scale-out mode.
-
-Repo-retirement gate: do not retire historical split repos solely based on packaging cleanup. The
-main repo has now removed direct historical runtime split-package dependency pins and owns its local
-runtime path in-tree, but ecosystem compatibility imports, external repos, and remaining
-transitional release channels still need deliberate follow-up before those repos can be fully
-retired.
-
-See [SAGE Ecosystem](#sage-ecosystem) for all independent sub-repositories with CI status, PyPI
-packages, and categorized listings.
+See [SAGE Ecosystem](#sage-ecosystem) for related repositories and optional packages.
 
 📖 **[Architecture Guide](https://sage.org.ai/architecture/)** - Canonical ownership boundaries and
 dependency rules for the meta repo
@@ -324,6 +290,7 @@ without drifting the main package contract.
 
 ```bash
 git clone https://github.com/intellistream/sage-tutorials.git
+cd sage-tutorials
 python L1-common/hello_world.py
 ```
 
@@ -356,15 +323,18 @@ git push -u origin feature/my-feature
 Primary branch policy is `main`. For larger efforts, work from a `feature/*` branch and merge back
 through a pull request.
 
-## Team Information
+## Citation
 
-**🔒 Team assignments and sensitive information** are maintained in a private repository to protect
-member privacy.
+If SAGE is useful in your research, please cite the ICML 2026 paper:
 
-- **Public**: Project-level information is available in this repository
-- **Private**: Team member assignments, funding details, and contact information are accessible to
-  authorized members only
-- **Access**: Contact project management for access to the private repository
+```bibtex
+@inproceedings{liu2026sage,
+  title = {SAGE: A Dataflow-Native Framework for Modular, Controllable, and Transparent LLM-Augmented Reasoning},
+  author = {Liu, Jun and Liu, Peilin and Zhang, Ruicheng and Zhang, Senlei and Chen, Yanbo and Wang, Ziao and Yang, Jinyun and Wang, Mingqi and Zhang, Shuhao and Liao, Xiaofei and Jin, Hai},
+  booktitle = {International Conference on Machine Learning (ICML)},
+  year = {2026}
+}
+```
 
 ## Developer Tools
 
@@ -409,12 +379,15 @@ SAGE keeps the active ecosystem list narrow and aligned with the current package
 - `sage-studio`: application/UI layer above the core CLI and runtime
 - `sage-docs`: user-facing documentation
 
-Historical split repos or thin wrappers should be treated as migration or retirement targets unless
-they own a clear external capability boundary.
+Older split repositories and thin wrappers are maintained only when they own a clear external
+capability boundary or migration purpose.
 
 ## Community
 
-**💬 [Join SAGE Community](./docs/COMMUNITY.md)** - WeChat, QQ, Slack, GitHub Discussions
+Use [GitHub Issues](https://github.com/intellistream/SAGE/issues) for bugs and feature requests. For
+broader design discussions, use
+[GitHub Discussions](https://github.com/intellistream/SAGE/discussions) when enabled for the
+repository.
 
 ## License
 

@@ -75,7 +75,7 @@ check_network_connectivity() {
 
         if curl -s --connect-timeout 5 --max-time 10 "$url" > /dev/null 2>&1; then
             echo -e "${GREEN}   ✅ $url 可访问${NC}"
-        elif wget -q --spider --timeout=10 "$url" > /dev/null 2>&1; then
+        elif wget -q --spider --tries=1 --dns-timeout=5 --connect-timeout=5 --read-timeout=10 "$url" > /dev/null 2>&1; then
             echo -e "${GREEN}   ✅ $url 可访问${NC}"
         else
             echo -e "${RED}   ❌ $url 无法访问${NC}"
