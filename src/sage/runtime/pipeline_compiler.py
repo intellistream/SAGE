@@ -463,10 +463,20 @@ class CompiledActorGraph:
             forwarded.input_index = input_index
             queue.append((downstream, forwarded))
 
-    def _normalize_outputs(self, result: Any, collector: Collector | None = None) -> list[Any]:
+    def _normalize_outputs(
+        self,
+        result: Any,
+        collector: Collector | None = None,
+        *,
+        flatten: bool = False,
+    ) -> list[Any]:
         outputs: list[Any] = []
         if result is not None:
-            if hasattr(result, "__iter__") and not isinstance(result, (str, bytes, dict)):
+            if (
+                flatten
+                and hasattr(result, "__iter__")
+                and not isinstance(result, (str, bytes, dict))
+            ):
                 outputs.extend(list(result))
             else:
                 outputs.append(result)
@@ -511,7 +521,7 @@ class CompiledActorGraph:
                 if isinstance(function, FlatMapFunction):
                     function.insert_collector(collector)
                 result = function.execute(packet.payload)
-                for item in self._normalize_outputs(result, collector):
+                for item in self._normalize_outputs(result, collector, flatten=True):
                     self._enqueue_downstreams(
                         queue, transformation, packet.inherit_partition_info(item)
                     )
@@ -525,7 +535,7 @@ class CompiledActorGraph:
                     )
                     return
                 result = function.execute(packet.payload, packet.partition_key, packet.input_index)
-                for item in self._normalize_outputs(result):
+                for item in self._normalize_outputs(result, flatten=True):
                     self._enqueue_downstreams(
                         queue, transformation, packet.inherit_partition_info(item)
                     )
