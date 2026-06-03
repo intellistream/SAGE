@@ -253,6 +253,7 @@ repos:
         ".pytest_cache"
         ".ruff_cache"
         ".sage"
+        ".qoder"  # IDE metadata; ignored via .gitignore
         ".vscode"
         "benchmark"    # Dedicated benchmark workspace in repo root
         "build"
