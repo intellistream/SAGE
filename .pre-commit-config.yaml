@@ -40,28 +40,28 @@ repos:
   - id: detect-private-key
     exclude: "(ThirdParty/|thirdparty/)"
 
-        # Python: Black formatter (DISABLED - using ruff format instead)
-        # Black and ruff format can conflict in edge cases, causing infinite reformatting
-        # Ruff format is now mature enough to replace Black completely
-    # - repo: https://github.com/psf/black
-    #   rev: 25.9.0
-    #   hooks:
-    #   - id: black
-    #     language_version: python3.11
-    #     args: [--line-length=100]
-    #     exclude: ^(docs/|examples/data/|.*/vendors/|.*/build/)
+          # Python: Black formatter (DISABLED - using ruff format instead)
+          # Black and ruff format can conflict in edge cases, causing infinite reformatting
+          # Ruff format is now mature enough to replace Black completely
+        # - repo: https://github.com/psf/black
+        #   rev: 25.9.0
+        #   hooks:
+        #   - id: black
+        #     language_version: python3.11
+        #     args: [--line-length=100]
+        #     exclude: ^(docs/|examples/data/|.*/vendors/|.*/build/)
 
-    # Python: isort import sorting
-    # - repo: https://github.com/pycqa/isort
-    #   rev: 7.0.0
-    #   hooks:
-    #   - id: isort
-    #     args: [--profile=black, --line-length=100]
-    #     exclude: ^(docs/|examples/data/|.*/vendors/|.*/build/)
-    #
-    # Python: Ruff linter and formatter (replaces flake8, isort, pyupgrade)
-    # NOTE: Using local/system ruff to avoid network download failures
-    # Requires: ruff is available in PATH (installed via pip in the active env)
+        # Python: isort import sorting
+        # - repo: https://github.com/pycqa/isort
+        #   rev: 7.0.0
+        #   hooks:
+        #   - id: isort
+        #     args: [--profile=black, --line-length=100]
+        #     exclude: ^(docs/|examples/data/|.*/vendors/|.*/build/)
+        #
+        # Python: Ruff linter and formatter (replaces flake8, isort, pyupgrade)
+        # NOTE: Using local/system ruff to avoid network download failures
+        # Requires: ruff is available in PATH (installed via pip in the active env)
 - repo: local
   hooks:
   - id: ruff
@@ -324,10 +324,10 @@ repos:
     pass_filenames: false
     always_run: true
     stages: [pre-commit, manual]
-        # Shell: shellcheck
-        # NOTE: Using local/system shellcheck to avoid network download failures
-        # (shellcheck-py downloads the binary at install time, which fails behind proxies/firewalls)
-        # Requires: shellcheck is available in PATH (e.g. installed via conda or apt)
+          # Shell: shellcheck
+          # NOTE: Using local/system shellcheck to avoid network download failures
+          # (shellcheck-py downloads the binary at install time, which fails behind proxies/firewalls)
+          # Requires: shellcheck is available in PATH (e.g. installed via conda or apt)
 - repo: local
   hooks:
   - id: shellcheck
@@ -338,9 +338,9 @@ repos:
     files: \.(sh|bash)$
     exclude: ^(tools/install/conda/|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
-        # YAML formatting
-        # NOTE: Using local/system pretty-format-yaml to avoid network download failures
-        # Requires: language-formatters-pre-commit-hooks is installed via pip
+          # YAML formatting
+          # NOTE: Using local/system pretty-format-yaml to avoid network download failures
+          # Requires: language-formatters-pre-commit-hooks is installed via pip
 - repo: local
   hooks:
   - id: pretty-format-yaml
@@ -351,9 +351,9 @@ repos:
     types: [yaml]
     exclude: ^(\.github/|examples/config/|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
-        # Markdown formatting
-        # NOTE: Using local/system mdformat to avoid network download failures
-        # Requires: mdformat + mdformat-gfm installed via pip
+          # Markdown formatting
+          # NOTE: Using local/system mdformat to avoid network download failures
+          # Requires: mdformat + mdformat-gfm installed via pip
 - repo: local
   hooks:
   - id: mdformat
@@ -364,9 +364,9 @@ repos:
     types: [markdown]
     exclude: ^(CHANGELOG.md|\.github/)
 
-        # Security: Check for secrets
-        # NOTE: Using local/system detect-secrets to avoid network download failures
-        # Requires: detect-secrets installed via pip
+          # Security: Check for secrets
+          # NOTE: Using local/system detect-secrets to avoid network download failures
+          # Requires: detect-secrets installed via pip
 - repo: local
   hooks:
   - id: detect-secrets
@@ -376,8 +376,8 @@ repos:
     args: [--baseline, .secrets.baseline]
     exclude: ^(\.secrets\.baseline|\.env\.template|\.github/workflows/|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|examples/.*\.py$|.*\.html$|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
-        # SAGE Data Architecture Validation - REMOVED (sage-benchmark is now independent)
-        # See: https://github.com/intellistream/sage-benchmark
+          # SAGE Data Architecture Validation - REMOVED (sage-benchmark is now independent)
+          # See: https://github.com/intellistream/sage-benchmark
 - repo: local
   hooks:
   - id: copilot-instructions-sync-check
