@@ -275,3 +275,4 @@ FUNDING_INFO.md
 /tmp/sagepypi_*/
 benchmark/experiments/exp1_single_vs_multi/results/*
 SAGE.code-workspace
+.qoder
