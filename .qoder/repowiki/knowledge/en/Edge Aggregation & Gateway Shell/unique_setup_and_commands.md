@@ -1,0 +1,2 @@
+- **CLI Entry**: Run via `sage-edge` command or `python -m sage.edge.server`.
+- **Configuration**: Supports environment variables `SAGE_EDGE_HOST`, `SAGE_EDGE_PORT`, `SAGE_EDGE_LLM_PREFIX`, and `SAGE_EDGE_GATEWAY_APP` for runtime customization without code changes.

@@ -1,0 +1,5 @@
+- Central dispatch via `evaluate_operator` in `dispatch.py` routes execution to specialized runtime classes based on operator type strings (e.g., `sys/reducer`, `sys/collective`).
+- Stateful runtimes (`ReducerRuntime`, `CollectiveRuntime`, `StatefulProcessRuntime`) maintain in-memory state keyed by `(operator_id, event_group_id, stage_id)` to support partitioned and grouped processing.
+- Pluggable backends for state persistence: `StatefulProcessRuntime` supports both in-memory and SQLite backends via the `_StateBackend` interface.
+- Protocol-driven configuration: `protocols.py` defines frozen dataclasses (e.g., `ReducerSpec`, `CollectiveSpec`) that decouple operator metadata from execution logic.
+- Error handling uses a hierarchy of contract-specific exceptions (e.g., `ReducerContractError`, `CollectiveContractError`) extending `OperatorExecutionError` to enforce strict input validation and state consistency.

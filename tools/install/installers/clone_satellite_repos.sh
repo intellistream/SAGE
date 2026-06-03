@@ -21,10 +21,20 @@ load_repos_from_workspace() {
         return 1
     fi
 
-    # JSONC 兼容解析：直接从 path 字段提取仓库名（避免 jq/json 对注释报错）
-    grep -oP '"path":\s*"\K[^"]+(?=")' "$workspace_file" | \
-        grep -v '^\.$' | \
-        awk -F'/' '{print $NF}'
+    # JSONC 兼容解析：使用 Python 提取 path 字段，避免依赖 GNU grep -P。
+    python3 - "$workspace_file" <<'PY'
+import pathlib
+import re
+import sys
+
+workspace_file = pathlib.Path(sys.argv[1])
+content = workspace_file.read_text(encoding="utf-8")
+for match in re.finditer(r'"path"\s*:\s*"([^"]+)"', content):
+    repo_path = match.group(1)
+    if repo_path == ".":
+        continue
+    print(pathlib.PurePosixPath(repo_path).name)
+PY
 }
 
 # 构建仓库 URL
@@ -74,7 +84,6 @@ clone_single_repo() {
     # 检查目录是否已存在
     if [ -d "$repo_path" ]; then
         echo -e "${YELLOW}⚠️  $repo_name 已存在${NC}"
-
         # 已存在仓库按 canonical branch(main) 处理，避免遗留 main-dev 误报。
         if cd "$repo_path" 2>/dev/null; then
             # 检查是否是 git 仓库
@@ -116,7 +125,6 @@ clone_single_repo() {
 
     if $clone_ok; then
         echo -e "${GREEN}✅ $repo_name 克隆成功${NC}"
-
         # 新克隆仓库通常已在远端默认分支；若存在 canonical branch(main) 则对齐。
         if cd "$repo_path" 2>/dev/null; then
             local current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)

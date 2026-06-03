@@ -1,0 +1,303 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: en-US
+branch: feature/vamos-launcher-contract-20260523
+exported_at: "2026-06-02T11:03:29Z"
+modules:
+    "":
+        dir_name: SAGE Inference & Stream Processing Platform
+        title: SAGE Inference & Stream Processing Platform
+        scope:
+            - README.md
+            - DEVELOPER.md
+            - .gitignore
+            - pyproject.toml
+            - Makefile
+            - pytest.ini
+            - codecov.yml
+            - dependencies-spec.yaml
+            - manage.sh
+            - quickstart.sh
+            - .pre-commit-config.yaml
+            - .pyrightconfig.json
+            - .secrets.baseline
+            - .github/
+            - config/
+            - docs/
+            - src/tests/
+            - .env
+            - .env.template
+            - CHANGELOG.md
+            - CONTRIBUTING.md
+            - LICENSE
+            - SAGE.code-workspace
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    cli:
+        dir_name: SAGE CLI & Developer Tooling
+        title: SAGE CLI & Developer Tooling
+        scope:
+            - src/sage/cli/
+            - src/sage/tools/cli/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: edge
+            - path: tools
+    edge:
+        dir_name: Edge Aggregation & Gateway Shell
+        title: Edge Aggregation & Gateway Shell
+        scope:
+            - src/sage/edge/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: cli
+            - path: serving
+            - path: foundation
+    foundation:
+        dir_name: SAGE Foundation Primitives & Configuration
+        title: SAGE Foundation Primitives & Configuration
+        scope:
+            - src/sage/foundation/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: stream
+            - path: edge
+    runtime:
+        dir_name: SAGE Runtime Orchestration Layer
+        title: SAGE Runtime Orchestration Layer
+        scope:
+            - src/sage/runtime/
+        source_files: []
+        children:
+            - runtime/sage_runtime_core
+            - runtime/flownet
+        depends_on: []
+        related_to: []
+    runtime/flownet:
+        dir_name: FlowNet Distributed Dataflow Runtime
+        title: FlowNet Distributed Dataflow Runtime
+        scope:
+            - src/sage/runtime/flownet/
+        source_files: []
+        children:
+            - runtime/flownet/client
+            - runtime/flownet/contracts
+            - runtime/flownet/api
+            - runtime/flownet/compiler
+            - runtime/flownet/core_types
+            - runtime/flownet/node
+            - runtime/flownet/runtime_engine
+        depends_on: []
+        related_to: []
+    runtime/flownet/api:
+        dir_name: FlowNet v1 DSL Declarations and Decorators
+        title: FlowNet v1 DSL Declarations and Decorators
+        scope:
+            - src/sage/runtime/flownet/api/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: runtime/flownet/compiler
+    runtime/flownet/client:
+        dir_name: FlowNet Client Runtime & Session Management
+        title: FlowNet Client Runtime & Session Management
+        scope:
+            - src/sage/runtime/flownet/client/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: runtime/flownet/runtime_engine
+            - path: runtime/flownet/node
+            - path: serving
+    runtime/flownet/compiler:
+        dir_name: Flow DSL Compilation & Graph Construction
+        title: Flow DSL Compilation & Graph Construction
+        scope:
+            - src/sage/runtime/flownet/compiler/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: stream
+            - path: runtime/flownet/api
+    runtime/flownet/contracts:
+        dir_name: FlowNet Runtime Contract Definitions
+        title: FlowNet Runtime Contract Definitions
+        scope:
+            - src/sage/runtime/flownet/contracts/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: runtime/flownet/runtime_engine/comm
+            - path: runtime/flownet/runtime_engine/operator_runtime
+    runtime/flownet/core_types:
+        dir_name: Flow Execution Core & Data Connectors
+        title: Flow Execution Core & Data Connectors
+        scope:
+            - src/sage/runtime/flownet/core/
+            - src/sage/runtime/flownet/data/
+            - src/sage/runtime/flownet/integrations/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: runtime/flownet/runtime_engine/flowengine
+            - path: stream
+    runtime/flownet/node:
+        dir_name: FlowNet Node Runtime & Cluster Orchestration
+        title: FlowNet Node Runtime & Cluster Orchestration
+        scope:
+            - src/sage/runtime/flownet/node/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: runtime/flownet/client
+            - path: runtime/flownet/runtime_engine
+    runtime/flownet/runtime_engine:
+        dir_name: FlowNet v1 Runtime Engine
+        title: FlowNet v1 Runtime Engine
+        scope:
+            - src/sage/runtime/flownet/runtime/
+        source_files: []
+        children:
+            - runtime/flownet/runtime_engine/backend_container
+            - runtime/flownet/runtime_engine/actors
+            - runtime/flownet/runtime_engine/topics
+            - runtime/flownet/runtime_engine/operator_runtime
+            - runtime/flownet/runtime_engine/collective
+            - runtime/flownet/runtime_engine/flowengine
+            - runtime/flownet/runtime_engine/comm
+        depends_on: []
+        related_to:
+            - path: runtime/flownet/client
+            - path: runtime/flownet/node
+    runtime/flownet/runtime_engine/actors:
+        dir_name: FlowNet Actor Runtime Engine
+        title: FlowNet Actor Runtime Engine
+        scope:
+            - src/sage/runtime/flownet/runtime/actors/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: runtime/flownet/runtime_engine/operator_runtime
+            - path: runtime/flownet/runtime_engine/backend_container
+    runtime/flownet/runtime_engine/backend_container:
+        dir_name: Backend Container Runtime Abstraction
+        title: Backend Container Runtime Abstraction
+        scope:
+            - src/sage/runtime/flownet/runtime/backend_container/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: runtime/flownet/runtime_engine/actors
+    runtime/flownet/runtime_engine/collective:
+        dir_name: Collective Communication Runtime Engine
+        title: Collective Communication Runtime Engine
+        scope:
+            - src/sage/runtime/flownet/runtime/collective/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: runtime/flownet/runtime_engine/operator_runtime
+    runtime/flownet/runtime_engine/comm:
+        dir_name: FlowNet v1 Communication Engine
+        title: FlowNet v1 Communication Engine
+        scope:
+            - src/sage/runtime/flownet/runtime/comm/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: runtime/flownet/contracts
+            - path: runtime/flownet/runtime_engine/topics
+    runtime/flownet/runtime_engine/flowengine:
+        dir_name: Flow Engine Runtime Execution Core
+        title: Flow Engine Runtime Execution Core
+        scope:
+            - src/sage/runtime/flownet/runtime/flowengine/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: runtime/flownet/core_types
+            - path: runtime/flownet/runtime_engine/operator_runtime
+    runtime/flownet/runtime_engine/operator_runtime:
+        dir_name: FlowNet Operator Runtime Engine
+        title: FlowNet Operator Runtime Engine
+        scope:
+            - src/sage/runtime/flownet/runtime/operator_runtime/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: runtime/flownet/runtime_engine/actors
+            - path: runtime/flownet/runtime_engine/collective
+            - path: runtime/flownet/runtime_engine/flowengine
+            - path: runtime/flownet/contracts
+    runtime/flownet/runtime_engine/topics:
+        dir_name: Topic Runtime Engine — Event Coordination & Dispatch
+        title: Topic Runtime Engine — Event Coordination & Dispatch
+        scope:
+            - src/sage/runtime/flownet/runtime/topics/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: runtime/flownet/runtime_engine/comm
+    runtime/sage_runtime_core:
+        dir_name: SAGE FlowNet Runtime Core
+        title: SAGE FlowNet Runtime Core
+        scope:
+            - src/sage/runtime/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    serving:
+        dir_name: External Inference Gateway & Workflow Product Integration
+        title: External Inference Gateway & Workflow Product Integration
+        scope:
+            - src/sage/serving/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: edge
+            - path: runtime/flownet/client
+    stream:
+        dir_name: Stream Processing & Transformation Engine
+        title: Stream Processing & Transformation Engine
+        scope:
+            - src/sage/stream/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: runtime/flownet/compiler
+            - path: foundation
+            - path: runtime/flownet/core_types
+    tools:
+        dir_name: SAGE Project Tooling & Maintenance
+        title: SAGE Project Tooling & Maintenance
+        scope:
+            - tools/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: cli

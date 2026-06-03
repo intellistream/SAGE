@@ -1,0 +1,1 @@
+Uses `cloudpickle` for serializing envelopes in TCP transport (`backends.py`); relies on `asyncio` for async I/O and `threading` for the TCP server backend.

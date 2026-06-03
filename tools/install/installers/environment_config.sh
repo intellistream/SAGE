@@ -623,6 +623,8 @@ configure_installation_environment() {
         "pip")
             # pip 模式已在检查中验证过
             echo -e "${INFO} 使用系统 Python 环境安装"
+            unset PYTHONNOUSERSITE
+            echo -e "${INFO} pip 模式下允许读取用户站点包，以支持无管理员权限安装"
             export PIP_CMD="python3 -m pip"
             export PYTHON_CMD="python3"
             # 清除 SAGE_ENV_NAME 以避免验证脚本尝试使用不存在的 conda 环境

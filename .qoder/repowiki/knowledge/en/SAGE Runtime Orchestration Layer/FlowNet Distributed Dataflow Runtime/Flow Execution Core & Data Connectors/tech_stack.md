@@ -1,0 +1,1 @@
+Uses `pyarrow` and `pandas` for Parquet ingestion with automatic fallback logic, `Pillow` and `numpy` for image processing, and `tensorflow` for TFRecord parsing.

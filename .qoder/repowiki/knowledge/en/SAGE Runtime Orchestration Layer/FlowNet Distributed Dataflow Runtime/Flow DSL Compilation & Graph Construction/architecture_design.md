@@ -1,0 +1,4 @@
+- Entry point: `compile_flow_program` in `flow_compiler.py` accepts various DSL forms (callables, declarations, templates) and normalizes them into a `FlowProgram`.
+- Core model: `Transformation` in `transformation.py` represents graph nodes, while `DataStream`, `PartitionedStream`, and `ConnectedStreams` in `streams.py` provide the fluent API for building edges and applying operators (map, shuffle, join, collective).
+- Target resolution: `targets.py` implements a robust coercion layer that normalizes actor, stateless, and flow references into canonical symbol dictionaries, ensuring type safety at compile time.
+- Context management: `exception_scope.py` uses `contextvars` to maintain a compilation scope, allowing exception handlers to be attached to specific transformations during the DSL execution phase.

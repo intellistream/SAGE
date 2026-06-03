@@ -157,6 +157,7 @@ def test_workflow_import_request_to_envelope_carries_serving_context() -> None:
         serving_context=WorkflowServingRequestContext(
             tenant_id="tenant-a",
             model_id="meta-llama/Llama-3.1-8B-Instruct",
+            prefix_cache_key="tenant-a:incident-summary:v1",
             prompt_len=512,
             max_tokens=128,
             priority=100,
@@ -175,6 +176,7 @@ def test_workflow_import_request_to_envelope_carries_serving_context() -> None:
     assert envelope.serving_context is not None
     assert envelope.serving_context.tenant_id == "tenant-a"
     assert envelope.serving_context.model_id == "meta-llama/Llama-3.1-8B-Instruct"
+    assert envelope.serving_context.prefix_cache_key == "tenant-a:incident-summary:v1"
     assert envelope.serving_context.prompt_len == 512
     assert envelope.serving_context.target_ttft_ms == 300.0
     assert envelope.to_dict()["serving_context"]["trace_tags"] == {
@@ -207,6 +209,7 @@ def test_workflow_job_submit_request_normalizes_mapping_serving_context() -> Non
         serving_context={
             "tenant_id": "tenant-b",
             "model_id": "Qwen/Qwen2.5-7B-Instruct",
+            "prefix_cache_key": "tenant-b:comparative-report:v1",
             "prompt_len": "256",
             "max_tokens": "64",
             "priority": "20",
@@ -226,6 +229,7 @@ def test_workflow_job_submit_request_normalizes_mapping_serving_context() -> Non
     assert envelope.serving_context.prompt_len == 256
     assert envelope.serving_context.max_tokens == 64
     assert envelope.serving_context.priority == 20
+    assert envelope.serving_context.prefix_cache_key == "tenant-b:comparative-report:v1"
     assert envelope.serving_context.streaming is False
     assert envelope.serving_context.trace_tags == {"suite": "contract", "case": "submit"}
 
@@ -252,6 +256,7 @@ def test_registry_import_preserves_serving_context_in_imported_workflow_metadata
             serving_context={
                 "tenant_id": "tenant-a",
                 "model_id": "meta-llama/Llama-3.1-8B-Instruct",
+                "prefix_cache_key": "tenant-a:incident-summary:v1",
                 "priority": 100,
                 "deadline_class": "interactive-high",
                 "streaming": True,
@@ -263,6 +268,7 @@ def test_registry_import_preserves_serving_context_in_imported_workflow_metadata
     assert imported.imported_workflow.metadata["serving_context"] == {
         "tenant_id": "tenant-a",
         "model_id": "meta-llama/Llama-3.1-8B-Instruct",
+        "prefix_cache_key": "tenant-a:incident-summary:v1",
         "prompt_len": None,
         "max_tokens": None,
         "priority": 100,
@@ -301,6 +307,7 @@ def test_registry_submit_surfaces_serving_context_for_adapter_consumers() -> Non
             serving_context={
                 "tenant_id": "tenant-b",
                 "model_id": "Qwen/Qwen2.5-7B-Instruct",
+                "prefix_cache_key": "tenant-b:comparative-report:v1",
                 "prompt_len": 256,
                 "max_tokens": 64,
                 "priority": 20,
@@ -325,6 +332,10 @@ def test_registry_submit_surfaces_serving_context_for_adapter_consumers() -> Non
     assert (
         submit_response.submit_payload["serving_context"]["model_id"] == "Qwen/Qwen2.5-7B-Instruct"
     )
+    assert (
+        submit_response.submit_payload["serving_context"]["prefix_cache_key"]
+        == "tenant-b:comparative-report:v1"
+    )
     assert submit_response.metadata["serving_context"]["tenant_id"] == "tenant-b"
     assert result_response.result["serving_context"]["trace_tags"] == {"path": "submit"}
 
@@ -346,6 +357,7 @@ def test_registry_supports_two_slo_classes_and_multi_model_routing_contexts() ->
             serving_context={
                 "tenant_id": "tenant-a",
                 "model_id": "meta-llama/Llama-3.1-8B-Instruct",
+                "prefix_cache_key": "shared:interactive:v1",
                 "priority": 100,
                 "deadline_class": "interactive-high",
                 "target_ttft_ms": 300,
@@ -365,6 +377,7 @@ def test_registry_supports_two_slo_classes_and_multi_model_routing_contexts() ->
             serving_context={
                 "tenant_id": "tenant-b",
                 "model_id": "Qwen/Qwen2.5-7B-Instruct",
+                "prefix_cache_key": "shared:batch:v1",
                 "priority": 20,
                 "deadline_class": "batch-standard",
                 "target_ttft_ms": 1200,
@@ -403,5 +416,10 @@ def test_registry_supports_two_slo_classes_and_multi_model_routing_contexts() ->
         interactive_submit.submit_payload["serving_context"]["model_id"]
         == "meta-llama/Llama-3.1-8B-Instruct"
     )
+    assert (
+        interactive_submit.submit_payload["serving_context"]["prefix_cache_key"]
+        == "shared:interactive:v1"
+    )
     assert batch_submit.submit_payload["serving_context"]["deadline_class"] == "batch-standard"
     assert batch_submit.submit_payload["serving_context"]["model_id"] == "Qwen/Qwen2.5-7B-Instruct"
+    assert batch_submit.submit_payload["serving_context"]["prefix_cache_key"] == "shared:batch:v1"

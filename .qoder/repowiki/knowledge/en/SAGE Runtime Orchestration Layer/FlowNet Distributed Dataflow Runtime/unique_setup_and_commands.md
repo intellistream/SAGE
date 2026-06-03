@@ -1,0 +1,2 @@
+- `python -m sage.runtime.flownet node start`: Bootstraps a local FlowNet node runtime.
+- `python -m sage.runtime.flownet cluster up`: Auto-SSH bootstraps all nodes defined in the cluster inventory YAML.

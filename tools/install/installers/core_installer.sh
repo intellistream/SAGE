@@ -52,6 +52,27 @@ fi
 PYTHON_CMD="${PYTHON_CMD:-python3}"
 PIP_CMD="${PIP_CMD:-$PYTHON_CMD -m pip}"
 
+python_site_packages_writable() {
+    "$PYTHON_CMD" - <<'PY'
+from __future__ import annotations
+
+import os
+import sysconfig
+
+paths = []
+for key in ("purelib", "platlib"):
+    value = sysconfig.get_paths().get(key)
+    if value:
+        paths.append(value)
+
+for path in paths:
+    if os.path.isdir(path) and os.access(path, os.W_OK):
+        raise SystemExit(0)
+
+raise SystemExit(1)
+PY
+}
+
 parse_mirror_fallback_chain() {
     local current_index="${PIP_INDEX_URL:-https://pypi.org/simple/}"
     local chain="${SAGE_PIP_MIRROR_FALLBACKS:-}"
@@ -160,7 +181,7 @@ extract_meta_package_dependencies() {
     if [ "$install_mode" = "full" ]; then
         mode_json='["full"]'
     elif [ "$install_mode" = "dev" ]; then
-        mode_json='["full","dev"]'
+        mode_json='["dev"]'
     fi
 
     $PYTHON_CMD - <<PY
@@ -242,6 +263,7 @@ install_resolver_guard_packages() {
     local log_file="$2"
 
     local guard_specs=(
+        "pip>=24.0"
         "setuptools>=68"
         "wheel>=0.42"
         "wrapt>=1.15.0,<2.0.0"
@@ -370,23 +392,23 @@ install_local_editable_polyrepo_packages() {
         local repo_dir="$workspace_root/$repo_name"
 
         if [ ! -d "$repo_dir" ]; then
-            echo -e "${DIM}  ⏭️  跳过 $repo_name（未检测到本地仓库）${NC}"
+            echo -e "${DIM}  ⏭️  跳过 ${repo_name}（未检测到本地仓库）${NC}"
             skipped_count=$((skipped_count + 1))
             continue
         fi
 
         if [ ! -f "$repo_dir/pyproject.toml" ]; then
-            echo -e "${DIM}  ⏭️  跳过 $repo_name（工作区内容仓库，无需 editable 安装）${NC}"
+            echo -e "${DIM}  ⏭️  跳过 ${repo_name}（工作区内容仓库，无需 editable 安装）${NC}"
             skipped_count=$((skipped_count + 1))
             continue
         fi
 
-        echo -e "${BOLD}  📦 安装本地 editable: $repo_name${NC}"
+        echo -e "${BOLD}  📦 安装本地 editable: ${repo_name}${NC}"
         if (cd "$repo_dir" && $PIP_CMD install -e "." --no-deps --upgrade --no-cache-dir >> "$log_file" 2>&1); then
-            echo -e "${CHECK} $repo_name editable 安装成功"
+            echo -e "${CHECK} ${repo_name} editable 安装成功"
             installed_count=$((installed_count + 1))
         else
-            echo -e "${WARNING} $repo_name editable 安装失败，继续后续流程"
+            echo -e "${WARNING} ${repo_name} editable 安装失败，继续后续流程"
             echo -e "${DIM}      详情见日志: $log_file${NC}"
             failed_count=$((failed_count + 1))
         fi
@@ -440,13 +462,13 @@ install_core_packages() {
     local install_mode="${1:-dev}"  # default: dev
 
     # 根据 install_mode 选择安装目标（extras）
-    # standard: pip install -e "."          (轻量，无 torch/CUDA)
-    # full:     pip install -e ".[full]"    (扩展能力集)
-    # dev:      pip install -e ".[full,dev]" (full + 开发工具 + local editable)
+    # standard: pip install -e "."       (核心包)
+    # full:     pip install -e ".[full]" (扩展能力集)
+    # dev:      pip install -e ".[dev]"  (开发工具 + local editable)
     local install_target
     case "$install_mode" in
         "dev")
-            install_target='.[full,dev]'
+            install_target='.[dev]'
             ;;
         "full")
             install_target='.[full]'
@@ -469,6 +491,12 @@ install_core_packages() {
         fi
         export PATH="$HOME/.local/bin:$PATH"
         echo -e "${DIM}CI环境: 使用 --user 安装，PATH+=~/.local/bin${NC}"
+    elif ! python_site_packages_writable; then
+        pip_args="$pip_args --user"
+        unset PYTHONNOUSERSITE
+        export PATH="$HOME/.local/bin:$PATH"
+        echo -e "${DIM}检测到系统 Python 无写权限，自动切换到 --user 安装${NC}"
+        echo -e "${DIM}已取消 PYTHONNOUSERSITE，允许读取用户站点包${NC}"
     fi
 
     # 获取项目根目录并初始化日志
@@ -528,7 +556,7 @@ install_core_packages() {
             ;;
         "dev")
             echo -e "${GREEN}dev 安装：full + 开发工具 + 本地子仓库 editable${NC}"
-            echo -e "${DIM}包含: .[full,dev]，pytest/ruff/mypy/pre-commit + 优先本地 editable 覆盖${NC}"
+            echo -e "${DIM}包含: .[dev]，pytest/ruff/mypy/pre-commit + 优先本地 editable 覆盖${NC}"
             ;;
     esac
     echo ""

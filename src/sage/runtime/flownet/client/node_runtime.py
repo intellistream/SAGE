@@ -1779,13 +1779,31 @@ class _V1NodeControlService:
             normalized_backend_id = _normalize_optional_non_empty(selection.get("backend_id"))
             selection_trace = {
                 "backend_id": selection.get("backend_id"),
+                "node_id": selection.get("node_id"),
+                "node_address": selection.get("node_address"),
                 "request_epoch": selection.get("request_epoch"),
                 "matched_request_epoch": selection.get("matched_request_epoch"),
                 "epoch_policy": selection.get("epoch_policy"),
+                "epoch_fallback": selection.get("epoch_fallback"),
                 "selection_reason": selection.get("selection_reason"),
                 "required_tags": dict(normalized_required_tags),
                 "required_capabilities": dict(normalized_required_capabilities),
             }
+            reason_codes = selection.get("selection_reason_codes")
+            if isinstance(reason_codes, (list, tuple)):
+                selection_trace["selection_reason_codes"] = [
+                    code
+                    for code in (_normalize_optional_non_empty(item) for item in reason_codes)
+                    if code is not None
+                ]
+            for field_name in (
+                "selected_backend_state",
+                "candidate_backend_states",
+                "excluded_backend_states",
+            ):
+                value = selection.get(field_name)
+                if isinstance(value, (Mapping, list, tuple)):
+                    selection_trace[field_name] = _copy_backend_selection_value(value)
         if normalized_backend_id is None:
             raise RuntimeError("backend_container_selection_failed")
 
@@ -2731,6 +2749,14 @@ def _normalize_mapping(raw: Any) -> dict[str, Any]:
     if not isinstance(raw, Mapping):
         return {}
     return dict(raw)
+
+
+def _copy_backend_selection_value(raw: Any) -> Any:
+    if isinstance(raw, Mapping):
+        return {str(key): _copy_backend_selection_value(value) for key, value in raw.items()}
+    if isinstance(raw, (list, tuple)):
+        return [_copy_backend_selection_value(item) for item in raw]
+    return raw
 
 
 def _normalize_optional_epoch(raw_value: Any) -> int | None:

@@ -39,6 +39,13 @@
     {
       "name": "vamos  [research]",
       "path": "../vamos"
+    },
+    {
+      "name": "vllm-hust  [engine]",
+      "path": "../vllm-hust"
+    },
+    {
+      "path": "../streamfp"
     }
   ],
   "settings": {

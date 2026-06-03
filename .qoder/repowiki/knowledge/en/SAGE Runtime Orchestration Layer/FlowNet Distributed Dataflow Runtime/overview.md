@@ -1,0 +1,1 @@
+Orchestrates the full lifecycle of distributed dataflow applications by unifying declarative DSL compilation, contract-driven runtime execution, and cluster-aware client session management.

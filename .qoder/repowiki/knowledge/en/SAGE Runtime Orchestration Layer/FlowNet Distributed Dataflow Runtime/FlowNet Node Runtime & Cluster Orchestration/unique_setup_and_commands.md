@@ -1,0 +1,2 @@
+- Cluster bootstrap: `python -m flownet.node.cli cluster up --inventory <path> --remote-repo-root <path>` automates SSH-based deployment of all nodes defined in a YAML inventory.
+- Reconciliation: `python -m flownet.node.cli cluster reconcile --inventory <path> --apply` detects and repairs drift by remotely starting missing or restarting offline nodes.

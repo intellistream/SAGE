@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Mapping
 from concurrent.futures import Future
 from typing import Any
@@ -45,9 +46,22 @@ def submit_backend_job(
                 continue
             merged_required_capabilities[key] = _normalize_capability_value(raw_value)
 
+    _merge_serving_context_backend_requirements(
+        request=request,
+        required_tags=merged_required_tags,
+        required_capabilities=merged_required_capabilities,
+    )
+
     resolved_preferred_backend_id = _normalize_optional_non_empty(
         preferred_backend_id
     ) or _normalize_optional_non_empty(requirements.get("preferred_backend_id"))
+    if resolved_preferred_backend_id is None:
+        resolved_preferred_backend_id = _resolve_prefix_cache_key_backend_affinity(
+            request=request,
+            runtime_host=runtime_host,
+            required_tags=merged_required_tags or None,
+            required_capabilities=merged_required_capabilities or None,
+        )
     resolved_request_epoch = (
         request_epoch
         if request_epoch is not None
@@ -123,6 +137,97 @@ def _resolve_actor_request_epoch(
             normalized = _normalize_optional_epoch(candidate)
             if normalized is not None:
                 return normalized
+    return None
+
+
+def _merge_serving_context_backend_requirements(
+    *,
+    request: Mapping[str, Any],
+    required_tags: dict[str, str],
+    required_capabilities: dict[str, Any],
+) -> None:
+    serving_context = _resolve_request_serving_context(request)
+    if serving_context is None:
+        return
+
+    if "accelerator" not in required_tags:
+        accelerator_affinity = _normalize_optional_non_empty(
+            serving_context.get("accelerator_affinity")
+        )
+        if accelerator_affinity is not None:
+            required_tags["accelerator"] = accelerator_affinity
+
+    if "models" not in required_capabilities:
+        model_id = _normalize_optional_non_empty(serving_context.get("model_id"))
+        if model_id is not None:
+            required_capabilities["models"] = model_id
+
+
+def _resolve_prefix_cache_key_backend_affinity(
+    *,
+    request: Mapping[str, Any],
+    runtime_host: Any,
+    required_tags: Mapping[str, str] | None,
+    required_capabilities: Mapping[str, Any] | None,
+) -> str | None:
+    serving_context = _resolve_request_serving_context(request)
+    if serving_context is None:
+        return None
+
+    prefix_cache_key = _normalize_optional_non_empty(serving_context.get("prefix_cache_key"))
+    if prefix_cache_key is None:
+        return None
+
+    find_backend_containers = getattr(runtime_host, "find_backend_containers", None)
+    if not callable(find_backend_containers):
+        return None
+
+    candidate_records = find_backend_containers(
+        required_tags=required_tags,
+        required_capabilities=required_capabilities,
+        include_metrics=True,
+    )
+    candidate_backend_ids = sorted(
+        backend_id
+        for backend_id in (
+            _eligible_backend_id_from_record(record) for record in candidate_records
+        )
+        if backend_id is not None
+    )
+    if not candidate_backend_ids:
+        return None
+
+    digest = hashlib.blake2b(prefix_cache_key.encode("utf-8"), digest_size=8).digest()
+    index = int.from_bytes(digest, byteorder="big", signed=False) % len(candidate_backend_ids)
+    return candidate_backend_ids[index]
+
+
+def _eligible_backend_id_from_record(record: Any) -> str | None:
+    if not isinstance(record, Mapping):
+        return None
+    backend_id = _normalize_optional_non_empty(record.get("backend_id"))
+    if backend_id is None:
+        return None
+
+    metrics = record.get("metrics")
+    if isinstance(metrics, Mapping):
+        healthy = metrics.get("healthy")
+        schedulable = metrics.get("schedulable")
+        if healthy is False or schedulable is False:
+            return None
+    return backend_id
+
+
+def _resolve_request_serving_context(request: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    serving_context = request.get("serving_context")
+    if isinstance(serving_context, Mapping):
+        return serving_context
+
+    metadata = request.get("metadata")
+    if isinstance(metadata, Mapping):
+        metadata_serving_context = metadata.get("serving_context")
+        if isinstance(metadata_serving_context, Mapping):
+            return metadata_serving_context
     return None
 
 

@@ -1,0 +1,1 @@
+Uses PyYAML for inventory parsing and standard library `subprocess`/`shlex` for SSH-based remote orchestration.

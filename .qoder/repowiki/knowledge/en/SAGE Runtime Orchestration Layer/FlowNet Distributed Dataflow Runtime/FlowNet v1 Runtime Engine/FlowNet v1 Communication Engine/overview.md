@@ -1,0 +1,1 @@
+Provides a pluggable, multi-plane communication hub for FlowNet runtime nodes, supporting RPC, data, control, and gossip planes with request-reply correlation and transport fallback.

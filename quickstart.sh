@@ -1,6 +1,52 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 🚀 SAGE 快速安装脚本 - 重构版本
 # 模块化设计，分离关注点，便于维护
+
+require_modern_bash() {
+    if [ -z "${BASH_VERSION:-}" ]; then
+        cat >&2 <<'EOF'
+quickstart.sh requires Bash 4 or newer.
+macOS supports /bin/sh, but this installer uses Bash-specific features and the system /bin/bash is 3.2.
+Install a newer Bash with Homebrew: brew install bash
+Then rerun with one of these commands:
+  /opt/homebrew/bin/bash ./quickstart.sh --dev --yes
+  /usr/local/bin/bash ./quickstart.sh --dev --yes
+EOF
+        exit 1
+    fi
+
+    local bash_major="${BASH_VERSINFO[0]:-0}"
+    if [ "$bash_major" -ge 4 ]; then
+        return 0
+    fi
+
+    local candidate=""
+    local candidate_major="0"
+    local resolved_bash=""
+
+    resolved_bash="$(command -v bash 2>/dev/null || true)"
+    for candidate in "${SAGE_BASH:-}" "$resolved_bash" /opt/homebrew/bin/bash /usr/local/bin/bash; do
+        [ -n "$candidate" ] || continue
+        [ -x "$candidate" ] || continue
+
+        candidate_major="$($candidate -c 'printf "%s" "${BASH_VERSINFO[0]:-0}"' 2>/dev/null || printf '0')"
+        if [[ "$candidate_major" =~ ^[0-9]+$ ]] && [ "$candidate_major" -ge 4 ]; then
+            exec "$candidate" "$0" "$@"
+        fi
+    done
+
+    cat >&2 <<'EOF'
+quickstart.sh requires Bash 4 or newer.
+macOS supports /bin/sh, but the default /bin/bash is 3.2 and cannot parse this installer's associative arrays.
+Install a newer Bash with Homebrew: brew install bash
+Then rerun with one of these commands:
+  /opt/homebrew/bin/bash ./quickstart.sh --dev --yes
+  /usr/local/bin/bash ./quickstart.sh --dev --yes
+EOF
+    exit 1
+}
+
+require_modern_bash "$@"
 
 # 强制告诉 VS Code/xterm.js 支持 ANSI 和 256 色
 export TERM=xterm-256color

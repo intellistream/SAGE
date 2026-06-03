@@ -1,0 +1,5 @@
+- The module is split into two sub-packages: `gateway` handles integration with the external `isagellm` inference engine (config, URL construction, health probing, command/env building), while `integrations` defines a protocol-based adapter system for workflow products.
+- `integrations/contracts.py` declares all dataclasses and Protocol types (`WorkflowProductAdapter`, request/response DTOs for import/submit/poll/collect operations) plus normalization helpers — this is the shared contract layer.
+- `integrations/registry.py` provides `WorkflowIntegrationRegistry`, a thread-safe adapter registry that validates descriptors, enforces extension-point claims, and dispatches operations to registered adapters with response-type validation.
+- `integrations/mock.py` supplies `MockWorkflowProductAdapter` and `MockSageExecutable` as test doubles implementing the full adapter protocol.
+- The top-level `__init__.py` re-exports everything from both sub-packages, making `sage.serving` a unified boundary for all external serving integrations.

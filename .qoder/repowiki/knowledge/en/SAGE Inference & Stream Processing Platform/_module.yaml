@@ -1,0 +1,30 @@
+schema_version: 1
+module_path: ""
+title: SAGE Inference & Stream Processing Platform
+scope:
+    - README.md
+    - DEVELOPER.md
+    - .gitignore
+    - pyproject.toml
+    - Makefile
+    - pytest.ini
+    - codecov.yml
+    - dependencies-spec.yaml
+    - manage.sh
+    - quickstart.sh
+    - .pre-commit-config.yaml
+    - .pyrightconfig.json
+    - .secrets.baseline
+    - .github/
+    - config/
+    - docs/
+    - src/tests/
+    - .env
+    - .env.template
+    - CHANGELOG.md
+    - CONTRIBUTING.md
+    - LICENSE
+    - SAGE.code-workspace
+source_files: []
+depends_on: []
+related_to: []

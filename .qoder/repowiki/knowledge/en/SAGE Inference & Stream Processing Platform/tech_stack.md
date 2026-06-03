@@ -1,0 +1,1 @@
+Python 3.11+, FastAPI (for edge/gateway shells), PyTest (for contract-driven testing), and a unified `pyproject.toml` build system managing in-tree packages.

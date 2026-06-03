@@ -1,0 +1,2 @@
+- All sub-modules expose their public APIs through `__init__.py` files, which are then re-exported by the parent `flownet/__init__.py` for a unified import surface.
+- Runtime communication planes (RPC, Data, Control, Gossip) are strictly segregated using dedicated operation codes (e.g., `OP_RPC_ACTOR_CALL`, `OP_DATA_TOPIC_EVENT_FORWARD`) defined in the `runtime.comm` package.

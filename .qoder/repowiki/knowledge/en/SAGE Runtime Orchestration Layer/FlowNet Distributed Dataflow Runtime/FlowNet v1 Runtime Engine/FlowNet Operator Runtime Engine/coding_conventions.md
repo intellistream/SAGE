@@ -1,0 +1,4 @@
+- Operator specifications are extracted from `operator_config` mappings into frozen dataclass specs before execution.
+- State keys consistently include `event_group_id` and `stage_id` to isolate state across concurrent flow executions.
+- Control frames (e.g., 'data', 'flush', 'done') are used to manage lifecycle and termination of stateful reductions.
+- Runtime classes expose a unified `evaluate` method that accepts `transformation`, `payload`, `tags`, and `event_group_id`.

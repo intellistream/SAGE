@@ -1,0 +1,3 @@
+- Data iterators accept an optional `ConnectorQualityStats` instance to track row-level metrics like decode errors and dropped rows across all connector implementations.
+- Connectors implement a consistent resume-and-checkpoint pattern using `_CheckpointTracker` to filter emitted rows based on `resume_offset` and trigger `on_checkpoint` callbacks.
+- Format-specific iterators raise a standardized `ConnectorError` with categorized reasons (e.g., 'missing_asset', 'reader_failure') to unify error handling across data sources.

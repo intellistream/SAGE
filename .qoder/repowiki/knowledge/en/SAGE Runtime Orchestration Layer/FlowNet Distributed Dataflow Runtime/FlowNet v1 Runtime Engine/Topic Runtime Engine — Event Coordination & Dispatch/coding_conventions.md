@@ -1,0 +1,5 @@
+- All public methods normalize inputs via `_normalize_non_empty`, `_normalize_non_negative_int`, or `_normalize_topic_uri` before any state mutation or routing lookup.
+- Thread-safe registries use a `threading.Lock` around dict access and mutate an `updated_at` timestamp on every get-or-create or state change to support idle GC.
+- Dispatch helpers follow a consistent local-vs-forward pattern: resolve route, compare `coordinator_address` to `local_address()`, return a dict with `mode: "local"` on the local path or a forward-intent dict on the remote path.
+- Forward intents are plain dicts carrying a `mode` field (e.g., `forward_topic_event`, `forward_event_chain_done`, `request_done_notify`) plus routing metadata (`coordinator_address`, `topic_uri`, `epoch`, `event_group_id`).
+- Composite keys for in-memory stores are normalized tuples — `(topic_uri, epoch)` for coordinator state and `(topic_uri, epoch, subscriber_id)` for subscriber state — ensuring deterministic lookups after URI canonicalization.

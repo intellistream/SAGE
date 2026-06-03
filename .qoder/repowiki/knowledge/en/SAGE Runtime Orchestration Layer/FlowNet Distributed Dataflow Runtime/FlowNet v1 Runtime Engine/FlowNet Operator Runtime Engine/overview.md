@@ -1,0 +1,1 @@
+Executes FlowNet graph operators including stateful processes, reducers, collectives, and loops with strict contract enforcement.

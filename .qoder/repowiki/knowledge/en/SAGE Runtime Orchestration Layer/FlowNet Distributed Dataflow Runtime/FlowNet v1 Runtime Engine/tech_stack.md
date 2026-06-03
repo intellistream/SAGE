@@ -1,0 +1,1 @@
+Python asyncio for concurrent execution; cloudpickle for cross-node serialization; threading for dedicated event-loop isolation.

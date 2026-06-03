@@ -148,6 +148,7 @@ def _normalize_string_mapping(raw_value: Any, *, field_name: str) -> dict[str, s
 class WorkflowServingRequestContext:
     tenant_id: str | None = None
     model_id: str | None = None
+    prefix_cache_key: str | None = None
     prompt_len: int | None = None
     max_tokens: int | None = None
     priority: int | None = None
@@ -162,6 +163,7 @@ class WorkflowServingRequestContext:
     def __post_init__(self) -> None:
         object.__setattr__(self, "tenant_id", _normalize_optional_non_empty(self.tenant_id))
         object.__setattr__(self, "model_id", _normalize_optional_non_empty(self.model_id))
+        object.__setattr__(self, "prefix_cache_key", _normalize_optional_non_empty(self.prefix_cache_key))
         object.__setattr__(
             self,
             "prompt_len",
@@ -213,6 +215,7 @@ class WorkflowServingRequestContext:
         return {
             "tenant_id": self.tenant_id,
             "model_id": self.model_id,
+            "prefix_cache_key": self.prefix_cache_key,
             "prompt_len": self.prompt_len,
             "max_tokens": self.max_tokens,
             "priority": self.priority,
