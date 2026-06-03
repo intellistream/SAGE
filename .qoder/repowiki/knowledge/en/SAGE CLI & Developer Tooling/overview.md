@@ -1,1 +1,0 @@
-Provides the primary `sage` user-facing command-line interface and the in-tree `sage-dev` developer workflow tooling for the SAGE inference system.

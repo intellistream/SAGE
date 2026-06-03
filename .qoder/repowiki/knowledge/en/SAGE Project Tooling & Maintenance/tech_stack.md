@@ -1,1 +1,0 @@
-Uses Ruff for Python linting/formatting (configured in `tools/ruff.toml` with `py310` target) and Bash for all installation/maintenance automation.

@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: runtime/sage_runtime_core
-title: SAGE FlowNet Runtime Core
-scope:
-    - src/sage/runtime/
-source_files: []
-depends_on: []
-related_to: []

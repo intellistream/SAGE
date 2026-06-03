@@ -1,3 +1,0 @@
-- All runtime backends must implement the `RuntimeBackendProtocol` ABC defined in `backend_protocol.py`.
-- Actor and service instances receive execution context (logger, parallelism info) via a `.ctx` attribute injected by the factory or adapter before use.
-- Streaming pipelines use daemon threads managed by a `_StreamingFlowHandle` to allow non-blocking submission and controlled shutdown.

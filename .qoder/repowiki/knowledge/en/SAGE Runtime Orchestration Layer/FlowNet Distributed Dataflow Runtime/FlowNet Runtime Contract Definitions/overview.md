@@ -1,1 +1,0 @@
-Defines immutable data contracts, normalization functions, and validation schemas for FlowNet runtime communication including endpoints, shared state bindings, recovery policies, telemetry, and flow program submission.

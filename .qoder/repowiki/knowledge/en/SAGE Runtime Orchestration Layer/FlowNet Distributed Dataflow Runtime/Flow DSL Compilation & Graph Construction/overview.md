@@ -1,1 +1,0 @@
-Compiles declarative flow definitions into executable DAGs by resolving targets, validating stream operations, and constructing transformation pipelines.

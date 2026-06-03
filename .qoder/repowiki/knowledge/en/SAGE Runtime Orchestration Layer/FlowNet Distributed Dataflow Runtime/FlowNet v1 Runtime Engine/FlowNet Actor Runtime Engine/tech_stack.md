@@ -1,1 +1,0 @@
-Uses Python `concurrent.futures.ThreadPoolExecutor` for lane-based concurrency and `contextvars` for task-scoped event buffering and execution context propagation.

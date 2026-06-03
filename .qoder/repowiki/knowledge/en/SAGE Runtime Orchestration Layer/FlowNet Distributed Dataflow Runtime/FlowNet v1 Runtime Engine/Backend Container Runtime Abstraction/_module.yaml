@@ -1,9 +1,0 @@
-schema_version: 1
-module_path: runtime/flownet/runtime_engine/backend_container
-title: Backend Container Runtime Abstraction
-scope:
-    - src/sage/runtime/flownet/runtime/backend_container/
-source_files: []
-depends_on: []
-related_to:
-    - path: runtime/flownet/runtime_engine/actors

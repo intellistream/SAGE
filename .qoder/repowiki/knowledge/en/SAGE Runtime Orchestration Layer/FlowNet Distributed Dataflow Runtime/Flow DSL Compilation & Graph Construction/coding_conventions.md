@@ -1,3 +1,0 @@
-- Use of `_ensure_flow_target` or `ensure_flow_target` to validate and normalize any callable or symbolic reference before attaching it to a transformation.
-- Fluent API design where stream operations (e.g., `map`, `shuffle`) return new stream instances (`DataStream`, `PartitionedStream`) to enable method chaining.
-- Strict validation of operator-specific metadata (e.g., `collective`, `loop`, `shuffle`) within helper functions like `_normalize_collective_kind` before creating a `Transformation`.

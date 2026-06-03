@@ -1,1 +1,0 @@
-Provides a pluggable registry and dispatch mechanism for executing collective communication operations with fallback support.

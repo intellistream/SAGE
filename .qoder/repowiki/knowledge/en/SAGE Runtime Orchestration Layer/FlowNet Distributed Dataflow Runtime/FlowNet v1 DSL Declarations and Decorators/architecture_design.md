@@ -1,5 +1,0 @@
-- Entry point: `__init__.py` re-exports declaration classes, decorators, and exception handlers.
-- Core declarations: `declarations.py` defines frozen dataclasses (`SourceDeclaration`, `ServiceDeclaration`, `ActorDeclaration`, `FlowDeclaration`) that capture metadata, policies, and binding logic without side effects.
-- Decorators: `decorators.py` provides `@source`, `@service`, `@actor`, `@flow`, etc., which validate targets and return declaration instances.
-- Exception handling: `flow_exception_handlers.py` proxies context-managed exception scoping from the compiler package.
-- Dependency direction: Declarations depend on `contracts.shared_state_contract` for state binding metadata and `core.FlowProgram` for compilation, but avoid direct runtime client coupling by using lazy resolution.

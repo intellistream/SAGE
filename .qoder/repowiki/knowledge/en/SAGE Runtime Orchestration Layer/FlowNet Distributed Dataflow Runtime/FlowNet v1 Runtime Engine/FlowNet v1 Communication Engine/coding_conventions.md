@@ -1,4 +1,0 @@
-- All public classes and functions use a 'V1' prefix to denote the protocol version (e.g., V1CommHub, V1Envelope, V1ProtocolRouter).
-- Transport backends implement a common `V1TransportBackend` protocol with `register_endpoint`, `unregister_endpoint`, `send`, and `stats_snapshot` methods.
-- Envelope validation is strict: `validate_envelope` checks schema version, supported planes, allowed ops per plane, and specific body contracts for topic and flow-program operations.
-- Stats snapshots are standardized across backends, providing consistent keys like `send_total`, `send_dropped`, and `backend_select_counts` for monitoring.

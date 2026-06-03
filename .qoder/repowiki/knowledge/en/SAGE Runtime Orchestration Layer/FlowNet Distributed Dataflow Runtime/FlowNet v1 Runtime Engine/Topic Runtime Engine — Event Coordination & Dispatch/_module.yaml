@@ -1,9 +1,0 @@
-schema_version: 1
-module_path: runtime/flownet/runtime_engine/topics
-title: Topic Runtime Engine — Event Coordination & Dispatch
-scope:
-    - src/sage/runtime/flownet/runtime/topics/
-source_files: []
-depends_on: []
-related_to:
-    - path: runtime/flownet/runtime_engine/comm

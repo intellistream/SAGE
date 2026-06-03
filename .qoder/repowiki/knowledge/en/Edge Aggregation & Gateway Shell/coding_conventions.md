@@ -1,3 +1,0 @@
-- Health and readiness probes (`/healthz`, `/readyz`) are automatically attached to the FastAPI app if not already present, ensuring consistent observability endpoints.
-- External dependencies like FastAPI and Uvicorn are imported lazily within functions to provide clear, actionable error messages when optional extras are missing.
-- Mount paths for sub-applications are normalized and validated in `core.py` to prevent routing conflicts and ensure consistent prefix handling.

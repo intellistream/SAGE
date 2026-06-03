@@ -1,1 +1,0 @@
-Orchestrates a unified declarative runtime for LLM inference, stream processing, and distributed execution through shared contracts and a centralized developer toolchain.

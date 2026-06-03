@@ -1,1 +1,0 @@
-Executes event-driven flow programs via cursor-stepped operator evaluation, exception resolution, and stateful runtime coordination.

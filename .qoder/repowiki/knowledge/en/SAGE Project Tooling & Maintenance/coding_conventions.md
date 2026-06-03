@@ -1,3 +1,0 @@
-- Bash scripts consistently source shared utility libraries (e.g., `common.sh`, `logging.sh`) from local `lib/` or `helpers/` directories to standardize logging, error handling, and color output.
-- Python tooling scripts utilize `argparse` for CLI argument parsing and `pathlib.Path` for robust, cross-platform file system operations.
-- Maintenance scripts employ a centralized command-dispatch pattern in their `main()` function, mapping subcommands (e.g., `clean`, `doctor`) to specific handler functions.

@@ -1,4 +1,0 @@
-- All core data models use frozen dataclasses with explicit type annotations and no mutable defaults except where field(default_factory=...) is used.
-- Operator execution functions follow a consistent signature pattern accepting cursor, flow_program, invoke_target, and runtime dependencies as keyword-only arguments.
-- Error types are custom exception classes inheriting from ValueError or RuntimeError with descriptive string messages prefixed by a snake_case error category.
-- Flow stack frame kinds are defined as module-level string constants (e.g., FLOW_STACK_FRAME_KIND_PROCESS_RETURN) rather than enums, used consistently across cursor_models and operator_executor.

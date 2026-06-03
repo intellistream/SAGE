@@ -1,8 +1,0 @@
-- Entry point: `FlowEngineV1` in `engine.py` orchestrates per-event handler invocation (`execute_event`) and cursor-step execution (`execute_cursor_step`).
-- Cursor model: `EventCursor` in `cursor_models.py` carries immutable execution context (flow stack, program ref, payload, tags) through the pipeline.
-- Operator dispatch: `operator_executor.py` routes cursor steps to operator-specific handlers (flatmap, loop, standard operators) using `evaluate_operator` from `operator_runtime.py`, which is a thin facade re-exporting implementations from `flownet.runtime.operator_runtime`.
-- Exception handling: `exception_runner.py` resolves exceptions by walking the cursor's flow stack and invoking scoped handlers; `scope_resolver.py` compiles exception scope hierarchies from transformation metadata; `exception_decision.py` normalizes handler decisions into typed envelopes (propagate/fallback/drop/abort).
-- Context management: `cursor_ctx.py` provides contextvar-based binding for accessing the active cursor within operator targets.
-- Guardrails: `cursor_guards.py` enforces flow-stack depth limits (default 128) and serialized cursor size limits (default 64KB).
-- Caching: `program_cache.py` provides thread-safe flow-program caching with optional pull-on-miss callback and definition-hash conflict detection.
-- Dependency direction: engine → operator_executor → operator_runtime (facade) → external runtime implementations; exception subsystem is independent but consumed by higher-level orchestration.

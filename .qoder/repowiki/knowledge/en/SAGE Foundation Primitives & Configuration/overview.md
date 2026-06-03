@@ -1,1 +1,0 @@
-Provides core stream processing abstractions, XDG-compliant configuration management, centralized port allocation, and local model registry utilities for the SAGE platform.

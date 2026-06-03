@@ -1,1 +1,0 @@
-Provides CLI tools and utilities for bootstrapping FlowNet nodes, managing cluster inventory via YAML, and orchestrating remote node lifecycle through SSH.

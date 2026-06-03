@@ -1,3 +1,0 @@
-- Lambda functions passed to stream operators are automatically wrapped into `BaseFunction` subclasses using `wrap_lambda` based on signature inference.
-- Operators delegate business logic to `BaseFunction` instances created via `FunctionFactory`, separating execution context from user-defined logic.
-- Transformations maintain explicit upstream/downstream references to construct the pipeline graph before submission to the environment.

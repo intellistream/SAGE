@@ -1,5 +1,0 @@
-- Entry point: `cli.py` implements a comprehensive `argparse`-based CLI (`flownet`) with subcommands for local node control (`start`, `join`, `inspect`, `leave`, `stop`, `restart`) and cluster-wide operations (`cluster plan`, `up`, `down`, `join`, `leave`, `reconcile`, `status`).
-- Inventory layer: `cluster_inventory.py` parses YAML-based cluster definitions, normalizing node metadata, SSH credentials, and seed strategies (currently `full-mesh`) into a structured plan.
-- Reconciliation engine: `cluster_reconcile.py` provides pure functions to compute drift between desired inventory state and observed cluster health, generating repair actions (join/restart/leave).
-- Target resolution: `cluster_target.py` resolves cluster entry points or inventory paths from CLI args, environment variables, or config files.
-- Remote execution: The CLI uses `subprocess` to drive `ssh` for remote node provisioning, employing `nohup` and PID files for daemonization and health-check polling via HTTP endpoints.

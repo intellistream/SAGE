@@ -1,1 +1,0 @@
-Provides a declarative, operator-based API for building and executing directed acyclic data processing pipelines with support for map, filter, join, and sink operations.

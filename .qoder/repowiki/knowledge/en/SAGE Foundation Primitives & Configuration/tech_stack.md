@@ -1,1 +1,0 @@
-Uses `huggingface_hub` for model downloads in `model_registry/sagellm_registry.py`. Relies on Python's `abc` for interface contracts in `core.py` and `pathlib` for filesystem operations in `config/user_paths.py`.

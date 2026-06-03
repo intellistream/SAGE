@@ -1,5 +1,0 @@
-- Each contract file defines frozen dataclasses (descriptors/specs) with `__post_init__` validation plus standalone normalize/prepare functions that coerce raw mappings into canonical shapes.
-- The `__init__.py` serves as the public API surface, re-exporting all symbols via `__all__` from seven domain-specific contract modules: endpoint_plane_contract, flow_program_submit_contract, flow_run_observation_contract, recovery_contract, runtime_state_query_contract, runtime_telemetry_contract, and shared_state_contract.
-- Contracts are pure Python with no external dependencies beyond stdlib; they enforce immutability via `@dataclass(frozen=True)` and provide `to_dict()` serialization on descriptor classes.
-- Validation follows a consistent pattern: `_normalize_non_empty`, `_normalize_choice`, `_normalize_mapping` helpers raise `ValueError`/`TypeError` on invalid input, ensuring callers receive either a valid normalized object or a clear error.
-- Cross-contract dependency exists only in one direction: `shared_state_contract` imports `RecoveryPolicy` and `normalize_recovery_policy` from `recovery_contract`, establishing a minimal internal coupling.

@@ -1,1 +1,0 @@
-Provides the local execution environment for FlowNet actors, managing lifecycle, concurrency, event emission, and cross-worker communication.

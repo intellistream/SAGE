@@ -1,5 +1,0 @@
-- **Public API Layer**: `DataStream` and `ConnectedStreams` in `datastream.py` and `connected_streams.py` provide the user-facing fluent interface for pipeline construction.
-- **Transformation Layer**: `transformations.py` defines logical pipeline nodes (e.g., `MapTransformation`, `JoinTransformation`) that encapsulate function definitions and parallelism settings, acting as the bridge between the API and the runtime.
-- **Operator Layer**: `operators.py` implements the physical execution logic (e.g., `MapOperator`, `KeyByOperator`) that processes `Packet` instances, handling routing, state, and error propagation.
-- **Runtime Kernel**: `_kernel_runtime.py` and `_runtime_kernel_types.py` provide low-level abstractions like `TaskContext`, `InMemoryRouter`, and `Packet` to manage data flow and task lifecycle within the module.
-- **Factory Pattern**: `factories.py` uses `FunctionFactory` and `OperatorFactory` to decouple operator instantiation from transformation definitions, enabling flexible runtime configuration.

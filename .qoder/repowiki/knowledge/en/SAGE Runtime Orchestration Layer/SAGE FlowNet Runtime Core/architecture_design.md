@@ -1,5 +1,0 @@
-- **Declarative Surface**: Exposes decorators (`@flow`, `@actor`, `@source`) in `api/decorators.py` that capture DSL targets into `Declaration` objects, validated at definition time.
-- **Compilation Layer**: `compiler/flow_compiler.py` transforms declarations into static `FlowProgram` topology graphs (`core/flow_program.py`), separating program logic from runtime binding.
-- **Client Abstraction**: `client/runtime_client.py` implements a three-stage lifecycle (declaration -> registration -> instantiation) via `V1RuntimeClient`, managing `InstanceHandle` and `FlowEndpoint` objects for interaction.
-- **Execution Engine**: `runtime/runtime.py` hosts the `V1RuntimeHost`, which orchestrates `ActorAPI` for local actor execution, `TopicAPI` for event-group coordination, and `FlowEngineV1` for process dispatch.
-- **Communication Plane**: Utilizes a `V1CommHub` with distinct RPC, Data, and Control planes to handle inter-node messaging, topic forwarding, and actor call intents.

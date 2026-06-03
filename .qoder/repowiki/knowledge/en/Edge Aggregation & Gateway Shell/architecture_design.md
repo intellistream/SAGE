@@ -1,4 +1,0 @@
-- **Layering**: The module separates framework-agnostic logic (`core.py`) from the FastAPI application factory (`app.py`) and the CLI entry point (`server.py`).
-- **Dependency Direction**: `server.py` depends on `app.py`, which in turn depends on `core.py`. This ensures core utilities are reusable outside the web context.
-- **Interface Boundaries**: Exposes `create_app` for programmatic embedding and `main` for CLI execution via the `sage-edge` console script defined in `pyproject.toml`.
-- **Integration Strategy**: Dynamically loads external ASGI applications (e.g., `sagellm_gateway`) using `importlib` to maintain a decoupled relationship between the edge shell and the inference engine.

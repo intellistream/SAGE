@@ -1,3 +1,0 @@
-- All modules use contract-based testing (e.g., `test_*_contract.py`) to verify integration boundaries and runtime behaviors without relying on external infrastructure.
-- Shared configuration and port allocation are managed centrally via the `foundation` module to prevent conflicts across edge, runtime, and serving components.
-- Developer workflows are standardized through the `sage-dev` CLI, which enforces uniform linting, formatting, and pre-commit hooks across all sub-modules.

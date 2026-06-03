@@ -1,3 +1,0 @@
-- Dataclasses are used extensively for configuration handles and state containers (e.g., `V1Session`, `LocalClusterHandle`, `ResolvedClusterContext`) to ensure immutability and clear structure.
-- Normalization helpers (e.g., `_normalize_address`, `_normalize_non_empty`) are consistently applied across modules to validate and standardize input parameters like addresses and identifiers.
-- Thread-safe operations are enforced using `threading.RLock` in session and cluster handles to protect shared state during concurrent access and shutdown procedures.

@@ -1,1 +1,0 @@
-Provides the declarative API, compilation engine, and distributed execution runtime for SAGE's stream-first dataflow programming model.

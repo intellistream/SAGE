@@ -1,4 +1,0 @@
-- Declaration classes are implemented as frozen dataclasses to ensure immutability and hashability of DSL definitions.
-- Decorators validate target signatures (e.g., `init_stream` for flows, no `self`/`cls` for module-level DSLs) at definition time to fail fast.
-- Binding methods (e.g., `bind`, `method_ref`) return new immutable declaration variants or symbolic references rather than mutating state.
-- Namespace resolution defaults to the target's `__module__` if not explicitly provided, ensuring consistent scoping.

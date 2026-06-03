@@ -1,3 +1,0 @@
-- Registration methods validate required attributes and callable methods (e.g., `metrics`, `submit`, `create_container`) before accepting plugins or containers into the registry.
-- All public registry methods normalize string identifiers using `_normalize_non_empty` to reject empty or whitespace-only IDs consistently.
-- Tag and capability matching supports deep nested structures, recursively comparing mappings and lists rather than performing shallow equality checks.

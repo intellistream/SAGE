@@ -1,5 +1,0 @@
-- The module is split into two independent entry points: `src/sage/cli/main.py` (the `sage` command) and `src/sage/tools/cli/commands/dev.py` (the `sage-dev` command).
-- `main.py` uses `argparse` with subparsers to route commands like `chat`, `index`, `serve`, `runtime`, and diagnostic helpers (`status`, `doctor`, `verify`). It delegates chat/index logic to `src/sage/cli/commands/apps/chat.py`.
-- Plugin extensibility is supported via Python `entry_points` under the `sage.cli.plugins` group, allowing external packages to register additional CLI subcommands dynamically.
-- `dev.py` provides developer-focused commands (`quality`, `project`, `maintain`, `docs`) that wrap underlying shell scripts and tools like `ruff` and `pytest`, operating relative to the repository root.
-- Both CLIs share a common pattern of building an `ArgumentParser`, dispatching to handler functions based on parsed arguments, and returning integer exit codes.

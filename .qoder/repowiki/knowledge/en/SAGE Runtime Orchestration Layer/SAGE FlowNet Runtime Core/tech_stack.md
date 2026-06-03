@@ -1,1 +1,0 @@
-Python asyncio-based runtime using a custom multi-plane communication protocol (RPC/Data/Control) and thread-backed event loops (`LoopThread`) for isolation between runtime control and user code execution.

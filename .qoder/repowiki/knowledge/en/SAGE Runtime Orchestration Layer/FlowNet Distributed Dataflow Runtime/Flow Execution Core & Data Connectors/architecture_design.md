@@ -1,4 +1,0 @@
-- The `core` subpackage exposes `FlowProgram`, a static topology model that manages transformation pipelines, entry routing, and endpoint publishing via a scoped runtime client.
-- The `data.connectors` subpackage implements format-specific iterators (`iter_jsonl`, `iter_parquet`, etc.) that integrate with a `_CheckpointTracker` to support resume offsets and periodic checkpointing.
-- Checkpoint persistence is handled by `ConnectorCheckpointStore` in `checkpoints.py`, which uses thread-safe in-memory storage and scope-based resolution for flow instances.
-- The `integrations` package is currently an empty placeholder for future external system bindings.

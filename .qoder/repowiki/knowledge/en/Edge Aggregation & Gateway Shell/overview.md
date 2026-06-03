@@ -1,1 +1,0 @@
-Provides a lightweight FastAPI shell that aggregates and mounts external LLM gateway applications with standardized health probes.

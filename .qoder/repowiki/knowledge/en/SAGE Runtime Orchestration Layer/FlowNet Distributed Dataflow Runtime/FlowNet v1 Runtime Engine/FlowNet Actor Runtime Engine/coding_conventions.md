@@ -1,4 +1,0 @@
-- Actor main entry methods must be synchronous; returning coroutines or awaitables directly from the main method raises a `actor_main_entry_sync_only_violation` error.
-- Configuration resolution follows a cascading lookup pattern, checking `task_policy`, `policies.task`, and `execution_policy.task` in order to find settings like `max_workers` or `ordering`.
-- Observability is standardized via `observability_snapshot()` methods on core components (`ActorInvoker`, `ExecutorLanes`, `CallbackRegistry`), returning structured dictionaries for monitoring.
-- Cross-worker callbacks use a 'detach' pattern where the owner registers a callback on the worker's `CallbackRegistryServiceActor` via RPC, marking it as `detached=True` for lifecycle management.

@@ -1,1 +1,0 @@
-Unifies local and distributed execution by abstracting backend protocols, managing environment lifecycles, and compiling declarative pipelines into runnable actor graphs.
