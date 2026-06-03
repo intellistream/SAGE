@@ -1,0 +1,1 @@
+Defines structural contracts for backend execution containers and provides a thread-safe registry for plugin management and container discovery.

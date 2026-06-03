@@ -1,0 +1,4 @@
+- **Contracts Layer**: Defines immutable data transfer objects (`CollectiveExecutionRequest`, `CollectiveExecutionResponse`) and the `CollectiveExecutor` Protocol interface in `contracts.py`.
+- **Registry Layer**: Implements `CollectiveExecutorRegistry` in `registry.py` as a thread-safe lookup table supporting resolution by backend mode or explicit path tags, with an 'auto' fallback strategy.
+- **Execution Layer**: Contains concrete executor implementations like `LocalTopicFallbackCollectiveExecutor` in `executors.py` that handle specific collective kinds (e.g., all_gather, all_reduce).
+- **Dispatch Layer**: Exposes `dispatch_collective` and `build_dispatcher` in `dispatch.py` to coordinate request coercion, executor resolution, and response mapping for the runtime.

@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: runtime/flownet/compiler
+title: Flow DSL Compilation & Graph Construction
+scope:
+    - src/sage/runtime/flownet/compiler/
+source_files: []
+depends_on: []
+related_to:
+    - path: stream
+    - path: runtime/flownet/api

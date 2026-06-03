@@ -1,0 +1,3 @@
+- CLI handler functions accept an `argparse.Namespace` object (typed as `Any`) and return an `int` exit code.
+- Subcommand registration is encapsulated in dedicated `add_*_parser` functions that configure the parser and set a `_handler` default attribute for dispatch.
+- Entry point modules define a `main(argv: Sequence[str] | None = None) -> int` function that builds the parser, parses arguments, and dispatches to the appropriate handler.

@@ -1,0 +1,3 @@
+- CLI commands delegate logic to specialized `_cmd_*` functions that parse arguments, resolve inventory/targets, and invoke runtime bootstrap or SSH helpers.
+- Remote SSH scripts are constructed as multi-line bash strings using `shlex.quote` for safety and executed via a centralized `_ssh_run` helper supporting dry-run mode.
+- Cluster state operations consistently follow a desired-vs-observed pattern, computing drift (missing/extra/offline) before generating or applying repair actions.

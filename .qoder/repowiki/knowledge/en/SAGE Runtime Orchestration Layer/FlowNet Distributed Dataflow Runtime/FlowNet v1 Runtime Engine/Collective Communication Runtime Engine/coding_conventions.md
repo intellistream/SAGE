@@ -1,0 +1,3 @@
+- Use of frozen dataclasses for immutable request and response contracts to ensure data integrity during dispatch.
+- Implementation of executors via the Structural Subtyping (Protocol) pattern rather than abstract base classes.
+- Normalization of backend modes and path tags within the registry to enforce consistent lookup keys.

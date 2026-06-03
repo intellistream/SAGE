@@ -23,6 +23,9 @@
     {
       "name": "vllm-hust  [engine]",
       "path": "../vllm-hust"
+    },
+    {
+      "path": "../streamfp"
     }
   ],
   "settings": {

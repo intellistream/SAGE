@@ -1,0 +1,1 @@
+Provides a v1 topic runtime facade that coordinates event-group lifecycle, subscriber progress tracking, and local-vs-remote dispatch for data-plane events and control-plane done signals.

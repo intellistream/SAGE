@@ -1,0 +1,1 @@
+Python `concurrent.futures` for local thread-pool based actor execution; `threading.Event` for streaming pipeline lifecycle management.

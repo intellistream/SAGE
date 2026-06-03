@@ -1,0 +1,1 @@
+Manages client-side lifecycle for distributed flow execution, including session bootstrapping, cluster context resolution, and runtime inspection.

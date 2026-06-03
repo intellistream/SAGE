@@ -1,0 +1,4 @@
+- Protocol-based interface design: `contracts.py` defines `BackendContainer` and `BackendContainerPlugin` as Python `Protocol` classes, establishing static duck-typing boundaries for runtime components.
+- Centralized state management: `registry.py` implements `BackendContainerRegistry`, maintaining internal dictionaries for plugins, containers, tags, capabilities, and metadata, all protected by a `threading.RLock` for concurrency safety.
+- Discovery and filtering logic: The registry exposes `find_containers` with tag and capability matching algorithms (`_tags_match`, `_capabilities_match`) that support nested structure comparison.
+- Defensive normalization: Private helper functions (`_normalize_tags`, `_normalize_capabilities`, `_normalize_non_empty`) enforce data integrity during registration and lookup operations.

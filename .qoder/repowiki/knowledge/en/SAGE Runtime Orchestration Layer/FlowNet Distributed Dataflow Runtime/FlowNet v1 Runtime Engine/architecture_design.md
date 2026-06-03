@@ -1,0 +1,5 @@
+- Central Orchestration: The `V1RuntimeHost` acts as the primary entry point, composing `ActorAPI`, `TopicAPI`, and `V1CommHub` to manage local and remote execution.
+- Communication Backbone: A pluggable `V1CommHub` routes messages across RPC, Data, Control, and Gossip planes using a `V1ProtocolRouter` and fallback-capable transports (Loopback/TCP).
+- Execution Model: Actors execute on dedicated `ExecutorLanes` (CPU/Torch) while flow programs are evaluated via a cursor-stepped `FlowEngineV1` that resolves operators and stateful processes.
+- Event Coordination: The `TopicAPI` manages event-group lifecycles, subscriber progress, and flow-process cataloging, bridging data-plane events with control-plane signals.
+- Shared Infrastructure: Cross-cutting concerns like backend container discovery, collective operation dispatch, and shared-state governance are provided via thread-safe registries managed by the host.

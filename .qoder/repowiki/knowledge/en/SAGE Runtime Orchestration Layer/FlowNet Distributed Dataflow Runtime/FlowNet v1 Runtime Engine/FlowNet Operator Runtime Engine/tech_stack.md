@@ -1,0 +1,1 @@
+Uses SQLite with WAL mode and pickle serialization for persistent state backend in `StatefulProcessRuntime`.

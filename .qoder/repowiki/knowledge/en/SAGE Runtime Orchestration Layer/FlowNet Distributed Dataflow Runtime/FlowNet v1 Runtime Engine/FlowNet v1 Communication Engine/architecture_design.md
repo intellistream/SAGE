@@ -1,0 +1,5 @@
+- Entry point: `V1CommHub` (`hub.py`) orchestrates sending, receiving, and reply tracking.
+- Protocol layer: `V1Envelope` (`protocol.py`) defines a strict schema with plane/op validation; `V1ProtocolRouter` (`router.py`) dispatches to registered handlers by (plane, op).
+- Transport layer: `V1TransportBackend` protocol (`transport.py`) is implemented by `InMemoryLoopbackTransport` (`loopback.py`) for testing and `V1TcpSocketTransport` (`backends.py`) for network I/O using length-prefixed cloudpickle frames.
+- Backend selection: `V1SelectableTransportBackend` (`backends.py`) uses `V1BackendSelector` to choose between loopback and TCP, with fallback counters.
+- Reply tracking: `V1ReplyTracker` (`reply_tracker.py`) manages asyncio futures for request-reply correlation using `msg_id` and `reply_to_msg_id`.

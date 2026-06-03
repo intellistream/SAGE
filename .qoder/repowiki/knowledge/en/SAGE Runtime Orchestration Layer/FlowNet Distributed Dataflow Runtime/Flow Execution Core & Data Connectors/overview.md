@@ -1,0 +1,1 @@
+Defines the FlowProgram runtime model and provides resumable data ingestion connectors for JSONL, Parquet, images, and TFRecords.

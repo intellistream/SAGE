@@ -1,0 +1,4 @@
+- Frozen dataclasses use `__post_init__` to normalize and validate every field, calling `object.__setattr__` to mutate immutable instances during initialization.
+- Normalization functions accept `Any | Mapping[str, Any]` inputs and return strongly-typed dataclass instances or dicts, enabling flexible caller input formats.
+- Helper functions prefixed with underscore (e.g., `_normalize_non_empty`, `_normalize_choice`, `_normalize_mapping`) are reused across multiple contract files for consistent validation behavior.
+- Each contract module defines its own `__all__` list explicitly enumerating public exports, and the package-level `__init__.py` aggregates all symbols into a single flat namespace.

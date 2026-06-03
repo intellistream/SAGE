@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: runtime/flownet/runtime_engine/collective
+title: Collective Communication Runtime Engine
+scope:
+    - src/sage/runtime/flownet/runtime/collective/
+source_files: []
+depends_on: []
+related_to:
+    - path: runtime/flownet/runtime_engine/operator_runtime

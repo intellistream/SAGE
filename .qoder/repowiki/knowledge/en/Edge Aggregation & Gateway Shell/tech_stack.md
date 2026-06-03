@@ -1,0 +1,1 @@
+Uses FastAPI for the HTTP surface and Uvicorn for ASGI serving, packaged as optional dependencies under `serving-edge` in `pyproject.toml`.

@@ -1,0 +1,5 @@
+- Entry Point: `session.py` exposes `connect`, `init_local`, and `start_local_cluster` to establish `V1Session` instances, enforcing a singleton active session via module-level locks.
+- Bootstrapping: `bootstrap.py` initializes `V1RuntimeHost` and `V1NodeRuntimeService`, supporting both local in-process nodes and remote cluster connections.
+- Context Resolution: `cluster_context.py` resolves target clusters using environment variables, YAML profiles, or explicit arguments, enabling flexible deployment targeting.
+- Inspection & Control: `inspect.py` provides `V1RuntimeInspector` for querying runtime state, while `node_runtime.py` implements the HTTP-based node control protocol for remote management.
+- Client Surface: `runtime_client.py` implements `V1RuntimeClient`, offering a declarative API for managing flows, actors, and services through registration and instantiation surfaces.

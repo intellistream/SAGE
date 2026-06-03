@@ -1,0 +1,1 @@
+Python-based distributed runtime using SSH for cluster node orchestration and TCP/Loopback transports for inter-node communication planes (RPC, Data, Control, Gossip).

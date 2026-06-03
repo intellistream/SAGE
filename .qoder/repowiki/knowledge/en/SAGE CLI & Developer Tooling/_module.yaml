@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: cli
+title: SAGE CLI & Developer Tooling
+scope:
+    - src/sage/cli/
+    - src/sage/tools/cli/
+source_files: []
+depends_on: []
+related_to:
+    - path: edge
+    - path: tools

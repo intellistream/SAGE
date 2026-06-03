@@ -1,0 +1,4 @@
+- All dataclasses are frozen and use __post_init__ with helper functions (_normalize_*, _coerce_*) for input validation and normalization.
+- Every request dataclass provides a to_integration_request() method that wraps itself into a generic WorkflowIntegrationRequest envelope.
+- Every response dataclass provides a to_integration_response() method that wraps itself into a generic WorkflowIntegrationResponse envelope.
+- Normalization helpers (_normalize_non_empty, _normalize_optional_non_empty, _normalize_mapping, _normalize_choice, etc.) are reused across all dataclasses for consistent validation.

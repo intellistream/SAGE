@@ -1,0 +1,1 @@
+Provides declarative APIs and decorators for defining FlowNet sources, services, actors, processes, and flows as immutable metadata templates.

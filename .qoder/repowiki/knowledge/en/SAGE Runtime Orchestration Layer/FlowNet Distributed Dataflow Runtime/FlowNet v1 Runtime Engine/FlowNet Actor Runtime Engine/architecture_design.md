@@ -1,0 +1,6 @@
+- **Core API**: `ActorAPI` serves as the primary entry point, orchestrating local actor registration (`LocalActorRegistry`), invocation (`ActorInvoker`), and callback management (`ActorCallbackRuntime`).
+- **Execution Model**: Actors are synchronous objects executed in dedicated `ExecutorLanes` (e.g., `default_cpu`, `torch_dedicated`) via `run_in_executor_with_context`, ensuring thread-safe access through per-actor locks unless explicitly disabled.
+- **Task Protocol**: `ActorTaskRuntime` handles the resolution of actor return values, supporting both synchronous returns and async task submissions with timeout and policy enforcement.
+- **Event System**: Uses context-vars (`actor_task_event_scope`) to buffer events (`emit`/`publish`) during task execution, draining them via an `EventDispatcher` upon completion.
+- **Communication**: `comm_bridge` integrates with `V1CommHub` to support remote actor calls via RPC intents, allowing local APIs to transparently handle distributed invocations.
+- **Context Management**: `ActorExecutionContext` provides thread-local access to actor metadata and the runtime host, used by subsystems like `backend_jobs` for resource affinity.

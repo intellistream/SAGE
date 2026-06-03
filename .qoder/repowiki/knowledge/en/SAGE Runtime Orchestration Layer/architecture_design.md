@@ -1,0 +1,4 @@
+- **Backend Abstraction**: Enforces a strict `RuntimeBackendProtocol` (in `backend_protocol.py`) that decouples the high-level `PipelineCompiler` and `JobManager` from specific execution engines.
+- **Dual-Adapter Strategy**: Provides two concrete adapters: `LocalRuntimeAdapter` for in-process threaded execution and `FlowNetRuntimeAdapter` which bridges to the distributed `flownet` child module via a singleton session.
+- **Environment Orchestration**: `BaseEnvironment` subclasses (`LocalEnvironment`, `FlowNetEnvironment`) act as the primary entry points, selecting the appropriate backend adapter and compiler strategy based on the target platform.
+- **Service Injection**: Implements a `ServiceFactory` and `_LightweightServiceRuntime` to inject cross-cutting services (logging, state) into actor contexts via a shared `ctx` protocol before instantiation.

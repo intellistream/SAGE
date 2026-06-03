@@ -1,0 +1,1 @@
+Defines contracts and a registry for integrating SAGE with external inference engines (isagellm) and workflow products (ComfyUI, LangGraph) without implementing them directly.

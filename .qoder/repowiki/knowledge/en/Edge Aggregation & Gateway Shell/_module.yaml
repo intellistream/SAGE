@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: edge
+title: Edge Aggregation & Gateway Shell
+scope:
+    - src/sage/edge/
+source_files: []
+depends_on: []
+related_to:
+    - path: cli
+    - path: serving
+    - path: foundation

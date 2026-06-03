@@ -1,0 +1,3 @@
+- Stream functions inherit from `BaseFunction` and implement the `execute` method as the primary entry point, as seen in `MapFunction`, `FilterFunction`, and `SinkFunction`.
+- Configuration paths and ports are exposed via frozen dataclasses or singleton-like accessors (`get_user_paths`, `SagePorts` class methods) to ensure consistent environment resolution.
+- Manifest files in the model registry are updated atomically by writing to a `.tmp` file and using `Path.replace` to prevent corruption during writes.

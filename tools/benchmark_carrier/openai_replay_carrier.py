@@ -21,17 +21,42 @@ import aiohttp
 SUPPORTED_DIRECT_ENDPOINT_VARIANTS = frozenset(
     {
         ("baseline", "fifo"),
+        ("baseline", "balanced-operating-point"),
         ("baseline", "load-aware"),
+        ("baseline", "no-spillover"),
         ("baseline", "no-memory-aware"),
         ("baseline", "full-policy"),
+        ("baseline", "prism-style-static-sharing"),
+        ("baseline", "prism-style-elastic-sharing"),
+        ("baseline", "prism-style-two-level-scheduler"),
+        ("baseline", "vamos-slo-feasibility-controller"),
+        ("baseline", "vamos-slo-rescue-no-reject"),
+        ("ablation", "aggressive-upper-bound"),
         ("ablation", "no-admission-control"),
         ("ablation", "no-profiling"),
+        ("ablation", "adaptive-controller"),
+        ("ablation", "graduated-shaping"),
+        ("ablation", "risk-aware-shaping"),
+        ("ablation", "cap-sweep-24"),
+        ("ablation", "cap-sweep-32"),
+        ("ablation", "cap-sweep-48"),
     }
 )
 _VLLM_BENCHMARK_DEPS: tuple[Any, Any, Any] | None = None
 _DIRECT_ENDPOINT_VARIANT_POLICIES: dict[tuple[str, str], dict[str, Any]] = {
     ("baseline", "fifo"): {
         "mode": "fifo",
+    },
+    ("baseline", "balanced-operating-point"): {
+        "mode": "fifo",
+        "deadline_class_max_tokens": {
+            "interactive-high": 384,
+            "batch-standard": 256,
+        },
+    },
+    ("baseline", "no-spillover"): {
+        "mode": "fifo",
+        "spillover_enabled": False,
     },
     ("baseline", "load-aware"): {
         "mode": "load-aware",
@@ -61,6 +86,70 @@ _DIRECT_ENDPOINT_VARIANT_POLICIES: dict[tuple[str, str], dict[str, Any]] = {
         "priority_cutoff": 50,
         "admission_control": True,
     },
+    ("baseline", "prism-style-static-sharing"): {
+        "mode": "fifo",
+        "spillover_enabled": False,
+        "policy_family": "prism-style",
+        "sharing_model": "static-per-model-endpoint",
+    },
+    ("baseline", "prism-style-elastic-sharing"): {
+        "mode": "load-aware",
+        "defer_interval_sec": 0.5,
+        "max_deferral_sec": 4.0,
+        "running_threshold": 2.0,
+        "waiting_threshold": 0.0,
+        "kv_cache_threshold": 0.05,
+        "priority_cutoff": 50,
+        "admission_control": False,
+        "policy_family": "prism-style",
+        "sharing_model": "elastic-load-and-memory-aware-deferral",
+    },
+    ("baseline", "prism-style-two-level-scheduler"): {
+        "mode": "load-aware",
+        "defer_interval_sec": 0.5,
+        "max_deferral_sec": 4.0,
+        "running_threshold": 2.0,
+        "waiting_threshold": 0.0,
+        "priority_cutoff": 50,
+        "use_memory_signal": False,
+        "admission_control": True,
+        "policy_family": "prism-style",
+        "sharing_model": "priority-admission-without-vram-signal",
+    },
+    ("baseline", "vamos-slo-feasibility-controller"): {
+        "mode": "load-aware",
+        "defer_interval_sec": 0.25,
+        "max_deferral_sec": 2.0,
+        "running_threshold": 2.0,
+        "waiting_threshold": 0.0,
+        "kv_cache_threshold": 0.05,
+        "priority_cutoff": 50,
+        "admission_control": True,
+        "policy_family": "vamos",
+        "control_objective": "slo-feasible-token-reshaping",
+        "deadline_class_max_tokens": {
+            "interactive-high": 16,
+            "batch-standard": 64,
+            "long-generation-standard": 64,
+        },
+    },
+    ("baseline", "vamos-slo-rescue-no-reject"): {
+        "mode": "load-aware",
+        "defer_interval_sec": 0.25,
+        "max_deferral_sec": 2.0,
+        "running_threshold": 2.0,
+        "waiting_threshold": 0.0,
+        "kv_cache_threshold": 0.05,
+        "priority_cutoff": 50,
+        "admission_control": False,
+        "policy_family": "vamos",
+        "control_objective": "slo-feasible-token-reshaping-with-background-preservation",
+        "deadline_class_max_tokens": {
+            "interactive-high": 16,
+            "batch-standard": 64,
+            "long-generation-standard": 64,
+        },
+    },
     ("ablation", "no-admission-control"): {
         "mode": "load-aware",
         "defer_interval_sec": 0.5,
@@ -78,7 +167,120 @@ _DIRECT_ENDPOINT_VARIANT_POLICIES: dict[tuple[str, str], dict[str, Any]] = {
         "static_batch_delay_sec": 1.0,
         "priority_cutoff": 50,
     },
+    ("ablation", "adaptive-controller"): {
+        "mode": "fifo",
+        "running_threshold": 2.0,
+        "waiting_threshold": 0.0,
+        "kv_cache_threshold": 0.05,
+        "adaptive_deadline_class_max_tokens": {
+            "default": {
+                "interactive-high": 384,
+                "batch-standard": 256,
+            },
+            "overload": {
+                "interactive-high": 256,
+                "batch-standard": 256,
+            },
+        },
+    },
+    ("ablation", "aggressive-upper-bound"): {
+        "mode": "fifo",
+        "deadline_class_max_tokens": {
+            "interactive-high": 256,
+            "batch-standard": 256,
+        },
+    },
+    ("ablation", "graduated-shaping"): {
+        "mode": "load-aware",
+        "defer_interval_sec": 0.25,
+        "max_deferral_sec": 2.0,
+        "running_threshold": 2.0,
+        "waiting_threshold": 0.0,
+        "kv_cache_threshold": 0.05,
+        "priority_cutoff": 50,
+        "admission_control": False,
+        "policy_family": "vamos",
+        "control_objective": "graduated-load-proportional-shaping",
+        "graduated_shaping": {
+            "interactive-high": {"max_cap": 384, "min_cap": 16},
+            "batch-standard": {"max_cap": 256, "min_cap": 64},
+            "long-generation-standard": {"max_cap": 256, "min_cap": 64},
+        },
+    },
+    ("ablation", "risk-aware-shaping"): {
+        "mode": "load-aware",
+        "defer_interval_sec": 0.25,
+        "max_deferral_sec": 2.0,
+        "running_threshold": 2.0,
+        "waiting_threshold": 0.0,
+        "kv_cache_threshold": 0.05,
+        "priority_cutoff": 50,
+        "admission_control": False,
+        "policy_family": "vamos",
+        "control_objective": "risk-aware-selective-shaping",
+        "risk_aware_shaping": {
+            "base_decode_ms_per_token": 25.0,
+            "load_factor_per_running": 0.5,
+            "base_ttft_ms": 150.0,
+            "interactive-high": {"max_cap": 384, "min_cap": 16},
+            "batch-standard": {"max_cap": 256, "min_cap": 64},
+            "long-generation-standard": {"max_cap": 256, "min_cap": 64},
+        },
+    },
+    ("ablation", "cap-sweep-24"): {
+        "mode": "load-aware",
+        "defer_interval_sec": 0.25,
+        "max_deferral_sec": 2.0,
+        "running_threshold": 2.0,
+        "waiting_threshold": 0.0,
+        "kv_cache_threshold": 0.05,
+        "priority_cutoff": 50,
+        "admission_control": False,
+        "policy_family": "vamos",
+        "control_objective": "slo-feasible-token-reshaping-with-background-preservation",
+        "deadline_class_max_tokens": {
+            "interactive-high": 24,
+            "batch-standard": 64,
+            "long-generation-standard": 64,
+        },
+    },
+    ("ablation", "cap-sweep-32"): {
+        "mode": "load-aware",
+        "defer_interval_sec": 0.25,
+        "max_deferral_sec": 2.0,
+        "running_threshold": 2.0,
+        "waiting_threshold": 0.0,
+        "kv_cache_threshold": 0.05,
+        "priority_cutoff": 50,
+        "admission_control": False,
+        "policy_family": "vamos",
+        "control_objective": "slo-feasible-token-reshaping-with-background-preservation",
+        "deadline_class_max_tokens": {
+            "interactive-high": 32,
+            "batch-standard": 64,
+            "long-generation-standard": 64,
+        },
+    },
+    ("ablation", "cap-sweep-48"): {
+        "mode": "load-aware",
+        "defer_interval_sec": 0.25,
+        "max_deferral_sec": 2.0,
+        "running_threshold": 2.0,
+        "waiting_threshold": 0.0,
+        "kv_cache_threshold": 0.05,
+        "priority_cutoff": 50,
+        "admission_control": False,
+        "policy_family": "vamos",
+        "control_objective": "slo-feasible-token-reshaping-with-background-preservation",
+        "deadline_class_max_tokens": {
+            "interactive-high": 48,
+            "batch-standard": 64,
+            "long-generation-standard": 64,
+        },
+    },
 }
+
+_EXECUTION_PRIORITY_MODES = ("off", "invert-vamos")
 
 
 def _parse_args() -> argparse.Namespace:
@@ -119,6 +321,26 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         default=900,
         help="Maximum time to wait for each configured endpoint to become ready.",
+    )
+    parser.add_argument(
+        "--execution-priority-mode",
+        choices=_EXECUTION_PRIORITY_MODES,
+        default="off",
+        help=(
+            "How to propagate replay priority into the execution plane. "
+            "'invert-vamos' maps larger VAMOS priority values to smaller vLLM "
+            "priority values so endpoints started with --scheduling-policy priority "
+            "can honor interactive requests earlier."
+        ),
+    )
+    parser.add_argument(
+        "--deadline-class-max-tokens",
+        help=(
+            "Optional JSON object mapping deadline_class values to explicit max_tokens caps, "
+            "for example '{\"interactive-high\":512,\"batch-standard\":64}'. "
+            "When set, the replay request budget is clamped to the smaller of the replay "
+            "value and the configured class cap."
+        ),
     )
     parser.add_argument(
         "--output-root",
@@ -175,6 +397,228 @@ def _load_endpoint_map(args: argparse.Namespace) -> dict[str, str]:
     return normalized
 
 
+def _load_deadline_class_max_tokens(args: argparse.Namespace) -> dict[str, int]:
+    raw_value = getattr(args, "deadline_class_max_tokens", None)
+    if raw_value is None:
+        return {}
+    payload = json.loads(raw_value)
+    if not isinstance(payload, dict):
+        raise ValueError("--deadline-class-max-tokens must be a JSON object.")
+    caps: dict[str, int] = {}
+    for deadline_class, max_tokens in payload.items():
+        cap_value = int(max_tokens)
+        if cap_value <= 0:
+            raise ValueError(
+                "--deadline-class-max-tokens values must be positive integers; "
+                f"got {max_tokens!r} for {deadline_class!r}."
+            )
+        caps[str(deadline_class)] = cap_value
+    return caps
+
+
+def _normalize_deadline_class_max_tokens(
+    raw_value: Any,
+    *,
+    source_label: str,
+) -> dict[str, int]:
+    if raw_value is None:
+        return {}
+    if not isinstance(raw_value, dict):
+        raise ValueError(f"{source_label} deadline_class_max_tokens must be a JSON object.")
+    caps: dict[str, int] = {}
+    for deadline_class, max_tokens in raw_value.items():
+        cap_value = int(max_tokens)
+        if cap_value <= 0:
+            raise ValueError(
+                f"{source_label} deadline_class_max_tokens values must be positive integers; "
+                f"got {max_tokens!r} for {deadline_class!r}."
+            )
+        caps[str(deadline_class)] = cap_value
+    return caps
+
+
+def _normalize_adaptive_deadline_class_max_tokens(
+    raw_value: Any,
+    *,
+    source_label: str,
+) -> dict[str, dict[str, int]]:
+    if raw_value is None:
+        return {}
+    if not isinstance(raw_value, dict):
+        raise ValueError(f"{source_label} adaptive_deadline_class_max_tokens must be a JSON object.")
+    profiles: dict[str, dict[str, int]] = {}
+    for profile_name, max_tokens in raw_value.items():
+        profiles[str(profile_name)] = _normalize_deadline_class_max_tokens(
+            max_tokens,
+            source_label=f"{source_label} adaptive_deadline_class_max_tokens[{profile_name!r}]",
+        )
+    if "default" not in profiles or "overload" not in profiles:
+        raise ValueError(
+            f"{source_label} adaptive_deadline_class_max_tokens must define both 'default' and 'overload' profiles."
+        )
+    return profiles
+
+
+def _resolve_deadline_class_max_tokens(
+    args: argparse.Namespace,
+    variant_policy: dict[str, Any],
+) -> tuple[dict[str, Any], str]:
+    cli_caps = _load_deadline_class_max_tokens(args)
+    policy_caps = _normalize_deadline_class_max_tokens(
+        variant_policy.get("deadline_class_max_tokens"),
+        source_label="variant policy",
+    )
+    adaptive_policy_caps = _normalize_adaptive_deadline_class_max_tokens(
+        variant_policy.get("adaptive_deadline_class_max_tokens"),
+        source_label="variant policy",
+    )
+    if policy_caps and adaptive_policy_caps:
+        raise ValueError(
+            "Variant policy cannot define both deadline_class_max_tokens and adaptive_deadline_class_max_tokens."
+        )
+    if cli_caps and (policy_caps or adaptive_policy_caps):
+        raise ValueError(
+            "Variant policy already defines deadline class max token control; "
+            "do not combine it with --deadline-class-max-tokens."
+        )
+    if cli_caps:
+        return {"mode": "static", "profiles": {"static": cli_caps}}, "cli"
+    if policy_caps:
+        return {"mode": "static", "profiles": {"static": policy_caps}}, "variant_policy"
+    if adaptive_policy_caps:
+        return {"mode": "adaptive", "profiles": adaptive_policy_caps}, "variant_policy"
+    if variant_policy.get("graduated_shaping"):
+        return {"mode": "graduated", "profiles": {}}, "variant_policy"
+    if variant_policy.get("risk_aware_shaping"):
+        return {"mode": "risk-aware", "profiles": {}}, "variant_policy"
+    return {"mode": "off", "profiles": {}}, "off"
+
+
+def _policy_overload_state(
+    policy: dict[str, Any],
+    snapshot: dict[str, float | None],
+) -> tuple[bool, str]:
+    running = snapshot.get("num_requests_running")
+    waiting = snapshot.get("num_requests_waiting")
+    kv_cache = snapshot.get("kv_cache_usage_perc")
+    running_overloaded = (
+        running is not None and running >= float(policy.get("running_threshold") or 0.0)
+    )
+    waiting_overloaded = (
+        waiting is not None and waiting > float(policy.get("waiting_threshold") or 0.0)
+    )
+    use_memory_signal = bool(policy.get("use_memory_signal", True))
+    kv_threshold = policy.get("kv_cache_threshold")
+    kv_overloaded = (
+        use_memory_signal
+        and kv_threshold is not None
+        and kv_cache is not None
+        and kv_cache >= float(kv_threshold)
+    )
+    overloaded = running_overloaded or waiting_overloaded or kv_overloaded
+    reason = (
+        "load_threshold_exceeded"
+        if overloaded and use_memory_signal
+        else "non_memory_load_threshold_exceeded"
+        if overloaded
+        else "below_thresholds"
+        if use_memory_signal
+        else "below_non_memory_thresholds"
+    )
+    return overloaded, reason
+
+
+def _compute_pressure_ratio(
+    policy: dict[str, Any],
+    snapshot: dict[str, float | None],
+) -> float:
+    running = snapshot.get("num_requests_running") or 0.0
+    kv_cache = snapshot.get("kv_cache_usage_perc") or 0.0
+    running_threshold = float(policy.get("running_threshold") or 2.0)
+    kv_threshold = float(policy.get("kv_cache_threshold") or 0.05)
+    running_ratio = running / max(running_threshold, 0.01)
+    kv_ratio = kv_cache / max(kv_threshold, 0.001)
+    return min(1.0, max(running_ratio, kv_ratio))
+
+
+def _graduated_shaping_caps(
+    policy: dict[str, Any],
+    snapshot: dict[str, float | None],
+) -> tuple[dict[str, int], str | None]:
+    graduated_config = policy.get("graduated_shaping")
+    if not graduated_config:
+        return {}, None
+    pressure = _compute_pressure_ratio(policy, snapshot)
+    caps: dict[str, int] = {}
+    for class_name, bounds in graduated_config.items():
+        if not isinstance(bounds, dict):
+            continue
+        max_cap = int(bounds.get("max_cap") or 384)
+        min_cap = int(bounds.get("min_cap") or 16)
+        cap = int(max_cap - (max_cap - min_cap) * pressure)
+        caps[class_name] = max(min_cap, min(max_cap, cap))
+    profile_name = f"graduated-p{int(pressure*100)}"
+    return caps, profile_name
+
+
+def _risk_aware_shaping_caps(
+    policy: dict[str, Any],
+    event: dict[str, Any],
+    snapshot: dict[str, float | None],
+) -> tuple[dict[str, int], str | None]:
+    risk_config = policy.get("risk_aware_shaping")
+    if not risk_config:
+        return {}, None
+    serving_context = dict(event.get("serving_context") or {})
+    deadline_class = str(serving_context.get("deadline_class") or "unknown")
+    target_e2e_ms = float(serving_context.get("target_e2e_ms") or 0.0)
+    running = float((snapshot.get("num_requests_running") or 0.0))
+    base_decode = float(risk_config.get("base_decode_ms_per_token") or 25.0)
+    load_factor = float(risk_config.get("load_factor_per_running") or 0.5)
+    base_ttft = float(risk_config.get("base_ttft_ms") or 150.0)
+    decode_rate = base_decode * (1.0 + load_factor * running)
+    class_config = risk_config.get(deadline_class)
+    if not isinstance(class_config, dict) or target_e2e_ms <= 0:
+        return {}, None
+    max_cap = int(class_config.get("max_cap") or 384)
+    min_cap = int(class_config.get("min_cap") or 16)
+    available_decode_ms = target_e2e_ms - base_ttft
+    if available_decode_ms <= 0:
+        feasible_tokens = min_cap
+    else:
+        feasible_tokens = int(available_decode_ms / decode_rate)
+    feasible_cap = max(min_cap, min(max_cap, feasible_tokens))
+    caps: dict[str, int] = {}
+    for class_name, bounds in risk_config.items():
+        if not isinstance(bounds, dict):
+            continue
+        caps[class_name] = int(bounds.get("max_cap") or 256)
+    caps[deadline_class] = feasible_cap
+    profile_name = f"risk-cap{feasible_cap}"
+    return caps, profile_name
+
+
+def _deadline_class_max_tokens_for_request(
+    policy: dict[str, Any],
+    controller: dict[str, Any],
+    snapshot: dict[str, float | None],
+    event: dict[str, Any] | None = None,
+) -> tuple[dict[str, int], str | None]:
+    controller_mode = str(controller.get("mode") or "off")
+    profiles = dict(controller.get("profiles") or {})
+    if controller_mode == "static":
+        return dict(profiles.get("static") or {}), "static"
+    if controller_mode == "graduated":
+        return _graduated_shaping_caps(policy, snapshot)
+    if controller_mode == "risk-aware":
+        return _risk_aware_shaping_caps(policy, event or {}, snapshot)
+    if controller_mode != "adaptive":
+        return {}, None
+    overloaded, _ = _policy_overload_state(policy, snapshot)
+    profile_name = "overload" if overloaded else "default"
+    return dict(profiles.get(profile_name) or {}), profile_name
+
+
 def _read_replay(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
@@ -226,7 +670,7 @@ def _validate_direct_endpoint_variant(variant: dict[str, Any]) -> None:
     raise ValueError(
         f"Variant {kind}:{name} is not executable with openai_replay_carrier. "
         "This carrier replays directly against fixed model endpoints and only supports "
-        "baseline:fifo, baseline:load-aware, baseline:no-memory-aware, baseline:full-policy, ablation:no-admission-control, and ablation:no-profiling. Remaining policy-distinct variants require "
+        "baseline:fifo, baseline:balanced-operating-point, baseline:load-aware, baseline:no-spillover, baseline:no-memory-aware, baseline:full-policy, baseline:prism-style-static-sharing, baseline:prism-style-elastic-sharing, baseline:prism-style-two-level-scheduler, baseline:vamos-slo-feasibility-controller, baseline:vamos-slo-rescue-no-reject, ablation:aggressive-upper-bound, ablation:no-admission-control, ablation:no-profiling, and ablation:adaptive-controller. Remaining policy-distinct variants require "
         "a policy-aware control-plane executor."
     )
 
@@ -336,6 +780,16 @@ def _parse_load_metrics_snapshot(text: str) -> dict[str, float | None] | None:
         "vllm:num_requests_running": [],
         "vllm:num_requests_waiting": [],
         "vllm:kv_cache_usage_perc": [],
+        "vllm:prefix_cache_queries": [],
+        "vllm:prefix_cache_hits": [],
+        "vllm:external_prefix_cache_queries": [],
+        "vllm:external_prefix_cache_hits": [],
+    }
+    metric_aliases = {
+        "vllm:prefix_cache_queries_total": "vllm:prefix_cache_queries",
+        "vllm:prefix_cache_hits_total": "vllm:prefix_cache_hits",
+        "vllm:external_prefix_cache_queries_total": "vllm:external_prefix_cache_queries",
+        "vllm:external_prefix_cache_hits_total": "vllm:external_prefix_cache_hits",
     }
 
     for raw_line in text.splitlines():
@@ -343,6 +797,7 @@ def _parse_load_metrics_snapshot(text: str) -> dict[str, float | None] | None:
         if not line or line.startswith("#"):
             continue
         metric_name = _extract_prometheus_metric_name(line)
+        metric_name = metric_aliases.get(str(metric_name), metric_name)
         if metric_name not in tracked_metrics:
             continue
         value = _parse_prometheus_metric_value(line)
@@ -365,6 +820,22 @@ def _parse_load_metrics_snapshot(text: str) -> dict[str, float | None] | None:
         "kv_cache_usage_perc": _aggregate_prometheus_samples(
             tracked_metrics["vllm:kv_cache_usage_perc"],
             aggregate="max",
+        ),
+        "prefix_cache_queries": _aggregate_prometheus_samples(
+            tracked_metrics["vllm:prefix_cache_queries"],
+            aggregate="sum",
+        ),
+        "prefix_cache_hits": _aggregate_prometheus_samples(
+            tracked_metrics["vllm:prefix_cache_hits"],
+            aggregate="sum",
+        ),
+        "external_prefix_cache_queries": _aggregate_prometheus_samples(
+            tracked_metrics["vllm:external_prefix_cache_queries"],
+            aggregate="sum",
+        ),
+        "external_prefix_cache_hits": _aggregate_prometheus_samples(
+            tracked_metrics["vllm:external_prefix_cache_hits"],
+            aggregate="sum",
         ),
     }
 
@@ -411,6 +882,10 @@ async def _fetch_metrics(base_url: str, session: aiohttp.ClientSession) -> dict[
         "num_requests_running": snapshot["num_requests_running"],
         "num_requests_waiting": snapshot["num_requests_waiting"],
         "kv_cache_usage_perc": snapshot["kv_cache_usage_perc"],
+        "prefix_cache_queries": snapshot["prefix_cache_queries"],
+        "prefix_cache_hits": snapshot["prefix_cache_hits"],
+        "external_prefix_cache_queries": snapshot["external_prefix_cache_queries"],
+        "external_prefix_cache_hits": snapshot["external_prefix_cache_hits"],
     }
 
 
@@ -449,6 +924,26 @@ async def _poll_metrics(
                             if metrics.get("kv_cache_usage_perc") is not None
                             else None
                         ),
+                        "prefix_cache_queries": (
+                            float(metrics["prefix_cache_queries"])
+                            if metrics.get("prefix_cache_queries") is not None
+                            else None
+                        ),
+                        "prefix_cache_hits": (
+                            float(metrics["prefix_cache_hits"])
+                            if metrics.get("prefix_cache_hits") is not None
+                            else None
+                        ),
+                        "external_prefix_cache_queries": (
+                            float(metrics["external_prefix_cache_queries"])
+                            if metrics.get("external_prefix_cache_queries") is not None
+                            else None
+                        ),
+                        "external_prefix_cache_hits": (
+                            float(metrics["external_prefix_cache_hits"])
+                            if metrics.get("external_prefix_cache_hits") is not None
+                            else None
+                        ),
                     }
                 )
                 if metrics.get("num_requests_running") is not None:
@@ -474,10 +969,45 @@ async def _poll_metrics(
                     kv_max if current_kv is None else max(float(current_kv), kv_max)
                 )
 
+            for metric_name in (
+                "prefix_cache_queries",
+                "prefix_cache_hits",
+                "external_prefix_cache_queries",
+                "external_prefix_cache_hits",
+            ):
+                observed_total = sum(
+                    float(snapshot[metric_name])
+                    for snapshot in current_load.values()
+                    if snapshot.get(metric_name) is not None
+                )
+                if observed_total <= 0 and not any(
+                    snapshot.get(metric_name) is not None for snapshot in current_load.values()
+                ):
+                    continue
+                start_key = f"{metric_name}_start"
+                end_key = f"{metric_name}_end"
+                if accumulator.get(start_key) is None:
+                    accumulator[start_key] = observed_total
+                accumulator[end_key] = observed_total
+
             try:
                 await asyncio.wait_for(stop_event.wait(), timeout=interval_sec)
             except asyncio.TimeoutError:
                 continue
+
+
+def _counter_delta(metrics: dict[str, float | None], metric_name: str) -> float | None:
+    start_value = metrics.get(f"{metric_name}_start")
+    end_value = metrics.get(f"{metric_name}_end")
+    if start_value is None or end_value is None:
+        return None
+    return round(float(end_value) - float(start_value), 6)
+
+
+def _rate_or_none(numerator: float | None, denominator: float | None) -> float | None:
+    if numerator is None or denominator in (None, 0):
+        return None
+    return round(float(numerator) / float(denominator), 6)
 
 
 def _live_load_snapshot(
@@ -501,6 +1031,29 @@ def _live_load_snapshot(
             else None
         ),
     }
+
+
+def _map_execution_priority(serving_context: dict[str, Any], mode: str) -> int | None:
+    if mode == "off":
+        return None
+    priority = int(serving_context.get("priority") or 0)
+    if mode == "invert-vamos":
+        return -priority
+    raise ValueError(f"Unsupported execution priority mode: {mode}")
+
+
+def _effective_output_len(
+    serving_context: dict[str, Any],
+    deadline_class_max_tokens: dict[str, int],
+) -> tuple[int, int]:
+    requested_output_len = int(serving_context.get("max_tokens") or 0)
+    if requested_output_len <= 0:
+        raise ValueError("Replay event missing positive serving_context.max_tokens")
+    deadline_class = str(serving_context.get("deadline_class") or "unknown")
+    class_cap = deadline_class_max_tokens.get(deadline_class)
+    if class_cap is None:
+        return requested_output_len, requested_output_len
+    return requested_output_len, min(requested_output_len, class_cap)
 
 
 def _policy_dispatch_decision(
@@ -563,35 +1116,10 @@ def _policy_dispatch_decision(
             "observed_load": snapshot,
         }
 
-    running = snapshot.get("num_requests_running")
-    waiting = snapshot.get("num_requests_waiting")
-    kv_cache = snapshot.get("kv_cache_usage_perc")
-    running_overloaded = (
-        running is not None and running >= float(policy.get("running_threshold") or 0.0)
-    )
-    waiting_overloaded = (
-        waiting is not None and waiting > float(policy.get("waiting_threshold") or 0.0)
-    )
-    use_memory_signal = bool(policy.get("use_memory_signal", True))
-    kv_threshold = policy.get("kv_cache_threshold")
-    kv_overloaded = (
-        use_memory_signal
-        and kv_threshold is not None
-        and kv_cache is not None
-        and kv_cache >= float(kv_threshold)
-    )
-    overloaded = running_overloaded or waiting_overloaded or kv_overloaded
+    overloaded, reason = _policy_overload_state(policy, snapshot)
     return {
         "action": "delay" if overloaded else "dispatch",
-        "reason": (
-            "load_threshold_exceeded"
-            if overloaded and use_memory_signal
-            else "non_memory_load_threshold_exceeded"
-            if overloaded
-            else "below_thresholds"
-            if use_memory_signal
-            else "below_non_memory_thresholds"
-        ),
+        "reason": reason,
         "mode": mode,
         "observed_load": snapshot,
     }
@@ -651,13 +1179,18 @@ async def _run_one_request(
     endpoint_map: dict[str, str],
     served_model_map: dict[str, str],
     variant_policy: dict[str, Any],
+    execution_priority_mode: str,
+    deadline_class_token_controller: dict[str, Any],
+    deadline_class_max_tokens_source: str,
     current_load: dict[str, dict[str, float | None]],
     session: aiohttp.ClientSession,
 ) -> dict[str, Any]:
     metadata = dict(event.get("metadata") or {})
     serving_context = dict(event.get("serving_context") or {})
     trace_tags = dict(serving_context.get("trace_tags") or {})
+    prefix_cache_key = str(serving_context.get("prefix_cache_key") or "").strip() or None
     request_id = str(event.get("request_id") or f"request-{index:05d}")
+    execution_priority = _map_execution_priority(serving_context, execution_priority_mode)
     model_id = str(serving_context.get("model_id") or "")
     if not model_id:
         raise ValueError(f"Replay event {request_id} missing serving_context.model_id")
@@ -671,6 +1204,19 @@ async def _run_one_request(
         await asyncio.sleep(sleep_for)
 
     policy_trace = await _await_policy_dispatch_window(event, base_url, variant_policy, current_load)
+    control_snapshot = dict(policy_trace.get("observed_load") or {})
+    if not control_snapshot:
+        control_snapshot = _live_load_snapshot(current_load, base_url)
+    deadline_class_max_tokens, deadline_class_cap_profile = _deadline_class_max_tokens_for_request(
+        variant_policy,
+        deadline_class_token_controller,
+        control_snapshot,
+        event=event,
+    )
+    requested_output_len, effective_output_len = _effective_output_len(
+        serving_context,
+        deadline_class_max_tokens,
+    )
 
     scheduled_start_s = round(scheduled_at_s + float(policy_trace["dispatch_delay_s"]), 6)
     if str(policy_trace.get("policy_action") or "dispatch") == "reject":
@@ -687,6 +1233,12 @@ async def _run_one_request(
             "phase": str(metadata.get("phase") or trace_tags.get("phase") or "unknown"),
             "deadline_class": str(serving_context.get("deadline_class") or "unknown"),
             "priority": serving_context.get("priority"),
+            "prefix_cache_key": prefix_cache_key,
+            "execution_priority": execution_priority,
+            "requested_max_tokens": requested_output_len,
+            "effective_max_tokens": effective_output_len,
+            "deadline_class_cap_profile": deadline_class_cap_profile,
+            "deadline_class_cap_source": deadline_class_max_tokens_source,
             "decision": "rejected",
             "used_spillover": False,
             "policy_mode": policy_trace["policy_mode"],
@@ -710,19 +1262,25 @@ async def _run_one_request(
     prompt = str(((event.get("payload") or {}).get("input_payload") or {}).get("prompt") or "")
     if not prompt:
         raise ValueError(f"Replay event {request_id} missing payload.input_payload.prompt")
-    output_len = int(serving_context.get("max_tokens") or 0)
-    if output_len <= 0:
-        raise ValueError(f"Replay event {request_id} missing positive serving_context.max_tokens")
 
+    extra_body: dict[str, Any] | None = None
+    if execution_priority is not None or prefix_cache_key is not None:
+        extra_body = {}
+        if execution_priority is not None:
+            extra_body["priority"] = execution_priority
+        if prefix_cache_key is not None:
+            extra_body["prefix_cache_key"] = prefix_cache_key
+            extra_body["cache_salt"] = prefix_cache_key
     _, RequestFuncInput, async_request_openai_completions = _load_vllm_benchmark_deps()
     output = await async_request_openai_completions(
         RequestFuncInput(
             prompt=prompt,
             api_url=f"{base_url}/v1/completions",
             prompt_len=int(serving_context.get("prompt_len") or 0),
-            output_len=output_len,
+            output_len=effective_output_len,
             model=model_id,
             model_name=served_model_map[base_url],
+            extra_body=extra_body,
             request_id=request_id,
         ),
         session,
@@ -758,6 +1316,12 @@ async def _run_one_request(
         "phase": phase,
         "deadline_class": deadline_class,
         "priority": serving_context.get("priority"),
+        "prefix_cache_key": prefix_cache_key,
+        "execution_priority": execution_priority,
+        "requested_max_tokens": requested_output_len,
+        "effective_max_tokens": effective_output_len,
+        "deadline_class_cap_profile": deadline_class_cap_profile,
+        "deadline_class_cap_source": deadline_class_max_tokens_source,
         "decision": decision,
         "used_spillover": used_spillover,
         "policy_mode": policy_trace["policy_mode"],
@@ -802,6 +1366,16 @@ def _build_metrics(
         duration_s = max(float(row.get("completed_at_s") or 0.0) for row in rows)
         duration_s = max(duration_s, 1e-9)
     spillover_count = sum(1 for row in rows if row.get("used_spillover"))
+    prefix_cache_queries_delta = _counter_delta(peak_load, "prefix_cache_queries")
+    prefix_cache_hits_delta = _counter_delta(peak_load, "prefix_cache_hits")
+    external_prefix_cache_queries_delta = _counter_delta(
+        peak_load,
+        "external_prefix_cache_queries",
+    )
+    external_prefix_cache_hits_delta = _counter_delta(
+        peak_load,
+        "external_prefix_cache_hits",
+    )
 
     metrics: dict[str, Any] = {
         "ttft_p50_ms": _quantile(ttft_values, 50.0),
@@ -811,6 +1385,18 @@ def _build_metrics(
         "running_requests": peak_load.get("running_requests"),
         "waiting_requests": peak_load.get("waiting_requests"),
         "kv_cache_usage_perc": peak_load.get("kv_cache_usage_perc"),
+        "prefix_cache_queries_delta": prefix_cache_queries_delta,
+        "prefix_cache_hits_delta": prefix_cache_hits_delta,
+        "prefix_cache_hit_rate": _rate_or_none(
+            prefix_cache_hits_delta,
+            prefix_cache_queries_delta,
+        ),
+        "external_prefix_cache_queries_delta": external_prefix_cache_queries_delta,
+        "external_prefix_cache_hits_delta": external_prefix_cache_hits_delta,
+        "external_prefix_cache_hit_rate": _rate_or_none(
+            external_prefix_cache_hits_delta,
+            external_prefix_cache_queries_delta,
+        ),
         "free_vram_bytes": None,
         "reserved_vram_bytes": None,
         "slo_violation_rate": round(violation_count / total_requests, 6) if total_requests else None,
@@ -834,6 +1420,10 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
     _validate_direct_endpoint_variant(variant)
     variant_policy = _variant_policy_for(args.variant_kind, args.variant_name)
     endpoint_map = _load_endpoint_map(args)
+    deadline_class_token_controller, deadline_class_max_tokens_source = _resolve_deadline_class_max_tokens(
+        args,
+        variant_policy,
+    )
     replay = _read_replay(replay_path)
     summary_output = _resolve_output_path(args.summary_output, output_root)
     trace_output = _resolve_output_path(args.trace_output, output_root)
@@ -886,6 +1476,9 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
                     endpoint_map,
                     served_model_map,
                     variant_policy,
+                    args.execution_priority_mode,
+                    deadline_class_token_controller,
+                    deadline_class_max_tokens_source,
                     current_load,
                     session,
                 )
@@ -904,6 +1497,7 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
     metrics = _build_metrics(run_plan, rows, peak_load)
     phase_counts = Counter(str(row.get("phase") or "unknown") for row in rows)
     class_counts = Counter(str(row.get("deadline_class") or "unknown") for row in rows)
+    prefix_cache_key_counts = Counter(str(row.get("prefix_cache_key") or "none") for row in rows)
     route_outcome_counts = Counter(
         str((row.get("response_metadata") or {}).get("x-vllm-route-outcome") or "unknown")
         for row in rows
@@ -921,6 +1515,7 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
             "deadline_class": row["deadline_class"],
             "model_id": row["model_id"],
             "served_model_name": row["served_model_name"],
+            "prefix_cache_key": row.get("prefix_cache_key"),
             "decision_trace": {
                 "decision": row["decision"],
                 "used_spillover": row["used_spillover"],
@@ -930,6 +1525,12 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
                 "deferral_count": row["deferral_count"],
                 "observed_load": row["observed_load"],
                 "priority": row["priority"],
+                "prefix_cache_key": row.get("prefix_cache_key"),
+                "execution_priority": row["execution_priority"],
+                "requested_max_tokens": row["requested_max_tokens"],
+                "effective_max_tokens": row["effective_max_tokens"],
+                "deadline_class_cap_profile": row["deadline_class_cap_profile"],
+                "deadline_class_cap_source": row["deadline_class_cap_source"],
                 "target_ttft_ms": row["target_ttft_ms"],
                 "target_e2e_ms": row["target_e2e_ms"],
                 "success": row["success"],
@@ -971,6 +1572,16 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
             "full_command_line": " ".join(sys.argv),
             "endpoint_map": endpoint_map,
             "variant_policy": variant_policy,
+            "execution_priority_mode": args.execution_priority_mode,
+            "deadline_class_max_tokens": dict(
+                (deadline_class_token_controller.get("profiles") or {}).get("static") or {}
+            ),
+            "adaptive_deadline_class_max_tokens": dict(
+                deadline_class_token_controller.get("profiles") or {}
+            )
+            if str(deadline_class_token_controller.get("mode") or "off") == "adaptive"
+            else {},
+            "deadline_class_max_tokens_source": deadline_class_max_tokens_source,
         },
         "metrics": metrics,
         "notes": [
@@ -979,14 +1590,24 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
             "baseline:load-aware defers lower-priority batch requests when live endpoint load exceeds configured thresholds.",
             "baseline:no-memory-aware keeps live running and waiting thresholds but ignores KV-cache pressure when deciding whether to defer lower-priority batch requests.",
             "baseline:full-policy adds a direct-endpoint admission-control gate that rejects lower-priority batch requests when overload persists after the bounded defer window.",
+            "baseline:prism-style-static-sharing is a fixed vllm-hust endpoint control that approximates Prism-style static per-model sharing without reproducing Prism, SGLang, or kvcached internals.",
+            "baseline:prism-style-elastic-sharing uses live load and KV pressure to defer lower-priority requests, approximating elastic sharing behavior on the same vllm-hust execution plane.",
+            "baseline:prism-style-two-level-scheduler uses priority admission without VAMOS VRAM/KV-cache signal, approximating Prism-style two-level scheduling as a policy baseline rather than a full Prism system.",
+            "baseline:vamos-slo-feasibility-controller uses the explicit VAMOS SLO contract to reshape deadline-class token budgets before dispatch; report the reduced effective_max_tokens as part of the tradeoff.",
+            "baseline:vamos-slo-rescue-no-reject preserves the same interactive SLO-feasibility shaping while dispatching lower-priority requests after the bounded defer window instead of rejecting them.",
             "ablation:no-admission-control keeps the same defer policy surface as baseline:full-policy but dispatches once the bounded defer window expires instead of rejecting.",
             "ablation:no-profiling applies fixed static pacing to lower-priority batch requests instead of consulting live runtime profiling metrics.",
+            "execution_priority_mode=invert-vamos maps larger replay priority values to smaller vLLM priority values for endpoints started with --scheduling-policy priority; execution_priority_mode=off leaves execution scheduling unchanged after any carrier-side gating.",
+            "deadline_class_max_tokens clamps replay max_tokens budgets per deadline class before dispatch so objective-function changes remain explicit and auditable in the archived artifacts.",
+            "baseline:balanced-operating-point and ablation:aggressive-upper-bound promote the current paper-facing class-cap profiles into first-class variant policies instead of ad hoc CLI overrides.",
+            "ablation:adaptive-controller switches between balanced and aggressive class-cap profiles from live endpoint load so objective shaping becomes a runtime controller instead of a manually selected static profile.",
             "Remaining policy-distinct variants still require a policy-aware control-plane executor or endpoint pools per model.",
             "free_vram_bytes and reserved_vram_bytes remain null until engine-side memory state is exported in a carrier-consumable form.",
         ],
         "request_mix": {
             "phase_counts": dict(phase_counts),
             "deadline_class_counts": dict(class_counts),
+            "prefix_cache_key_counts": dict(prefix_cache_key_counts),
             "route_outcome_counts": dict(route_outcome_counts),
             "backend_scope_counts": dict(backend_scope_counts),
         },

@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: foundation
+title: SAGE Foundation Primitives & Configuration
+scope:
+    - src/sage/foundation/
+source_files: []
+depends_on: []
+related_to:
+    - path: stream
+    - path: edge
