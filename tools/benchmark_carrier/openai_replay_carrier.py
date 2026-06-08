@@ -31,6 +31,8 @@ SUPPORTED_DIRECT_ENDPOINT_VARIANTS = frozenset(
         ("baseline", "prism-style-two-level-scheduler"),
         ("baseline", "vamos-slo-feasibility-controller"),
         ("baseline", "vamos-slo-rescue-no-reject"),
+        ("baseline", "wfq-token-budget"),
+        ("baseline", "strict-priority-preempt"),
         ("ablation", "aggressive-upper-bound"),
         ("ablation", "no-admission-control"),
         ("ablation", "no-profiling"),
@@ -149,6 +151,26 @@ _DIRECT_ENDPOINT_VARIANT_POLICIES: dict[tuple[str, str], dict[str, Any]] = {
             "batch-standard": 64,
             "long-generation-standard": 64,
         },
+    },
+    ("baseline", "wfq-token-budget"): {
+        "mode": "wfq",
+        "policy_family": "classical-qos",
+        "control_objective": "weighted-fair-token-allocation",
+        "wfq_class_weights": {
+            "interactive-high": 0.70,
+            "batch-standard": 0.20,
+            "long-generation-standard": 0.10,
+        },
+        "wfq_window_sec": 5.0,
+        "wfq_total_budget_per_window": 2048,
+    },
+    ("baseline", "strict-priority-preempt"): {
+        "mode": "strict-priority",
+        "policy_family": "classical-qos",
+        "control_objective": "strict-priority-with-batch-preemption",
+        "priority_cutoff": 50,
+        "preempt_batch_to_current_tokens": True,
+        "max_concurrent_batch": 2,
     },
     ("ablation", "no-admission-control"): {
         "mode": "load-aware",
@@ -1106,6 +1128,53 @@ def _policy_dispatch_decision(
         }
 
     if mode != "load-aware":
+        if mode == "wfq":
+            # Weighted Fair Queuing: allocate token budget proportional to class weight
+            wfq_weights = dict(policy.get("wfq_class_weights") or {})
+            class_weight = float(wfq_weights.get(deadline_class, 0.1))
+            total_budget = int(policy.get("wfq_total_budget_per_window") or 2048)
+            class_budget = int(total_budget * class_weight)
+            return {
+                "action": "dispatch",
+                "reason": f"wfq_class_budget_{class_budget}",
+                "mode": mode,
+                "observed_load": snapshot,
+                "wfq_class_budget": class_budget,
+            }
+        if mode == "strict-priority":
+            # Strict priority: interactive always dispatches immediately,
+            # batch requests are limited by max_concurrent_batch
+            max_concurrent = int(policy.get("max_concurrent_batch") or 2)
+            running = snapshot.get("num_requests_running")
+            if deadline_class == "interactive-high" or priority >= int(policy.get("priority_cutoff") or 0):
+                return {
+                    "action": "dispatch",
+                    "reason": "strict_priority_bypass",
+                    "mode": mode,
+                    "observed_load": snapshot,
+                    "preempt_batch": bool(policy.get("preempt_batch_to_current_tokens")),
+                }
+            # Non-interactive: only dispatch if below max concurrent batch
+            if running is not None and running >= max_concurrent:
+                if elapsed_delay_s >= float(policy.get("max_deferral_sec") or 4.0):
+                    return {
+                        "action": "dispatch",
+                        "reason": "strict_priority_max_wait_elapsed",
+                        "mode": mode,
+                        "observed_load": snapshot,
+                    }
+                return {
+                    "action": "delay",
+                    "reason": "strict_priority_batch_limited",
+                    "mode": mode,
+                    "observed_load": snapshot,
+                }
+            return {
+                "action": "dispatch",
+                "reason": "strict_priority_batch_slot_available",
+                "mode": mode,
+                "observed_load": snapshot,
+            }
         raise ValueError(f"Unsupported direct-endpoint policy mode: {mode}")
 
     if deadline_class == "interactive-high" or priority >= int(policy.get("priority_cutoff") or 0):
@@ -1204,15 +1273,28 @@ async def _run_one_request(
         await asyncio.sleep(sleep_for)
 
     policy_trace = await _await_policy_dispatch_window(event, base_url, variant_policy, current_load)
+    _controller_decision_end = time.perf_counter()
+    _controller_decision_us = (_controller_decision_end - (start_perf + scheduled_at_s + max(0, sleep_for))) * 1e6
     control_snapshot = dict(policy_trace.get("observed_load") or {})
     if not control_snapshot:
         control_snapshot = _live_load_snapshot(current_load, base_url)
+    # Record controller overhead in the policy trace
+    policy_trace["controller_decision_latency_us"] = round(_controller_decision_us, 1)
     deadline_class_max_tokens, deadline_class_cap_profile = _deadline_class_max_tokens_for_request(
         variant_policy,
         deadline_class_token_controller,
         control_snapshot,
         event=event,
     )
+    # WFQ: apply class-proportional token budget cap
+    wfq_class_budget = policy_trace.get("wfq_class_budget")
+    if wfq_class_budget is not None:
+        deadline_class = str(serving_context.get("deadline_class") or "unknown")
+        existing_cap = deadline_class_max_tokens.get(deadline_class)
+        wfq_cap = int(wfq_class_budget)
+        if existing_cap is None or wfq_cap < existing_cap:
+            deadline_class_max_tokens[deadline_class] = wfq_cap
+            deadline_class_cap_profile = f"wfq-{wfq_cap}"
     requested_output_len, effective_output_len = _effective_output_len(
         serving_context,
         deadline_class_max_tokens,
