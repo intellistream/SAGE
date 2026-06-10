@@ -29,6 +29,10 @@
       "path": "../vllm-hust"
     },
     {
+      "name": "vllm-ascend-hust  [ascend-plugin]",
+      "path": "../vllm-ascend-hust"
+    },
+    {
       "name": "sage-examples  [examples]",
       "path": "../sage-examples"
     },
@@ -39,6 +43,13 @@
     {
       "name": "vamos  [research]",
       "path": "../vamos"
+    },
+    {
+      "name": "vllm-hust-workstation  [ws-app]",
+      "path": "../vllm-hust-workstation"
+    },
+    {
+      "path": "../private-materials"
     }
   ],
   "settings": {
@@ -46,7 +57,9 @@
       "${workspaceFolder:SAGE  [meta]}/src",
       "${workspaceFolder:my-twin  [app]}/src",
       "${workspaceFolder:sageVDB  [vdb]}",
-      "${workspaceFolder:neuromem  [memory]}"
+      "${workspaceFolder:neuromem  [memory]}",
+      "${workspaceFolder:vllm-hust  [engine]}",
+      "${workspaceFolder:vllm-ascend-hust  [ascend-plugin]}"
     ],
     "python.testing.pytestArgs": [
       "packages",
@@ -75,7 +88,9 @@
       ".sage/build": true,
       ".sage/cache": true,
       "**/dist": true,
-      "**/*.egg-info": true
+      "**/*.egg-info": true,
+      "**/.next": true,
+      "**/.workstation-deploy": true
     },
     "files.watcherExclude": {
       "**/.git/objects/**": true,
@@ -93,7 +108,9 @@
       "**/external/SAGE/**": true,
       "**/external/vllm-hust/**": true,
       ".sage/build/**": true,
-      ".sage/cache/**": true
+      ".sage/cache/**": true,
+      "**/.next/**": true,
+      "**/.workstation-deploy/**": true
     },
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
@@ -207,6 +224,36 @@
         "problemMatcher": [],
         "options": {
           "cwd": "${workspaceFolder:SAGE  [meta]}"
+        }
+      },
+      {
+        "label": "Run vLLM Tests (engine)",
+        "type": "shell",
+        "command": "test -x .venv/bin/python && .venv/bin/python -m pytest tests -v || (echo 'Missing vllm-hust .venv. Run uv venv --python 3.12 and install deps first.' && exit 1)",
+        "group": "test",
+        "problemMatcher": [],
+        "options": {
+          "cwd": "${workspaceFolder:vllm-hust  [engine]}"
+        }
+      },
+      {
+        "label": "Run vLLM Ascend UT",
+        "type": "shell",
+        "command": "pytest -sv tests/ut/",
+        "group": "test",
+        "problemMatcher": [],
+        "options": {
+          "cwd": "${workspaceFolder:vllm-ascend-hust  [ascend-plugin]}"
+        }
+      },
+      {
+        "label": "Lint vLLM Ascend",
+        "type": "shell",
+        "command": "ruff check vllm_ascend/",
+        "group": "test",
+        "problemMatcher": [],
+        "options": {
+          "cwd": "${workspaceFolder:vllm-ascend-hust  [ascend-plugin]}"
         }
       },
       {
