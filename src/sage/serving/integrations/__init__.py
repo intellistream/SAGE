@@ -27,7 +27,11 @@ from .contracts import (
     default_workflow_product_extension_points,
 )
 from .mock import MockSageExecutable, MockWorkflowProductAdapter
-from .registry import WorkflowIntegrationRegistry, validate_workflow_product_adapter
+from .registry import (
+    WorkflowIntegrationRegistry,
+    build_workflow_integration_registry_from_env,
+    validate_workflow_product_adapter,
+)
 
 __all__ = [
     "COMFY_FIRST_EXTENSION_POINT",
@@ -56,6 +60,7 @@ __all__ = [
     "WorkflowProductAdapter",
     "WorkflowProductAdapterDescriptor",
     "WorkflowSubmitMode",
+    "build_workflow_integration_registry_from_env",
     "default_workflow_product_extension_points",
     "validate_workflow_product_adapter",
 ]

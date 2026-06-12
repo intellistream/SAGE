@@ -1,65 +1,78 @@
 {
   "folders": [
     {
-      "name": "SAGE  [meta]",
+      "name": "🧱 CORE SAGE  [meta]",
       "path": "."
     },
     {
-      "name": "SAGE-Docs  [docs]",
+      "name": "📚 DOCS SAGE-Docs  [docs]",
       "path": "../SAGE-Docs"
     },
     {
-      "name": "my-twin  [app]",
+      "name": "🖥️ APP my-twin  [app]",
       "path": "../sage-faculty-twin"
     },
     {
-      "name": "personal-homepage  [profile]",
+      "name": "🖥️ APP personal-homepage  [profile]",
       "path": "../shuhaozhangtony.github.io"
     },
     {
-      "name": "sageVDB  [vdb]",
+      "name": "🧰 LIB sageVDB  [vdb]",
       "path": "../sageVDB"
     },
     {
-      "name": "neuromem  [memory]",
+      "name": "🧰 LIB neuromem  [memory]",
       "path": "../neuromem"
     },
     {
-      "name": "vllm-hust  [engine]",
+      "name": "🧱 CORE vllm-hust  [engine]",
       "path": "../vllm-hust"
     },
     {
-      "name": "vllm-ascend-hust  [ascend-plugin]",
+      "name": "🧱 CORE vllm-ascend-hust  [ascend-plugin]",
       "path": "../vllm-ascend-hust"
     },
     {
-      "name": "sage-examples  [examples]",
+      "name": "📗 LEARN sage-examples  [examples]",
       "path": "../sage-examples"
     },
     {
-      "name": "sage-tutorials  [tutorials]",
+      "name": "📗 LEARN sage-tutorials  [tutorials]",
       "path": "../sage-tutorials"
     },
     {
-      "name": "vamos  [research]",
+      "name": "🧪 RESEARCH vamos  [research]",
       "path": "../vamos"
     },
     {
-      "name": "vllm-hust-workstation  [ws-app]",
+      "name": "🖥️ APP vllm-hust-workstation  [ws-app]",
       "path": "../vllm-hust-workstation"
     },
     {
+      "name": "🧪 RESEARCH segment-reuse  [topic-03]",
+      "path": "../sglang-segment-reuse-plugin"
+    },
+    {
+      "name": "🧪 RESEARCH prefix-sharing  [topic-06]",
+      "path": "../kv-prefix-sharing-plugin"
+    },
+    {
+      "name": "🔒 ARCHIVE private-materials  [archive]",
       "path": "../private-materials"
+    },
+    {
+      "name": "📦 DATA llm-serving-workloads  [workloads]",
+      "path": "../llm-serving-workloads"
     }
   ],
   "settings": {
     "python.analysis.extraPaths": [
-      "${workspaceFolder:SAGE  [meta]}/src",
-      "${workspaceFolder:my-twin  [app]}/src",
-      "${workspaceFolder:sageVDB  [vdb]}",
-      "${workspaceFolder:neuromem  [memory]}",
-      "${workspaceFolder:vllm-hust  [engine]}",
-      "${workspaceFolder:vllm-ascend-hust  [ascend-plugin]}"
+      "${workspaceFolder:🧱 CORE SAGE  [meta]}/src",
+      "${workspaceFolder:🖥️ APP my-twin  [app]}/src",
+      "${workspaceFolder:🧰 LIB sageVDB  [vdb]}",
+      "${workspaceFolder:🧰 LIB neuromem  [memory]}",
+      "${workspaceFolder:🧱 CORE vllm-hust  [engine]}",
+      "${workspaceFolder:🧱 CORE vllm-ascend-hust  [ascend-plugin]}"
     ],
     "python.testing.pytestArgs": [
       "packages",
@@ -121,7 +134,7 @@
       "editor.formatOnSave": true
     },
     "ruff.configurationPreference": "filesystemFirst",
-    "ruff.configuration": "${workspaceFolder:SAGE  [meta]}/tools/ruff.toml",
+    "ruff.configuration": "${workspaceFolder:🧱 CORE SAGE  [meta]}/tools/ruff.toml",
     "git.enableSmartCommit": true,
     "git.confirmSync": false,
     "git.ignoredRepositories": [
@@ -153,9 +166,9 @@
         "request": "launch",
         "program": "${file}",
         "console": "integratedTerminal",
-        "cwd": "${workspaceFolder:SAGE  [meta]}",
+        "cwd": "${workspaceFolder:🧱 CORE SAGE  [meta]}",
         "env": {
-          "PYTHONPATH": "${workspaceFolder:SAGE  [meta]}/src"
+          "PYTHONPATH": "${workspaceFolder:🧱 CORE SAGE  [meta]}/src"
         }
       },
       {
@@ -172,9 +185,9 @@
           "--reload"
         ],
         "console": "integratedTerminal",
-        "cwd": "${workspaceFolder:my-twin  [app]}",
+        "cwd": "${workspaceFolder:🖥️ APP my-twin  [app]}",
         "env": {
-          "PYTHONPATH": "${workspaceFolder:my-twin  [app]}/src:${workspaceFolder:SAGE  [meta]}/src:${workspaceFolder:sageVDB  [vdb]}:${workspaceFolder:neuromem  [memory]}"
+          "PYTHONPATH": "${workspaceFolder:🖥️ APP my-twin  [app]}/src:${workspaceFolder:🧱 CORE SAGE  [meta]}/src:${workspaceFolder:🧰 LIB sageVDB  [vdb]}:${workspaceFolder:🧰 LIB neuromem  [memory]}"
         }
       },
       {
@@ -186,7 +199,7 @@
           "--help"
         ],
         "console": "integratedTerminal",
-        "cwd": "${workspaceFolder:SAGE  [meta]}"
+        "cwd": "${workspaceFolder:🧱 CORE SAGE  [meta]}"
       },
       {
         "name": "Pytest: Current File",
@@ -199,7 +212,7 @@
           "--tb=short"
         ],
         "console": "integratedTerminal",
-        "cwd": "${workspaceFolder:SAGE  [meta]}"
+        "cwd": "${workspaceFolder:🧱 CORE SAGE  [meta]}"
       }
     ]
   },
@@ -213,7 +226,7 @@
         "group": "build",
         "problemMatcher": [],
         "options": {
-          "cwd": "${workspaceFolder:SAGE  [meta]}"
+          "cwd": "${workspaceFolder:🧱 CORE SAGE  [meta]}"
         }
       },
       {
@@ -223,7 +236,7 @@
         "group": "test",
         "problemMatcher": [],
         "options": {
-          "cwd": "${workspaceFolder:SAGE  [meta]}"
+          "cwd": "${workspaceFolder:🧱 CORE SAGE  [meta]}"
         }
       },
       {
@@ -233,7 +246,7 @@
         "group": "test",
         "problemMatcher": [],
         "options": {
-          "cwd": "${workspaceFolder:vllm-hust  [engine]}"
+          "cwd": "${workspaceFolder:🧱 CORE vllm-hust  [engine]}"
         }
       },
       {
@@ -243,7 +256,7 @@
         "group": "test",
         "problemMatcher": [],
         "options": {
-          "cwd": "${workspaceFolder:vllm-ascend-hust  [ascend-plugin]}"
+          "cwd": "${workspaceFolder:🧱 CORE vllm-ascend-hust  [ascend-plugin]}"
         }
       },
       {
@@ -253,7 +266,7 @@
         "group": "test",
         "problemMatcher": [],
         "options": {
-          "cwd": "${workspaceFolder:vllm-ascend-hust  [ascend-plugin]}"
+          "cwd": "${workspaceFolder:🧱 CORE vllm-ascend-hust  [ascend-plugin]}"
         }
       },
       {
@@ -263,7 +276,7 @@
         "group": "test",
         "problemMatcher": [],
         "options": {
-          "cwd": "${workspaceFolder:SAGE  [meta]}"
+          "cwd": "${workspaceFolder:🧱 CORE SAGE  [meta]}"
         }
       },
       {
@@ -273,7 +286,7 @@
         "group": "build",
         "problemMatcher": [],
         "options": {
-          "cwd": "${workspaceFolder:SAGE  [meta]}"
+          "cwd": "${workspaceFolder:🧱 CORE SAGE  [meta]}"
         }
       },
       {
@@ -283,7 +296,7 @@
         "group": "build",
         "problemMatcher": [],
         "options": {
-          "cwd": "${workspaceFolder:SAGE-Docs  [docs]}"
+          "cwd": "${workspaceFolder:📚 DOCS SAGE-Docs  [docs]}"
         }
       },
       {
@@ -294,27 +307,27 @@
         "problemMatcher": [],
         "isBackground": true,
         "options": {
-          "cwd": "${workspaceFolder:SAGE-Docs  [docs]}"
+          "cwd": "${workspaceFolder:📚 DOCS SAGE-Docs  [docs]}"
         }
       },
       {
         "label": "Run my-twin (local neuromem)",
         "type": "shell",
-        "command": "PYTHONPATH=${workspaceFolder:my-twin  [app]}/src:${workspaceFolder:SAGE  [meta]}/src:${workspaceFolder:sageVDB  [vdb]}:${workspaceFolder:neuromem  [memory]} uvicorn sage_faculty_twin.api:app --host 127.0.0.1 --port 8010 --reload",
+        "command": "PYTHONPATH=${workspaceFolder:🖥️ APP my-twin  [app]}/src:${workspaceFolder:🧱 CORE SAGE  [meta]}/src:${workspaceFolder:🧰 LIB sageVDB  [vdb]}:${workspaceFolder:🧰 LIB neuromem  [memory]} uvicorn sage_faculty_twin.api:app --host 127.0.0.1 --port 8010 --reload",
         "group": "build",
         "problemMatcher": [],
         "options": {
-          "cwd": "${workspaceFolder:my-twin  [app]}"
+          "cwd": "${workspaceFolder:🖥️ APP my-twin  [app]}"
         }
       },
       {
         "label": "Sync Homepage Knowledge (offline)",
         "type": "shell",
-        "command": "PYTHONPATH=${workspaceFolder:my-twin  [app]}/src:${workspaceFolder:SAGE  [meta]}/src:${workspaceFolder:neuromem  [memory]} python -m sage_faculty_twin.knowledge_import --homepage-dir ${workspaceFolder:personal-homepage  [profile]} --knowledge-dir ${workspaceFolder:my-twin  [app]}/data/knowledge_base --knowledge-backend neuromem",
+        "command": "PYTHONPATH=${workspaceFolder:🖥️ APP my-twin  [app]}/src:${workspaceFolder:🧱 CORE SAGE  [meta]}/src:${workspaceFolder:🧰 LIB neuromem  [memory]} python -m sage_faculty_twin.knowledge_import --homepage-dir ${workspaceFolder:🖥️ APP personal-homepage  [profile]} --knowledge-dir ${workspaceFolder:🖥️ APP my-twin  [app]}/data/knowledge_base --knowledge-backend neuromem",
         "group": "build",
         "problemMatcher": [],
         "options": {
-          "cwd": "${workspaceFolder:my-twin  [app]}"
+          "cwd": "${workspaceFolder:🖥️ APP my-twin  [app]}"
         }
       }
     ]

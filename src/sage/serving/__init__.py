@@ -43,6 +43,7 @@ from .integrations import (
     WorkflowProductAdapterDescriptor,
     WorkflowServingRequestContext,
     WorkflowSubmitMode,
+    build_workflow_integration_registry_from_env,
     default_workflow_product_extension_points,
     validate_workflow_product_adapter,
 )
@@ -64,6 +65,7 @@ __all__ = [
     "WorkflowExecutionTargetType",
     "WorkflowJobStatus",
     "WorkflowSubmitMode",
+    "build_workflow_integration_registry_from_env",
     "WorkflowIntegrationExtensionPoint",
     "WorkflowProductAdapterDescriptor",
     "WorkflowIntegrationRequest",

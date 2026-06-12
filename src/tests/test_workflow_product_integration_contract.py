@@ -12,6 +12,7 @@ from sage.serving import (
     WorkflowJobStatusPollRequest,
     WorkflowJobSubmitRequest,
     WorkflowServingRequestContext,
+    build_workflow_integration_registry_from_env,
 )
 
 
@@ -423,3 +424,326 @@ def test_registry_supports_two_slo_classes_and_multi_model_routing_contexts() ->
     assert batch_submit.submit_payload["serving_context"]["deadline_class"] == "batch-standard"
     assert batch_submit.submit_payload["serving_context"]["model_id"] == "Qwen/Qwen2.5-7B-Instruct"
     assert batch_submit.submit_payload["serving_context"]["prefix_cache_key"] == "shared:batch:v1"
+
+
+def test_mock_adapter_policy_hook_shapes_serving_context_for_endpoint_submit() -> None:
+    registry = WorkflowIntegrationRegistry()
+    adapter = MockWorkflowProductAdapter(
+        integration_type="workflow.mock.comfy",
+        display_name="Mock Comfy Adapter",
+        extension_points=(COMFY_FIRST_EXTENSION_POINT,),
+        policy_variant_kind="baseline",
+        policy_variant_name="vamos-slo-feasibility-controller",
+        execution_priority_mode="invert-vamos",
+        policy_load_snapshot={
+            "num_requests_running": 3.0,
+            "num_requests_waiting": 1.0,
+            "kv_cache_usage_perc": 0.08,
+        },
+    )
+    registry.register_adapter(adapter)
+
+    imported = registry.import_workflow(
+        WorkflowImportRequest(
+            integration_type="workflow.mock.comfy",
+            request_id="policy-hook-import",
+            workflow_payload=_build_external_workflow_payload(),
+        )
+    )
+
+    submit_response = registry.submit_job(
+        WorkflowJobSubmitRequest(
+            integration_type="workflow.mock.comfy",
+            request_id="policy-hook-submit",
+            imported_workflow=imported.imported_workflow,
+            input_payload={"prompt": "hello"},
+            serving_context={
+                "tenant_id": "tenant-a",
+                "model_id": "meta-llama/Llama-3.1-8B-Instruct",
+                "prefix_cache_key": "tenant-a:incident-summary:v1",
+                "prompt_len": 256,
+                "max_tokens": 128,
+                "priority": 100,
+                "deadline_class": "interactive-high",
+                "target_ttft_ms": 300,
+                "target_e2e_ms": 1500,
+                "streaming": True,
+            },
+        )
+    )
+
+    shaped = submit_response.submit_payload["serving_context"]
+    decision = submit_response.submit_payload["policy_decision"]
+    assert shaped["max_tokens"] == 16
+    assert shaped["priority"] == -100
+    assert decision["variant_name"] == "vamos-slo-feasibility-controller"
+    assert decision["requested_max_tokens"] == 128
+    assert decision["effective_max_tokens"] == 16
+    assert decision["deadline_class_cap_profile"] == "static"
+
+
+def test_mock_adapter_policy_hook_is_opt_in_and_default_submit_is_unchanged() -> None:
+    registry = WorkflowIntegrationRegistry()
+    adapter = MockWorkflowProductAdapter(
+        integration_type="workflow.mock.comfy",
+        display_name="Mock Comfy Adapter",
+        extension_points=(COMFY_FIRST_EXTENSION_POINT,),
+    )
+    registry.register_adapter(adapter)
+
+    imported = registry.import_workflow(
+        WorkflowImportRequest(
+            integration_type="workflow.mock.comfy",
+            request_id="policy-hook-default-import",
+            workflow_payload=_build_external_workflow_payload(),
+        )
+    )
+
+    submit_response = registry.submit_job(
+        WorkflowJobSubmitRequest(
+            integration_type="workflow.mock.comfy",
+            request_id="policy-hook-default-submit",
+            imported_workflow=imported.imported_workflow,
+            input_payload={"prompt": "hello"},
+            serving_context={
+                "model_id": "meta-llama/Llama-3.1-8B-Instruct",
+                "max_tokens": 128,
+                "priority": 100,
+                "deadline_class": "interactive-high",
+            },
+        )
+    )
+
+    shaped = submit_response.submit_payload["serving_context"]
+    assert shaped["max_tokens"] == 128
+    assert shaped["priority"] == 100
+    assert "policy_decision" not in submit_response.submit_payload
+
+
+def test_registry_policy_hook_shapes_submit_request_for_plain_adapter() -> None:
+    registry = WorkflowIntegrationRegistry(
+        policy_variant_kind="baseline",
+        policy_variant_name="vamos-slo-feasibility-controller",
+        execution_priority_mode="invert-vamos",
+        policy_load_snapshot={
+            "num_requests_running": 3.0,
+            "num_requests_waiting": 1.0,
+            "kv_cache_usage_perc": 0.08,
+        },
+    )
+    adapter = MockWorkflowProductAdapter(
+        integration_type="workflow.mock.comfy",
+        display_name="Mock Comfy Adapter",
+        extension_points=(COMFY_FIRST_EXTENSION_POINT,),
+    )
+    registry.register_adapter(adapter)
+    imported = registry.import_workflow(
+        WorkflowImportRequest(
+            integration_type="workflow.mock.comfy",
+            request_id="registry-policy-import",
+            workflow_payload=_build_external_workflow_payload(),
+        )
+    )
+
+    submit_response = registry.submit_job(
+        WorkflowJobSubmitRequest(
+            integration_type="workflow.mock.comfy",
+            request_id="registry-policy-submit",
+            imported_workflow=imported.imported_workflow,
+            input_payload={"prompt": "hello"},
+            serving_context={
+                "model_id": "meta-llama/Llama-3.1-8B-Instruct",
+                "max_tokens": 128,
+                "priority": 100,
+                "deadline_class": "interactive-high",
+                "target_e2e_ms": 1500,
+            },
+        )
+    )
+
+    shaped = submit_response.submit_payload["serving_context"]
+    assert shaped["max_tokens"] == 16
+    assert shaped["priority"] == 100
+    assert submit_response.metadata["policy_decision"]["applied_by"] == "registry"
+    assert submit_response.metadata["policy_decision"]["effective_max_tokens"] == 16
+    assert submit_response.metadata["policy_decision"]["mapped_priority"] == -100
+
+
+def test_registry_policy_hook_skips_adapter_with_builtin_policy() -> None:
+    registry = WorkflowIntegrationRegistry(
+        policy_variant_kind="baseline",
+        policy_variant_name="vamos-slo-feasibility-controller",
+        execution_priority_mode="invert-vamos",
+        policy_load_snapshot={
+            "num_requests_running": 3.0,
+            "num_requests_waiting": 1.0,
+            "kv_cache_usage_perc": 0.08,
+        },
+    )
+    adapter = MockWorkflowProductAdapter(
+        integration_type="workflow.mock.comfy",
+        display_name="Mock Comfy Adapter",
+        extension_points=(COMFY_FIRST_EXTENSION_POINT,),
+        policy_variant_kind="baseline",
+        policy_variant_name="vamos-slo-feasibility-controller",
+        execution_priority_mode="invert-vamos",
+        policy_load_snapshot={
+            "num_requests_running": 3.0,
+            "num_requests_waiting": 1.0,
+            "kv_cache_usage_perc": 0.08,
+        },
+    )
+    registry.register_adapter(adapter)
+    imported = registry.import_workflow(
+        WorkflowImportRequest(
+            integration_type="workflow.mock.comfy",
+            request_id="registry-policy-skip-import",
+            workflow_payload=_build_external_workflow_payload(),
+        )
+    )
+
+    submit_response = registry.submit_job(
+        WorkflowJobSubmitRequest(
+            integration_type="workflow.mock.comfy",
+            request_id="registry-policy-skip-submit",
+            imported_workflow=imported.imported_workflow,
+            input_payload={"prompt": "hello"},
+            serving_context={
+                "model_id": "meta-llama/Llama-3.1-8B-Instruct",
+                "max_tokens": 128,
+                "priority": 100,
+                "deadline_class": "interactive-high",
+                "target_e2e_ms": 1500,
+            },
+        )
+    )
+
+    assert submit_response.metadata.get("policy_decision") is None
+    assert submit_response.submit_payload["policy_decision"]["variant_name"] == "vamos-slo-feasibility-controller"
+
+
+def test_build_registry_from_env_applies_policy_config() -> None:
+    registry = build_workflow_integration_registry_from_env(
+        env={
+            "SAGE_WORKFLOW_POLICY_VARIANT_KIND": "baseline",
+            "SAGE_WORKFLOW_POLICY_VARIANT_NAME": "vamos-slo-feasibility-controller",
+            "SAGE_WORKFLOW_POLICY_EXECUTION_PRIORITY_MODE": "invert-vamos",
+            "SAGE_WORKFLOW_POLICY_LOAD_SNAPSHOT_JSON": "{\"num_requests_running\": 2, \"num_requests_waiting\": 1, \"kv_cache_usage_perc\": 0.06}",
+        }
+    )
+    adapter = MockWorkflowProductAdapter(
+        integration_type="workflow.mock.comfy",
+        display_name="Mock Comfy Adapter",
+        extension_points=(COMFY_FIRST_EXTENSION_POINT,),
+    )
+    registry.register_adapter(adapter)
+    imported = registry.import_workflow(
+        WorkflowImportRequest(
+            integration_type="workflow.mock.comfy",
+            request_id="env-policy-import",
+            workflow_payload=_build_external_workflow_payload(),
+        )
+    )
+    submit_response = registry.submit_job(
+        WorkflowJobSubmitRequest(
+            integration_type="workflow.mock.comfy",
+            request_id="env-policy-submit",
+            imported_workflow=imported.imported_workflow,
+            input_payload={"prompt": "hello"},
+            serving_context={
+                "model_id": "meta-llama/Llama-3.1-8B-Instruct",
+                "max_tokens": 128,
+                "priority": 100,
+                "deadline_class": "interactive-high",
+                "target_e2e_ms": 1500,
+            },
+        )
+    )
+
+    assert submit_response.submit_payload["serving_context"]["max_tokens"] == 16
+    assert submit_response.metadata["policy_decision"]["mapped_priority"] == -100
+    assert submit_response.metadata["policy_decision"]["applied_by"] == "registry"
+
+
+def test_build_registry_from_env_direct_metrics_override_json() -> None:
+    registry = build_workflow_integration_registry_from_env(
+        env={
+            "SAGE_WORKFLOW_POLICY_VARIANT_KIND": "ablation",
+            "SAGE_WORKFLOW_POLICY_VARIANT_NAME": "adaptive-controller",
+            "SAGE_WORKFLOW_POLICY_LOAD_SNAPSHOT_JSON": "{\"num_requests_running\": 0, \"num_requests_waiting\": 0, \"kv_cache_usage_perc\": 0.0}",
+            "SAGE_WORKFLOW_POLICY_NUM_REQUESTS_RUNNING": "3",
+            "SAGE_WORKFLOW_POLICY_NUM_REQUESTS_WAITING": "1",
+            "SAGE_WORKFLOW_POLICY_KV_CACHE_USAGE_PERC": "0.06",
+        }
+    )
+    adapter = MockWorkflowProductAdapter(
+        integration_type="workflow.mock.comfy",
+        display_name="Mock Comfy Adapter",
+        extension_points=(COMFY_FIRST_EXTENSION_POINT,),
+    )
+    registry.register_adapter(adapter)
+    imported = registry.import_workflow(
+        WorkflowImportRequest(
+            integration_type="workflow.mock.comfy",
+            request_id="env-override-import",
+            workflow_payload=_build_external_workflow_payload(),
+        )
+    )
+    submit_response = registry.submit_job(
+        WorkflowJobSubmitRequest(
+            integration_type="workflow.mock.comfy",
+            request_id="env-override-submit",
+            imported_workflow=imported.imported_workflow,
+            input_payload={"prompt": "hello"},
+            serving_context={
+                "model_id": "meta-llama/Llama-3.1-8B-Instruct",
+                "max_tokens": 512,
+                "priority": 100,
+                "deadline_class": "interactive-high",
+                "target_e2e_ms": 1500,
+            },
+        )
+    )
+
+    assert submit_response.submit_payload["serving_context"]["max_tokens"] == 256
+    assert submit_response.metadata["policy_decision"]["deadline_class_cap_profile"] == "overload"
+
+
+def test_build_registry_from_env_defaults_enable_policy() -> None:
+    registry = build_workflow_integration_registry_from_env(env={})
+    adapter = MockWorkflowProductAdapter(
+        integration_type="workflow.mock.comfy",
+        display_name="Mock Comfy Adapter",
+        extension_points=(COMFY_FIRST_EXTENSION_POINT,),
+    )
+    registry.register_adapter(adapter)
+    imported = registry.import_workflow(
+        WorkflowImportRequest(
+            integration_type="workflow.mock.comfy",
+            request_id="env-defaults-import",
+            workflow_payload=_build_external_workflow_payload(),
+        )
+    )
+    submit_response = registry.submit_job(
+        WorkflowJobSubmitRequest(
+            integration_type="workflow.mock.comfy",
+            request_id="env-defaults-submit",
+            imported_workflow=imported.imported_workflow,
+            input_payload={"prompt": "hello"},
+            serving_context={
+                "model_id": "meta-llama/Llama-3.1-8B-Instruct",
+                "max_tokens": 128,
+                "priority": 100,
+                "deadline_class": "interactive-high",
+                "target_e2e_ms": 1500,
+            },
+        )
+    )
+
+    assert submit_response.submit_payload["serving_context"]["max_tokens"] == 16
+    assert submit_response.metadata["policy_decision"]["variant_kind"] == "baseline"
+    assert (
+        submit_response.metadata["policy_decision"]["variant_name"]
+        == "vamos-slo-feasibility-controller"
+    )
+    assert submit_response.metadata["policy_decision"]["execution_priority_mode"] == "invert-vamos"

@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from threading import RLock
 from typing import Any
 
+from . import policy as runtime_policy
+
 from .contracts import (
     ImportedWorkflow,
     WorkflowExecutionTarget,
@@ -58,6 +60,10 @@ class MockWorkflowProductAdapter:
         description: str | None = None,
         extension_points: Sequence[str] = (),
         metadata: Mapping[str, Any] | None = None,
+        policy_variant_kind: str | None = None,
+        policy_variant_name: str | None = None,
+        execution_priority_mode: str = "off",
+        policy_load_snapshot: Mapping[str, float | None] | None = None,
     ) -> None:
         self.descriptor = WorkflowProductAdapterDescriptor(
             integration_type=integration_type,
@@ -71,6 +77,37 @@ class MockWorkflowProductAdapter:
         self._job_counter = 0
         self._imported_workflows: dict[str, ImportedWorkflow] = {}
         self._jobs: dict[str, dict[str, Any]] = {}
+        self._policy_variant_kind = _normalize_optional_non_empty(policy_variant_kind)
+        self._policy_variant_name = _normalize_optional_non_empty(policy_variant_name)
+        self._execution_priority_mode = execution_priority_mode
+        self._policy_load_snapshot = {
+            "num_requests_running": _coerce_optional_float(
+                (policy_load_snapshot or {}).get("num_requests_running")
+            ),
+            "num_requests_waiting": _coerce_optional_float(
+                (policy_load_snapshot or {}).get("num_requests_waiting")
+            ),
+            "kv_cache_usage_perc": _coerce_optional_float(
+                (policy_load_snapshot or {}).get("kv_cache_usage_perc")
+            ),
+        }
+
+        if (self._policy_variant_kind is None) != (self._policy_variant_name is None):
+            raise ValueError(
+                "policy_variant_kind and policy_variant_name must be configured together."
+            )
+        if self._policy_variant_kind is not None and self._policy_variant_name is not None:
+            runtime_policy.validate_direct_endpoint_variant(
+                {
+                    "kind": self._policy_variant_kind,
+                    "name": self._policy_variant_name,
+                }
+            )
+        if execution_priority_mode not in runtime_policy.EXECUTION_PRIORITY_MODES:
+            raise ValueError(
+                "execution_priority_mode must be one of: "
+                + ", ".join(runtime_policy.EXECUTION_PRIORITY_MODES)
+            )
 
     def import_workflow(self, request: WorkflowImportRequest) -> WorkflowImportResponse:
         self._require_supported_target(request.desired_target)
@@ -167,6 +204,9 @@ class MockWorkflowProductAdapter:
             request.input_payload,
             serving_context=serving_context,
         )
+        policy_decision = _normalize_mapping(request.metadata.get("policy_decision"))
+        if policy_decision and "policy_decision" not in submit_payload:
+            submit_payload["policy_decision"] = policy_decision
 
         with self._lock:
             self._job_counter += 1
@@ -183,6 +223,7 @@ class MockWorkflowProductAdapter:
                     "normalized_workflow": dict(imported_workflow.normalized_workflow),
                     "submitted_input": request.input_payload,
                     "submit_payload": submit_payload,
+                    **({"policy_decision": policy_decision} if policy_decision else {}),
                     **({"serving_context": serving_context} if serving_context is not None else {}),
                 },
             }
@@ -196,6 +237,7 @@ class MockWorkflowProductAdapter:
             submit_payload=submit_payload,
             metadata={
                 "submit_mode": request.submit_mode,
+                **({"policy_decision": policy_decision} if policy_decision else {}),
                 **({"serving_context": serving_context} if serving_context is not None else {}),
             },
         )
@@ -280,8 +322,62 @@ class MockWorkflowProductAdapter:
         endpoint_request["submit_via"] = "endpoint_request"
         endpoint_request["workflow_id"] = imported_workflow.workflow_id
         if serving_context is not None:
-            endpoint_request["serving_context"] = serving_context
+            shaped_context, policy_decision = self._shape_serving_context_with_policy(serving_context)
+            endpoint_request["serving_context"] = shaped_context
+            if policy_decision is not None:
+                endpoint_request["policy_decision"] = policy_decision
         return endpoint_request
+
+    def _shape_serving_context_with_policy(
+        self,
+        serving_context: dict[str, Any],
+    ) -> tuple[dict[str, Any], dict[str, Any] | None]:
+        shaped = dict(serving_context)
+        if self._policy_variant_kind is None or self._policy_variant_name is None:
+            return shaped, None
+
+        variant_policy = runtime_policy.variant_policy_for(
+            self._policy_variant_kind,
+            self._policy_variant_name,
+        )
+        controller, source = runtime_policy.resolve_deadline_class_max_tokens(
+            type("_Args", (), {"deadline_class_max_tokens": None})(),
+            variant_policy,
+        )
+        caps, cap_profile = runtime_policy.deadline_class_max_tokens_for_request(
+            variant_policy,
+            controller,
+            dict(self._policy_load_snapshot),
+            event={"serving_context": shaped},
+        )
+
+        requested_max_tokens = shaped.get("max_tokens")
+        effective_max_tokens = requested_max_tokens
+        if requested_max_tokens is not None:
+            requested, effective = runtime_policy.effective_output_len(shaped, caps)
+            shaped["max_tokens"] = effective
+            requested_max_tokens = requested
+            effective_max_tokens = effective
+
+        mapped_priority = runtime_policy.map_execution_priority(
+            shaped,
+            self._execution_priority_mode,
+        )
+        if mapped_priority is not None:
+            shaped["priority"] = mapped_priority
+
+        decision = {
+            "variant_kind": self._policy_variant_kind,
+            "variant_name": self._policy_variant_name,
+            "deadline_class_cap_source": source,
+            "deadline_class_cap_profile": cap_profile,
+            "deadline_class_max_tokens": caps,
+            "execution_priority_mode": self._execution_priority_mode,
+            "requested_max_tokens": requested_max_tokens,
+            "effective_max_tokens": effective_max_tokens,
+            "mapped_priority": mapped_priority,
+        }
+        return shaped, decision
 
     def _require_job(self, job_id: str) -> dict[str, Any]:
         job = self._jobs.get(job_id)
@@ -351,6 +447,12 @@ def _normalize_optional_non_empty(raw_value: Any) -> str | None:
     if not normalized:
         return None
     return normalized
+
+
+def _coerce_optional_float(raw_value: Any) -> float | None:
+    if raw_value is None:
+        return None
+    return float(raw_value)
 
 
 __all__ = [

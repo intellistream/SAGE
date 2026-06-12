@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import json
+import os
+from collections.abc import Mapping
 from threading import RLock
 from typing import Any
 
+from . import policy as serving_policy
 from .contracts import (
     ImportedWorkflow,
     WorkflowImportRequest,
@@ -16,8 +20,14 @@ from .contracts import (
     WorkflowJobSubmitResponse,
     WorkflowProductAdapter,
     WorkflowProductAdapterDescriptor,
+    WorkflowServingRequestContext,
     default_workflow_product_extension_points,
 )
+
+
+DEFAULT_WORKFLOW_POLICY_VARIANT_KIND = "baseline"
+DEFAULT_WORKFLOW_POLICY_VARIANT_NAME = "vamos-slo-feasibility-controller"
+DEFAULT_WORKFLOW_POLICY_EXECUTION_PRIORITY_MODE = "invert-vamos"
 
 
 class WorkflowIntegrationRegistry:
@@ -25,6 +35,10 @@ class WorkflowIntegrationRegistry:
         self,
         *,
         extension_points: tuple[WorkflowIntegrationExtensionPoint, ...] | None = None,
+        policy_variant_kind: str | None = None,
+        policy_variant_name: str | None = None,
+        execution_priority_mode: str = "off",
+        policy_load_snapshot: Mapping[str, float | None] | None = None,
     ) -> None:
         resolved_extension_points = extension_points or default_workflow_product_extension_points()
         self._extension_points = {
@@ -32,6 +46,36 @@ class WorkflowIntegrationRegistry:
         }
         self._adapters_by_type: dict[str, WorkflowProductAdapter] = {}
         self._lock = RLock()
+        self._policy_variant_kind = _normalize_optional_non_empty(policy_variant_kind)
+        self._policy_variant_name = _normalize_optional_non_empty(policy_variant_name)
+        self._execution_priority_mode = execution_priority_mode
+        self._policy_load_snapshot = {
+            "num_requests_running": _coerce_optional_float(
+                (policy_load_snapshot or {}).get("num_requests_running")
+            ),
+            "num_requests_waiting": _coerce_optional_float(
+                (policy_load_snapshot or {}).get("num_requests_waiting")
+            ),
+            "kv_cache_usage_perc": _coerce_optional_float(
+                (policy_load_snapshot or {}).get("kv_cache_usage_perc")
+            ),
+        }
+        if (self._policy_variant_kind is None) != (self._policy_variant_name is None):
+            raise ValueError(
+                "policy_variant_kind and policy_variant_name must be configured together."
+            )
+        if self._policy_variant_kind is not None and self._policy_variant_name is not None:
+            serving_policy.validate_direct_endpoint_variant(
+                {
+                    "kind": self._policy_variant_kind,
+                    "name": self._policy_variant_name,
+                }
+            )
+        if execution_priority_mode not in serving_policy.EXECUTION_PRIORITY_MODES:
+            raise ValueError(
+                "execution_priority_mode must be one of: "
+                + ", ".join(serving_policy.EXECUTION_PRIORITY_MODES)
+            )
 
     def register_adapter(self, adapter: WorkflowProductAdapter) -> WorkflowProductAdapterDescriptor:
         descriptor = validate_workflow_product_adapter(adapter)
@@ -129,7 +173,11 @@ class WorkflowIntegrationRegistry:
         _validate_imported_workflow(
             request.imported_workflow, integration_type=request.integration_type
         )
-        response = adapter.submit_job(request)
+        prepared_request = self._prepare_submit_request_with_policy(
+            request,
+            adapter=adapter,
+        )
+        response = adapter.submit_job(prepared_request)
         _validate_adapter_response(
             request_integration_type=request.integration_type,
             request_id=request.request_id,
@@ -137,6 +185,73 @@ class WorkflowIntegrationRegistry:
             response_type=WorkflowJobSubmitResponse,
         )
         return response
+
+    def _prepare_submit_request_with_policy(
+        self,
+        request: WorkflowJobSubmitRequest,
+        *,
+        adapter: WorkflowProductAdapter,
+    ) -> WorkflowJobSubmitRequest:
+        if self._policy_variant_kind is None or self._policy_variant_name is None:
+            return request
+        if request.serving_context is None:
+            return request
+        # Avoid applying registry-level shaping when adapter already embeds policy logic.
+        if getattr(adapter, "_policy_variant_kind", None) is not None:
+            return request
+
+        base_context = dict(request.serving_context.to_dict())
+        variant_policy = serving_policy.variant_policy_for(
+            self._policy_variant_kind,
+            self._policy_variant_name,
+        )
+        controller, source = serving_policy.resolve_deadline_class_max_tokens(
+            type("_Args", (), {"deadline_class_max_tokens": None})(),
+            variant_policy,
+        )
+        caps, cap_profile = serving_policy.deadline_class_max_tokens_for_request(
+            variant_policy,
+            controller,
+            dict(self._policy_load_snapshot),
+            event={"serving_context": base_context},
+        )
+
+        requested_max_tokens = base_context.get("max_tokens")
+        effective_max_tokens = requested_max_tokens
+        if requested_max_tokens is not None:
+            requested, effective = serving_policy.effective_output_len(base_context, caps)
+            base_context["max_tokens"] = effective
+            requested_max_tokens = requested
+            effective_max_tokens = effective
+
+        mapped_priority = serving_policy.map_execution_priority(
+            base_context,
+            self._execution_priority_mode,
+        )
+
+        policy_decision = {
+            "variant_kind": self._policy_variant_kind,
+            "variant_name": self._policy_variant_name,
+            "deadline_class_cap_source": source,
+            "deadline_class_cap_profile": cap_profile,
+            "deadline_class_max_tokens": caps,
+            "execution_priority_mode": self._execution_priority_mode,
+            "requested_max_tokens": requested_max_tokens,
+            "effective_max_tokens": effective_max_tokens,
+            "mapped_priority": mapped_priority,
+            "applied_by": "registry",
+        }
+        metadata = dict(request.metadata)
+        metadata["policy_decision"] = policy_decision
+        return WorkflowJobSubmitRequest(
+            integration_type=request.integration_type,
+            imported_workflow=request.imported_workflow,
+            input_payload=request.input_payload,
+            submit_mode=request.submit_mode,
+            request_id=request.request_id,
+            metadata=metadata,
+            serving_context=WorkflowServingRequestContext(**base_context),
+        )
 
     def poll_status(self, request: WorkflowJobStatusPollRequest) -> WorkflowJobStatusPollResponse:
         adapter = self.require_adapter(request.integration_type)
@@ -162,6 +277,35 @@ class WorkflowIntegrationRegistry:
             response_type=WorkflowJobResultCollectResponse,
         )
         return response
+
+
+def build_workflow_integration_registry_from_env(
+    *,
+    extension_points: tuple[WorkflowIntegrationExtensionPoint, ...] | None = None,
+    env: Mapping[str, str] | None = None,
+) -> WorkflowIntegrationRegistry:
+    env_map: Mapping[str, str] = env if env is not None else os.environ
+
+    variant_kind = _normalize_optional_non_empty(
+        env_map.get("SAGE_WORKFLOW_POLICY_VARIANT_KIND")
+    ) or DEFAULT_WORKFLOW_POLICY_VARIANT_KIND
+    variant_name = _normalize_optional_non_empty(
+        env_map.get("SAGE_WORKFLOW_POLICY_VARIANT_NAME")
+    ) or DEFAULT_WORKFLOW_POLICY_VARIANT_NAME
+    execution_priority_mode = (
+        _normalize_optional_non_empty(env_map.get("SAGE_WORKFLOW_POLICY_EXECUTION_PRIORITY_MODE"))
+        or DEFAULT_WORKFLOW_POLICY_EXECUTION_PRIORITY_MODE
+    )
+
+    snapshot = _parse_policy_load_snapshot_from_env(env_map)
+
+    return WorkflowIntegrationRegistry(
+        extension_points=extension_points,
+        policy_variant_kind=variant_kind,
+        policy_variant_name=variant_name,
+        execution_priority_mode=execution_priority_mode,
+        policy_load_snapshot=snapshot,
+    )
 
 
 def validate_workflow_product_adapter(
@@ -220,7 +364,67 @@ def _normalize_non_empty(value: Any, *, field_name: str) -> str:
     return normalized
 
 
+def _normalize_optional_non_empty(raw_value: Any) -> str | None:
+    if raw_value is None:
+        return None
+    normalized = str(raw_value).strip()
+    if not normalized:
+        return None
+    return normalized
+
+
+def _coerce_optional_float(raw_value: Any) -> float | None:
+    if raw_value is None:
+        return None
+    return float(raw_value)
+
+
+def _parse_policy_load_snapshot_from_env(env_map: Mapping[str, str]) -> dict[str, float | None]:
+    snapshot: dict[str, float | None] = {
+        "num_requests_running": None,
+        "num_requests_waiting": None,
+        "kv_cache_usage_perc": None,
+    }
+
+    raw_json = _normalize_optional_non_empty(env_map.get("SAGE_WORKFLOW_POLICY_LOAD_SNAPSHOT_JSON"))
+    if raw_json is not None:
+        try:
+            payload = json.loads(raw_json)
+        except json.JSONDecodeError as exc:
+            raise ValueError("SAGE_WORKFLOW_POLICY_LOAD_SNAPSHOT_JSON must be valid JSON") from exc
+        if not isinstance(payload, Mapping):
+            raise ValueError("SAGE_WORKFLOW_POLICY_LOAD_SNAPSHOT_JSON must decode to an object")
+        snapshot["num_requests_running"] = _coerce_optional_float(
+            payload.get("num_requests_running")
+        )
+        snapshot["num_requests_waiting"] = _coerce_optional_float(
+            payload.get("num_requests_waiting")
+        )
+        snapshot["kv_cache_usage_perc"] = _coerce_optional_float(
+            payload.get("kv_cache_usage_perc")
+        )
+
+    direct_running = _normalize_optional_non_empty(
+        env_map.get("SAGE_WORKFLOW_POLICY_NUM_REQUESTS_RUNNING")
+    )
+    if direct_running is not None:
+        snapshot["num_requests_running"] = float(direct_running)
+
+    direct_waiting = _normalize_optional_non_empty(
+        env_map.get("SAGE_WORKFLOW_POLICY_NUM_REQUESTS_WAITING")
+    )
+    if direct_waiting is not None:
+        snapshot["num_requests_waiting"] = float(direct_waiting)
+
+    direct_kv = _normalize_optional_non_empty(env_map.get("SAGE_WORKFLOW_POLICY_KV_CACHE_USAGE_PERC"))
+    if direct_kv is not None:
+        snapshot["kv_cache_usage_perc"] = float(direct_kv)
+
+    return snapshot
+
+
 __all__ = [
+    "build_workflow_integration_registry_from_env",
     "WorkflowIntegrationRegistry",
     "validate_workflow_product_adapter",
 ]
