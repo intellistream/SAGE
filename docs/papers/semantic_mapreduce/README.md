@@ -141,6 +141,27 @@ issue authenticated streaming requests, measure TTFT/TPOT, and clean up the
 service. The concurrency-2 TTFT increase is expected because the endpoint was
 configured with `max_num_seqs=1`.
 
+### Real LLM Reducer Readiness
+
+The paper does not yet report LLM-backed incident precision/recall. The
+repository now includes an OpenAI-compatible `llm-openai` reducer and a JSON
+readiness probe:
+
+```bash
+PYTHONPATH=src python tools/benchmark_carrier/probe_llm_json_readiness.py \
+  --base-url http://127.0.0.1:<port> \
+  --model <served-model-name> \
+  --env-file "$HOME/vllm-hust-dev-hub/.env" \
+  --endpoint-type chat \
+  --structured-output
+```
+
+The 2026-07-01 real-online probes on Qwen2.5-7B and Qwen2.5-14B vLLM-HUST
+endpoints reached the structured-output path but returned malformed or truncated
+JSON, so they are recorded as readiness failures rather than LLM reducer quality
+results. See `docs/large-scale-analysis-workload.md` for launch commands and
+artifact names.
+
 ## Adapter-Level Comparison
 
 The paper also reports a local adapter-level comparison:

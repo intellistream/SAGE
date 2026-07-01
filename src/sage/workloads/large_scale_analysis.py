@@ -12,9 +12,12 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import random
 import statistics
 import time
+import urllib.error
+import urllib.request
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -222,6 +225,131 @@ class LLMStubIncidentReducer(IncidentReducer):
         ]
 
 
+class OpenAICompletionIncidentReducer(IncidentReducer):
+    """OpenAI-compatible LLM reducer for real semantic-reduce experiments.
+
+    The reducer sends compact window-level evidence to a live completions
+    endpoint and requires the model to return incident hypotheses as JSON. It
+    does not fall back to deterministic reduction on parse or endpoint errors.
+    """
+
+    name = "llm-openai"
+
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        model: str,
+        api_key: str,
+        max_evidence: int = 24,
+        max_tokens: int = 768,
+        temperature: float = 0.0,
+        timeout_sec: int = 180,
+        endpoint_type: str = "chat",
+        structured_output: bool = False,
+    ) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+        self.api_key = api_key
+        self.max_evidence = max_evidence
+        self.max_tokens = max_tokens
+        self.temperature = temperature
+        self.timeout_sec = timeout_sec
+        self.endpoint_type = endpoint_type
+        self.structured_output = structured_output
+        self.last_call: dict[str, Any] = {}
+
+    def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+        evidence = _reduce_summaries_by_window(summaries)[: self.max_evidence]
+        prompt = _build_llm_reduce_prompt(evidence)
+        started = time.perf_counter()
+        text = self._completion(prompt)
+        latency_ms = (time.perf_counter() - started) * 1000
+        parsed = _extract_json_payload(text)
+        incidents = _normalize_llm_incidents(parsed, evidence)
+        self.last_call = {
+            "model": self.model,
+            "base_url": self.base_url,
+            "endpoint_type": self.endpoint_type,
+            "structured_output": self.structured_output,
+            "latency_ms": round(latency_ms, 2),
+            "prompt_chars": len(prompt),
+            "response_chars": len(text),
+            "input_evidence_count": len(evidence),
+            "output_incident_count": len(incidents),
+        }
+        for incident in incidents:
+            incident["reducer"] = self.name
+            incident["llm_model"] = self.model
+            incident["llm_latency_ms"] = round(latency_ms, 2)
+        return incidents
+
+    def _completion(self, prompt: str) -> str:
+        endpoint_type = self.endpoint_type.strip().lower()
+        if endpoint_type == "chat":
+            path = "/v1/chat/completions"
+            payload: dict[str, Any] = {
+                "model": self.model,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a strict JSON generator for systems "
+                            "telemetry incident reduction."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": self.max_tokens,
+                "temperature": self.temperature,
+            }
+            if self.structured_output:
+                payload["response_format"] = {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "large_scale_analysis_incidents",
+                        "schema": _llm_incident_json_schema(),
+                    },
+                }
+        elif endpoint_type == "completion":
+            path = "/v1/completions"
+            payload = {
+                "model": self.model,
+                "prompt": prompt,
+                "max_tokens": self.max_tokens,
+                "temperature": self.temperature,
+            }
+        else:
+            raise RuntimeError(
+                f"Unsupported LLM reducer endpoint_type: {self.endpoint_type!r}"
+            )
+        req = urllib.request.Request(
+            f"{self.base_url}{path}",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.api_key}",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout_sec) as response:
+                body = response.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(
+                f"LLM reducer endpoint returned HTTP {exc.code}: {body[:300]}"
+            ) from exc
+        parsed = json.loads(body) if body else {}
+        choices = parsed.get("choices") or []
+        if not choices:
+            raise RuntimeError("LLM reducer endpoint returned no choices.")
+        if endpoint_type == "chat":
+            message = choices[0].get("message") or {}
+            return str(message.get("content") or "")
+        return str(choices[0].get("text") or "")
+
+
 def incident_to_dict(incident: InjectedIncident) -> dict[str, Any]:
     return {
         "incident_id": incident.incident_id,
@@ -248,10 +376,32 @@ def resolve_incident_reducer(reducer: str | IncidentReducer | None) -> IncidentR
         return WindowAggregateIncidentReducer()
     if normalized in {"llm-stub", "llm_stub"}:
         return LLMStubIncidentReducer()
+    if normalized in {"llm-openai", "llm_openai", "openai"}:
+        api_key = os.environ.get("SAGE_LSA_LLM_API_KEY") or os.environ.get(
+            "VLLM_HUST_API_KEY"
+        )
+        if not api_key:
+            raise ValueError(
+                "llm-openai reducer requires SAGE_LSA_LLM_API_KEY or "
+                "VLLM_HUST_API_KEY in the environment."
+            )
+        return OpenAICompletionIncidentReducer(
+            base_url=os.environ.get("SAGE_LSA_LLM_BASE_URL", "http://127.0.0.1:8001"),
+            model=os.environ.get("SAGE_LSA_LLM_MODEL", "Qwen2.5-14B-Instruct"),
+            api_key=api_key,
+            max_evidence=int(os.environ.get("SAGE_LSA_LLM_MAX_EVIDENCE", "24")),
+            max_tokens=int(os.environ.get("SAGE_LSA_LLM_MAX_TOKENS", "768")),
+            timeout_sec=int(os.environ.get("SAGE_LSA_LLM_TIMEOUT_SEC", "180")),
+            endpoint_type=os.environ.get("SAGE_LSA_LLM_ENDPOINT_TYPE", "chat"),
+            structured_output=os.environ.get("SAGE_LSA_LLM_STRUCTURED_OUTPUT", "")
+            .strip()
+            .lower()
+            in {"1", "true", "yes", "on"},
+        )
     raise ValueError(
         "Unknown reducer: "
         f"{reducer!r}. Expected one of: deterministic, map-only, "
-        "window-aggregate, llm-stub."
+        "window-aggregate, llm-stub, llm-openai."
     )
 
 
@@ -450,6 +600,213 @@ def _explain_candidate(candidate: dict[str, Any]) -> str:
         f"p95={candidate['p95_latency_ms']}ms, errors={candidate['error_rate']:.2%}, "
         f"npu={candidate['mean_npu_util']:.2f}, queue={candidate['mean_queue_depth']}."
     )
+
+
+def _build_llm_reduce_prompt(evidence: list[dict[str, Any]]) -> str:
+    compact_evidence = [
+        {
+            "evidence_id": idx,
+            "service": item["service"],
+            "region": item["region"],
+            "start_minute": item["start_minute"],
+            "end_minute": item["end_minute"],
+            "score": item["score"],
+            "signals": item["signals"],
+            "p95_latency_ms": item["p95_latency_ms"],
+            "error_rate": item["error_rate"],
+            "mean_npu_util": item["mean_npu_util"],
+            "mean_queue_depth": item["mean_queue_depth"],
+            "evidence_count": item["evidence_count"],
+        }
+        for idx, item in enumerate(evidence)
+    ]
+    return (
+        "You are a semantic reducer for large-scale LLM serving telemetry.\n"
+        "Merge related evidence windows into incident-level hypotheses. "
+        "Use only the evidence provided. Return ONLY valid JSON with this schema:\n"
+        "{\"incidents\":[{\"service\":\"...\",\"region\":\"...\","
+        "\"start_minute\":0,\"end_minute\":0,\"score\":0.0,"
+        "\"signals\":[\"latency\"],\"evidence_ids\":[0],"
+        "\"summary\":\"short evidence-linked explanation\"}]}\n"
+        "Rules: merge adjacent windows for the same service and region when the "
+        "signals plausibly describe one incident; do not invent services, "
+        "regions, or time ranges outside the evidence; prefer fewer duplicate "
+        "incidents over many local alerts.\n"
+        f"Evidence JSON:\n{json.dumps(compact_evidence, sort_keys=True)}"
+    )
+
+
+def _llm_incident_json_schema() -> dict[str, Any]:
+    incident_schema: dict[str, Any] = {
+        "type": "object",
+        "properties": {
+            "service": {"type": "string", "enum": list(SERVICES)},
+            "region": {"type": "string", "enum": list(REGIONS)},
+            "start_minute": {"type": "integer", "minimum": 0, "maximum": 20000},
+            "end_minute": {"type": "integer", "minimum": 0, "maximum": 20000},
+            "score": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+            "signals": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "enum": ["latency", "errors", "npu", "queue"],
+                },
+                "minItems": 1,
+                "maxItems": 4,
+            },
+            "evidence_ids": {
+                "type": "array",
+                "items": {"type": "integer", "minimum": 0, "maximum": 256},
+                "minItems": 1,
+                "maxItems": 4,
+            },
+            "summary": {"type": "string", "maxLength": 240},
+        },
+        "required": [
+            "service",
+            "region",
+            "start_minute",
+            "end_minute",
+            "score",
+            "signals",
+            "evidence_ids",
+            "summary",
+        ],
+        "additionalProperties": False,
+    }
+    return {
+        "type": "object",
+        "properties": {
+            "incidents": {
+                "type": "array",
+                "items": incident_schema,
+                "maxItems": 4,
+            }
+        },
+        "required": ["incidents"],
+        "additionalProperties": False,
+    }
+
+
+def _extract_json_payload(text: str) -> dict[str, Any]:
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = cleaned.strip("`")
+        if cleaned.lower().startswith("json"):
+            cleaned = cleaned[4:].strip()
+    try:
+        parsed = json.loads(cleaned)
+    except json.JSONDecodeError:
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start < 0 or end <= start:
+            raise RuntimeError(f"LLM reducer returned non-JSON text: {text[:300]}")
+        parsed = json.loads(cleaned[start : end + 1])
+    if not isinstance(parsed, dict):
+        raise RuntimeError("LLM reducer JSON payload must be an object.")
+    return parsed
+
+
+def _normalize_llm_incidents(
+    payload: dict[str, Any], evidence: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    raw_incidents = payload.get("incidents")
+    if not isinstance(raw_incidents, list):
+        raise RuntimeError("LLM reducer JSON must contain an incidents list.")
+
+    normalized: list[dict[str, Any]] = []
+    for raw in raw_incidents:
+        if not isinstance(raw, dict):
+            continue
+        evidence_ids = [
+            int(idx)
+            for idx in raw.get("evidence_ids", [])
+            if isinstance(idx, int) or (isinstance(idx, str) and idx.isdigit())
+        ]
+        selected = [evidence[idx] for idx in evidence_ids if 0 <= idx < len(evidence)]
+        service = str(raw.get("service") or (selected[0]["service"] if selected else ""))
+        region = str(raw.get("region") or (selected[0]["region"] if selected else ""))
+        if not service or not region:
+            continue
+
+        start_minute = _coerce_int(
+            raw.get("start_minute"),
+            min((item["start_minute"] for item in selected), default=0),
+        )
+        end_minute = _coerce_int(
+            raw.get("end_minute"),
+            max((item["end_minute"] for item in selected), default=start_minute),
+        )
+        signals = raw.get("signals")
+        if not isinstance(signals, list):
+            signals = sorted({signal for item in selected for signal in item["signals"]})
+        signals = [str(signal) for signal in signals]
+        score = max(0.0, min(1.0, _coerce_float(raw.get("score"), 0.5)))
+        evidence_count = sum(int(item.get("evidence_count", 0)) for item in selected)
+        p95 = max((float(item["p95_latency_ms"]) for item in selected), default=0.0)
+        error_rate = max((float(item["error_rate"]) for item in selected), default=0.0)
+        npu_util = max((float(item["mean_npu_util"]) for item in selected), default=0.0)
+        queue_depth = max(
+            (float(item["mean_queue_depth"]) for item in selected), default=0.0
+        )
+        normalized.append(
+            {
+                "service": service,
+                "region": region,
+                "window": start_minute // 20,
+                "start_minute": start_minute,
+                "end_minute": max(end_minute, start_minute),
+                "score": round(score, 4),
+                "evidence_count": evidence_count or max(1, len(selected)),
+                "signals": signals,
+                "p95_latency_ms": round(p95, 2),
+                "error_rate": round(error_rate, 4),
+                "mean_npu_util": round(npu_util, 4),
+                "mean_queue_depth": round(queue_depth, 2),
+                "evidence_ids": evidence_ids,
+                "summary": str(raw.get("summary") or "LLM-generated incident."),
+            }
+        )
+
+    normalized.sort(key=lambda item: (item["score"], item["evidence_count"]), reverse=True)
+    return normalized
+
+
+def _coerce_int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _coerce_float(value: Any, default: float) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _load_env_file(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    if not path.exists():
+        return values
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip().strip('"').strip("'")
+    return values
+
+
+def _api_key_from_env_or_file(env_name: str, env_file: str | None) -> str:
+    if os.environ.get(env_name):
+        return os.environ[env_name]
+    if env_file:
+        values = _load_env_file(Path(env_file).expanduser())
+        if values.get(env_name):
+            return values[env_name]
+    raise RuntimeError(f"Missing API key. Set {env_name} or provide --llm-env-file.")
 
 
 def _reduce_summaries_by_window(summaries: list[ShardSummary]) -> list[dict[str, Any]]:
@@ -686,19 +1043,58 @@ def main(argv: Iterable[str] | None = None) -> int:
     parser.add_argument("--top-k", type=int, default=12)
     parser.add_argument(
         "--reducer",
-        choices=("deterministic", "map-only", "window-aggregate", "llm-stub"),
+        choices=(
+            "deterministic",
+            "map-only",
+            "window-aggregate",
+            "llm-stub",
+            "llm-openai",
+        ),
         default="deterministic",
         help="Incident reducer implementation to use.",
     )
+    parser.add_argument("--llm-base-url", default="http://127.0.0.1:8001")
+    parser.add_argument("--llm-model", default="Qwen2.5-14B-Instruct")
+    parser.add_argument("--llm-api-key-env", default="VLLM_HUST_API_KEY")
+    parser.add_argument("--llm-env-file", default="~/vllm-hust-dev-hub/.env")
+    parser.add_argument("--llm-max-evidence", type=int, default=24)
+    parser.add_argument("--llm-max-tokens", type=int, default=768)
+    parser.add_argument("--llm-timeout-sec", type=int, default=180)
+    parser.add_argument(
+        "--llm-endpoint-type",
+        choices=("chat", "completion"),
+        default="chat",
+        help="OpenAI-compatible endpoint family used by llm-openai.",
+    )
+    parser.add_argument(
+        "--llm-structured-output",
+        action="store_true",
+        help="Request an OpenAI-compatible JSON schema response for llm-openai.",
+    )
     parser.add_argument("--output", type=Path)
     args = parser.parse_args(list(argv) if argv is not None else None)
+
+    reducer: str | IncidentReducer
+    if args.reducer == "llm-openai":
+        reducer = OpenAICompletionIncidentReducer(
+            base_url=args.llm_base_url,
+            model=args.llm_model,
+            api_key=_api_key_from_env_or_file(args.llm_api_key_env, args.llm_env_file),
+            max_evidence=args.llm_max_evidence,
+            max_tokens=args.llm_max_tokens,
+            timeout_sec=args.llm_timeout_sec,
+            endpoint_type=args.llm_endpoint_type,
+            structured_output=args.llm_structured_output,
+        )
+    else:
+        reducer = args.reducer
 
     report = run_large_scale_analysis_workload(
         event_count=args.events,
         shard_count=args.shards,
         seed=args.seed,
         top_k=args.top_k,
-        reducer=args.reducer,
+        reducer=reducer,
     )
     payload = report.to_dict()
     text = json.dumps(payload, ensure_ascii=False, indent=2)

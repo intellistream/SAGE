@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import json
+
+import sage.workloads.large_scale_analysis as lsa
 from sage.workloads.large_scale_analysis import (
     LLMStubIncidentReducer,
     MapOnlyIncidentReducer,
+    OpenAICompletionIncidentReducer,
     STANDARD_OPERATORS,
     WindowAggregateIncidentReducer,
     generate_synthetic_events,
+    map_shard,
     partition_events,
     run_large_scale_analysis_workload,
 )
@@ -124,3 +129,75 @@ def test_large_scale_workload_accepts_reducer_instance() -> None:
     )
     assert map_only.reducer_name == "map-only"
     assert window.reducer_name == "window-aggregate"
+
+
+def test_openai_completion_reducer_parses_json_incidents() -> None:
+    dataset = generate_synthetic_events(event_count=20_000, seed=7)
+    summaries = [
+        map_shard(shard_id, shard)
+        for shard_id, shard in enumerate(partition_events(dataset.events, shard_count=8))
+    ]
+    reducer = OpenAICompletionIncidentReducer(
+        base_url="http://example.invalid",
+        model="unit-test-model",
+        api_key="unit-test-key",
+    )
+    reducer._completion = lambda _prompt: """{
+      "incidents": [
+        {
+          "service": "decode",
+          "region": "npu-a",
+          "start_minute": 120,
+          "end_minute": 159,
+          "score": 0.8,
+          "signals": ["latency", "queue"],
+          "evidence_ids": [0],
+          "summary": "decode queue and latency evidence point to one incident"
+        }
+      ]
+    }"""
+
+    incidents = reducer.reduce(summaries)
+
+    assert incidents
+    assert incidents[0]["reducer"] == "llm-openai"
+    assert incidents[0]["llm_model"] == "unit-test-model"
+    assert incidents[0]["service"] == "decode"
+    assert incidents[0]["region"] == "npu-a"
+
+
+def test_openai_completion_reducer_can_request_json_schema(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class DummyResponse:
+        def __enter__(self) -> "DummyResponse":
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": "{\"incidents\": []}"}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request, timeout):  # type: ignore[no-untyped-def]
+        captured["timeout"] = timeout
+        captured["payload"] = json.loads(request.data.decode("utf-8"))
+        return DummyResponse()
+
+    monkeypatch.setattr(lsa.urllib.request, "urlopen", fake_urlopen)
+    reducer = OpenAICompletionIncidentReducer(
+        base_url="http://example.invalid",
+        model="unit-test-model",
+        api_key="unit-test-key",
+        structured_output=True,
+    )
+
+    assert reducer._completion("return json") == "{\"incidents\": []}"
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    assert payload["response_format"]["type"] == "json_schema"
+    assert payload["response_format"]["json_schema"]["schema"]["required"] == [
+        "incidents"
+    ]

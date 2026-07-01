@@ -77,6 +77,12 @@ The workload now uses a pluggable reducer contract:
   deterministic evidence fusion but marks summaries as stubbed LLM outputs. It
   does not call an external model and must not be reported as an end-to-end LLM
   result.
+- `llm-openai`: a real OpenAI-compatible semantic reducer. It sends compact
+  window-level evidence to `/v1/chat/completions` or `/v1/completions`, requires
+  JSON incident hypotheses, and can request an OpenAI-compatible JSON schema with
+  `--llm-structured-output`. This reducer does not fall back to the deterministic
+  reducer on endpoint or parse failure, so use the JSON readiness probe below
+  before reporting LLM-backed workload results.
 
 ## eSAGE Experiment Environment
 
@@ -314,6 +320,100 @@ estimate from returned text when usage is absent. Use these numbers as a
 systems-readiness baseline; a paper-grade latency study should increase request
 count, fix tokenizer-based usage accounting, record the effective server
 configuration from launch logs, and report multiple seeds or repeated trials.
+
+### Real LLM Reducer Readiness
+
+The `llm-openai` reducer is intended for real semantic-reduce experiments, but
+the endpoint must first pass a structured-output readiness gate. A healthy model
+server is not enough: the reducer requires parseable incident JSON, and malformed
+or truncated model output must be treated as a failed experiment rather than as a
+low-quality detection result.
+
+For vLLM-HUST, start the endpoint through the hub and enable vLLM generation
+defaults plus structured-output configuration. The example below uses one
+Ascend 910B2 NPU and does not print or store the API key:
+
+```bash
+cd "$HOME/vllm-hust-dev-hub"
+
+VLLM_ENGINE_CONTAINER=sage-lsa-llm-reducer-14b-structured-20260701 \
+VLLM_ENGINE_NPU_DEVICES=4 \
+ASCEND_RT_VISIBLE_DEVICES=4 \
+ASCEND_VISIBLE_DEVICES=4 \
+VLLM_ENGINE_PORT=18385 \
+VLLM_ENGINE_TP_SIZE=1 \
+VLLM_ENGINE_MODEL_PATH=/data/shared_models/Qwen--Qwen2.5-14B-Instruct \
+VLLM_ENGINE_SERVED_MODEL_NAME=qwen25-14b-lsa-reducer \
+VLLM_ENGINE_MAX_MODEL_LEN=2048 \
+VLLM_ENGINE_MAX_NUM_BATCHED_TOKENS=2048 \
+VLLM_ENGINE_MAX_NUM_SEQS=1 \
+VLLM_ENGINE_GPU_MEM_UTIL=0.82 \
+VLLM_ENGINE_ENFORCE_EAGER=1 \
+VLLM_ENGINE_ENABLE_PREFIX_CACHING=0 \
+VLLM_ENGINE_ENABLE_CHUNKED_PREFILL=0 \
+VLLM_PLUGINS=ascend \
+VLLM_ENGINE_PYTHONPATH=/workspace/vllm-hust:/workspace/vllm-ascend-hust \
+VLLM_ENGINE_EXTRA_ARGS_JSON='["--generation-config","vllm","--structured-outputs-config","{\"backend\":\"xgrammar\",\"disable_any_whitespace\":true}"]' \
+bash scripts/run_vllm_hust_engine.sh
+```
+
+Run the readiness probe only after `/health` returns 200:
+
+```bash
+PYTHONPATH=src python tools/benchmark_carrier/probe_llm_json_readiness.py \
+  --base-url http://127.0.0.1:18385 \
+  --model qwen25-14b-lsa-reducer \
+  --env-file "$HOME/vllm-hust-dev-hub/.env" \
+  --endpoint-type chat \
+  --structured-output \
+  --max-tokens 512 \
+  --timeout-sec 240 \
+  --output .sage/benchmarks/llm_json_readiness/20260701T-qwen25-14b-npu4-chat-structured-xgrammar-tight-schema-max4-512.json
+```
+
+If the probe returns `status: ok`, run a small LLM reducer workload:
+
+```bash
+PYTHONPATH=src python tools/benchmark_carrier/run_large_scale_analysis_workload.py \
+  --events 2000 \
+  --shards 4 \
+  --seed 7 \
+  --top-k 5 \
+  --reducer llm-openai \
+  --llm-base-url http://127.0.0.1:18385 \
+  --llm-model qwen25-14b-lsa-reducer \
+  --llm-env-file "$HOME/vllm-hust-dev-hub/.env" \
+  --llm-endpoint-type chat \
+  --llm-structured-output \
+  --llm-max-evidence 12 \
+  --llm-max-tokens 512 \
+  --llm-timeout-sec 240 \
+  --output .sage/benchmarks/large_scale_analysis_llm_reducer/<run-id>/report.json
+```
+
+Cleanup:
+
+```bash
+cd "$HOME/vllm-hust-dev-hub"
+VLLM_ENGINE_CONTAINER=sage-lsa-llm-reducer-14b-structured-20260701 \
+VLLM_ENGINE_PORT=18385 \
+VLLM_ENGINE_AGGRESSIVE_CLEANUP=false \
+bash scripts/cleanup_vllm_hust_engine.sh
+```
+
+On 2026-07-01, the readiness gate was exercised on real vLLM-HUST endpoints:
+
+| model | serving configuration | readiness status | artifact |
+| --- | --- | --- | --- |
+| Qwen2.5-7B-Instruct | chat, `--generation-config vllm` | error: non-JSON repeated tokens | `.sage/benchmarks/llm_json_readiness/20260701T-qwen25-7b-npu4-chat-generation-config-vllm.json` |
+| Qwen2.5-7B-Instruct | chat, xgrammar structured output | error: malformed JSON after entering schema path | `.sage/benchmarks/llm_json_readiness/20260701T-qwen25-7b-npu4-chat-structured-xgrammar.json` |
+| Qwen2.5-14B-Instruct | chat, xgrammar structured output, tight schema | error: schema-shaped but truncated/malformed JSON | `.sage/benchmarks/llm_json_readiness/20260701T-qwen25-14b-npu4-chat-structured-xgrammar-tight-schema-max4-512.json` |
+
+These are real-online readiness failures, not LLM reducer quality numbers. They
+show that the reducer integration exists and that the current endpoint
+configuration does not yet satisfy the structured semantic-reduce contract. Do
+not report `llm-openai` precision, recall, or F1 until the readiness probe
+returns `status: ok` and the workload completes without parse errors.
 
 ## Run
 
