@@ -39,6 +39,12 @@ serving-edge = [
     "fastapi>=0.115.0,<1.0.0",
     "uvicorn[standard]>=0.34.0,<1.0.0",
 ]
+adapter-comparison = [
+    # Optional systems used by the large-scale analysis adapter comparison.
+    "ray>=2.10,<3",
+    "langgraph>=0.2,<1",
+    "llama-index-core>=0.11,<1",
+]
 capability-adapters = [
     # Optional adapter — intent recognition for tool-use / orchestration flows
     "isage-libs-intent>=0.1.0.7",

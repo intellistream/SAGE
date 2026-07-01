@@ -15,6 +15,7 @@ import math
 import random
 import statistics
 import time
+from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -64,6 +65,9 @@ class ShardSummary:
 class WorkloadReport:
     event_count: int
     shard_count: int
+    seed: int
+    top_k: int
+    reducer_name: str
     injected_incident_count: int
     detected_incident_count: int
     matched_incident_count: int
@@ -75,12 +79,17 @@ class WorkloadReport:
     reduce_duration_ms: float
     total_duration_ms: float
     throughput_events_per_s: float
+    injected_incidents: list[dict[str, Any]]
+    missed_incidents: list[dict[str, Any]]
     detected_incidents: list[dict[str, Any]]
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "event_count": self.event_count,
             "shard_count": self.shard_count,
+            "seed": self.seed,
+            "top_k": self.top_k,
+            "reducer_name": self.reducer_name,
             "injected_incident_count": self.injected_incident_count,
             "detected_incident_count": self.detected_incident_count,
             "matched_incident_count": self.matched_incident_count,
@@ -92,6 +101,8 @@ class WorkloadReport:
             "reduce_duration_ms": round(self.reduce_duration_ms, 2),
             "total_duration_ms": round(self.total_duration_ms, 2),
             "throughput_events_per_s": round(self.throughput_events_per_s, 2),
+            "injected_incidents": self.injected_incidents,
+            "missed_incidents": self.missed_incidents,
             "detected_incidents": self.detected_incidents,
         }
 
@@ -99,6 +110,136 @@ class WorkloadReport:
 SERVICES = ("prefill", "decode", "kv-cache", "scheduler", "router", "embedding")
 TENANTS = tuple(f"tenant-{idx:03d}" for idx in range(64))
 REGIONS = ("npu-a", "npu-b", "npu-c")
+
+
+class IncidentReducer(ABC):
+    """Reducer contract for global incident hypothesis generation."""
+
+    name: str
+
+    @abstractmethod
+    def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+        """Fuse shard summaries into globally ranked incident hypotheses."""
+
+
+class DeterministicIncidentReducer(IncidentReducer):
+    """Threshold-based reducer used as the reproducible baseline."""
+
+    name = "deterministic"
+
+    def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+        return _reduce_summaries_deterministic(summaries)
+
+
+class MapOnlyIncidentReducer(IncidentReducer):
+    """Diagnostic baseline that reports shard-local candidates directly.
+
+    This approximates an alerting or dashboard workflow where each partition
+    can surface anomalies, but no global semantic reduce stage deduplicates
+    adjacent windows or merges related evidence into incident hypotheses.
+    """
+
+    name = "map-only"
+
+    def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+        detections: list[dict[str, Any]] = []
+        for summary in summaries:
+            for candidate in summary.candidates:
+                detections.append(
+                    {
+                        "service": candidate["service"],
+                        "region": candidate["region"],
+                        "window": candidate["window"],
+                        "start_minute": candidate["start_minute"],
+                        "end_minute": candidate["end_minute"],
+                        "score": candidate["score"],
+                        "evidence_count": candidate["event_count"],
+                        "signals": candidate["signals"],
+                        "p95_latency_ms": candidate["p95_latency_ms"],
+                        "error_rate": candidate["error_rate"],
+                        "mean_npu_util": candidate["mean_npu_util"],
+                        "mean_queue_depth": candidate["mean_queue_depth"],
+                        "summary": (
+                            f"[map-only shard={summary.shard_id}] "
+                            f"{_explain_candidate(candidate)}"
+                        ),
+                    }
+                )
+        detections.sort(
+            key=lambda item: (item["score"], item["evidence_count"]),
+            reverse=True,
+        )
+        return detections
+
+
+class WindowAggregateIncidentReducer(IncidentReducer):
+    """Diagnostic baseline that aggregates windows but does not cluster incidents."""
+
+    name = "window-aggregate"
+
+    def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+        return _reduce_summaries_by_window(summaries)
+
+
+class LLMStubIncidentReducer(IncidentReducer):
+    """CI-safe placeholder for a future LLM-backed semantic reducer.
+
+    The stub deliberately delegates incident selection to the deterministic
+    baseline, then marks explanations as placeholder LLM outputs. This keeps
+    benchmark runs reproducible while making the integration point explicit.
+    """
+
+    name = "llm-stub"
+
+    def __init__(self, baseline: IncidentReducer | None = None) -> None:
+        self._baseline = baseline or DeterministicIncidentReducer()
+
+    def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+        incidents = self._baseline.reduce(summaries)
+        return [
+            {
+                **incident,
+                "reducer": self.name,
+                "summary": (
+                    "[LLM reducer stub; deterministic evidence fusion] "
+                    f"{incident['summary']}"
+                ),
+            }
+            for incident in incidents
+        ]
+
+
+def incident_to_dict(incident: InjectedIncident) -> dict[str, Any]:
+    return {
+        "incident_id": incident.incident_id,
+        "service": incident.service,
+        "region": incident.region,
+        "start_minute": incident.start_minute,
+        "end_minute": incident.end_minute,
+        "kind": incident.kind,
+    }
+
+
+def resolve_incident_reducer(reducer: str | IncidentReducer | None) -> IncidentReducer:
+    if reducer is None:
+        return DeterministicIncidentReducer()
+    if isinstance(reducer, IncidentReducer):
+        return reducer
+
+    normalized = reducer.strip().lower()
+    if normalized == "deterministic":
+        return DeterministicIncidentReducer()
+    if normalized in {"map-only", "map_only"}:
+        return MapOnlyIncidentReducer()
+    if normalized in {"window-aggregate", "window_aggregate", "window"}:
+        return WindowAggregateIncidentReducer()
+    if normalized in {"llm-stub", "llm_stub"}:
+        return LLMStubIncidentReducer()
+    raise ValueError(
+        "Unknown reducer: "
+        f"{reducer!r}. Expected one of: deterministic, map-only, "
+        "window-aggregate, llm-stub."
+    )
 
 
 def generate_synthetic_events(
@@ -277,7 +418,7 @@ def _explain_candidate(candidate: dict[str, Any]) -> str:
     )
 
 
-def reduce_summaries(summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+def _reduce_summaries_by_window(summaries: list[ShardSummary]) -> list[dict[str, Any]]:
     merged: dict[tuple[str, str, int], list[dict[str, Any]]] = defaultdict(list)
     for summary in summaries:
         for candidate in summary.candidates:
@@ -318,6 +459,16 @@ def reduce_summaries(summaries: list[ShardSummary]) -> list[dict[str, Any]]:
             }
         )
 
+    window_detections.sort(
+        key=lambda item: (item["score"], item["evidence_count"]),
+        reverse=True,
+    )
+    return window_detections
+
+
+def _reduce_summaries_deterministic(summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+    window_detections = _reduce_summaries_by_window(summaries)
+
     by_target: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for detection in window_detections:
         by_target[(detection["service"], detection["region"])].append(detection)
@@ -337,6 +488,12 @@ def reduce_summaries(summaries: list[ShardSummary]) -> list[dict[str, Any]]:
 
     incidents.sort(key=lambda item: (item["score"], item["evidence_count"]), reverse=True)
     return incidents
+
+
+def reduce_summaries(summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+    """Backward-compatible deterministic reducer helper."""
+
+    return DeterministicIncidentReducer().reduce(summaries)
 
 
 def _cluster_window_detections(
@@ -392,16 +549,7 @@ def _matches_incident(detection: dict[str, Any], incident: InjectedIncident) -> 
 def score_detections(
     detections: list[dict[str, Any]], incidents: list[InjectedIncident]
 ) -> tuple[int, float, float, float, float]:
-    matched_incidents: set[str] = set()
-    matched_detections = 0
-    for detection in detections:
-        for incident in incidents:
-            if incident.incident_id in matched_incidents:
-                continue
-            if _matches_incident(detection, incident):
-                matched_incidents.add(incident.incident_id)
-                matched_detections += 1
-                break
+    matched_incidents, matched_detections = match_detections(detections, incidents)
     precision = matched_detections / len(detections) if detections else 0.0
     recall = len(matched_incidents) / len(incidents) if incidents else 1.0
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
@@ -411,13 +559,33 @@ def score_detections(
     return len(matched_incidents), precision, recall, f1, evidence_coverage
 
 
+def match_detections(
+    detections: list[dict[str, Any]], incidents: list[InjectedIncident]
+) -> tuple[set[str], int]:
+    matched_incidents: set[str] = set()
+    matched_detections = 0
+    for detection in detections:
+        detection["matched_incident_id"] = None
+        for incident in incidents:
+            if incident.incident_id in matched_incidents:
+                continue
+            if _matches_incident(detection, incident):
+                matched_incidents.add(incident.incident_id)
+                detection["matched_incident_id"] = incident.incident_id
+                matched_detections += 1
+                break
+    return matched_incidents, matched_detections
+
+
 def run_large_scale_analysis_workload(
     *,
     event_count: int = 50_000,
     shard_count: int = 16,
     seed: int = 7,
     top_k: int = 12,
+    reducer: str | IncidentReducer | None = None,
 ) -> WorkloadReport:
+    incident_reducer = resolve_incident_reducer(reducer)
     started = time.perf_counter()
     dataset = generate_synthetic_events(event_count=event_count, seed=seed)
     shards = partition_events(dataset.events, shard_count)
@@ -427,16 +595,25 @@ def run_large_scale_analysis_workload(
     map_duration_ms = (time.perf_counter() - map_started) * 1000
 
     reduce_started = time.perf_counter()
-    detections = reduce_summaries(summaries)[:top_k]
+    detections = incident_reducer.reduce(summaries)[:top_k]
     reduce_duration_ms = (time.perf_counter() - reduce_started) * 1000
 
     matched, precision, recall, f1, coverage = score_detections(
         detections, dataset.incidents
     )
+    matched_incident_ids, _ = match_detections(detections, dataset.incidents)
+    missed_incidents = [
+        incident_to_dict(incident)
+        for incident in dataset.incidents
+        if incident.incident_id not in matched_incident_ids
+    ]
     total_duration_ms = (time.perf_counter() - started) * 1000
     return WorkloadReport(
         event_count=event_count,
         shard_count=shard_count,
+        seed=seed,
+        top_k=top_k,
+        reducer_name=incident_reducer.name,
         injected_incident_count=len(dataset.incidents),
         detected_incident_count=len(detections),
         matched_incident_count=matched,
@@ -448,6 +625,8 @@ def run_large_scale_analysis_workload(
         reduce_duration_ms=reduce_duration_ms,
         total_duration_ms=total_duration_ms,
         throughput_events_per_s=event_count / max(total_duration_ms / 1000, 0.001),
+        injected_incidents=[incident_to_dict(incident) for incident in dataset.incidents],
+        missed_incidents=missed_incidents,
         detected_incidents=detections,
     )
 
@@ -460,6 +639,12 @@ def main(argv: Iterable[str] | None = None) -> int:
     parser.add_argument("--shards", type=int, default=16)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--top-k", type=int, default=12)
+    parser.add_argument(
+        "--reducer",
+        choices=("deterministic", "map-only", "window-aggregate", "llm-stub"),
+        default="deterministic",
+        help="Incident reducer implementation to use.",
+    )
     parser.add_argument("--output", type=Path)
     args = parser.parse_args(list(argv) if argv is not None else None)
 
@@ -468,6 +653,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         shard_count=args.shards,
         seed=args.seed,
         top_k=args.top_k,
+        reducer=args.reducer,
     )
     payload = report.to_dict()
     text = json.dumps(payload, ensure_ascii=False, indent=2)

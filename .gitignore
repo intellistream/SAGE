@@ -261,6 +261,8 @@ FUNDING_INFO.md
 **/team_info/**
 **/sensitive/**
 /docs/papers/*
+!/docs/papers/semantic_mapreduce/
+!/docs/papers/semantic_mapreduce/**
 /docs/proposals/*
 # ============================================
 # PyPI 发布产物 (sagepypi)
