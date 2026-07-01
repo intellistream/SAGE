@@ -158,7 +158,8 @@ The central claim of Semantic MapReduce is that LLM-native analysis needs standa
   smallbox/.style={rounded corners=5pt, draw, line width=0.7pt, align=center, minimum height=0.66cm, text width=2.7cm, inner sep=3pt, font=\sffamily\tiny},
   arrow/.style={-{Latex[length=2.4mm]}, line width=0.8pt, draw=#1},
   dashedarrow/.style={-{Latex[length=2.4mm]}, dashed, line width=0.8pt, draw=#1},
-  note/.style={font=\sffamily\scriptsize, align=center}
+  note/.style={font=\sffamily\scriptsize, align=center},
+  edgelabel/.style={font=\sffamily\tiny, align=center, fill=white, inner sep=1.0pt}
 ]
 
 % Panels
@@ -170,8 +171,8 @@ The central claim of Semantic MapReduce is that LLM-native analysis needs standa
 \node[pill, fill=blue!20, draw=blue!55, text=blue!70!black] at (9.27,6.82) {ORCHESTRATION LAYER};
 \node[pill, fill=green!22, draw=green!55!black, text=green!45!black] at (16.40,6.82) {OUTPUT / AUDIT};
 
-\draw[dashedarrow=gray!55] (3.25,6.82) -- (8.05,6.82);
-\draw[dashedarrow=gray!55] (10.48,6.82) -- (15.25,6.82);
+\draw[dashedarrow=gray!55] (3.60,7.18) -- (7.78,7.18);
+\draw[dashedarrow=gray!55] (10.76,7.18) -- (15.00,7.18);
 
 % Left panel
 \node[box, fill=orange!16, draw=orange!55] (engines) at (2.22,5.35) {\textbf{External Engines}\\Spark/Flink/Ray\\DBs/vector stores};
@@ -209,10 +210,18 @@ The central claim of Semantic MapReduce is that LLM-native analysis needs standa
 \draw[arrow=green!55!black] (report) -- (metrics);
 \draw[arrow=green!55!black] (metrics) -- (claim);
 
-% Cross-panel arrows
-\draw[dashedarrow=orange!70!black] (shards.east) -- node[note, above, sloped] {partitioned evidence} (map.west);
-\draw[dashedarrow=blue!70!black] (reduce.east) -- node[note, above, sloped] {hypotheses} (incidents.west);
-\draw[dashedarrow=blue!55] (trace.east) -- node[note, below, sloped] {audit trail} (report.west);
+% Cross-panel arrows are routed through gutters to avoid label collisions.
+\draw[dashedarrow=orange!70!black]
+  (shards.east) -- (4.62,1.15) -- (4.62,4.15) -- (map.west);
+\node[edgelabel, rotate=90] at (4.62,2.72) {partitioned evidence};
+
+\draw[dashedarrow=blue!70!black]
+  (reduce.east) -- (13.92,4.15) -- (13.92,5.25) -- (incidents.west);
+\node[edgelabel, rotate=90] at (13.92,4.72) {hypotheses};
+
+\draw[dashedarrow=blue!55]
+  (trace.east) -- (13.92,1.35) -- (13.92,3.75) -- (report.west);
+\node[edgelabel, rotate=90] at (13.92,2.55) {audit trail};
 
 \end{tikzpicture}
 }
