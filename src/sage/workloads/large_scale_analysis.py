@@ -82,6 +82,7 @@ class WorkloadReport:
     injected_incidents: list[dict[str, Any]]
     missed_incidents: list[dict[str, Any]]
     detected_incidents: list[dict[str, Any]]
+    operator_duration_ms: dict[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -101,6 +102,10 @@ class WorkloadReport:
             "reduce_duration_ms": round(self.reduce_duration_ms, 2),
             "total_duration_ms": round(self.total_duration_ms, 2),
             "throughput_events_per_s": round(self.throughput_events_per_s, 2),
+            "operator_duration_ms": {
+                name: round(self.operator_duration_ms.get(name, 0.0), 2)
+                for name in STANDARD_OPERATORS
+            },
             "injected_incidents": self.injected_incidents,
             "missed_incidents": self.missed_incidents,
             "detected_incidents": self.detected_incidents,
@@ -110,6 +115,14 @@ class WorkloadReport:
 SERVICES = ("prefill", "decode", "kv-cache", "scheduler", "router", "embedding")
 TENANTS = tuple(f"tenant-{idx:03d}" for idx in range(64))
 REGIONS = ("npu-a", "npu-b", "npu-c")
+STANDARD_OPERATORS = (
+    "Shard",
+    "MapEvidence",
+    "Normalize",
+    "GroupEvidence",
+    "SemanticReduce",
+    "ReportTrace",
+)
 
 
 class IncidentReducer(ABC):
@@ -337,6 +350,27 @@ def partition_events(events: list[AnalysisEvent], shard_count: int) -> list[list
     for event in events:
         shards[event.event_id % shard_count].append(event)
     return shards
+
+
+def operator_durations(
+    *,
+    shard_duration_ms: float = 0.0,
+    map_duration_ms: float = 0.0,
+    normalize_duration_ms: float = 0.0,
+    group_duration_ms: float = 0.0,
+    reduce_duration_ms: float = 0.0,
+    report_duration_ms: float = 0.0,
+) -> dict[str, float]:
+    """Return timings keyed by the standard Semantic MapReduce operators."""
+
+    return {
+        "Shard": shard_duration_ms,
+        "MapEvidence": map_duration_ms,
+        "Normalize": normalize_duration_ms,
+        "GroupEvidence": group_duration_ms,
+        "SemanticReduce": reduce_duration_ms,
+        "ReportTrace": report_duration_ms,
+    }
 
 
 def map_shard(shard_id: int, events: list[AnalysisEvent]) -> ShardSummary:
@@ -588,7 +622,10 @@ def run_large_scale_analysis_workload(
     incident_reducer = resolve_incident_reducer(reducer)
     started = time.perf_counter()
     dataset = generate_synthetic_events(event_count=event_count, seed=seed)
+
+    shard_started = time.perf_counter()
     shards = partition_events(dataset.events, shard_count)
+    shard_duration_ms = (time.perf_counter() - shard_started) * 1000
 
     map_started = time.perf_counter()
     summaries = [map_shard(shard_id, shard) for shard_id, shard in enumerate(shards)]
@@ -598,6 +635,7 @@ def run_large_scale_analysis_workload(
     detections = incident_reducer.reduce(summaries)[:top_k]
     reduce_duration_ms = (time.perf_counter() - reduce_started) * 1000
 
+    report_started = time.perf_counter()
     matched, precision, recall, f1, coverage = score_detections(
         detections, dataset.incidents
     )
@@ -607,6 +645,7 @@ def run_large_scale_analysis_workload(
         for incident in dataset.incidents
         if incident.incident_id not in matched_incident_ids
     ]
+    report_duration_ms = (time.perf_counter() - report_started) * 1000
     total_duration_ms = (time.perf_counter() - started) * 1000
     return WorkloadReport(
         event_count=event_count,
@@ -628,6 +667,12 @@ def run_large_scale_analysis_workload(
         injected_incidents=[incident_to_dict(incident) for incident in dataset.incidents],
         missed_incidents=missed_incidents,
         detected_incidents=detections,
+        operator_duration_ms=operator_durations(
+            shard_duration_ms=shard_duration_ms,
+            map_duration_ms=map_duration_ms,
+            reduce_duration_ms=reduce_duration_ms,
+            report_duration_ms=report_duration_ms,
+        ),
     )
 
 

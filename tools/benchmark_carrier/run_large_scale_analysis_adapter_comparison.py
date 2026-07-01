@@ -16,6 +16,7 @@ from sage.workloads.large_scale_analysis import (
     incident_to_dict,
     map_shard,
     match_detections,
+    operator_durations,
     partition_events,
     resolve_incident_reducer,
     run_large_scale_analysis_workload,
@@ -92,6 +93,10 @@ def _report_from_parts(
         injected_incidents=[incident_to_dict(incident) for incident in dataset.incidents],
         missed_incidents=missed_incidents,
         detected_incidents=detections,
+        operator_duration_ms=operator_durations(
+            map_duration_ms=map_duration_ms,
+            reduce_duration_ms=reduce_duration_ms,
+        ),
     )
     for detection in report.detected_incidents:
         detection.setdefault("adapter", adapter)
@@ -159,6 +164,10 @@ def run_ray_local(
     report.throughput_events_per_s = event_count / max(
         report.total_duration_ms / 1000, 0.001
     )
+    report.operator_duration_ms = operator_durations(
+        map_duration_ms=map_duration_ms,
+        reduce_duration_ms=report.reduce_duration_ms,
+    )
     return report
 
 
@@ -223,6 +232,10 @@ def run_langgraph_local(
         report.total_duration_ms = (time.perf_counter() - state["started"]) * 1000
         report.throughput_events_per_s = state["event_count"] / max(
             report.total_duration_ms / 1000, 0.001
+        )
+        report.operator_duration_ms = operator_durations(
+            map_duration_ms=state["map_duration_ms"],
+            reduce_duration_ms=report.reduce_duration_ms,
         )
         return {"report": report}
 
@@ -302,6 +315,10 @@ def run_llamaindex_docstore(
     report.total_duration_ms = (time.perf_counter() - started) * 1000
     report.throughput_events_per_s = event_count / max(
         report.total_duration_ms / 1000, 0.001
+    )
+    report.operator_duration_ms = operator_durations(
+        map_duration_ms=map_duration_ms,
+        reduce_duration_ms=report.reduce_duration_ms,
     )
     return report
 

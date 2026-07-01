@@ -50,6 +50,11 @@ insights.
 - `evidence_coverage`: average evidence events per detected incident.
 - `map_duration_ms`, `reduce_duration_ms`, `total_duration_ms`.
 - `throughput_events_per_s`.
+- `operator_duration_ms`: timing fields keyed by the standard Semantic
+  MapReduce operators (`Shard`, `MapEvidence`, `Normalize`, `GroupEvidence`,
+  `SemanticReduce`, `ReportTrace`). In the current baseline, `Normalize` and
+  `GroupEvidence` may be fused into adjacent stages and therefore report `0.0`
+  until those operators are split out.
 - `reducer_name`: the reducer implementation used for the run.
 - `seed` and `top_k`: reproducibility metadata for the run.
 - `injected_incidents`, `detected_incidents`, and `missed_incidents`: structured

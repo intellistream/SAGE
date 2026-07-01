@@ -3,6 +3,7 @@ from __future__ import annotations
 from sage.workloads.large_scale_analysis import (
     LLMStubIncidentReducer,
     MapOnlyIncidentReducer,
+    STANDARD_OPERATORS,
     WindowAggregateIncidentReducer,
     generate_synthetic_events,
     partition_events,
@@ -48,6 +49,8 @@ def test_large_scale_workload_recovers_injected_incidents() -> None:
     assert report.missed_incidents == []
     assert report.detected_incidents
     assert all("matched_incident_id" in item for item in report.detected_incidents)
+    assert set(report.to_dict()["operator_duration_ms"]) == set(STANDARD_OPERATORS)
+    assert report.to_dict()["operator_duration_ms"]["MapEvidence"] > 0
 
 
 def test_large_scale_workload_accepts_llm_stub_reducer() -> None:
