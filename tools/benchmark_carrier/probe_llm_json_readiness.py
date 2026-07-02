@@ -56,8 +56,7 @@ def main() -> int:
         "Return ONLY valid JSON with exactly this shape: "
         "{\"incidents\":[{\"service\":\"decode\",\"region\":\"npu-a\","
         "\"start_minute\":10,\"end_minute\":20,\"score\":0.7,"
-        "\"signals\":[\"latency\"],\"evidence_ids\":[0],"
-        "\"summary\":\"latency evidence supports one incident\"}]}"
+        "\"signals\":[\"latency\"],\"evidence_ids\":[0]}]}"
     )
     started = time.perf_counter()
     status = "ok"

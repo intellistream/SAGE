@@ -158,9 +158,14 @@ PYTHONPATH=src python tools/benchmark_carrier/probe_llm_json_readiness.py \
 
 The 2026-07-01 real-online probes on Qwen2.5-7B and Qwen2.5-14B vLLM-HUST
 endpoints reached the structured-output path but returned malformed or truncated
-JSON, so they are recorded as readiness failures rather than LLM reducer quality
-results. See `docs/large-scale-analysis-workload.md` for launch commands and
-artifact names.
+JSON when the schema included free-form explanation text. The reducer contract
+now keeps the LLM output structural: it selects evidence ids, and the local
+normalizer/reporting stage derives metadata and explanation from evidence
+objects. A 2026-07-02 Qwen2.5-7B smoke passed JSON readiness and completed 2k
+and 20k LLM reducer workload runs, but recall remained 0.25 in both runs. Treat
+these as real-online smoke results, not paper-grade LLM reducer quality numbers.
+See `docs/large-scale-analysis-workload.md` for launch commands and artifact
+names.
 
 ## Adapter-Level Comparison
 

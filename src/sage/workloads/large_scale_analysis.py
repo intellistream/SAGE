@@ -626,12 +626,13 @@ def _build_llm_reduce_prompt(evidence: list[dict[str, Any]]) -> str:
         "Use only the evidence provided. Return ONLY valid JSON with this schema:\n"
         "{\"incidents\":[{\"service\":\"...\",\"region\":\"...\","
         "\"start_minute\":0,\"end_minute\":0,\"score\":0.0,"
-        "\"signals\":[\"latency\"],\"evidence_ids\":[0],"
-        "\"summary\":\"short evidence-linked explanation\"}]}\n"
+        "\"signals\":[\"latency\"],\"evidence_ids\":[0]}]}\n"
         "Rules: merge adjacent windows for the same service and region when the "
         "signals plausibly describe one incident; do not invent services, "
         "regions, or time ranges outside the evidence; prefer fewer duplicate "
-        "incidents over many local alerts.\n"
+        "incidents over many local alerts. Do not generate natural-language "
+        "explanations inside the JSON; the reporting stage will do that from "
+        "the selected evidence.\n"
         f"Evidence JSON:\n{json.dumps(compact_evidence, sort_keys=True)}"
     )
 
@@ -649,7 +650,7 @@ def _llm_incident_json_schema() -> dict[str, Any]:
                 "type": "array",
                 "items": {
                     "type": "string",
-                    "enum": ["latency", "errors", "npu", "queue"],
+                    "enum": ["latency", "error", "npu", "queue"],
                 },
                 "minItems": 1,
                 "maxItems": 4,
@@ -660,7 +661,6 @@ def _llm_incident_json_schema() -> dict[str, Any]:
                 "minItems": 1,
                 "maxItems": 4,
             },
-            "summary": {"type": "string", "maxLength": 240},
         },
         "required": [
             "service",
@@ -670,7 +670,6 @@ def _llm_incident_json_schema() -> dict[str, Any]:
             "score",
             "signals",
             "evidence_ids",
-            "summary",
         ],
         "additionalProperties": False,
     }
@@ -715,6 +714,7 @@ def _normalize_llm_incidents(
         raise RuntimeError("LLM reducer JSON must contain an incidents list.")
 
     normalized: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, int, int, tuple[int, ...]]] = set()
     for raw in raw_incidents:
         if not isinstance(raw, dict):
             continue
@@ -723,23 +723,24 @@ def _normalize_llm_incidents(
             for idx in raw.get("evidence_ids", [])
             if isinstance(idx, int) or (isinstance(idx, str) and idx.isdigit())
         ]
+        evidence_ids = list(dict.fromkeys(evidence_ids))
         selected = [evidence[idx] for idx in evidence_ids if 0 <= idx < len(evidence)]
-        service = str(raw.get("service") or (selected[0]["service"] if selected else ""))
-        region = str(raw.get("region") or (selected[0]["region"] if selected else ""))
+        service = str((selected[0]["service"] if selected else "") or raw.get("service"))
+        region = str((selected[0]["region"] if selected else "") or raw.get("region"))
         if not service or not region:
             continue
 
         start_minute = _coerce_int(
-            raw.get("start_minute"),
-            min((item["start_minute"] for item in selected), default=0),
+            min((item["start_minute"] for item in selected), default=None),
+            _coerce_int(raw.get("start_minute"), 0),
         )
         end_minute = _coerce_int(
-            raw.get("end_minute"),
-            max((item["end_minute"] for item in selected), default=start_minute),
+            max((item["end_minute"] for item in selected), default=None),
+            _coerce_int(raw.get("end_minute"), start_minute),
         )
-        signals = raw.get("signals")
-        if not isinstance(signals, list):
-            signals = sorted({signal for item in selected for signal in item["signals"]})
+        signals = sorted({signal for item in selected for signal in item["signals"]})
+        if not signals and isinstance(raw.get("signals"), list):
+            signals = raw["signals"]
         signals = [str(signal) for signal in signals]
         score = max(0.0, min(1.0, _coerce_float(raw.get("score"), 0.5)))
         evidence_count = sum(int(item.get("evidence_count", 0)) for item in selected)
@@ -749,6 +750,10 @@ def _normalize_llm_incidents(
         queue_depth = max(
             (float(item["mean_queue_depth"]) for item in selected), default=0.0
         )
+        key = (service, region, start_minute, max(end_minute, start_minute), tuple(evidence_ids))
+        if key in seen:
+            continue
+        seen.add(key)
         normalized.append(
             {
                 "service": service,

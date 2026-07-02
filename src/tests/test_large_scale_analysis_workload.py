@@ -166,6 +166,51 @@ def test_openai_completion_reducer_parses_json_incidents() -> None:
     assert incidents[0]["region"] == "npu-a"
 
 
+def test_openai_completion_reducer_uses_evidence_as_source_of_truth() -> None:
+    dataset = generate_synthetic_events(event_count=20_000, seed=7)
+    summaries = [
+        map_shard(shard_id, shard)
+        for shard_id, shard in enumerate(partition_events(dataset.events, shard_count=8))
+    ]
+    reducer = OpenAICompletionIncidentReducer(
+        base_url="http://example.invalid",
+        model="unit-test-model",
+        api_key="unit-test-key",
+    )
+    reducer._completion = lambda _prompt: """{
+      "incidents": [
+        {
+          "service": "scheduler",
+          "region": "npu-c",
+          "start_minute": 0,
+          "end_minute": 0,
+          "score": 0.0,
+          "signals": ["error"],
+          "evidence_ids": [0, 0, 0]
+        },
+        {
+          "service": "scheduler",
+          "region": "npu-c",
+          "start_minute": 0,
+          "end_minute": 0,
+          "score": 0.0,
+          "signals": ["error"],
+          "evidence_ids": [0]
+        }
+      ]
+    }"""
+
+    incidents = reducer.reduce(summaries)
+
+    assert len(incidents) == 1
+    assert incidents[0]["service"] == "decode"
+    assert incidents[0]["region"] == "npu-a"
+    assert incidents[0]["start_minute"] == 140
+    assert incidents[0]["end_minute"] == 159
+    assert incidents[0]["evidence_ids"] == [0]
+    assert set(incidents[0]["signals"]) == {"error", "latency", "queue"}
+
+
 def test_openai_completion_reducer_can_request_json_schema(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
