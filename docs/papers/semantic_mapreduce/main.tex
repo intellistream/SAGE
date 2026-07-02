@@ -39,7 +39,7 @@ Large-scale data systems efficiently scan, join, and aggregate massive datasets,
 
 Modern data systems are very good at moving, filtering, joining, and aggregating data. Hadoop MapReduce made large-scale analysis programmable through local map tasks followed by global reduction~\cite{dean2004mapreduce}; Spark and Flink improved the execution model for iterative, in-memory, batch, and stream workloads~\cite{zaharia2012spark,carbone2015flink}; Ray generalized distributed execution for emerging AI applications~\cite{moritz2018ray}. These systems are essential infrastructure, but they do not directly answer a different class of analysis questions: are these distributed symptoms part of the same incident, what evidence supports the hypothesis, which evidence conflicts with it, and what action should an operator take next?
 
-This distinction appears even in a controlled telemetry workload. In an NPU-backed LLM serving scenario, Figure~\ref{fig:intro-motivation} shows that map-only alerts reach 0.3075 mean F1 and window aggregation reaches 0.7129, while an incident-level reducer reaches 0.9579 across 20 tail-aware runs. The gray bars represent workflows that stop after local alerting or window aggregation: they can find symptoms, but still emit fragments that must be deduplicated and explained elsewhere. The improvement comes from changing the analysis contract itself. The reducer must output an incident hypothesis linked to supporting evidence, so reduction becomes a semantic operation rather than only a numeric or windowed aggregate.
+This distinction appears even in a controlled telemetry workload. In an NPU-backed LLM serving scenario, Figure~\ref{fig:intro-motivation} shows that map-only alerts reach 0.3075 mean F1 and window aggregation reaches 0.7129, while an incident-level reducer reaches 0.9579 across 20 tail-aware runs. The local throughput remains near 100K events/s for all three configurations, because the reducer operates on compact evidence rather than raw events. The gray bars represent workflows that stop after local alerting or window aggregation: they can find symptoms, but still emit fragments that must be deduplicated and explained elsewhere. The improvement comes from changing the analysis contract itself. The reducer must output an incident hypothesis linked to supporting evidence, so reduction becomes a semantic operation rather than only a numeric or windowed aggregate.
 
 \begin{figure}[t]
 \centering
@@ -53,7 +53,7 @@ This distinction appears even in a controlled telemetry workload. In an NPU-back
   callout/.style={align=left, font=\sffamily\tiny, text=black!75}
 ]
 \def\xzero{1.34}
-\def\xscale{2.15}
+\def\xscale{1.85}
 \draw[axis] (\xzero,0) -- (\xzero+\xscale+0.05,0);
 \foreach \v/\lab in {0/0,0.5/0.5,1.0/1.0} {
   \draw[tick] (\xzero+\v*\xscale,0) -- (\xzero+\v*\xscale,-0.04);
@@ -74,15 +74,21 @@ This distinction appears even in a controlled telemetry workload. In an NPU-back
 \node[anchor=west, font=\sffamily\tiny] at (\xzero+0.7129*\xscale+0.05,0.92) {0.713};
 \node[anchor=east, font=\sffamily\tiny, text=white] at (\xzero+0.9579*\xscale-0.05,0.34) {0.958};
 
-\draw[black!20, line width=0.3pt] (3.72,0.08) -- (3.72,1.82);
-\node[note, anchor=west] at (3.86,1.74) {\textbf{Output unit}};
-\node[callout, anchor=west] at (3.86,1.50) {shard symptoms};
-\node[callout, anchor=west] at (3.86,0.92) {window fragments};
-\node[callout, anchor=west] at (3.86,0.34) {evidence-linked\\incidents};
+\draw[black!20, line width=0.3pt] (3.42,0.08) -- (3.42,1.82);
+\node[note, anchor=west] at (3.54,1.74) {\textbf{k ev/s}};
+\node[callout, anchor=west] at (3.54,1.50) {101.6k/s};
+\node[callout, anchor=west] at (3.54,0.92) {104.2k/s};
+\node[callout, anchor=west] at (3.54,0.34) {104.0k/s};
+
+\draw[black!20, line width=0.3pt] (4.48,0.08) -- (4.48,1.82);
+\node[note, anchor=west] at (4.60,1.74) {\textbf{Output unit}};
+\node[callout, anchor=west] at (4.60,1.50) {shard symptoms};
+\node[callout, anchor=west] at (4.60,0.92) {window fragments};
+\node[callout, anchor=west] at (4.60,0.34) {evidence-linked\\incidents};
 
 \end{tikzpicture}
-\caption{Motivating result. The gray bars show workflow boundaries that stop at symptoms or window fragments; semantic reduction changes the output unit into evidence-linked incident hypotheses.}
-\Description{A bar chart showing map-only alerts at mean F1 0.3075, window aggregation at 0.7129, and semantic reduction at 0.9579. A side legend explains that the first two baselines output shard-local symptoms and window fragments, while semantic reduction outputs evidence-linked incidents.}
+\caption{Motivating result. Semantic reduction improves incident-level quality without a visible local throughput penalty in this workload because it reduces compact evidence, not raw events. The gray rows stop at symptoms or window fragments; semantic reduction outputs evidence-linked incident hypotheses.}
+\Description{A compact chart showing map-only alerts at mean F1 0.3075 and throughput 101.6 thousand events per second, window aggregation at mean F1 0.7129 and throughput 104.2 thousand events per second, and semantic reduction at mean F1 0.9579 and throughput 104.0 thousand events per second. A side column explains that the first two baselines output shard-local symptoms and window fragments, while semantic reduction outputs evidence-linked incidents.}
 \label{fig:intro-motivation}
 \end{figure}
 
