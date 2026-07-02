@@ -49,11 +49,11 @@ This distinction appears even in a controlled telemetry workload. In an NPU-back
   bar/.style={draw=black!65, line width=0.35pt},
   axis/.style={draw=black!70, line width=0.35pt},
   tick/.style={draw=black!70, line width=0.3pt},
-  note/.style={align=center, font=\sffamily\tiny},
-  callout/.style={align=center, font=\sffamily\tiny, text=black!75}
+  note/.style={align=left, font=\sffamily\tiny},
+  callout/.style={align=left, font=\sffamily\tiny, text=black!75}
 ]
-\def\xzero{1.42}
-\def\xscale{3.10}
+\def\xzero{1.34}
+\def\xscale{2.15}
 \draw[axis] (\xzero,0) -- (\xzero+\xscale+0.05,0);
 \foreach \v/\lab in {0/0,0.5/0.5,1.0/1.0} {
   \draw[tick] (\xzero+\v*\xscale,0) -- (\xzero+\v*\xscale,-0.04);
@@ -62,21 +62,27 @@ This distinction appears even in a controlled telemetry workload. In an NPU-back
 }
 \node[font=\sffamily\tiny] at (\xzero+0.5*\xscale,-0.36) {Mean F1};
 
-\node[anchor=east, font=\sffamily\tiny, align=right] at (1.23,1.50) {Map-only\\alerts};
-\node[anchor=east, font=\sffamily\tiny, align=right] at (1.23,0.92) {Window\\aggregate};
-\node[anchor=east, font=\sffamily\tiny, align=right] at (1.23,0.34) {Incident\\reducer};
+\node[anchor=east, font=\sffamily\tiny, align=right] at (1.15,1.50) {Map-only\\alerts};
+\node[anchor=east, font=\sffamily\tiny, align=right] at (1.15,0.92) {Window\\aggregate};
+\node[anchor=east, font=\sffamily\tiny, align=right] at (1.15,0.34) {Semantic\\reduce};
 
 \draw[bar, fill=black!18] (\xzero,1.36) rectangle (\xzero+0.3075*\xscale,1.64);
 \draw[bar, fill=black!38] (\xzero,0.78) rectangle (\xzero+0.7129*\xscale,1.06);
 \draw[bar, fill=blue!45!black] (\xzero,0.20) rectangle (\xzero+0.9579*\xscale,0.48);
 
-\node[anchor=west, font=\sffamily\tiny] at (\xzero+0.3075*\xscale+0.05,1.50) {0.308: duplicate local symptoms};
-\node[anchor=west, font=\sffamily\tiny] at (\xzero+0.7129*\xscale+0.05,0.92) {0.713: window duplicates};
-\node[anchor=west, font=\sffamily\tiny] at (\xzero+0.9579*\xscale+0.05,0.34) {0.958};
+\node[anchor=west, font=\sffamily\tiny] at (\xzero+0.3075*\xscale+0.05,1.50) {0.308};
+\node[anchor=west, font=\sffamily\tiny] at (\xzero+0.7129*\xscale+0.05,0.92) {0.713};
+\node[anchor=east, font=\sffamily\tiny, text=white] at (\xzero+0.9579*\xscale-0.05,0.34) {0.958};
+
+\draw[black!20, line width=0.3pt] (3.72,0.08) -- (3.72,1.82);
+\node[note, anchor=west] at (3.86,1.74) {\textbf{Output unit}};
+\node[callout, anchor=west] at (3.86,1.50) {shard symptoms};
+\node[callout, anchor=west] at (3.86,0.92) {window fragments};
+\node[callout, anchor=west] at (3.86,0.34) {evidence-linked\\incidents};
 
 \end{tikzpicture}
-\caption{Motivating result. The advantage here comes from the incident reducer contract: it deduplicates local/window evidence into traceable hypotheses. Adjacent adapters match only when reusing that contract.}
-\Description{A bar chart showing map-only alerts at mean F1 0.3075, window aggregation at 0.7129, and incident reduction at 0.9579. Labels say the first two baselines suffer duplicate local symptoms and window duplicates, while the incident reducer deduplicates, clusters, and traces evidence. A note says LangGraph, LlamaIndex, and Ray-local adapters match only with the same evidence contract and reducer.}
+\caption{Motivating result. The advantage is not a generic wrapper effect: semantic reduction changes the output unit from local/window symptoms into evidence-linked incident hypotheses.}
+\Description{A bar chart showing map-only alerts at mean F1 0.3075, window aggregation at 0.7129, and semantic reduction at 0.9579. A side legend explains that the first two baselines output shard-local symptoms and window fragments, while semantic reduction outputs evidence-linked incidents.}
 \label{fig:intro-motivation}
 \end{figure}
 
