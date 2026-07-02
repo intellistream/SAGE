@@ -470,6 +470,30 @@ deterministic reducer on this seed. The stronger claim is that SAGE exposes the
 right operator boundaries for finding and fixing both classes of failures:
 map-stage signal loss and reducer-stage semantic degeneration.
 
+### NPU3 Real-Online Bring-Up Attempt
+
+On 2026-07-02, a follow-up attempt explicitly targeted NPU3 at the operator's
+request. Preflight showed NPU3 had no running NPU process and port `18383` was
+free. Three vLLM-HUST launches were attempted with
+`/data/shared_models/Qwen2.5-7B-Instruct`, TP=1, `max_model_len=2048`,
+`max_num_seqs=1`, and all visible device variables pinned to device 3:
+
+1. `sage-lsa-npu3-json-20260702` with xgrammar structured-output config.
+2. `sage-lsa-npu3-basic-20260702` without structured-output config.
+3. `sage-lsa-npu3-v0-20260702` with `VLLM_USE_V1=0` added.
+
+All three loaded model weights on NPU3 but failed during vLLM EngineCore startup
+with `RuntimeError: Engine core initialization failed`; the third attempt showed
+that the current vLLM-HUST build treats `VLLM_USE_V1` as an unknown environment
+variable, so it did not switch away from the V1 engine path. The failed
+containers were cleaned with `scripts/cleanup_vllm_hust_engine.sh`, and
+`npu-smi info` confirmed that NPU3 had no running process afterward.
+
+This is recorded as a `real-online bring-up failure`, not as a reducer quality
+or serving-throughput result. The paper should continue to use the NPU4
+real-online smoke data for live endpoint evidence until the NPU3 EngineCore
+startup issue is fixed.
+
 ## Run
 
 ```bash
@@ -562,14 +586,17 @@ Artifacts:
 .sage/benchmarks/large_scale_analysis/20260702T-map-policy-10seed-thr098-paper-matrix/
 ```
 
-Tail-aware policy summary across 20 runs:
+Tail-aware policy summary across 20 runs. The `outputs / true incident` column
+is the semantic-efficiency metric used in Figure 1: lower values mean fewer
+local/window fragments reach downstream explanation, LLM reduction, or human
+review.
 
-| reducer | mean precision | mean recall | mean F1 | mean detections |
-| --- | ---: | ---: | ---: | ---: |
-| map-only | 0.1990 | 0.6875 | 0.3075 | 14.00 |
-| window-aggregate | 0.5696 | 0.9750 | 0.7129 | 7.05 |
-| deterministic | 0.9500 | 0.9750 | 0.9579 | 4.15 |
-| llm-stub | 0.9500 | 0.9750 | 0.9579 | 4.15 |
+| reducer | mean precision | mean recall | mean F1 | mean detections | outputs / true incident |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| map-only | 0.1990 | 0.6875 | 0.3075 | 14.00 | 3.50 |
+| window-aggregate | 0.5696 | 0.9750 | 0.7129 | 7.05 | 1.76 |
+| deterministic | 0.9500 | 0.9750 | 0.9579 | 4.15 | 1.04 |
+| llm-stub | 0.9500 | 0.9750 | 0.9579 | 4.15 | 1.04 |
 
 Map-policy ablation for the deterministic reducer:
 

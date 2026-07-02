@@ -39,7 +39,7 @@ Large-scale data systems efficiently scan, join, and aggregate massive datasets,
 
 Modern data systems are very good at moving, filtering, joining, and aggregating data. Hadoop MapReduce made large-scale analysis programmable through local map tasks followed by global reduction~\cite{dean2004mapreduce}; Spark and Flink improved the execution model for iterative, in-memory, batch, and stream workloads~\cite{zaharia2012spark,carbone2015flink}; Ray generalized distributed execution for emerging AI applications~\cite{moritz2018ray}. These systems are essential infrastructure, but they do not directly answer a different class of analysis questions: are these distributed symptoms part of the same incident, what evidence supports the hypothesis, which evidence conflicts with it, and what action should an operator take next?
 
-This distinction appears even in a controlled telemetry workload. In an NPU-backed LLM serving scenario, Figure~\ref{fig:intro-motivation} shows that map-only alerts reach 0.3075 mean F1 and window aggregation reaches 0.7129, while an incident-level reducer reaches 0.9579 across 20 tail-aware runs. The local throughput remains near 100K events/s for all three configurations, because the reducer operates on compact evidence rather than raw events. The gray bars represent workflows that stop after local alerting or window aggregation: they can find symptoms, but still emit fragments that must be deduplicated and explained elsewhere. The improvement comes from changing the analysis contract itself. The reducer must output an incident hypothesis linked to supporting evidence, so reduction becomes a semantic operation rather than only a numeric or windowed aggregate.
+This distinction appears even in a controlled telemetry workload. In an NPU-backed LLM serving scenario, Figure~\ref{fig:intro-motivation} shows two coupled effects across 20 tail-aware runs. Map-only alerts reach 0.3075 mean F1 and emit 3.50 outputs per true incident; window aggregation improves F1 to 0.7129 but still emits 1.76 fragments per incident. An incident-level reducer reaches 0.9579 F1 while reducing the report load to 1.04 outputs per true incident. The improvement therefore comes from changing the analysis contract itself: the reducer must output an incident hypothesis linked to supporting evidence, so reduction becomes a semantic operation rather than only a numeric or windowed aggregate.
 
 \begin{figure}[t]
 \centering
@@ -49,46 +49,52 @@ This distinction appears even in a controlled telemetry workload. In an NPU-back
   bar/.style={draw=black!65, line width=0.35pt},
   axis/.style={draw=black!70, line width=0.35pt},
   tick/.style={draw=black!70, line width=0.3pt},
-  note/.style={align=left, font=\sffamily\tiny},
-  callout/.style={align=left, font=\sffamily\tiny, text=black!75}
+  note/.style={align=center, font=\sffamily\tiny}
 ]
-\def\xzero{1.34}
-\def\xscale{1.85}
-\draw[axis] (\xzero,0) -- (\xzero+\xscale+0.05,0);
+\def\xone{1.34}
+\def\xscaleone{1.55}
+\def\xtwo{3.62}
+\def\xscaletwo{0.44}
+
+\node[note] at (\xone+0.5*\xscaleone,1.95) {quality\\F1 $\uparrow$};
+\draw[axis] (\xone,0) -- (\xone+\xscaleone+0.04,0);
 \foreach \v/\lab in {0/0,0.5/0.5,1.0/1.0} {
-  \draw[tick] (\xzero+\v*\xscale,0) -- (\xzero+\v*\xscale,-0.04);
-  \node[anchor=north, font=\sffamily\tiny] at (\xzero+\v*\xscale,-0.07) {\lab};
-  \draw[black!12] (\xzero+\v*\xscale,0.12) -- (\xzero+\v*\xscale,1.78);
+  \draw[tick] (\xone+\v*\xscaleone,0) -- (\xone+\v*\xscaleone,-0.04);
+  \node[anchor=north, font=\sffamily\tiny] at (\xone+\v*\xscaleone,-0.07) {\lab};
+  \draw[black!12] (\xone+\v*\xscaleone,0.12) -- (\xone+\v*\xscaleone,1.72);
 }
-\node[font=\sffamily\tiny] at (\xzero+0.5*\xscale,-0.36) {Mean F1};
 
 \node[anchor=east, font=\sffamily\tiny, align=right] at (1.15,1.50) {Map-only\\alerts};
 \node[anchor=east, font=\sffamily\tiny, align=right] at (1.15,0.92) {Window\\aggregate};
 \node[anchor=east, font=\sffamily\tiny, align=right] at (1.15,0.34) {Semantic\\reduce};
 
-\draw[bar, fill=black!18] (\xzero,1.36) rectangle (\xzero+0.3075*\xscale,1.64);
-\draw[bar, fill=black!38] (\xzero,0.78) rectangle (\xzero+0.7129*\xscale,1.06);
-\draw[bar, fill=blue!45!black] (\xzero,0.20) rectangle (\xzero+0.9579*\xscale,0.48);
+\draw[bar, fill=black!18] (\xone,1.36) rectangle (\xone+0.3075*\xscaleone,1.64);
+\draw[bar, fill=black!38] (\xone,0.78) rectangle (\xone+0.7129*\xscaleone,1.06);
+\draw[bar, fill=blue!45!black] (\xone,0.20) rectangle (\xone+0.9579*\xscaleone,0.48);
 
-\node[anchor=west, font=\sffamily\tiny] at (\xzero+0.3075*\xscale+0.05,1.50) {0.308};
-\node[anchor=west, font=\sffamily\tiny] at (\xzero+0.7129*\xscale+0.05,0.92) {0.713};
-\node[anchor=east, font=\sffamily\tiny, text=white] at (\xzero+0.9579*\xscale-0.05,0.34) {0.958};
+\node[anchor=west, font=\sffamily\tiny] at (\xone+0.3075*\xscaleone+0.04,1.50) {0.308};
+\node[anchor=west, font=\sffamily\tiny] at (\xone+0.7129*\xscaleone+0.04,0.92) {0.713};
+\node[anchor=east, font=\sffamily\tiny, text=white] at (\xone+0.9579*\xscaleone-0.04,0.34) {0.958};
 
-\draw[black!20, line width=0.3pt] (3.42,0.08) -- (3.42,1.82);
-\node[note, anchor=west] at (3.54,1.74) {\textbf{k ev/s}};
-\node[callout, anchor=west] at (3.54,1.50) {101.6k/s};
-\node[callout, anchor=west] at (3.54,0.92) {104.2k/s};
-\node[callout, anchor=west] at (3.54,0.34) {104.0k/s};
+\node[note] at (\xtwo+1.75*\xscaletwo,1.95) {report load\\outputs/inc. $\downarrow$};
+\draw[axis] (\xtwo,0) -- (\xtwo+3.5*\xscaletwo+0.04,0);
+\foreach \v/\lab in {0/0,1.75/1.75,3.5/3.5} {
+  \draw[tick] (\xtwo+\v*\xscaletwo,0) -- (\xtwo+\v*\xscaletwo,-0.04);
+  \node[anchor=north, font=\sffamily\tiny] at (\xtwo+\v*\xscaletwo,-0.07) {\lab};
+  \draw[black!12] (\xtwo+\v*\xscaletwo,0.12) -- (\xtwo+\v*\xscaletwo,1.72);
+}
 
-\draw[black!20, line width=0.3pt] (4.48,0.08) -- (4.48,1.82);
-\node[note, anchor=west] at (4.60,1.74) {\textbf{Output unit}};
-\node[callout, anchor=west] at (4.60,1.50) {shard symptoms};
-\node[callout, anchor=west] at (4.60,0.92) {window fragments};
-\node[callout, anchor=west] at (4.60,0.34) {evidence-linked\\incidents};
+\draw[bar, fill=black!18] (\xtwo,1.36) rectangle (\xtwo+3.50*\xscaletwo,1.64);
+\draw[bar, fill=black!38] (\xtwo,0.78) rectangle (\xtwo+1.76*\xscaletwo,1.06);
+\draw[bar, fill=blue!45!black] (\xtwo,0.20) rectangle (\xtwo+1.04*\xscaletwo,0.48);
+
+\node[anchor=east, font=\sffamily\tiny] at (\xtwo+3.50*\xscaletwo-0.04,1.50) {3.50};
+\node[anchor=west, font=\sffamily\tiny] at (\xtwo+1.76*\xscaletwo+0.04,0.92) {1.76};
+\node[anchor=west, font=\sffamily\tiny] at (\xtwo+1.04*\xscaletwo+0.04,0.34) {1.04};
 
 \end{tikzpicture}
-\caption{Motivating result. Semantic reduction improves incident-level quality without a visible local throughput penalty in this workload because it reduces compact evidence, not raw events. The gray rows stop at symptoms or window fragments; semantic reduction outputs evidence-linked incident hypotheses.}
-\Description{A compact chart showing map-only alerts at mean F1 0.3075 and throughput 101.6 thousand events per second, window aggregation at mean F1 0.7129 and throughput 104.2 thousand events per second, and semantic reduction at mean F1 0.9579 and throughput 104.0 thousand events per second. A side column explains that the first two baselines output shard-local symptoms and window fragments, while semantic reduction outputs evidence-linked incidents.}
+\caption{Motivating result. Semantic reduction improves quality and semantic efficiency: it raises F1 while reducing downstream report load from multiple local/window fragments to nearly one evidence-linked output per true incident.}
+\Description{A two-panel bar chart. The left panel shows F1: map-only 0.3075, window aggregation 0.7129, and semantic reduction 0.9579. The right panel shows outputs per true incident, where lower is better: map-only 3.50, window aggregation 1.76, and semantic reduction 1.04.}
 \label{fig:intro-motivation}
 \end{figure}
 
