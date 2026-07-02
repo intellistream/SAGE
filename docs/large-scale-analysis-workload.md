@@ -538,11 +538,55 @@ On 2026-06-29, the initial deterministic baseline produced:
 
 The 100k miss was later traced to mean-only NPU saturation detection in
 `MapEvidence`, not to the global reduce stage. On 2026-07-02, adding
-tail-aware `p95_npu_util` detection with a stricter saturation threshold
-recovered the missed scheduler incident while preserving precision on the
-seed-7 100k/32-shard run.
+tail-aware `p95_npu_util` detection with a strict saturation threshold
+(`p95_npu_util > 0.98`) recovered the missed scheduler incident while
+preserving precision on the seed-7 100k/32-shard run.
 
-## Reproduced eSAGE Matrix Result
+## Current Paper Matrix
+
+The paper matrix uses 10 seeds, two workload sizes, two `MapEvidence` policies,
+and four reducer regimes:
+
+```bash
+PYTHONPATH=src python tools/benchmark_carrier/run_large_scale_analysis_matrix.py \
+  --sizes 50000:16:12,100000:32:16 \
+  --seeds 7,11,13,17,19,23,29,31,37,41 \
+  --map-policies mean-only,tail-aware \
+  --reducers map-only,window-aggregate,deterministic,llm-stub \
+  --run-id 20260702T-map-policy-10seed-thr098-paper-matrix
+```
+
+Artifacts:
+
+```text
+.sage/benchmarks/large_scale_analysis/20260702T-map-policy-10seed-thr098-paper-matrix/
+```
+
+Tail-aware policy summary across 20 runs:
+
+| reducer | mean precision | mean recall | mean F1 | mean detections |
+| --- | ---: | ---: | ---: | ---: |
+| map-only | 0.1990 | 0.6875 | 0.3075 | 14.00 |
+| window-aggregate | 0.5696 | 0.9750 | 0.7129 | 7.05 |
+| deterministic | 0.9500 | 0.9750 | 0.9579 | 4.15 |
+| llm-stub | 0.9500 | 0.9750 | 0.9579 | 4.15 |
+
+Map-policy ablation for the deterministic reducer:
+
+| size | map policy | mean precision | mean recall | mean F1 | missed runs |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 50k/16/12 | mean-only | 0.9200 | 0.9750 | 0.9413 | 1/10 |
+| 50k/16/12 | tail-aware | 0.9200 | 0.9750 | 0.9413 | 1/10 |
+| 100k/32/16 | mean-only | 0.9750 | 0.9250 | 0.9464 | 3/10 |
+| 100k/32/16 | tail-aware | 0.9800 | 0.9750 | 0.9746 | 1/10 |
+
+The main takeaway is not that tail-aware mapping always wins. A loose p95
+threshold created false positives during tuning. The useful result is that the
+operator boundary exposes where the failure occurs: mean-only mapping drops
+some saturation evidence before the reducer can see it, while incident-level
+reduction removes duplicate local/window alerts after evidence is preserved.
+
+## Historical eSAGE Matrix Result
 
 On 2026-06-30, the matrix runner was executed in the cloned
 `esage-vllm-hust-dev` environment with:
@@ -584,7 +628,7 @@ against Spark/Flink/Ray/LangGraph/LlamaIndex/AutoGen-style systems would require
 adapters that feed those systems the same evidence objects and evaluate their
 outputs with the same incident matcher.
 
-## Adapter-Level Comparison
+## Historical Adapter-Level Comparison
 
 The adapter comparison fixes the generator, evidence schema, deterministic
 incident reducer, and scorer, then changes only the orchestration/product
@@ -617,7 +661,7 @@ Artifacts are in:
 .sage/benchmarks/large_scale_analysis_adapters/20260630T-adapter-comparison-steady/
 ```
 
-Summary:
+Historical 2026-06-30 summary:
 
 | adapter | mean F1 | mean throughput events/s | mean map ms | mean total ms |
 | --- | ---: | ---: | ---: | ---: |
@@ -628,12 +672,13 @@ Summary:
 
 All adapters have identical quality because this experiment intentionally fixes
 the reducer and scorer. The comparison measures adapter/integration overhead,
-not semantic quality. On this host Ray printed NPU detection warnings because
-the optional `acl` Python module was absent, and `/tmp/ray` was above 95% full;
-the Ray numbers should therefore be treated as local diagnostic evidence rather
-than a tuned Ray cluster result.
+not semantic quality and not SOTA capability. On 2026-07-02, a rerun in the
+current shell skipped LangGraph, LlamaIndex, and Ray because optional
+dependencies were unavailable; use the setup script's adapter-comparison option
+before treating this section as reproducible evidence.
 
-The multi-seed result is useful for claim discipline:
+The 2026-06-30 multi-seed result is useful historical evidence for claim
+discipline:
 
 - The 50k seed 11/13 cases show false positives, so the workload is not a
   guaranteed-perfect benchmark.

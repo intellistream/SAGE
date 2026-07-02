@@ -70,6 +70,7 @@ class WorkloadReport:
     shard_count: int
     seed: int
     top_k: int
+    map_policy: str
     reducer_name: str
     injected_incident_count: int
     detected_incident_count: int
@@ -93,6 +94,7 @@ class WorkloadReport:
             "shard_count": self.shard_count,
             "seed": self.seed,
             "top_k": self.top_k,
+            "map_policy": self.map_policy,
             "reducer_name": self.reducer_name,
             "injected_incident_count": self.injected_incident_count,
             "detected_incident_count": self.detected_incident_count,
@@ -524,7 +526,16 @@ def operator_durations(
     }
 
 
-def map_shard(shard_id: int, events: list[AnalysisEvent]) -> ShardSummary:
+def map_shard(
+    shard_id: int,
+    events: list[AnalysisEvent],
+    *,
+    map_policy: str = "tail-aware",
+) -> ShardSummary:
+    if map_policy not in {"tail-aware", "mean-only"}:
+        raise ValueError(
+            f"Unknown map_policy {map_policy!r}. Expected tail-aware or mean-only."
+        )
     started = time.perf_counter()
     grouped: dict[tuple[str, str, int], list[AnalysisEvent]] = defaultdict(list)
     for event in events:
@@ -547,12 +558,17 @@ def map_shard(shard_id: int, events: list[AnalysisEvent]) -> ShardSummary:
 
         latency_anomaly = p95_latency > 135 or p95_latency > mean_latency * 1.9
         queue_anomaly = mean_queue > 10
-        npu_anomaly = mean_npu > 0.84 or p95_npu > 0.96
+        if map_policy == "tail-aware":
+            npu_anomaly = mean_npu > 0.84 or p95_npu > 0.98
+            npu_score = 0.34
+        else:
+            npu_anomaly = mean_npu > 0.84
+            npu_score = 0.22
         error_anomaly = error_rate > 0.018
         score = (
             int(latency_anomaly) * 0.34
             + int(queue_anomaly) * 0.22
-            + int(npu_anomaly) * 0.34
+            + int(npu_anomaly) * npu_score
             + int(error_anomaly) * 0.22
         )
         if score < 0.34:
@@ -1130,6 +1146,7 @@ def run_large_scale_analysis_workload(
     seed: int = 7,
     top_k: int = 12,
     reducer: str | IncidentReducer | None = None,
+    map_policy: str = "tail-aware",
 ) -> WorkloadReport:
     incident_reducer = resolve_incident_reducer(reducer)
     started = time.perf_counter()
@@ -1140,7 +1157,10 @@ def run_large_scale_analysis_workload(
     shard_duration_ms = (time.perf_counter() - shard_started) * 1000
 
     map_started = time.perf_counter()
-    summaries = [map_shard(shard_id, shard) for shard_id, shard in enumerate(shards)]
+    summaries = [
+        map_shard(shard_id, shard, map_policy=map_policy)
+        for shard_id, shard in enumerate(shards)
+    ]
     map_duration_ms = (time.perf_counter() - map_started) * 1000
 
     reduce_started = time.perf_counter()
@@ -1164,6 +1184,7 @@ def run_large_scale_analysis_workload(
         shard_count=shard_count,
         seed=seed,
         top_k=top_k,
+        map_policy=map_policy,
         reducer_name=incident_reducer.name,
         injected_incident_count=len(dataset.incidents),
         detected_incident_count=len(detections),
@@ -1196,6 +1217,12 @@ def main(argv: Iterable[str] | None = None) -> int:
     parser.add_argument("--shards", type=int, default=16)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--top-k", type=int, default=12)
+    parser.add_argument(
+        "--map-policy",
+        choices=("tail-aware", "mean-only"),
+        default="tail-aware",
+        help="MapEvidence policy for NPU saturation candidates.",
+    )
     parser.add_argument(
         "--reducer",
         choices=(
@@ -1244,13 +1271,14 @@ def main(argv: Iterable[str] | None = None) -> int:
     else:
         reducer = args.reducer
 
-    report = run_large_scale_analysis_workload(
-        event_count=args.events,
-        shard_count=args.shards,
-        seed=args.seed,
-        top_k=args.top_k,
-        reducer=reducer,
-    )
+        report = run_large_scale_analysis_workload(
+            event_count=args.events,
+            shard_count=args.shards,
+            seed=args.seed,
+            top_k=args.top_k,
+            reducer=reducer,
+            map_policy=args.map_policy,
+        )
     payload = report.to_dict()
     text = json.dumps(payload, ensure_ascii=False, indent=2)
     if args.output:

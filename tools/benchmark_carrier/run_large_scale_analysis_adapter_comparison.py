@@ -55,6 +55,7 @@ def _report_from_parts(
     shard_count: int,
     seed: int,
     top_k: int,
+    map_policy: str,
     reducer: str,
     dataset: Any,
     summaries: list[ShardSummary],
@@ -78,6 +79,7 @@ def _report_from_parts(
         shard_count=shard_count,
         seed=seed,
         top_k=top_k,
+        map_policy=map_policy,
         reducer_name=incident_reducer.name,
         injected_incident_count=len(dataset.incidents),
         detected_incident_count=len(detections),
@@ -104,7 +106,13 @@ def _report_from_parts(
 
 
 def run_sage_local(
-    *, event_count: int, shard_count: int, seed: int, top_k: int, reducer: str
+    *,
+    event_count: int,
+    shard_count: int,
+    seed: int,
+    top_k: int,
+    map_policy: str,
+    reducer: str,
 ) -> WorkloadReport:
     return run_large_scale_analysis_workload(
         event_count=event_count,
@@ -112,11 +120,18 @@ def run_sage_local(
         seed=seed,
         top_k=top_k,
         reducer=reducer,
+        map_policy=map_policy,
     )
 
 
 def run_ray_local(
-    *, event_count: int, shard_count: int, seed: int, top_k: int, reducer: str
+    *,
+    event_count: int,
+    shard_count: int,
+    seed: int,
+    top_k: int,
+    map_policy: str,
+    reducer: str,
 ) -> WorkloadReport:
     try:
         import ray
@@ -124,8 +139,8 @@ def run_ray_local(
         raise RuntimeError(f"ray adapter unavailable: {exc}") from exc
 
     @ray.remote
-    def _remote_map(shard_id: int, events: list[Any]) -> ShardSummary:
-        return map_shard(shard_id, events)
+    def _remote_map(shard_id: int, events: list[Any], policy: str) -> ShardSummary:
+        return map_shard(shard_id, events, map_policy=policy)
 
     started = time.perf_counter()
     dataset = generate_synthetic_events(event_count=event_count, seed=seed)
@@ -141,7 +156,10 @@ def run_ray_local(
 
     map_started = time.perf_counter()
     summaries = ray.get(
-        [_remote_map.remote(shard_id, shard) for shard_id, shard in enumerate(shards)]
+        [
+            _remote_map.remote(shard_id, shard, map_policy)
+            for shard_id, shard in enumerate(shards)
+        ]
     )
     map_duration_ms = (time.perf_counter() - map_started) * 1000
 
@@ -152,6 +170,7 @@ def run_ray_local(
         shard_count=shard_count,
         seed=seed,
         top_k=top_k,
+        map_policy=map_policy,
         reducer=reducer,
         dataset=dataset,
         summaries=summaries,
@@ -176,6 +195,7 @@ class _GraphState(TypedDict, total=False):
     shard_count: int
     seed: int
     top_k: int
+    map_policy: str
     reducer: str
     dataset: Any
     shards: list[list[Any]]
@@ -187,7 +207,13 @@ class _GraphState(TypedDict, total=False):
 
 
 def run_langgraph_local(
-    *, event_count: int, shard_count: int, seed: int, top_k: int, reducer: str
+    *,
+    event_count: int,
+    shard_count: int,
+    seed: int,
+    top_k: int,
+    map_policy: str,
+    reducer: str,
 ) -> WorkloadReport:
     try:
         from langgraph.graph import END, StateGraph
@@ -206,7 +232,8 @@ def run_langgraph_local(
     def map_node(state: _GraphState) -> dict[str, Any]:
         map_started = time.perf_counter()
         summaries = [
-            map_shard(shard_id, shard) for shard_id, shard in enumerate(state["shards"])
+            map_shard(shard_id, shard, map_policy=state["map_policy"])
+            for shard_id, shard in enumerate(state["shards"])
         ]
         return {
             "summaries": summaries,
@@ -221,6 +248,7 @@ def run_langgraph_local(
             shard_count=state["shard_count"],
             seed=state["seed"],
             top_k=state["top_k"],
+            map_policy=state["map_policy"],
             reducer=state["reducer"],
             dataset=state["dataset"],
             summaries=state["summaries"],
@@ -255,6 +283,7 @@ def run_langgraph_local(
             "shard_count": shard_count,
             "seed": seed,
             "top_k": top_k,
+            "map_policy": map_policy,
             "reducer": reducer,
             "started": time.perf_counter(),
         }
@@ -263,7 +292,13 @@ def run_langgraph_local(
 
 
 def run_llamaindex_docstore(
-    *, event_count: int, shard_count: int, seed: int, top_k: int, reducer: str
+    *,
+    event_count: int,
+    shard_count: int,
+    seed: int,
+    top_k: int,
+    map_policy: str,
+    reducer: str,
 ) -> WorkloadReport:
     try:
         from llama_index.core.schema import Document
@@ -276,7 +311,10 @@ def run_llamaindex_docstore(
     shards = partition_events(dataset.events, shard_count)
 
     map_started = time.perf_counter()
-    summaries = [map_shard(shard_id, shard) for shard_id, shard in enumerate(shards)]
+    summaries = [
+        map_shard(shard_id, shard, map_policy=map_policy)
+        for shard_id, shard in enumerate(shards)
+    ]
     docstore = SimpleDocumentStore()
     documents = []
     for summary in summaries:
@@ -304,6 +342,7 @@ def run_llamaindex_docstore(
         shard_count=shard_count,
         seed=seed,
         top_k=top_k,
+        map_policy=map_policy,
         reducer=reducer,
         dataset=dataset,
         summaries=summaries,
@@ -374,6 +413,11 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--adapters", default=DEFAULT_ADAPTERS)
     parser.add_argument("--reducer", default="deterministic")
     parser.add_argument(
+        "--map-policy",
+        choices=("tail-aware", "mean-only"),
+        default="tail-aware",
+    )
+    parser.add_argument(
         "--output-root",
         default=".sage/benchmarks/large_scale_analysis_adapters",
     )
@@ -424,6 +468,7 @@ def main() -> int:
                         shard_count=shards,
                         seed=seed,
                         top_k=top_k,
+                        map_policy=args.map_policy,
                         reducer=args.reducer,
                     )
                     payload = report.to_dict()
@@ -439,6 +484,7 @@ def main() -> int:
                         "shard_count": shards,
                         "seed": seed,
                         "top_k": top_k,
+                        "map_policy": args.map_policy,
                         "reducer_name": args.reducer,
                         "status": "skipped",
                     }
@@ -462,6 +508,7 @@ def main() -> int:
                     "shards": shards,
                     "top_k": top_k,
                     "seed": seed,
+                    "map_policy": payload.get("map_policy", args.map_policy),
                     "adapter": adapter_name,
                     "reducer": payload.get("reducer_name", args.reducer),
                     "status": payload["status"],
