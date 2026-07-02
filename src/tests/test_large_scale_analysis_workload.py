@@ -202,13 +202,20 @@ def test_openai_completion_reducer_uses_evidence_as_source_of_truth() -> None:
 
     incidents = reducer.reduce(summaries)
 
-    assert len(incidents) == 1
-    assert incidents[0]["service"] == "decode"
-    assert incidents[0]["region"] == "npu-a"
-    assert incidents[0]["start_minute"] == 140
-    assert incidents[0]["end_minute"] == 159
-    assert incidents[0]["evidence_ids"] == [0]
-    assert set(incidents[0]["signals"]) == {"error", "latency", "queue"}
+    llm_incident = next(item for item in incidents if item["evidence_ids"] == [0, 1])
+    assert llm_incident["service"] == "decode"
+    assert llm_incident["region"] == "npu-a"
+    assert llm_incident["start_minute"] == 120
+    assert llm_incident["end_minute"] == 159
+    assert set(llm_incident["signals"]) == {"error", "latency", "queue"}
+
+    repaired_ids = {
+        evidence_id
+        for item in incidents
+        if item.get("reducer_repair") == "coverage"
+        for evidence_id in item["evidence_ids"]
+    }
+    assert {0, 1, 2, 3, 4}.issubset(repaired_ids)
 
 
 def test_openai_completion_reducer_can_request_json_schema(monkeypatch) -> None:

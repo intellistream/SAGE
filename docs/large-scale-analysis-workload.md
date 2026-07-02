@@ -427,10 +427,48 @@ the workload:
 | LLM reducer smoke | 20,000 | completed | 1.0 | 0.25 | 0.4 | `.sage/benchmarks/large_scale_analysis_llm_reducer/20260702T-qwen25-7b-npu4-structured-evidence-dedup-20k/report.json` |
 
 These are real-online smoke results, not paper-grade LLM reducer quality
-results. They show that the endpoint can satisfy the structured reducer contract
-and that the workload can run end to end with a live LLM, but this 7B reducer
-mostly selects the top evidence group and does not yet improve recall over the
-deterministic baseline.
+results. They show that the endpoint can satisfy the structured reducer
+contract and that the workload can run end to end with a live LLM. The first
+smoke runs also exposed an important systems failure mode: the 7B model often
+returned schema-valid but semantically degenerate JSON, repeatedly selecting
+the first evidence id. The reducer now treats LLM output as a proposal and
+applies two auditable runtime guardrails:
+
+- `coverage repair`: add remaining high-score evidence groups that the model
+  dropped or repeated.
+- `consolidation`: merge adjacent or overlapping incidents for the same
+  service and region after repair.
+
+This should be reported as a guarded LLM reducer, not as raw LLM quality. The
+guardrails are part of the SAGE-style orchestration layer: they preserve the
+evidence contract and make failures visible instead of silently accepting a
+malformed semantic reduce.
+
+The same debugging pass found that the 100k deterministic miss was caused by
+the map stage rather than by the semantic reducer: the injected scheduler
+incident had high tail NPU utilization but lower mean utilization. `MapEvidence`
+therefore now records `p95_npu_util` and marks NPU saturation when either mean
+utilization is high or p95 utilization exceeds a stricter saturation threshold.
+This recovers the scheduler incident without admitting the earlier low-support
+tail-NPU false positives.
+
+Final 2026-07-02 real-online smoke results on NPU4, using Qwen2.5-7B-Instruct
+served through vLLM-HUST with xgrammar structured output:
+
+| run | events | shards | precision | recall | F1 | artifact |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| guarded LLM reducer | 20,000 | 8 | 1.0 | 1.0 | 1.0 | `.sage/benchmarks/large_scale_analysis_llm_reducer/20260702T-qwen25-7b-npu4-structured-coverage-consolidate-20k/report.json` |
+| guarded LLM reducer | 50,000 | 16 | 1.0 | 1.0 | 1.0 | `.sage/benchmarks/large_scale_analysis_llm_reducer/20260702T-qwen25-7b-npu4-structured-tailnpu-consolidate-50k/report.json` |
+| guarded LLM reducer | 100,000 | 32 | 1.0 | 1.0 | 1.0 | `.sage/benchmarks/large_scale_analysis_llm_reducer/20260702T-qwen25-7b-npu4-structured-tailnpu-consolidate-100k/report.json` |
+
+For comparison, the final tail-aware deterministic reducer also reaches
+precision 1.0, recall 1.0, and F1 1.0 on the 100k/32-shard seed-7 workload:
+`.sage/benchmarks/large_scale_analysis_llm_reducer/20260702T-map-tail-npu-strict-deterministic-100k.json`.
+This is a useful correction to the workload baseline, and it means the paper
+should not claim that the current guarded 7B reducer outperforms the
+deterministic reducer on this seed. The stronger claim is that SAGE exposes the
+right operator boundaries for finding and fixing both classes of failures:
+map-stage signal loss and reducer-stage semantic degeneration.
 
 ## Run
 
@@ -491,16 +529,18 @@ conda run -n esage-vllm-hust-dev env PYTHONPATH=src python \
 
 ## Baseline Result
 
-On 2026-06-29, the deterministic baseline produced:
+On 2026-06-29, the initial deterministic baseline produced:
 
 | events | shards | precision | recall | f1 | throughput events/s |
 | ---: | ---: | ---: | ---: | ---: | ---: |
 | 50,000 | 16 | 1.0000 | 1.0000 | 1.0000 | ~106k |
 | 100,000 | 32 | 1.0000 | 0.7500 | 0.8571 | ~106k |
 
-The 100k case is intentionally non-trivial: one injected incident is missed by
-the current deterministic thresholds, leaving room for a true LLM/SAGE semantic
-reducer to improve recall without flooding operators with false positives.
+The 100k miss was later traced to mean-only NPU saturation detection in
+`MapEvidence`, not to the global reduce stage. On 2026-07-02, adding
+tail-aware `p95_npu_util` detection with a stricter saturation threshold
+recovered the missed scheduler incident while preserving precision on the
+seed-7 100k/32-shard run.
 
 ## Reproduced eSAGE Matrix Result
 

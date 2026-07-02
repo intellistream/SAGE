@@ -267,6 +267,7 @@ class OpenAICompletionIncidentReducer(IncidentReducer):
         latency_ms = (time.perf_counter() - started) * 1000
         parsed = _extract_json_payload(text)
         incidents = _normalize_llm_incidents(parsed, evidence)
+        incidents = _repair_llm_incident_coverage(incidents, evidence)
         self.last_call = {
             "model": self.model,
             "base_url": self.base_url,
@@ -539,18 +540,19 @@ def map_shard(shard_id: int, events: list[AnalysisEvent]) -> ShardSummary:
         npu_utils = [item.npu_util for item in bucket]
         error_rate = sum(1 for item in bucket if item.error) / len(bucket)
         p95_latency = _percentile(latencies, 0.95)
+        p95_npu = _percentile(npu_utils, 0.95)
         mean_latency = statistics.fmean(latencies)
         mean_queue = statistics.fmean(queue_depths)
         mean_npu = statistics.fmean(npu_utils)
 
         latency_anomaly = p95_latency > 135 or p95_latency > mean_latency * 1.9
         queue_anomaly = mean_queue > 10
-        npu_anomaly = mean_npu > 0.84
+        npu_anomaly = mean_npu > 0.84 or p95_npu > 0.96
         error_anomaly = error_rate > 0.018
         score = (
             int(latency_anomaly) * 0.34
             + int(queue_anomaly) * 0.22
-            + int(npu_anomaly) * 0.22
+            + int(npu_anomaly) * 0.34
             + int(error_anomaly) * 0.22
         )
         if score < 0.34:
@@ -567,6 +569,7 @@ def map_shard(shard_id: int, events: list[AnalysisEvent]) -> ShardSummary:
                 "mean_latency_ms": round(mean_latency, 2),
                 "error_rate": round(error_rate, 4),
                 "mean_npu_util": round(mean_npu, 4),
+                "p95_npu_util": round(p95_npu, 4),
                 "mean_queue_depth": round(mean_queue, 2),
                 "score": round(score, 4),
                 "signals": [
@@ -615,6 +618,7 @@ def _build_llm_reduce_prompt(evidence: list[dict[str, Any]]) -> str:
             "p95_latency_ms": item["p95_latency_ms"],
             "error_rate": item["error_rate"],
             "mean_npu_util": item["mean_npu_util"],
+            "p95_npu_util": item.get("p95_npu_util", item["mean_npu_util"]),
             "mean_queue_depth": item["mean_queue_depth"],
             "evidence_count": item["evidence_count"],
         }
@@ -622,17 +626,21 @@ def _build_llm_reduce_prompt(evidence: list[dict[str, Any]]) -> str:
     ]
     return (
         "You are a semantic reducer for large-scale LLM serving telemetry.\n"
-        "Merge related evidence windows into incident-level hypotheses. "
+        "Group the provided evidence rows into incident-level hypotheses. "
         "Use only the evidence provided. Return ONLY valid JSON with this schema:\n"
         "{\"incidents\":[{\"service\":\"...\",\"region\":\"...\","
         "\"start_minute\":0,\"end_minute\":0,\"score\":0.0,"
         "\"signals\":[\"latency\"],\"evidence_ids\":[0]}]}\n"
-        "Rules: merge adjacent windows for the same service and region when the "
-        "signals plausibly describe one incident; do not invent services, "
-        "regions, or time ranges outside the evidence; prefer fewer duplicate "
-        "incidents over many local alerts. Do not generate natural-language "
+        "Rules: every evidence_id is an input row id. Use each evidence_id at "
+        "most once across the whole output. Group adjacent evidence rows for "
+        "the same service and region into one incident. Create separate "
+        "incidents for different service/region pairs. Do not repeat the same "
+        "evidence_id to fill an array. Do not invent services, regions, or time "
+        "ranges outside the evidence. Do not generate natural-language "
         "explanations inside the JSON; the reporting stage will do that from "
-        "the selected evidence.\n"
+        "the selected evidence. If uncertain, still preserve coverage by "
+        "selecting distinct high-score evidence rows instead of repeating the "
+        "first row.\n"
         f"Evidence JSON:\n{json.dumps(compact_evidence, sort_keys=True)}"
     )
 
@@ -715,6 +723,7 @@ def _normalize_llm_incidents(
 
     normalized: list[dict[str, Any]] = []
     seen: set[tuple[str, str, int, int, tuple[int, ...]]] = set()
+    used_evidence_ids: set[int] = set()
     for raw in raw_incidents:
         if not isinstance(raw, dict):
             continue
@@ -724,6 +733,9 @@ def _normalize_llm_incidents(
             if isinstance(idx, int) or (isinstance(idx, str) and idx.isdigit())
         ]
         evidence_ids = list(dict.fromkeys(evidence_ids))
+        evidence_ids = [idx for idx in evidence_ids if idx not in used_evidence_ids]
+        if not evidence_ids:
+            continue
         selected = [evidence[idx] for idx in evidence_ids if 0 <= idx < len(evidence)]
         service = str((selected[0]["service"] if selected else "") or raw.get("service"))
         region = str((selected[0]["region"] if selected else "") or raw.get("region"))
@@ -747,6 +759,13 @@ def _normalize_llm_incidents(
         p95 = max((float(item["p95_latency_ms"]) for item in selected), default=0.0)
         error_rate = max((float(item["error_rate"]) for item in selected), default=0.0)
         npu_util = max((float(item["mean_npu_util"]) for item in selected), default=0.0)
+        p95_npu_util = max(
+            (
+                float(item.get("p95_npu_util", item["mean_npu_util"]))
+                for item in selected
+            ),
+            default=0.0,
+        )
         queue_depth = max(
             (float(item["mean_queue_depth"]) for item in selected), default=0.0
         )
@@ -754,6 +773,7 @@ def _normalize_llm_incidents(
         if key in seen:
             continue
         seen.add(key)
+        used_evidence_ids.update(evidence_ids)
         normalized.append(
             {
                 "service": service,
@@ -767,6 +787,7 @@ def _normalize_llm_incidents(
                 "p95_latency_ms": round(p95, 2),
                 "error_rate": round(error_rate, 4),
                 "mean_npu_util": round(npu_util, 4),
+                "p95_npu_util": round(p95_npu_util, 4),
                 "mean_queue_depth": round(queue_depth, 2),
                 "evidence_ids": evidence_ids,
                 "summary": str(raw.get("summary") or "LLM-generated incident."),
@@ -775,6 +796,124 @@ def _normalize_llm_incidents(
 
     normalized.sort(key=lambda item: (item["score"], item["evidence_count"]), reverse=True)
     return normalized
+
+
+def _repair_llm_incident_coverage(
+    incidents: list[dict[str, Any]], evidence: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Add auditable coverage repairs when an LLM repeats or drops evidence rows."""
+
+    used_ids = {
+        idx
+        for incident in incidents
+        for idx in incident.get("evidence_ids", [])
+        if isinstance(idx, int)
+    }
+    remaining = [
+        {**item, "evidence_id": idx}
+        for idx, item in enumerate(evidence)
+        if idx not in used_ids
+    ]
+    if not remaining:
+        return incidents
+
+    by_target: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for item in remaining:
+        by_target[(item["service"], item["region"])].append(item)
+
+    repaired = [*incidents]
+    for (service, region), items in by_target.items():
+        items.sort(key=lambda item: item["window"])
+        cluster: list[dict[str, Any]] = []
+        for item in items:
+            if not cluster or item["window"] <= cluster[-1]["window"] + 1:
+                cluster.append(item)
+                continue
+            repaired.append(_coverage_repair_incident(service, region, cluster))
+            cluster = [item]
+        if cluster:
+            repaired.append(_coverage_repair_incident(service, region, cluster))
+
+    return _consolidate_llm_incidents(repaired)
+
+
+def _coverage_repair_incident(
+    service: str, region: str, evidence: list[dict[str, Any]]
+) -> dict[str, Any]:
+    incident = _cluster_window_detections(service, region, evidence)
+    return {
+        **incident,
+        "evidence_ids": [int(item["evidence_id"]) for item in evidence],
+        "summary": f"[coverage repair] {incident['summary']}",
+        "reducer_repair": "coverage",
+    }
+
+
+def _consolidate_llm_incidents(incidents: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_target: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for incident in incidents:
+        by_target[(incident["service"], incident["region"])].append(incident)
+
+    consolidated: list[dict[str, Any]] = []
+    for (service, region), items in by_target.items():
+        items.sort(key=lambda item: item["start_minute"])
+        cluster: list[dict[str, Any]] = []
+        for item in items:
+            if not cluster or item["start_minute"] <= cluster[-1]["end_minute"] + 1:
+                cluster.append(item)
+                continue
+            consolidated.append(_merge_llm_incident_cluster(service, region, cluster))
+            cluster = [item]
+        if cluster:
+            consolidated.append(_merge_llm_incident_cluster(service, region, cluster))
+
+    consolidated.sort(
+        key=lambda item: (item["score"], item["evidence_count"]),
+        reverse=True,
+    )
+    return consolidated
+
+
+def _merge_llm_incident_cluster(
+    service: str, region: str, incidents: list[dict[str, Any]]
+) -> dict[str, Any]:
+    representative = max(
+        incidents,
+        key=lambda item: (float(item["score"]), int(item["evidence_count"])),
+    )
+    evidence_ids = sorted(
+        {
+            int(evidence_id)
+            for item in incidents
+            for evidence_id in item.get("evidence_ids", [])
+            if isinstance(evidence_id, int)
+        }
+    )
+    merged = {
+        **representative,
+        "service": service,
+        "region": region,
+        "window": min(int(item["window"]) for item in incidents),
+        "start_minute": min(int(item["start_minute"]) for item in incidents),
+        "end_minute": max(int(item["end_minute"]) for item in incidents),
+        "score": round(max(float(item["score"]) for item in incidents), 4),
+        "evidence_count": sum(int(item["evidence_count"]) for item in incidents),
+        "signals": sorted({signal for item in incidents for signal in item["signals"]}),
+        "p95_latency_ms": max(float(item["p95_latency_ms"]) for item in incidents),
+        "error_rate": max(float(item["error_rate"]) for item in incidents),
+        "mean_npu_util": max(float(item["mean_npu_util"]) for item in incidents),
+        "p95_npu_util": max(
+            float(item.get("p95_npu_util", item["mean_npu_util"]))
+            for item in incidents
+        ),
+        "mean_queue_depth": max(float(item["mean_queue_depth"]) for item in incidents),
+        "evidence_ids": evidence_ids,
+    }
+    if any(item.get("reducer_repair") for item in incidents):
+        merged["reducer_repair"] = "coverage"
+    if len(incidents) > 1:
+        merged["summary"] = f"[consolidated] {representative['summary']}"
+    return merged
 
 
 def _coerce_int(value: Any, default: int) -> int:
@@ -829,6 +968,9 @@ def _reduce_summaries_by_window(summaries: list[ShardSummary]) -> list[dict[str,
         p95 = max(item["p95_latency_ms"] for item in candidates)
         error_rate = max(item["error_rate"] for item in candidates)
         mean_npu_util = max(item["mean_npu_util"] for item in candidates)
+        p95_npu_util = max(
+            item.get("p95_npu_util", item["mean_npu_util"]) for item in candidates
+        )
         mean_queue_depth = max(item["mean_queue_depth"] for item in candidates)
         window_detections.append(
             {
@@ -843,6 +985,7 @@ def _reduce_summaries_by_window(summaries: list[ShardSummary]) -> list[dict[str,
                 "p95_latency_ms": p95,
                 "error_rate": error_rate,
                 "mean_npu_util": mean_npu_util,
+                "p95_npu_util": p95_npu_util,
                 "mean_queue_depth": mean_queue_depth,
                 "summary": _explain_candidate(
                     {
@@ -917,6 +1060,9 @@ def _cluster_window_detections(
         "p95_latency_ms": p95,
         "error_rate": error_rate,
         "mean_npu_util": mean_npu_util,
+        "p95_npu_util": max(
+            item.get("p95_npu_util", item["mean_npu_util"]) for item in detections
+        ),
         "mean_queue_depth": mean_queue_depth,
         "summary": _explain_candidate(
             {
@@ -925,6 +1071,10 @@ def _cluster_window_detections(
                 "p95_latency_ms": p95,
                 "error_rate": error_rate,
                 "mean_npu_util": mean_npu_util,
+                "p95_npu_util": max(
+                    item.get("p95_npu_util", item["mean_npu_util"])
+                    for item in detections
+                ),
                 "mean_queue_depth": mean_queue_depth,
             }
         ),
