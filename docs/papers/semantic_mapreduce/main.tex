@@ -39,7 +39,7 @@ Large-scale data systems efficiently scan, join, and aggregate massive datasets,
 
 Modern data systems are very good at moving, filtering, joining, and aggregating data. Hadoop MapReduce made large-scale analysis programmable through local map tasks followed by global reduction~\cite{dean2004mapreduce}; Spark and Flink improved the execution model for iterative, in-memory, batch, and stream workloads~\cite{zaharia2012spark,carbone2015flink}; Ray generalized distributed execution for emerging AI applications~\cite{moritz2018ray}. These systems are essential infrastructure, but they do not directly answer a different class of analysis questions: are these distributed symptoms part of the same incident, what evidence supports the hypothesis, which evidence conflicts with it, and what action should an operator take next?
 
-This distinction appears even in a controlled telemetry workload. In an NPU-backed LLM serving scenario, Figure~\ref{fig:intro-motivation} shows that map-only alerts reach 0.3075 mean F1 and window aggregation reaches 0.7129, while an incident-level reducer reaches 0.9579 across 20 tail-aware runs. The reason is not faster scanning; it is that the reducer turns duplicate shard symptoms and window-level detections into evidence-linked incident hypotheses. A separate adapter probe shows that LangGraph, LlamaIndex, and Ray-local wrappers can drive the same contract, but their quality is identical only because they reuse the same reducer and scorer. Existing substrates can carry the computation; the missing abstraction is first-class semantic reduction with auditable evidence.
+This distinction appears even in a controlled telemetry workload. In an NPU-backed LLM serving scenario, Figure~\ref{fig:intro-motivation} shows that map-only alerts reach 0.3075 mean F1 and window aggregation reaches 0.7129, while an incident-level reducer reaches 0.9579 across 20 tail-aware runs. The gray bars represent workflows that stop after local alerting or window aggregation: they can find symptoms, but still emit fragments that must be deduplicated and explained elsewhere. The improvement comes from changing the analysis contract itself. The reducer must output an incident hypothesis linked to supporting evidence, so reduction becomes a semantic operation rather than only a numeric or windowed aggregate.
 
 \begin{figure}[t]
 \centering
@@ -81,7 +81,7 @@ This distinction appears even in a controlled telemetry workload. In an NPU-back
 \node[callout, anchor=west] at (3.86,0.34) {evidence-linked\\incidents};
 
 \end{tikzpicture}
-\caption{Motivating result. The advantage is not a generic wrapper effect: semantic reduction changes the output unit from local/window symptoms into evidence-linked incident hypotheses.}
+\caption{Motivating result. The gray bars show workflow boundaries that stop at symptoms or window fragments; semantic reduction changes the output unit into evidence-linked incident hypotheses.}
 \Description{A bar chart showing map-only alerts at mean F1 0.3075, window aggregation at 0.7129, and semantic reduction at 0.9579. A side legend explains that the first two baselines output shard-local symptoms and window fragments, while semantic reduction outputs evidence-linked incidents.}
 \label{fig:intro-motivation}
 \end{figure}
