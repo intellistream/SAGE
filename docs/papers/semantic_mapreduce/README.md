@@ -106,7 +106,7 @@ cd "$HOME/vllm-hust-dev-hub"
 VLLM_ENGINE_PORT=8000 \
 VLLM_ENGINE_MODEL_PATH=/data/shared_models/modelscope_cache/Qwen/Qwen3-32B \
 VLLM_ENGINE_SERVED_MODEL_NAME=qwen3-32b \
-bash scripts/run_vllm_hust_engine.sh
+bash manage.sh foreground
 ```
 
 The large-scale analysis results in this paper are synthetic and do not require
@@ -124,7 +124,7 @@ baseline for future LLM-backed reducers:
 
 Configuration:
 
-- vLLM-HUST launched through `vllm-hust-dev-hub/scripts/run_vllm_hust_engine.sh`.
+- vLLM-HUST launched through `vllm-hust-dev-hub/manage.sh foreground`.
 - Model: `/data/shared_models/Qwen2.5-7B-Instruct`.
 - Device: one Ascend 910B2 NPU, device 4.
 - TP=1, `max_model_len=1024`, `max_num_seqs=1`.

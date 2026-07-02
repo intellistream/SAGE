@@ -172,7 +172,7 @@ cd "$HOME/vllm-hust-dev-hub"
 VLLM_ENGINE_PORT=8000 \
 VLLM_ENGINE_MODEL_PATH=/data/shared_models/modelscope_cache/Qwen/Qwen3-32B \
 VLLM_ENGINE_SERVED_MODEL_NAME=qwen3-32b \
-bash scripts/run_vllm_hust_engine.sh
+bash manage.sh foreground
 ```
 
 The hub launcher manages the official Ascend container, vLLM-HUST Python path,
@@ -180,7 +180,7 @@ Ascend/runtime guardrails, and endpoint process cleanup. Stop the endpoint with:
 
 ```bash
 cd "$HOME/vllm-hust-dev-hub"
-VLLM_ENGINE_PORT=8000 bash scripts/cleanup_vllm_hust_engine.sh
+VLLM_ENGINE_PORT=8000 bash manage.sh stop
 ```
 
 ### Real vLLM-HUST Smoke Probe
@@ -222,7 +222,7 @@ VLLM_ENGINE_ENABLE_PREFIX_CACHING=0 \
 VLLM_ENGINE_ENABLE_CHUNKED_PREFILL=0 \
 VLLM_PLUGINS=ascend \
 VLLM_ENGINE_PYTHONPATH=/workspace/vllm-hust:/workspace/vllm-ascend-hust \
-bash scripts/run_vllm_hust_engine.sh
+bash manage.sh foreground
 ```
 
 Once `/health` returns 200, send one OpenAI-compatible request without printing
@@ -247,7 +247,7 @@ cd "$HOME/vllm-hust-dev-hub"
 VLLM_ENGINE_CONTAINER=sage-smoke-vllm-hust-21rc \
 VLLM_ENGINE_PORT=18381 \
 VLLM_ENGINE_AGGRESSIVE_CLEANUP=false \
-bash scripts/cleanup_vllm_hust_engine.sh
+bash manage.sh stop
 ```
 
 ### Real-Online Single-NPU Benchmark
@@ -257,7 +257,7 @@ single-NPU configuration:
 
 - Date: 2026-06-30.
 - Provenance: `real-online`.
-- Serving launch path: `vllm-hust-dev-hub/scripts/run_vllm_hust_engine.sh`.
+- Serving launch path: `vllm-hust-dev-hub/manage.sh foreground`.
 - Model: `/data/shared_models/Qwen2.5-7B-Instruct`.
 - Served model name: `qwen25-7b-sage-realonline`.
 - Hardware: one Ascend 910B2 NPU, device 4.
@@ -332,10 +332,11 @@ structured evidence groups only; the normalization/reporting stages derive
 service, region, time range, signals, and explanation from the selected evidence
 objects.
 
-For vLLM-HUST, start the endpoint through the hub and enable vLLM generation
-defaults plus structured-output configuration. The example below uses one
-Ascend 910B2 NPU outside the reserved 0-3 range and does not print or store the
-API key:
+For vLLM-HUST, start the endpoint through the hub's `manage.sh` entrypoint.
+Use `manage.sh foreground` for an interactive paper/debug run and
+`manage.sh start` / `manage.sh stop` / `manage.sh health` for the managed
+systemd path. The example below uses one Ascend 910B2 NPU outside the reserved
+0-3 range and does not print or store the API key:
 
 ```bash
 cd "$HOME/vllm-hust-dev-hub"
@@ -358,7 +359,7 @@ VLLM_ENGINE_ENABLE_CHUNKED_PREFILL=0 \
 VLLM_PLUGINS=ascend \
 VLLM_ENGINE_PYTHONPATH=/workspace/vllm-hust:/workspace/vllm-ascend-hust \
 VLLM_ENGINE_EXTRA_ARGS_JSON='["--generation-config","vllm","--structured-outputs-config","{\"backend\":\"xgrammar\",\"disable_any_whitespace\":true}"]' \
-bash scripts/run_vllm_hust_engine.sh
+bash manage.sh foreground
 ```
 
 Run the readiness probe only after `/health` returns 200:
@@ -402,7 +403,7 @@ cd "$HOME/vllm-hust-dev-hub"
 VLLM_ENGINE_CONTAINER=sage-lsa-json-mode-probe-7b-20260702 \
 VLLM_ENGINE_PORT=18386 \
 VLLM_ENGINE_AGGRESSIVE_CLEANUP=false \
-bash scripts/cleanup_vllm_hust_engine.sh
+bash manage.sh stop
 ```
 
 On 2026-07-01, the readiness gate was exercised on real vLLM-HUST endpoints:
@@ -670,39 +671,47 @@ wrapper:
   `SimpleDocumentStore` package evidence before the same reducer runs.
 
 Install optional dependencies through the setup script with
-`--with-adapter-comparison`, then run:
+`--with-adapter-comparison`, then run the current 10-seed adapter baseline:
 
 ```bash
 conda run -n esage-vllm-hust-dev env PYTHONPATH=src python \
   tools/benchmark_carrier/run_large_scale_analysis_adapter_comparison.py \
   --sizes 50000:16:12,100000:32:16 \
-  --seeds 7,11,13 \
+  --seeds 7,11,13,17,19,23,29,31,37,41 \
+  --map-policy tail-aware \
+  --reducer deterministic \
   --adapters sage-local,ray-local,langgraph-local,llamaindex-docstore \
-  --run-id 20260630T-adapter-comparison-steady \
+  --run-id 20260702T-adapter-baselines-tailaware-10seed \
   --continue-on-error
 ```
 
 Artifacts are in:
 
 ```text
-.sage/benchmarks/large_scale_analysis_adapters/20260630T-adapter-comparison-steady/
+.sage/benchmarks/large_scale_analysis_adapters/20260702T-adapter-baselines-tailaware-10seed/
 ```
 
-Historical 2026-06-30 summary:
+Current 2026-07-02 10-seed tail-aware summary:
 
 | adapter | mean F1 | mean throughput events/s | mean map ms | mean total ms |
 | --- | ---: | ---: | ---: | ---: |
-| sage-local | 0.9392 | 58,594 | 201.82 | 1,301.33 |
-| langgraph-local | 0.9392 | 60,051 | 142.63 | 1,257.80 |
-| llamaindex-docstore | 0.9392 | 61,519 | 146.56 | 1,230.84 |
-| ray-local | 0.9392 | 39,739 | 757.63 | 1,870.75 |
+| sage-local | 0.9579 | 58,136 | 167.97 | 1,303.22 |
+| langgraph-local | 0.9579 | 58,184 | 168.42 | 1,299.13 |
+| llamaindex-docstore | 0.9579 | 57,868 | 172.53 | 1,304.96 |
+| ray-local | 0.9579 | 39,100 | 800.61 | 1,917.48 |
 
 All adapters have identical quality because this experiment intentionally fixes
 the reducer and scorer. The comparison measures adapter/integration overhead,
-not semantic quality and not SOTA capability. On 2026-07-02, a rerun in the
-current shell skipped LangGraph, LlamaIndex, and Ray because optional
-dependencies were unavailable; use the setup script's adapter-comparison option
-before treating this section as reproducible evidence.
+not semantic quality and not tuned SOTA capability. Ray-local reported NPU
+detection warnings (`acl` was unavailable in the conda environment) and
+`/tmp/ray` space pressure warnings on this host, so its local overhead should be
+used as diagnostic evidence only.
+
+Historical 2026-06-30 adapter results are preserved in:
+
+```text
+.sage/benchmarks/large_scale_analysis_adapters/20260630T-adapter-comparison-steady/
+```
 
 The 2026-06-30 multi-seed result is useful historical evidence for claim
 discipline:

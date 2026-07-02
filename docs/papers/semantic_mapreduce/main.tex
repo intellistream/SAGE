@@ -514,7 +514,7 @@ Events & Shards & Top-k & Runs \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:configs} lists the reproduced configurations. The evaluation is deliberately scoped to operator behavior under one workload harness. It does not claim full end-to-end deployments of Spark, Flink, Ray, LangGraph, LlamaIndex, or AutoGen. The main comparison fixes the generator, evidence schema, scorer, and report format, then varies two pieces: the map evidence policy and the reducer. This lets us separate two questions that were conflated in earlier drafts: whether incident-level reduction helps, and whether the map stage preserves enough evidence for any reducer to succeed.
+Table~\ref{tab:configs} lists the reproduced configurations. The evaluation is deliberately scoped to operator behavior under one workload harness. It does not claim tuned cluster deployments of Spark, Flink, Ray, LangGraph, LlamaIndex, or AutoGen. The main comparison fixes the generator, evidence schema, scorer, and report format, then varies two pieces: the map evidence policy and the reducer. This lets us separate three questions that were conflated in earlier drafts: whether incident-level reduction helps, whether the map stage preserves enough evidence for any reducer to succeed, and whether adjacent orchestration frameworks provide the missing semantic contract by themselves.
 
 \subsection{Reducer Quality}
 
@@ -581,9 +581,26 @@ The local runtime metrics in Table~\ref{tab:runtime} show that the map stage dom
 
 These numbers are not distributed systems performance claims. The current runs are local and do not evaluate cluster scheduling, shuffle, or fault recovery. They establish a reproducible baseline for later reducer studies. If an LLM reducer improves recall but adds latency or token cost, the same harness can quantify the tradeoff. A complete evaluation would report end-to-end latency and cost for deterministic, LLM-backed, and hybrid reducers under the same workload.
 
-\paragraph{External adapter scope.}
+\begin{table}[t]
+\caption{Adjacent-framework adapter baselines over the same 20 tail-aware runs. Each adapter receives the same evidence objects and calls the same incident reducer and scorer. Equal quality is therefore expected; the result shows that adjacent frameworks can host the workflow but do not provide semantic reduction unless the evidence contract and reducer are supplied. Ray-local also reported NPU-detection and \texttt{/tmp/ray} space warnings on this host, so its local overhead should not be read as tuned Ray performance.}
+\label{tab:adapter-baselines}
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+Adapter & F1 & Throughput & Total ms \\
+\midrule
+SAGE-local & 0.9579 & 58,136 & 1,303.22 \\
+LangGraph-local & 0.9579 & 58,184 & 1,299.13 \\
+LlamaIndex-docstore & 0.9579 & 57,868 & 1,304.96 \\
+Ray-local & 0.9579 & 39,100 & 1,917.48 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-We also implemented optional local wrappers for adjacent frameworks, but we do not treat them as SOTA comparisons in this paper. When the same evidence objects, reducer, and scorer are reused, quality is identical by construction; the remaining measurements mostly reflect wrapper overhead and dependency availability. A fair comparison against LangGraph, LlamaIndex, Ray, Spark, or Flink would require tuned installations, explicit dataflow mappings, and the same evidence contract. We therefore keep the main evaluation on operator regimes that are directly comparable inside the current artifact.
+\paragraph{Adjacent-system baselines.}
+
+Table~\ref{tab:adapter-baselines} adds adjacent-framework baselines for Ray-local, LangGraph-local, and LlamaIndex-docstore wrappers. The table should not be read as a leaderboard over those systems: the experiment intentionally fixes the evidence schema, incident reducer, scorer, and report format. Its value is diagnostic. Without semantic reduction, the workflows in Table~\ref{tab:aggregate} stop at shard-local alerts or window fragments. Once the semantic-reduce contract is supplied, adjacent frameworks can drive the same computation and obtain identical quality. This supports a narrower claim: existing systems are useful substrates, but the missing abstraction for this workload is the evidence-linked reducer contract and its audit trail, not another generic execution wrapper.
 
 \subsection{Real-Online Readiness}
 
