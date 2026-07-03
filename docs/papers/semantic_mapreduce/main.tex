@@ -106,7 +106,7 @@ We argue that the right abstraction is neither a monolithic agent nor a replacem
 
 We instantiate this idea in an anonymized prototype. The prototype is a dataflow-native framework for modular, controllable, and transparent LLM-augmented reasoning. Its stream API exposes familiar dataflow composition primitives, its runtime provides local and optional distributed execution entrypoints, and its serving integration keeps inference engines outside the core package through explicit contracts. Rather than treating LLM analysis as a single prompt-response interaction, the prototype represents analysis as a workflow graph whose operators can be inspected, replayed, replaced, and connected to external systems. This makes the prototype an orchestration layer above or beside Spark, Flink, Ray, databases, vector systems, and LLM serving engines.
 
-The resulting capability is stronger than a chat interface over telemetry. The prototype can express a pipeline in which different shards are analyzed independently, local outputs are normalized into evidence objects, reduction logic is selected by policy, and final explanations remain connected to the intermediate decisions that produced them. The same workflow can run with a deterministic reducer, with a stub reducer for interface testing, or with an LLM-backed reducer for semantic fusion. The prototype therefore makes LLM-native analysis operationally structured.
+The resulting structure addresses cases that a chat interface over telemetry leaves implicit. The prototype can express a pipeline in which different shards are analyzed independently, local outputs are normalized into evidence objects, reduction logic is selected by policy, and final explanations remain connected to the intermediate decisions that produced them. The same workflow can run with a deterministic reducer, with a stub reducer for interface testing, or with an LLM-backed reducer for semantic fusion. The prototype therefore makes LLM-native analysis operationally structured.
 
 The evidence boundary is deliberately narrow. The current workload does not implement production-grade distributed shuffle, exactly-once fault tolerance, or a real LLM reducer. It implements a reproducible workload and a deterministic reducer baseline, plus an \texttt{llm-stub} reducer that fixes the interface for LLM-backed reduction. The supported claim is that the prototype expresses MapReduce-like semantic orchestration as a standard operator workflow and exposes meaningful reducer failure modes. It is not a replacement for existing execution engines.
 
@@ -582,7 +582,7 @@ The local runtime metrics in Table~\ref{tab:runtime} show that the map stage dom
 These numbers are not distributed systems performance claims. The current runs are local and do not evaluate cluster scheduling, shuffle, or fault recovery. They establish a reproducible baseline for later reducer studies. If an LLM reducer improves recall but adds latency or token cost, the same harness can quantify the tradeoff. A complete evaluation would report end-to-end latency and cost for deterministic, LLM-backed, and hybrid reducers under the same workload.
 
 \begin{table}[t]
-\caption{Adjacent-framework adapter baselines over the same 20 tail-aware runs. Each adapter receives the same evidence objects and calls the same incident reducer and scorer. Equal quality is therefore expected; the result shows that adjacent frameworks can host the workflow but do not provide semantic reduction unless the evidence contract and reducer are supplied. Ray-local also reported NPU-detection and \texttt{/tmp/ray} space warnings on this host, so its local overhead should not be read as tuned Ray performance.}
+\caption{Adjacent-framework adapter baselines over the same 20 tail-aware runs. Each adapter receives the same evidence objects and calls the same incident reducer and scorer; equal quality is therefore expected.}
 \label{tab:adapter-baselines}
 \centering
 \small
@@ -590,7 +590,7 @@ These numbers are not distributed systems performance claims. The current runs a
 \toprule
 Adapter & F1 & Throughput & Total ms \\
 \midrule
-SAGE-local & 0.9579 & 58,136 & 1,303.22 \\
+Native-local & 0.9579 & 58,136 & 1,303.22 \\
 LangGraph-local & 0.9579 & 58,184 & 1,299.13 \\
 LlamaIndex-docstore & 0.9579 & 57,868 & 1,304.96 \\
 Ray-local & 0.9579 & 39,100 & 1,917.48 \\
@@ -600,7 +600,7 @@ Ray-local & 0.9579 & 39,100 & 1,917.48 \\
 
 \paragraph{Adjacent-system baselines.}
 
-Table~\ref{tab:adapter-baselines} adds adjacent-framework baselines for Ray-local, LangGraph-local, and LlamaIndex-docstore wrappers. The table should not be read as a leaderboard over those systems: the experiment intentionally fixes the evidence schema, incident reducer, scorer, and report format. Its value is diagnostic. Without semantic reduction, the workflows in Table~\ref{tab:aggregate} stop at shard-local alerts or window fragments. Once the semantic-reduce contract is supplied, adjacent frameworks can drive the same computation and obtain identical quality. This supports a narrower claim: existing systems are useful substrates, but the missing abstraction for this workload is the evidence-linked reducer contract and its audit trail, not another generic execution wrapper.
+Table~\ref{tab:adapter-baselines} adds adjacent-framework baselines for Ray-local, LangGraph-local, and LlamaIndex-docstore wrappers. The table should not be read as a leaderboard over those systems: the experiment intentionally fixes the evidence schema, incident reducer, scorer, and report format. Its value is diagnostic. Without semantic reduction, the workflows in Table~\ref{tab:aggregate} stop at shard-local alerts or window fragments. Once the semantic-reduce contract is supplied, adjacent frameworks can drive the same computation and obtain identical quality. This supports a narrower claim: existing systems are useful substrates, but the missing abstraction for this workload is the evidence-linked reducer contract and its audit trail, not another generic execution wrapper. Ray-local also reported NPU-detection and \texttt{/tmp/ray} space warnings on this host, so its overhead should not be read as tuned Ray performance.
 
 \subsection{Real-Online Readiness}
 
