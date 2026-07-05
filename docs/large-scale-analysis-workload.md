@@ -519,9 +519,9 @@ vLLM-Ascend-HUST side as a submodule so the experiment can be reproduced from a
 specific upstream feature branch:
 
 - submodule path: `external/vllm-ascend-hust`
-- branch: `feature/npu-json-readiness-fallbacks`
+- branch: `feature/sage-semantic-mapreduce-npu-readiness`
 - pinned commit: `b8a09892162872ef7ba509434f6000b24480fd5c`
-- upstream PR: `vLLM-HUST/vllm-ascend-hust#99`
+- upstream PR: `vLLM-HUST/vllm-ascend-hust#101`
 
 The submodule contains the following compatibility changes:
 
