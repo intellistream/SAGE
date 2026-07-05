@@ -78,13 +78,14 @@ SOTA comparisons.
 ### Environment Setup
 
 On vLLM-HUST machines, prepare the source environment through
-`vllm-hust-dev-hub` and let SAGE clone it:
+the SAGE-pinned `vllm-hust-dev-hub` submodule:
 
 ```bash
+git submodule update --init --recursive external/vllm-hust-dev-hub
 tools/benchmark_carrier/setup_esage_conda_env.sh \
   --source-env vllm-hust-dev \
   --target-env esage-vllm-hust-dev \
-  --dev-hub "$HOME/vllm-hust-dev-hub" \
+  --dev-hub "$PWD/external/vllm-hust-dev-hub" \
   --prepare-source-env
 ```
 
@@ -113,6 +114,8 @@ git rev-parse HEAD
 The expected commit for this draft is
 `b8a09892162872ef7ba509434f6000b24480fd5c` from
 `vLLM-HUST/vllm-ascend-hust#101`.
+The matching dev-hub branch is `feature/sage-semantic-mapreduce-dev-hub`,
+pinned at `9a05905d67b31f91469b00d16d61d9146273ce87`.
 
 Before launching a real NPU endpoint, validate the runtime branch and use the
 printed dev-hub overrides:
@@ -125,7 +128,7 @@ For real endpoint replay work, start vLLM-HUST through the hub launcher rather
 than by hand inside the container:
 
 ```bash
-cd "$HOME/vllm-hust-dev-hub"
+cd external/vllm-hust-dev-hub
 VLLM_ENGINE_PORT=8000 \
 VLLM_ENGINE_MODEL_PATH=/data/shared_models/modelscope_cache/Qwen/Qwen3-32B \
 VLLM_ENGINE_SERVED_MODEL_NAME=qwen3-32b \

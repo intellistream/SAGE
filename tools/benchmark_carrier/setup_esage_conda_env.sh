@@ -13,7 +13,8 @@ benchmark carrier and workload tests.
 Defaults:
   --source-env vllm-hust-dev
   --target-env esage-vllm-hust-dev
-  --dev-hub   $HOME/vllm-hust-dev-hub
+  --dev-hub   external/vllm-hust-dev-hub when present, otherwise
+              $HOME/vllm-hust-dev-hub
 
 The script also accepts "vllmhustdev" as a source-env alias when an environment
 with that exact name exists.
@@ -25,9 +26,16 @@ environment preparation to vllm-hust-dev-hub:
 EOF
 }
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SAGE_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+DEFAULT_DEV_HUB="$HOME/vllm-hust-dev-hub"
+if [ -d "$SAGE_ROOT/external/vllm-hust-dev-hub" ]; then
+  DEFAULT_DEV_HUB="$SAGE_ROOT/external/vllm-hust-dev-hub"
+fi
+
 SOURCE_ENV="${ESAGE_SOURCE_ENV:-vllm-hust-dev}"
 TARGET_ENV="${ESAGE_TARGET_ENV:-esage-vllm-hust-dev}"
-DEV_HUB="${ESAGE_VLLM_HUST_DEV_HUB:-$HOME/vllm-hust-dev-hub}"
+DEV_HUB="${ESAGE_VLLM_HUST_DEV_HUB:-$DEFAULT_DEV_HUB}"
 PREPARE_SOURCE_ENV=0
 WITH_ADAPTER_COMPARISON=0
 

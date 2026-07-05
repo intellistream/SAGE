@@ -2,3 +2,7 @@
 	path = external/vllm-ascend-hust
 	url = git@github.com:vLLM-HUST/vllm-ascend-hust.git
 	branch = feature/sage-semantic-mapreduce-npu-readiness
+[submodule "external/vllm-hust-dev-hub"]
+	path = external/vllm-hust-dev-hub
+	url = git@github.com:vLLM-HUST/vllm-hust-dev-hub.git
+	branch = feature/sage-semantic-mapreduce-dev-hub

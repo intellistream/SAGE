@@ -522,6 +522,9 @@ specific upstream feature branch:
 - branch: `feature/sage-semantic-mapreduce-npu-readiness`
 - pinned commit: `b8a09892162872ef7ba509434f6000b24480fd5c`
 - upstream PR: `vLLM-HUST/vllm-ascend-hust#101`
+- dev-hub submodule path: `external/vllm-hust-dev-hub`
+- dev-hub branch: `feature/sage-semantic-mapreduce-dev-hub`
+- dev-hub pinned commit: `9a05905d67b31f91469b00d16d61d9146273ce87`
 
 The submodule contains the following compatibility changes:
 
@@ -548,7 +551,7 @@ tools/benchmark_carrier/prepare_vllm_ascend_runtime_branch.sh
 Use the dev-hub launcher, not a manual container command:
 
 ```bash
-cd "$HOME/vllm-hust-dev-hub"
+cd external/vllm-hust-dev-hub
 
 VLLM_ENGINE_CONTAINER=sage-lsa-npu3-qwen25-7b \
 VLLM_ENGINE_RECREATE_CONTAINER=false \
