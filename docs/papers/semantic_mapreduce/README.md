@@ -100,6 +100,20 @@ bash "$HOME/vllm-hust-dev-hub/scripts/quickstart.sh" \
   -y
 ```
 
+The vLLM-Ascend-HUST compatibility patches used for NPU3 real-online readiness
+are tracked as a SAGE submodule:
+
+```bash
+git submodule update --init --recursive external/vllm-ascend-hust
+cd external/vllm-ascend-hust
+git checkout feature/npu-json-readiness-fallbacks
+git rev-parse HEAD
+```
+
+The expected commit for this draft is
+`b8a09892162872ef7ba509434f6000b24480fd5c` from
+`vLLM-HUST/vllm-ascend-hust#99`.
+
 For real endpoint replay work, start vLLM-HUST through the hub launcher rather
 than by hand inside the container:
 

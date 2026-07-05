@@ -513,17 +513,26 @@ The fixed NPU3 configuration has three important properties:
 3. use a large enough context window for structured-output reducer prompts. The
    20k workload used `max_model_len=2048`.
 
-The required local runtime patches are narrow compatibility patches in the
-vLLM-HUST/vLLM-Ascend checkouts, not SAGE workload logic:
+The required runtime patches are narrow compatibility patches in the
+vLLM-HUST/vLLM-Ascend checkout, not SAGE workload logic. SAGE records the
+vLLM-Ascend-HUST side as a submodule so the experiment can be reproduced from a
+specific upstream feature branch:
 
-- `$HOME/vllm-ascend-hust/vllm_ascend/ops/layernorm.py`: add
+- submodule path: `external/vllm-ascend-hust`
+- branch: `feature/npu-json-readiness-fallbacks`
+- pinned commit: `b8a09892162872ef7ba509434f6000b24480fd5c`
+- upstream PR: `vLLM-HUST/vllm-ascend-hust#99`
+
+The submodule contains the following compatibility changes:
+
+- `external/vllm-ascend-hust/vllm_ascend/ops/layernorm.py`: add
   `VLLM_ASCEND_DISABLE_ADD_RMS_NORM_BIAS_CUSTOM_OP=1` fallback to
   `torch_npu.npu_add_rms_norm` for the missing RMSNorm-bias custom op.
-- `$HOME/vllm-ascend-hust/vllm_ascend/sample/sampler.py`: add
+- `external/vllm-ascend-hust/vllm_ascend/sample/sampler.py`: add
   `VLLM_ASCEND_DISABLE_TOP_K_TOP_P_CUSTOM_OP=1` fallback to the PyTorch
   top-k/top-p path when the Python op exists but the `libopapi.so` symbol is
   absent.
-- `$HOME/vllm-ascend-hust/vllm_ascend/patch/platform/patch_balance_schedule.py`:
+- `external/vllm-ascend-hust/vllm_ascend/patch/platform/patch_balance_schedule.py`:
   accept the current vLLM scheduler arguments.
 - `$HOME/vllm-hust/vllm/v1/core/kv_cache_manager.py` and
   `$HOME/vllm-hust/vllm/knorm/manager.py`: align local KV-cache/Knorm method

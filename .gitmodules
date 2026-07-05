@@ -1,0 +1,4 @@
+[submodule "external/vllm-ascend-hust"]
+	path = external/vllm-ascend-hust
+	url = git@github.com:vLLM-HUST/vllm-ascend-hust.git
+	branch = feature/npu-json-readiness-fallbacks
