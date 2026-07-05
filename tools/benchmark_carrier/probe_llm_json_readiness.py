@@ -35,6 +35,11 @@ def _parse_args() -> argparse.Namespace:
         help="Request an OpenAI-compatible JSON schema response.",
     )
     parser.add_argument(
+        "--simple-prompt",
+        action="store_true",
+        help="Use a minimal JSON-object prompt instead of the incident schema.",
+    )
+    parser.add_argument(
         "--output",
         default=".sage/benchmarks/llm_json_readiness/probe.json",
     )
@@ -52,12 +57,15 @@ def main() -> int:
         endpoint_type=args.endpoint_type,
         structured_output=args.structured_output,
     )
-    prompt = (
-        "Return ONLY valid JSON with exactly this shape: "
-        "{\"incidents\":[{\"service\":\"decode\",\"region\":\"npu-a\","
-        "\"start_minute\":10,\"end_minute\":20,\"score\":0.7,"
-        "\"signals\":[\"latency\"],\"evidence_ids\":[0]}]}"
-    )
+    if args.simple_prompt:
+        prompt = 'Return ONLY valid JSON: {"ok": true, "answer": 7}'
+    else:
+        prompt = (
+            "Return ONLY valid JSON with exactly this shape: "
+            "{\"incidents\":[{\"service\":\"decode\",\"region\":\"npu-a\","
+            "\"start_minute\":10,\"end_minute\":20,\"score\":0.7,"
+            "\"signals\":[\"latency\"],\"evidence_ids\":[0]}]}"
+        )
     started = time.perf_counter()
     status = "ok"
     raw_text = ""
@@ -66,7 +74,11 @@ def main() -> int:
     try:
         raw_text = reducer._completion(prompt)
         parsed = _extract_json_payload(raw_text)
-        if not isinstance(parsed.get("incidents"), list):
+        if args.simple_prompt:
+            if parsed.get("ok") is not True or parsed.get("answer") != 7:
+                status = "schema-error"
+                error = "Parsed JSON does not match the simple probe object."
+        elif not isinstance(parsed.get("incidents"), list):
             status = "schema-error"
             error = "Parsed JSON does not contain an incidents list."
     except Exception as exc:
@@ -79,6 +91,7 @@ def main() -> int:
         "model": args.model,
         "endpoint_type": args.endpoint_type,
         "structured_output": args.structured_output,
+        "simple_prompt": args.simple_prompt,
         "status": status,
         "latency_ms": round((time.perf_counter() - started) * 1000, 2),
         "parsed_keys": sorted(parsed.keys()) if parsed else [],

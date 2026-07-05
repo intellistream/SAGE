@@ -5,18 +5,19 @@ large-scale analysis workload and Semantic MapReduce framing.
 
 ## Venue Choice
 
-Recommended style target: **ACM SIGOPS ATC long paper**.
+Recommended style target: **ASPLOS full paper**.
 
 Rationale:
 
-- The user asked for a more traditional systems-conference long-paper format
-  rather than an ML systems paper.
-- ATC 2026 long submissions are capped at 12 pages excluding references and
-  appendices, matching the desired "12-page systems paper" shape.
-- The ATC/SIGOPS format is a better fit for the current artifact than MLSys:
-  the draft is about workflow/runtime boundaries, evidence reduction, workload
-  design, and careful systems claims.
-- SOSP/OSDI are plausible future targets after the prototype has a real
+- The user asked for a traditional systems-conference long-paper target rather
+  than an ML systems paper.
+- ASPLOS is a closer fit than MLSys for the current framing because the paper
+  emphasizes system abstraction, runtime/orchestration boundaries, workload
+  design, and careful claim discipline around LLM-serving integration.
+- The draft currently follows the ACM `acmart` anonymous two-column form used
+  by ASPLOS-style submissions. Page-count and anonymity details must be checked
+  against the active CFP before submission.
+- SOSP/OSDI remain plausible future targets after the prototype has a real
   LLM-backed reducer, real telemetry, stronger distributed execution evidence,
   and a deeper related-work comparison.
 
@@ -43,11 +44,11 @@ docs/papers/semantic_mapreduce/main.pdf
 
 ## Experiment Artifact
 
-The paper currently reports the reproduced matrix run with diagnostic
-comparison baselines:
+The paper currently reports the tail-aware slice of the reproduced matrix run
+with diagnostic comparison baselines:
 
 ```text
-.sage/benchmarks/large_scale_analysis/20260630T-sota-proxy-baselines/
+.sage/benchmarks/large_scale_analysis/20260702T-map-policy-10seed-thr098-paper-matrix/
 ```
 
 The run used the `esage-vllm-hust-dev` conda environment and includes:
@@ -57,14 +58,15 @@ The run used the `esage-vllm-hust-dev` conda environment and includes:
 - `aggregate.json`
 - raw JSON reports for each reducer/size/seed configuration
 
-Current aggregate reducer comparison:
+Current tail-aware reducer comparison from
+`aggregate.json.by_map_policy_reducer`:
 
 | reducer | mean precision | mean recall | mean F1 |
 | --- | ---: | ---: | ---: |
-| map-only | `0.1459` | `0.5000` | `0.2250` |
-| window-aggregate | `0.6432` | `0.9583` | `0.7600` |
-| deterministic | `0.9333` | `0.9583` | `0.9392` |
-| llm-stub | `0.9333` | `0.9583` | `0.9392` |
+| map-only | `0.1990` | `0.6875` | `0.3075` |
+| window-aggregate | `0.5696` | `0.9750` | `0.7129` |
+| deterministic | `0.9500` | `0.9750` | `0.9579` |
+| llm-stub | `0.9500` | `0.9750` | `0.9579` |
 
 The `llm-stub` reducer intentionally matches the deterministic reducer because
 it is a CI-safe placeholder, not a real LLM experiment.
@@ -143,9 +145,9 @@ configured with `max_num_seqs=1`.
 
 ### Real LLM Reducer Readiness
 
-The paper does not yet report LLM-backed incident precision/recall. The
-repository now includes an OpenAI-compatible `llm-openai` reducer and a JSON
-readiness probe:
+The paper does not yet report LLM-backed incident precision/recall as a main
+quality result. The repository includes an OpenAI-compatible `llm-openai`
+reducer and a JSON readiness probe:
 
 ```bash
 PYTHONPATH=src python tools/benchmark_carrier/probe_llm_json_readiness.py \
@@ -166,6 +168,15 @@ and 20k LLM reducer workload runs, but recall remained 0.25 in both runs. Treat
 these as real-online smoke results, not paper-grade LLM reducer quality numbers.
 See `docs/large-scale-analysis-workload.md` for launch commands and artifact
 names.
+
+On 2026-07-05, a targeted NPU3 bring-up showed why this gate is necessary. The
+endpoint could be launched through `vllm-hust-dev-hub/manage.sh` and could
+execute authenticated chat requests after three narrow vLLM-HUST/vLLM-Ascend
+compatibility patches, but Qwen2.5-7B still failed the JSON contract: both the
+incident-shaped prompt and a minimal `{"ok": true}` prompt produced repeated
+non-JSON text, while structured output entered the schema path but did not close
+valid JSON. This is a `real-online serving/generation readiness` result, not an
+LLM reducer quality result.
 
 ## Adapter-Level Comparison
 

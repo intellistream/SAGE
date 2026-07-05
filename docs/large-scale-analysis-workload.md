@@ -376,6 +376,21 @@ PYTHONPATH=src python tools/benchmark_carrier/probe_llm_json_readiness.py \
   --output .sage/benchmarks/llm_json_readiness/20260702T-qwen25-7b-npu4-chat-structured-no-summary-signalfix.json
 ```
 
+For endpoint-contract debugging, use `--simple-prompt` to ask for a minimal JSON
+object before testing the incident schema:
+
+```bash
+PYTHONPATH=src python tools/benchmark_carrier/probe_llm_json_readiness.py \
+  --base-url http://127.0.0.1:18386 \
+  --model qwen25-7b-json-probe \
+  --env-file "$HOME/vllm-hust-dev-hub/.env" \
+  --endpoint-type chat \
+  --simple-prompt \
+  --max-tokens 64 \
+  --timeout-sec 60 \
+  --output .sage/benchmarks/llm_json_readiness/<run-id>-simple-json.json
+```
+
 If the probe returns `status: ok`, run a small LLM reducer workload:
 
 ```bash
@@ -471,29 +486,120 @@ deterministic reducer on this seed. The stronger claim is that SAGE exposes the
 right operator boundaries for finding and fixing both classes of failures:
 map-stage signal loss and reducer-stage semantic degeneration.
 
-### NPU3 Real-Online Bring-Up Attempt
+### NPU3 Real-Online Bring-Up and Fix
 
 On 2026-07-02, a follow-up attempt explicitly targeted NPU3 at the operator's
 request. Preflight showed NPU3 had no running NPU process and port `18383` was
-free. Three vLLM-HUST launches were attempted with
-`/data/shared_models/Qwen2.5-7B-Instruct`, TP=1, `max_model_len=2048`,
-`max_num_seqs=1`, and all visible device variables pinned to device 3:
+free. Three vLLM-HUST launches loaded model weights on NPU3 but failed during
+EngineCore startup with `RuntimeError: Engine core initialization failed`. This
+was recorded as a `real-online bring-up failure`, not as reducer quality or
+serving-throughput evidence.
 
-1. `sage-lsa-npu3-json-20260702` with xgrammar structured-output config.
-2. `sage-lsa-npu3-basic-20260702` without structured-output config.
-3. `sage-lsa-npu3-v0-20260702` with `VLLM_USE_V1=0` added.
+On 2026-07-05, NPU3 was tested again with the same isolation rule: only device 3
+was made visible, port `18383` was used, and the service was launched through
+`vllm-hust-dev-hub/manage.sh foreground`. The first successful startup still
+failed generation readiness: it globally disabled Ascend custom kernels and
+also disabled chunked prefill. The endpoint could return the first token for a
+simple prompt, but subsequent decode tokens degenerated into repeated
+`strugg`/`性价` text. A separate low-temperature probe exposed a missing
+`aclnnApplyTopKTopPCustom` symbol in the local CANN/libopapi stack.
 
-All three loaded model weights on NPU3 but failed during vLLM EngineCore startup
-with `RuntimeError: Engine core initialization failed`; the third attempt showed
-that the current vLLM-HUST build treats `VLLM_USE_V1` as an unknown environment
-variable, so it did not switch away from the V1 engine path. The failed
-containers were cleaned with `scripts/cleanup_vllm_hust_engine.sh`, and
-`npu-smi info` confirmed that NPU3 had no running process afterward.
+The fixed NPU3 configuration has three important properties:
 
-This is recorded as a `real-online bring-up failure`, not as a reducer quality
-or serving-throughput result. The paper should continue to use the NPU4
-real-online smoke data for live endpoint evidence until the NPU3 EngineCore
-startup issue is fixed.
+1. keep `COMPILE_CUSTOM_KERNELS=1` and use selective fallback only for missing
+   local CANN symbols (`aclnnAddRmsNormBias` and `aclnnApplyTopKTopPCustom`);
+2. keep chunked prefill enabled for Qwen2.5, because disabling it caused
+   incorrect multi-token decode;
+3. use a large enough context window for structured-output reducer prompts. The
+   20k workload used `max_model_len=2048`.
+
+The required local runtime patches are narrow compatibility patches in the
+vLLM-HUST/vLLM-Ascend checkouts, not SAGE workload logic:
+
+- `$HOME/vllm-ascend-hust/vllm_ascend/ops/layernorm.py`: add
+  `VLLM_ASCEND_DISABLE_ADD_RMS_NORM_BIAS_CUSTOM_OP=1` fallback to
+  `torch_npu.npu_add_rms_norm` for the missing RMSNorm-bias custom op.
+- `$HOME/vllm-ascend-hust/vllm_ascend/sample/sampler.py`: add
+  `VLLM_ASCEND_DISABLE_TOP_K_TOP_P_CUSTOM_OP=1` fallback to the PyTorch
+  top-k/top-p path when the Python op exists but the `libopapi.so` symbol is
+  absent.
+- `$HOME/vllm-ascend-hust/vllm_ascend/patch/platform/patch_balance_schedule.py`:
+  accept the current vLLM scheduler arguments.
+- `$HOME/vllm-hust/vllm/v1/core/kv_cache_manager.py` and
+  `$HOME/vllm-hust/vllm/knorm/manager.py`: align local KV-cache/Knorm method
+  signatures with the current vLLM core.
+
+Use the dev-hub launcher, not a manual container command:
+
+```bash
+cd "$HOME/vllm-hust-dev-hub"
+
+VLLM_ENGINE_CONTAINER=sage-lsa-npu3-qwen25-7b \
+VLLM_ENGINE_RECREATE_CONTAINER=false \
+VLLM_ENGINE_MODEL_PATH=/data/shared_models/Qwen2.5-7B-Instruct \
+VLLM_ENGINE_SERVED_MODEL_NAME=qwen25-7b-lsa-npu3 \
+VLLM_ENGINE_PORT=18383 \
+VLLM_ENGINE_TP_SIZE=1 \
+VLLM_ENGINE_NPU_DEVICES=3 \
+ASCEND_RT_VISIBLE_DEVICES=3 \
+ASCEND_VISIBLE_DEVICES=3 \
+VLLM_ENGINE_MAX_MODEL_LEN=2048 \
+VLLM_ENGINE_MAX_NUM_BATCHED_TOKENS=2048 \
+VLLM_ENGINE_MAX_NUM_SEQS=1 \
+VLLM_ENGINE_GPU_MEM_UTIL=0.70 \
+VLLM_ENGINE_ENABLE_PREFIX_CACHING=0 \
+VLLM_ENGINE_ENABLE_CHUNKED_PREFILL=1 \
+VLLM_ENGINE_ENFORCE_EAGER=1 \
+COMPILE_CUSTOM_KERNELS=1 \
+VLLM_ASCEND_DISABLE_ADD_RMS_NORM_BIAS_CUSTOM_OP=1 \
+VLLM_ASCEND_DISABLE_TOP_K_TOP_P_CUSTOM_OP=1 \
+VLLM_KNORM_ENABLED=0 \
+VLLM_KNORM_COMPRESSION_RATIO=1.0 \
+VLLM_SEGMENT_REUSE_ENABLE=0 \
+VLLM_ENGINE_EXTRA_ENV_PREFIXES=VLLM_KNORM_,VLLM_SEGMENT_REUSE_,VLLM_ASCEND_ \
+VLLM_ENGINE_EXTRA_ARGS_JSON='["--generation-config","vllm","--structured-outputs-config","{\"backend\":\"xgrammar\",\"disable_any_whitespace\":true}"]' \
+VLLM_PLUGINS=ascend \
+VLLM_ENGINE_PYTHON=/workspace/vllm-hust-dev-container-env/bin/python \
+VLLM_ENGINE_BIN=/workspace/vllm-hust-dev-container-env/bin/vllm \
+VLLM_ENGINE_PYTHONPATH=/workspace/vllm-hust:/workspace/vllm-ascend-hust \
+bash manage.sh foreground
+```
+
+After startup, `/health` returned 200 and logs confirmed `visible_npus=[3]`.
+The repaired endpoint passed both minimal JSON and structured incident JSON
+readiness:
+
+| probe | status | latency ms | artifact |
+| --- | --- | ---: | --- |
+| minimal JSON with `--simple-prompt` | ok | 618.12 | `.sage/benchmarks/llm_json_readiness/20260705T-npu3-qwen25-7b-fixed-chunked-simple-json.json` |
+| incident JSON, xgrammar structured output | ok | 3,079.92 | `.sage/benchmarks/llm_json_readiness/20260705T-npu3-qwen25-7b-fixed-chunked-structured-output.json` |
+
+The repaired NPU3 endpoint also completed real-online LLM reducer workloads:
+
+| run | events | shards | max model len | precision | recall | F1 | SemanticReduce ms | artifact |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| LLM reducer smoke | 2,000 | 4 | 1,024 | 1.0 | 0.25 | 0.4 | 3,281.30 | `.sage/benchmarks/large_scale_analysis_llm_reducer/20260705T-npu3-qwen25-7b-fixed-chunked-2k/report.json` |
+| LLM reducer sanity | 20,000 | 8 | 2,048 | 1.0 | 1.0 | 1.0 | 13,560.25 | `.sage/benchmarks/large_scale_analysis_llm_reducer/20260705T-npu3-qwen25-7b-fixed-chunked-20k/report.json` |
+
+Treat these as `real-online` NPU3 sanity results for the reducer integration.
+They demonstrate that the live endpoint can satisfy the structured reducer
+contract on NPU3 after the serving fixes. They are not a full paper-grade
+serving performance study because they use one seed, one model, one NPU, and
+eager execution.
+
+Cleanup uses the dev-hub container cleanup path with the container and port
+pinned:
+
+```bash
+cd "$HOME/vllm-hust-dev-hub"
+VLLM_ENGINE_CONTAINER=sage-lsa-npu3-qwen25-7b \
+VLLM_ENGINE_PORT=18383 \
+VLLM_ENGINE_AGGRESSIVE_CLEANUP=1 \
+bash scripts/cleanup_vllm_hust_engine.sh
+```
+
+After cleanup, verify that `npu-smi info` shows no running process on NPU3 and
+that `ss -ltnp` shows port `18383` free.
 
 ## Run
 

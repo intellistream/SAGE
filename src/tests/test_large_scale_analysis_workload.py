@@ -131,6 +131,43 @@ def test_large_scale_workload_accepts_reducer_instance() -> None:
     assert window.reducer_name == "window-aggregate"
 
 
+def test_cli_llm_openai_reducer_writes_report(monkeypatch, tmp_path) -> None:
+    class FakeOpenAIReducer(LLMStubIncidentReducer):
+        name = "llm-openai"
+
+        def __init__(self, **_kwargs: object) -> None:
+            super().__init__()
+
+    monkeypatch.setattr(lsa, "OpenAICompletionIncidentReducer", FakeOpenAIReducer)
+    monkeypatch.setattr(lsa, "_api_key_from_env_or_file", lambda *_args: "unit-key")
+    output = tmp_path / "report.json"
+
+    assert (
+        lsa.main(
+            [
+                "--events",
+                "1200",
+                "--shards",
+                "4",
+                "--seed",
+                "11",
+                "--top-k",
+                "8",
+                "--reducer",
+                "llm-openai",
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["reducer_name"] == "llm-openai"
+    assert payload["event_count"] == 1200
+    assert "detected_incidents" in payload
+
+
 def test_openai_completion_reducer_parses_json_incidents() -> None:
     dataset = generate_synthetic_events(event_count=20_000, seed=7)
     summaries = [

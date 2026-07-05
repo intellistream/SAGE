@@ -1271,14 +1271,14 @@ def main(argv: Iterable[str] | None = None) -> int:
     else:
         reducer = args.reducer
 
-        report = run_large_scale_analysis_workload(
-            event_count=args.events,
-            shard_count=args.shards,
-            seed=args.seed,
-            top_k=args.top_k,
-            reducer=reducer,
-            map_policy=args.map_policy,
-        )
+    report = run_large_scale_analysis_workload(
+        event_count=args.events,
+        shard_count=args.shards,
+        seed=args.seed,
+        top_k=args.top_k,
+        reducer=reducer,
+        map_policy=args.map_policy,
+    )
     payload = report.to_dict()
     text = json.dumps(payload, ensure_ascii=False, indent=2)
     if args.output:
