@@ -538,6 +538,13 @@ The submodule contains the following compatibility changes:
   `$HOME/vllm-hust/vllm/knorm/manager.py`: align local KV-cache/Knorm method
   signatures with the current vLLM core.
 
+Before launching dev-hub, validate the SAGE-pinned runtime branch and copy the
+printed environment overrides into the launch shell:
+
+```bash
+tools/benchmark_carrier/prepare_vllm_ascend_runtime_branch.sh
+```
+
 Use the dev-hub launcher, not a manual container command:
 
 ```bash
@@ -570,7 +577,7 @@ VLLM_ENGINE_EXTRA_ARGS_JSON='["--generation-config","vllm","--structured-outputs
 VLLM_PLUGINS=ascend \
 VLLM_ENGINE_PYTHON=/workspace/vllm-hust-dev-container-env/bin/python \
 VLLM_ENGINE_BIN=/workspace/vllm-hust-dev-container-env/bin/vllm \
-VLLM_ENGINE_PYTHONPATH=/workspace/vllm-hust:/workspace/vllm-ascend-hust \
+VLLM_ENGINE_PYTHONPATH=/workspace/SAGE/external/vllm-ascend-hust:/workspace/vllm-hust:/workspace/vllm-ascend-hust \
 bash manage.sh foreground
 ```
 

@@ -114,6 +114,13 @@ The expected commit for this draft is
 `b8a09892162872ef7ba509434f6000b24480fd5c` from
 `vLLM-HUST/vllm-ascend-hust#101`.
 
+Before launching a real NPU endpoint, validate the runtime branch and use the
+printed dev-hub overrides:
+
+```bash
+tools/benchmark_carrier/prepare_vllm_ascend_runtime_branch.sh
+```
+
 For real endpoint replay work, start vLLM-HUST through the hub launcher rather
 than by hand inside the container:
 
