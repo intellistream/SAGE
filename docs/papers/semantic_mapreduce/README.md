@@ -115,11 +115,11 @@ git submodule update --init external/triton-ascend-hust
 ```
 
 The expected base vLLM-HUST checkout is `external/vllm-hust` at
-`ffa12e4a7a8e09433f1105d6511121f096fe88c5` on
-`feature/kvplane-prefix-cache-admission`. The expected vLLM-Ascend-HUST commit is
+`5de748bea122fb0917adc6117fbb37429b60aa24` on
+`feature/sage-semantic-mapreduce-vllm-runtime`. The expected vLLM-Ascend-HUST commit is
 `339b27ad69aa12b8f56bbd1885c046be4e53c945` on the project readiness branch.
 The matching dev-hub branch is `feature/sage-semantic-mapreduce-dev-hub`,
-pinned at `32ca8c130f237efe6adcc225831810eca2ccfbd3`.
+pinned at `7ab74990d5bfc4953d7bb1f99dfb93720e2adc81`.
 The dev-hub container helper is also pinned as
 `third_party/ascend-runtime-manager` on
 `feature/semantic-mapreduce-runtime-integration` at
@@ -127,18 +127,20 @@ The dev-hub container helper is also pinned as
 The matching Triton-Ascend runtime is pinned as
 `external/triton-ascend-hust` on
 `feature/sage-semantic-mapreduce-triton-runtime` at
-`89263bb5b68b61707d7dcdd309615b84560ff5a3`.
+`612d5772bcd4ee7a75ab4939aa3580d937147d83`.
 
 Before launching a real NPU endpoint, validate the runtime branch and use the
 printed dev-hub overrides:
 
 ```bash
-tools/benchmark_carrier/prepare_vllm_ascend_runtime_branch.sh
+SAGE_RUNTIME_FETCH=0 tools/benchmark_carrier/prepare_vllm_ascend_runtime_branch.sh
 ```
 
 The validation step rejects runtime submodule paths that are symlinks to shared
 home-directory checkouts. Real-online runs should use the independent
-`external/*` submodules recorded by this repository.
+`external/*` submodules recorded by this repository. `SAGE_RUNTIME_FETCH=0`
+keeps reproduction independent of GitHub SSH availability and validates the
+already checked-out feature branches.
 
 For the NPU3 real-online Semantic MapReduce experiment, prefer the one-command
 launcher. It initializes the SAGE-pinned submodules, checks that NPU3 and port
@@ -198,9 +200,10 @@ configured with `max_num_seqs=1`.
 
 ### Real LLM Reducer Readiness
 
-The paper does not yet report LLM-backed incident precision/recall as a main
-quality result. The repository includes an OpenAI-compatible `llm-openai`
-reducer and a JSON readiness probe:
+The paper does not yet use LLM-backed incident precision/recall as the main
+quality result, but the repository now includes a successful NPU3 real-online
+sanity run for the OpenAI-compatible `llm-openai` reducer. The reducer and JSON
+readiness probe can be exercised with:
 
 ```bash
 PYTHONPATH=src python tools/benchmark_carrier/probe_llm_json_readiness.py \
@@ -216,20 +219,26 @@ endpoints reached the structured-output path but returned malformed or truncated
 JSON when the schema included free-form explanation text. The reducer contract
 now keeps the LLM output structural: it selects evidence ids, and the local
 normalizer/reporting stage derives metadata and explanation from evidence
-objects. A 2026-07-02 Qwen2.5-7B smoke passed JSON readiness and completed 2k
-and 20k LLM reducer workload runs, but recall remained 0.25 in both runs. Treat
-these as real-online smoke results, not paper-grade LLM reducer quality numbers.
-See `docs/large-scale-analysis-workload.md` for launch commands and artifact
-names.
+objects. A 2026-07-06 NPU3 run then completed the full one-command path:
+Triton-Ascend import validation, vLLM-HUST health, smoke request, streaming
+latency probe, and two reducer workloads.
 
-On 2026-07-05, a targeted NPU3 bring-up showed why this gate is necessary. The
-endpoint could be launched through `vllm-hust-dev-hub/manage.sh` and could
-execute authenticated chat requests after three narrow vLLM-HUST/vLLM-Ascend
-compatibility patches, but Qwen2.5-7B still failed the JSON contract: both the
-incident-shaped prompt and a minimal `{"ok": true}` prompt produced repeated
-non-JSON text, while structured output entered the schema path but did not close
-valid JSON. This is a `real-online serving/generation readiness` result, not an
-LLM reducer quality result.
+```text
+.sage/benchmarks/real_online_semantic_mapreduce/20260706T170917Z-npu3-semantic-mapreduce/
+```
+
+| run | events | shards | precision | recall | F1 | SemanticReduce ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| LLM reducer smoke | 2,000 | 4 | 1.0 | 0.25 | 0.4 | 48,626.03 |
+| LLM reducer sanity | 20,000 | 8 | 1.0 | 1.0 | 1.0 | 5,055.39 |
+
+The same run records a successful `/v1/completions` smoke request
+(`status=200`, 5,556.71 ms) and a streaming probe with 8/8 successful requests
+(mean TTFT 68.63 ms, mean TPOT 19.88 ms, 45.23 completion tokens/s). These are
+real-online sanity results, not a broad serving-performance or SOTA comparison:
+they use one model, one NPU, one seed, and two workload sizes. The useful paper
+claim is narrower: the live LLM reducer path is now operational under the same
+evidence/scoring contract, and sparse evidence still limits recall.
 
 ## Adapter-Level Comparison
 

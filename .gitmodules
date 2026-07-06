@@ -13,7 +13,7 @@
 [submodule "external/vllm-hust"]
 	path = external/vllm-hust
 	url = git@github.com:vLLM-HUST/vllm-hust.git
-	branch = feature/kvplane-prefix-cache-admission
+	branch = feature/sage-semantic-mapreduce-vllm-runtime
 [submodule "third_party/ascend-runtime-manager"]
 	path = third_party/ascend-runtime-manager
 	url = git@github.com:vLLM-HUST/ascend-runtime-manager.git

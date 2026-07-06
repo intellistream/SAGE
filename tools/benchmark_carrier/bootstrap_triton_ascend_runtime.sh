@@ -28,11 +28,11 @@ link_backend_tree() {
   mkdir -p "${root}/python/triton/language/extra"
   mkdir -p "${root}/python/triton/tools/extra"
 
-  ln -sfn "${root}/third_party/ascend/backend" \
+  ln -sfn "../../../third_party/ascend/backend" \
     "${root}/python/triton/backends/ascend"
-  ln -sfn "${root}/third_party/ascend/language/kernels" \
+  ln -sfn "../../../../third_party/ascend/language/kernels" \
     "${root}/python/triton/language/extra/kernels"
-  ln -sfn "${root}/third_party/ascend/language/cann" \
+  ln -sfn "../../../../third_party/ascend/language/cann" \
     "${root}/python/triton/language/extra/cann"
 }
 
@@ -59,15 +59,105 @@ copy_from_cache() {
   link_backend_tree "${TRITON_ASCEND_PATH}"
 }
 
+ensure_triton_submodules() {
+  local nested_ir="${TRITON_ASCEND_PATH}/third_party/ascend/AscendNPU-IR/CMakeLists.txt"
+  [[ -f "${nested_ir}" ]] && return
+
+  log "Initializing Triton-Ascend nested submodules inside the SAGE checkout."
+  git -C "${TRITON_ASCEND_PATH}" submodule update --init third_party/ascend/AscendNPU-IR
+  [[ -f "${nested_ir}" ]] \
+    || die "Triton-Ascend nested submodule is incomplete: ${nested_ir}"
+}
+
 build_in_container() {
   sudo -n docker inspect "${DOCKER_CONTAINER}" >/dev/null 2>&1 \
     || die "Container ${DOCKER_CONTAINER} is not available for Triton-Ascend build."
 
   log "Building Triton-Ascend from the SAGE submodule in ${DOCKER_CONTAINER}."
   sudo -n docker exec "${DOCKER_CONTAINER}" sh -lc "
+    install_build_deps() {
+      if command -v dnf >/dev/null 2>&1; then
+        dnf -y install zlib-devel libxml2-devel ccache
+      elif command -v yum >/dev/null 2>&1; then
+        yum -y install zlib-devel libxml2-devel ccache
+      elif command -v apt-get >/dev/null 2>&1; then
+        apt-get update
+        DEBIAN_FRONTEND=noninteractive apt-get install -y zlib1g-dev libxml2-dev ccache
+      else
+        echo '[ERROR] No supported package manager found for Triton-Ascend build deps.' >&2
+        return 1
+      fi
+    }
+
     git config --global --add safe.directory /workspace/SAGE/external/triton-ascend-hust || true
+    install_build_deps
     cd /workspace/SAGE/external/triton-ascend-hust
+    export TRITON_HOME=/workspace/SAGE/.sage/triton-cache
+    mkdir -p \"\${TRITON_HOME}/.triton/llvm\"
+    ${PYTHON_BIN} - <<'PY'
+import hashlib
+import os
+import platform
+import shutil
+import subprocess
+import tarfile
+from pathlib import Path
+
+base = Path('/workspace/SAGE/external/triton-ascend-hust')
+cache = Path(os.environ['TRITON_HOME']) / '.triton' / 'llvm'
+legacy_cache = Path(os.environ['TRITON_HOME']) / 'llvm'
+rev = (base / 'cmake' / 'llvm-hash.txt').read_text()[:8]
+patch_dir = base / 'third_party' / 'ascend' / 'llvm_patch'
+patch_files = sorted(p for p in patch_dir.glob('*.patch') if p.is_file()) if patch_dir.is_dir() else []
+h = hashlib.sha256()
+for patch_file in patch_files:
+    h.update(patch_file.read_bytes())
+patch_hash = h.hexdigest()[:8] if patch_files else '00000000'
+
+arch = {'x86_64': 'x64', 'arm64': 'arm64', 'aarch64': 'arm64'}.get(platform.machine(), platform.machine())
+system_suffix = os.environ.get('TRITON_LLVM_SYSTEM_SUFFIX')
+if not system_suffix:
+    if platform.system() == 'Linux' and arch == 'arm64':
+        system_suffix = 'ubuntu-arm64'
+    else:
+        raise SystemExit(f'Unsupported automatic LLVM cache platform: {platform.system()} {platform.machine()}')
+
+name = f'llvm-{rev}-{patch_hash}-{system_suffix}'
+url = f'https://triton-ascend-artifacts.obs.myhuaweicloud.com/llvm-builds/{name}.tar.gz'
+package_dir = cache / name
+legacy_package_dir = legacy_cache / name
+version_file = package_dir / 'version.txt'
+if version_file.exists() and version_file.read_text() == url:
+    print(f'Using cached Triton-Ascend LLVM: {package_dir}')
+else:
+    tmp = cache / f'{name}.tar.gz.tmp'
+    if package_dir.exists():
+        shutil.rmtree(package_dir)
+    legacy_version_file = legacy_package_dir / 'version.txt'
+    if legacy_version_file.exists() and legacy_version_file.read_text() == url:
+        print(f'Copying legacy Triton-Ascend LLVM cache into setup.py cache: {legacy_package_dir} -> {package_dir}')
+        shutil.copytree(legacy_package_dir, package_dir)
+    else:
+        print(f'Prefetching Triton-Ascend LLVM with curl: {url}')
+        subprocess.run(['curl', '-kL', '--fail', '--retry', '3', '-o', str(tmp), url], check=True)
+        with tarfile.open(tmp, mode='r:gz') as tf:
+            tf.extractall(cache)
+        tmp.unlink(missing_ok=True)
+    version_file.write_text(url)
+
+sym = cache / f'llvm-{system_suffix}'
+if sym.is_symlink() or sym.exists():
+    if sym.is_symlink():
+        sym.unlink()
+    elif sym.is_dir():
+        shutil.rmtree(sym)
+    else:
+        sym.unlink()
+sym.symlink_to(package_dir, target_is_directory=True)
+print(f'Triton-Ascend LLVM cache ready: {package_dir}')
+PY
     env TRITON_BUILD_BACKENDS=ascend \
+        TRITON_HOME=/workspace/SAGE/.sage/triton-cache \
         TRITON_BUILD_WITH_CLANG_LLD=false \
         TRITON_BUILD_WITH_CCACHE=true \
         TRITON_BUILD_PROTON=OFF \
@@ -98,6 +188,7 @@ PY
 }
 
 require_path "${TRITON_ASCEND_PATH}" "Triton-Ascend submodule not found"
+ensure_triton_submodules
 link_backend_tree "${TRITON_ASCEND_PATH}"
 
 if ! runtime_is_ready; then

@@ -519,16 +519,16 @@ vLLM-Ascend-HUST side as a submodule so the experiment can be reproduced from a
 specific upstream feature branch:
 
 - base vLLM-HUST submodule path: `external/vllm-hust`
-- base vLLM-HUST branch: `feature/kvplane-prefix-cache-admission`
+- base vLLM-HUST branch: `feature/sage-semantic-mapreduce-vllm-runtime`
 - base vLLM-HUST pinned commit:
-  `ffa12e4a7a8e09433f1105d6511121f096fe88c5`
+  `5de748bea122fb0917adc6117fbb37429b60aa24`
 - submodule path: `external/vllm-ascend-hust`
 - branch: `feature/sage-semantic-mapreduce-npu-readiness`
 - pinned commit: `339b27ad69aa12b8f56bbd1885c046be4e53c945`
 - upstream PR: `vLLM-HUST/vllm-ascend-hust#101`
 - dev-hub submodule path: `external/vllm-hust-dev-hub`
 - dev-hub branch: `feature/sage-semantic-mapreduce-dev-hub`
-- dev-hub pinned commit: `32ca8c130f237efe6adcc225831810eca2ccfbd3`
+- dev-hub pinned commit: `7ab74990d5bfc4953d7bb1f99dfb93720e2adc81`
 - Ascend runtime manager submodule path: `third_party/ascend-runtime-manager`
 - Ascend runtime manager branch: `feature/semantic-mapreduce-runtime-integration`
 - Ascend runtime manager pinned commit:
@@ -536,7 +536,7 @@ specific upstream feature branch:
 - Triton-Ascend-HUST submodule path: `external/triton-ascend-hust`
 - Triton-Ascend-HUST branch: `feature/sage-semantic-mapreduce-triton-runtime`
 - Triton-Ascend-HUST pinned commit:
-  `89263bb5b68b61707d7dcdd309615b84560ff5a3`
+  `612d5772bcd4ee7a75ab4939aa3580d937147d83`
 
 The submodule contains the following compatibility changes:
 
@@ -573,8 +573,12 @@ The submodule contains the following compatibility changes:
 Before launching dev-hub, validate the SAGE-pinned runtime branches:
 
 ```bash
-tools/benchmark_carrier/prepare_vllm_ascend_runtime_branch.sh
+SAGE_RUNTIME_FETCH=0 tools/benchmark_carrier/prepare_vllm_ascend_runtime_branch.sh
 ```
+
+`SAGE_RUNTIME_FETCH=0` validates the already checked-out submodules without
+contacting GitHub. Use the online fetch path only when intentionally refreshing
+the feature branches.
 
 For a reproducible NPU3 run based only on this SAGE checkout and its
 feature-branch submodules, use the one-command launcher:
@@ -593,7 +597,8 @@ and record the resulting submodule commit in the experiment metadata.
 
 The launcher checks that runtime dependencies are independent submodule
 checkouts rather than symlinks to shared `$HOME` repositories, validates the
-pinned commits, verifies that port `18383` and NPU3 are free, starts the
+pinned commits using the already checked-out submodules by default, verifies
+that port `18383` and NPU3 are free, starts the
 endpoint through `external/vllm-hust-dev-hub/manage.sh`, passes
 `HUST_ASCEND_CONTAINER_NPU_DEVICES=3` to the runtime manager so the container
 mounts only the requested NPU device, and fails fast if any managed container
@@ -649,18 +654,39 @@ readiness:
 | minimal JSON with `--simple-prompt` | ok | 618.12 | `.sage/benchmarks/llm_json_readiness/20260705T-npu3-qwen25-7b-fixed-chunked-simple-json.json` |
 | incident JSON, xgrammar structured output | ok | 3,079.92 | `.sage/benchmarks/llm_json_readiness/20260705T-npu3-qwen25-7b-fixed-chunked-structured-output.json` |
 
-The repaired NPU3 endpoint also completed real-online LLM reducer workloads:
+On 2026-07-06, the one-command launcher completed an end-to-end NPU3
+real-online Semantic MapReduce run with Qwen2.5-7B, Triton-Ascend import
+validation, a smoke request, a streaming latency probe, and two LLM reducer
+workloads:
+
+```text
+.sage/benchmarks/real_online_semantic_mapreduce/20260706T170917Z-npu3-semantic-mapreduce/
+```
+
+Smoke and serving probe:
+
+| probe | status | latency / throughput | artifact |
+| --- | --- | ---: | --- |
+| `/v1/completions` smoke | 200 | 5,556.71 ms | `smoke.json` |
+| streaming probe, c=1 | 8 / 8 ok | TTFT 68.63 ms, TPOT 19.88 ms, 45.23 tok/s | `online_probe/c1/aggregate.json` |
+
+LLM reducer workload results:
 
 | run | events | shards | max model len | precision | recall | F1 | SemanticReduce ms | artifact |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| LLM reducer smoke | 2,000 | 4 | 1,024 | 1.0 | 0.25 | 0.4 | 3,281.30 | `.sage/benchmarks/large_scale_analysis_llm_reducer/20260705T-npu3-qwen25-7b-fixed-chunked-2k/report.json` |
-| LLM reducer sanity | 20,000 | 8 | 2,048 | 1.0 | 1.0 | 1.0 | 13,560.25 | `.sage/benchmarks/large_scale_analysis_llm_reducer/20260705T-npu3-qwen25-7b-fixed-chunked-20k/report.json` |
+| LLM reducer smoke | 2,000 | 4 | 2,048 | 1.0 | 0.25 | 0.4 | 48,626.03 | `llm-reducer-2000e-4s.json` |
+| LLM reducer sanity | 20,000 | 8 | 2,048 | 1.0 | 1.0 | 1.0 | 5,055.39 | `llm-reducer-20000e-8s.json` |
 
 Treat these as `real-online` NPU3 sanity results for the reducer integration.
 They demonstrate that the live endpoint can satisfy the structured reducer
 contract on NPU3 after the serving fixes. They are not a full paper-grade
-serving performance study because they use one seed, one model, one NPU, and
-eager execution.
+serving performance study because they use one seed, one model, one NPU, and a
+small two-point workload matrix. The 2k run misses three incidents because the
+evidence set is sparse (`evidence_coverage=4.0`), while the 20k run recovers all
+four injected incidents with much denser evidence (`evidence_coverage=79.5`).
+This contrast is useful for the paper: it shows the LLM reducer path is now
+operational, but it should be evaluated as a reducer over bounded evidence, not
+as a magic recovery mechanism when map-stage evidence is absent.
 
 Cleanup uses the dev-hub container cleanup path with the container and port
 pinned:

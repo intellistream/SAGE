@@ -13,6 +13,7 @@ SERVED_MODEL_NAME="${SAGE_REAL_ONLINE_MODEL_NAME:-qwen25-7b-sage-realonline}"
 CONDA_ENV="${SAGE_REAL_ONLINE_CONDA_ENV:-esage-vllm-hust-dev}"
 SYSTEMD_UNIT="${SAGE_REAL_ONLINE_SYSTEMD_UNIT:-sage-smr-npu3.service}"
 CONTAINER_NAME="${SAGE_REAL_ONLINE_CONTAINER:-sage-smr-npu${NPU_DEVICE}}"
+CONTAINER_IMAGE="${SAGE_REAL_ONLINE_CONTAINER_IMAGE:-quay.io/ascend/vllm-ascend:v0.21.0rc1-openeuler}"
 HOST_WORKSPACE_ROOT="${SAGE_REAL_ONLINE_HOST_WORKSPACE_ROOT:-/home/shuhao}"
 CONTAINER_WORKSPACE_ROOT="${SAGE_REAL_ONLINE_CONTAINER_WORKSPACE_ROOT:-/workspace}"
 CONTAINER_WORKDIR="${SAGE_REAL_ONLINE_CONTAINER_WORKDIR:-/workspace/SAGE/external/vllm-hust-dev-hub}"
@@ -53,6 +54,7 @@ Options:
   --model-path PATH          Default: ${MODEL_PATH}
   --served-model NAME        Default: ${SERVED_MODEL_NAME}
   --conda-env NAME           Default: ${CONDA_ENV}
+  --container-image IMAGE    Default: ${CONTAINER_IMAGE}
   --run-id ID                Default: ${RUN_ID}
   --output-root DIR          Default: ${OUTPUT_ROOT}
   --events "A B"             Default: "${EVENT_SIZES}"
@@ -76,6 +78,7 @@ while [[ "$#" -gt 0 ]]; do
     --model-path) MODEL_PATH="$2"; shift 2 ;;
     --served-model) SERVED_MODEL_NAME="$2"; shift 2 ;;
     --conda-env) CONDA_ENV="$2"; shift 2 ;;
+    --container-image) CONTAINER_IMAGE="$2"; shift 2 ;;
     --run-id) RUN_ID="$2"; OUTPUT_ROOT="${SAGE_ROOT}/.sage/benchmarks/real_online_semantic_mapreduce/${RUN_ID}"; shift 2 ;;
     --output-root) OUTPUT_ROOT="$2"; shift 2 ;;
     --events) EVENT_SIZES="$2"; shift 2 ;;
@@ -138,6 +141,28 @@ require_npu_free() {
   npu_process_pairs < "${OUTPUT_ROOT}/npu-smi-before.txt" | sort -u > "${OUTPUT_ROOT}/npu-smi-before-pids.txt"
   grep -q "No running processes found in NPU ${NPU_DEVICE}" "${OUTPUT_ROOT}/npu-smi-before.txt" \
     || die "NPU ${NPU_DEVICE} does not look idle. See ${OUTPUT_ROOT}/npu-smi-before.txt."
+}
+
+ensure_triton_build_container() {
+  [[ "${SKIP_SERVER_MANAGEMENT}" == "0" ]] || return
+  if sudo -n docker inspect -f '{{.State.Running}}' "${CONTAINER_NAME}" 2>/dev/null | grep -q '^true$'; then
+    return
+  fi
+
+  log "Starting NPU${NPU_DEVICE}-only container for Triton-Ascend bootstrap."
+  (
+    cd "${DEV_HUB}"
+    CONTAINER_NAME="${CONTAINER_NAME}" \
+    IMAGE="${CONTAINER_IMAGE}" \
+    HOST_WORKSPACE_ROOT="${HOST_WORKSPACE_ROOT}" \
+    CONTAINER_WORKSPACE_ROOT="${CONTAINER_WORKSPACE_ROOT}" \
+    CONTAINER_WORKDIR="${CONTAINER_WORKDIR}" \
+    HUST_ASCEND_MANAGER_SRC="${SAGE_ROOT}/third_party/ascend-runtime-manager/src" \
+    HUST_ASCEND_CONTAINER_NPU_DEVICES="${NPU_DEVICE}" \
+    VLLM_HUST_ASCEND_CONTAINER_NON_INTERACTIVE=1 \
+    VLLM_HUST_AUTO_ENABLE_CONTAINER_SSH=0 \
+      bash scripts/ascend-official-container.sh start
+  ) 2>&1 | tee "${OUTPUT_ROOT}/triton-build-container.log"
 }
 
 npu_process_pairs() {
@@ -264,32 +289,71 @@ on_exit() {
 
 write_metadata() {
   mkdir -p "${OUTPUT_ROOT}"
-  local runtime_manager_path="${SAGE_ROOT}/third_party/ascend-runtime-manager"
-  local runtime_manager_dirty="false"
-  if [[ -n "$(git -C "${runtime_manager_path}" status --short)" ]]; then
-    runtime_manager_dirty="true"
-  fi
-  {
-    echo "{"
-    echo "  \"provenance\": \"real-online\","
-    echo "  \"sage_root\": \"${SAGE_ROOT}\","
-    echo "  \"run_id\": \"${RUN_ID}\","
-    echo "  \"base_url\": \"${BASE_URL}\","
-    echo "  \"npu_device\": \"${NPU_DEVICE}\","
-    echo "  \"model_path\": \"${MODEL_PATH}\","
-    echo "  \"served_model_name\": \"${SERVED_MODEL_NAME}\","
-    echo "  \"conda_env\": \"${CONDA_ENV}\","
-    echo "  \"parent_repo_commit\": \"$(git -C "${SAGE_ROOT}" rev-parse HEAD)\","
-    echo "  \"git_commit\": \"$(git -C "${SAGE_ROOT}" rev-parse HEAD)\","
-    echo "  \"ascend_runtime_manager\": {"
-    echo "    \"path\": \"third_party/ascend-runtime-manager\","
-    echo "    \"commit\": \"$(git -C "${runtime_manager_path}" rev-parse HEAD)\","
-    echo "    \"branch\": \"$(git -C "${runtime_manager_path}" branch --show-current)\","
-    echo "    \"dirty\": ${runtime_manager_dirty}"
-    echo "  },"
-    echo "  \"submodules\": $(git -C "${SAGE_ROOT}" submodule status | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')"
-    echo "}"
-  } > "${OUTPUT_ROOT}/metadata.json"
+  SAGE_ROOT="${SAGE_ROOT}" \
+  RUN_ID="${RUN_ID}" \
+  BASE_URL="${BASE_URL}" \
+  NPU_DEVICE="${NPU_DEVICE}" \
+  MODEL_PATH="${MODEL_PATH}" \
+  SERVED_MODEL_NAME="${SERVED_MODEL_NAME}" \
+  CONDA_ENV="${CONDA_ENV}" \
+  OUTPUT_ROOT="${OUTPUT_ROOT}" \
+    python3 - <<'PY'
+import json
+import os
+import subprocess
+from pathlib import Path
+
+
+def git(cwd: Path, *args: str, check: bool = True) -> str:
+    proc = subprocess.run(
+        ["git", "-C", str(cwd), *args],
+        check=check,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    return proc.stdout.strip()
+
+
+root = Path(os.environ["SAGE_ROOT"])
+submodule_paths = [
+    "external/triton-ascend-hust",
+    "external/vllm-ascend-hust",
+    "external/vllm-hust",
+    "external/vllm-hust-dev-hub",
+    "third_party/ascend-runtime-manager",
+]
+
+submodules = {}
+for rel in submodule_paths:
+    path = root / rel
+    submodules[rel] = {
+        "commit": git(path, "rev-parse", "HEAD"),
+        "branch": git(path, "branch", "--show-current"),
+        "dirty": bool(git(path, "status", "--short")),
+    }
+
+metadata = {
+    "provenance": "real-online",
+    "sage_root": str(root),
+    "run_id": os.environ["RUN_ID"],
+    "base_url": os.environ["BASE_URL"],
+    "npu_device": os.environ["NPU_DEVICE"],
+    "model_path": os.environ["MODEL_PATH"],
+    "served_model_name": os.environ["SERVED_MODEL_NAME"],
+    "conda_env": os.environ["CONDA_ENV"],
+    "parent_repo_commit": git(root, "rev-parse", "HEAD"),
+    "parent_repo_dirty": bool(git(root, "status", "--short")),
+    "submodules": submodules,
+    "submodule_status": git(root, "submodule", "status", check=False),
+}
+metadata["ascend_runtime_manager"] = submodules[
+    "third_party/ascend-runtime-manager"
+]
+
+output = Path(os.environ["OUTPUT_ROOT"]) / "metadata.json"
+output.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+PY
 }
 
 print_plan() {
@@ -308,6 +372,7 @@ Resolved real-online Semantic MapReduce plan
   top-k:          ${TOP_KS}
   systemd unit:   ${SYSTEMD_UNIT}
   container:      ${CONTAINER_NAME}
+  image:          ${CONTAINER_IMAGE}
   server mode:    $([[ "${SKIP_SERVER_MANAGEMENT}" == "1" ]] && echo reuse-existing || echo launch-via-dev-hub)
 EOF
 }
@@ -325,26 +390,36 @@ trap 'on_exit "$@"' EXIT
 mkdir -p "${OUTPUT_ROOT}"
 
 if [[ "${ALLOW_NEWER_RUNTIME}" == "1" ]]; then
-  "${PREPARE_RUNTIME}" --allow-newer --no-print-env | tee "${OUTPUT_ROOT}/prepare-runtime.log"
+  SAGE_RUNTIME_FETCH="${SAGE_RUNTIME_FETCH:-0}" \
+    "${PREPARE_RUNTIME}" --allow-newer --no-print-env | tee "${OUTPUT_ROOT}/prepare-runtime.log"
 else
-  "${PREPARE_RUNTIME}" --no-print-env | tee "${OUTPUT_ROOT}/prepare-runtime.log"
+  SAGE_RUNTIME_FETCH="${SAGE_RUNTIME_FETCH:-0}" \
+    "${PREPARE_RUNTIME}" --no-print-env | tee "${OUTPUT_ROOT}/prepare-runtime.log"
 fi
 write_metadata
-"${BOOTSTRAP_TRITON_ASCEND}" 2>&1 | tee "${OUTPUT_ROOT}/bootstrap-triton-ascend.log"
 
 if [[ "${SKIP_SERVER_MANAGEMENT}" == "0" ]]; then
   require_port_free
   require_npu_free
+  ensure_triton_build_container
+fi
+
+SAGE_TRITON_ASCEND_AUTO_BUILD="${SAGE_TRITON_ASCEND_AUTO_BUILD:-1}" \
+  "${BOOTSTRAP_TRITON_ASCEND}" 2>&1 | tee "${OUTPUT_ROOT}/bootstrap-triton-ascend.log"
+
+if [[ "${SKIP_SERVER_MANAGEMENT}" == "0" ]]; then
   log "Starting vLLM-HUST through dev-hub manage.sh."
   (
     cd "${DEV_HUB}"
     VLLM_ENGINE_SYSTEMD_UNIT="${SYSTEMD_UNIT}" \
     VLLM_ENGINE_CONTAINER="${CONTAINER_NAME}" \
+    VLLM_ENGINE_IMAGE="${CONTAINER_IMAGE}" \
     VLLM_ENGINE_RECREATE_CONTAINER="${SAGE_REAL_ONLINE_RECREATE_CONTAINER:-true}" \
-    VLLM_ENGINE_EXTRA_ENV_KEYS=HOST_WORKSPACE_ROOT,CONTAINER_WORKSPACE_ROOT,CONTAINER_WORKDIR,VLLM_HUST_AUTO_ENABLE_CONTAINER_SSH,HUST_ASCEND_CONTAINER_NPU_DEVICES \
+    VLLM_ENGINE_EXTRA_ENV_KEYS=HOST_WORKSPACE_ROOT,CONTAINER_WORKSPACE_ROOT,CONTAINER_WORKDIR,VLLM_HUST_AUTO_ENABLE_CONTAINER_SSH,HUST_ASCEND_CONTAINER_NPU_DEVICES,HUST_ASCEND_MANAGER_SRC \
     HOST_WORKSPACE_ROOT="${HOST_WORKSPACE_ROOT}" \
     CONTAINER_WORKSPACE_ROOT="${CONTAINER_WORKSPACE_ROOT}" \
     CONTAINER_WORKDIR="${CONTAINER_WORKDIR}" \
+    HUST_ASCEND_MANAGER_SRC="${SAGE_ROOT}/third_party/ascend-runtime-manager/src" \
     HUST_ASCEND_CONTAINER_NPU_DEVICES="${NPU_DEVICE}" \
     VLLM_ENGINE_MODEL_PATH="${MODEL_PATH}" \
     VLLM_ENGINE_SERVED_MODEL_NAME="${SERVED_MODEL_NAME}" \

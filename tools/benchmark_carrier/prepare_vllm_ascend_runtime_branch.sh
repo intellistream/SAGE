@@ -9,18 +9,19 @@ RUNTIME_MANAGER_SUBMODULE_PATH="${SAGE_ROOT}/third_party/ascend-runtime-manager"
 TRITON_ASCEND_SUBMODULE_PATH="${SAGE_ROOT}/external/triton-ascend-hust"
 EXPECTED_ASCEND_BRANCH="${SAGE_VLLM_ASCEND_BRANCH:-feature/sage-semantic-mapreduce-npu-readiness}"
 EXPECTED_ASCEND_COMMIT="${SAGE_VLLM_ASCEND_COMMIT:-339b27ad69aa12b8f56bbd1885c046be4e53c945}"
-EXPECTED_VLLM_HUST_BRANCH="${SAGE_VLLM_HUST_BRANCH:-feature/kvplane-prefix-cache-admission}"
-EXPECTED_VLLM_HUST_COMMIT="${SAGE_VLLM_HUST_COMMIT:-ffa12e4a7a8e09433f1105d6511121f096fe88c5}"
+EXPECTED_VLLM_HUST_BRANCH="${SAGE_VLLM_HUST_BRANCH:-feature/sage-semantic-mapreduce-vllm-runtime}"
+EXPECTED_VLLM_HUST_COMMIT="${SAGE_VLLM_HUST_COMMIT:-5de748bea122fb0917adc6117fbb37429b60aa24}"
 EXPECTED_DEV_HUB_BRANCH="${SAGE_VLLM_DEV_HUB_BRANCH:-feature/sage-semantic-mapreduce-dev-hub}"
-EXPECTED_DEV_HUB_COMMIT="${SAGE_VLLM_DEV_HUB_COMMIT:-32ca8c130f237efe6adcc225831810eca2ccfbd3}"
+EXPECTED_DEV_HUB_COMMIT="${SAGE_VLLM_DEV_HUB_COMMIT:-7ab74990d5bfc4953d7bb1f99dfb93720e2adc81}"
 EXPECTED_RUNTIME_MANAGER_BRANCH="${SAGE_ASCEND_RUNTIME_MANAGER_BRANCH:-feature/semantic-mapreduce-runtime-integration}"
 EXPECTED_RUNTIME_MANAGER_COMMIT="${SAGE_ASCEND_RUNTIME_MANAGER_COMMIT:-40a2afed0ae7896e004cf6d0f67c0d89e7e1582b}"
 EXPECTED_TRITON_ASCEND_BRANCH="${SAGE_TRITON_ASCEND_BRANCH:-feature/sage-semantic-mapreduce-triton-runtime}"
-EXPECTED_TRITON_ASCEND_COMMIT="${SAGE_TRITON_ASCEND_COMMIT:-89263bb5b68b61707d7dcdd309615b84560ff5a3}"
+EXPECTED_TRITON_ASCEND_COMMIT="${SAGE_TRITON_ASCEND_COMMIT:-612d5772bcd4ee7a75ab4939aa3580d937147d83}"
 CONTAINER_SAGE_ROOT="${SAGE_CONTAINER_ROOT:-/workspace/SAGE}"
 CONTAINER_VLLM_HUST="${SAGE_CONTAINER_VLLM_HUST:-${CONTAINER_SAGE_ROOT}/external/vllm-hust}"
 STRICT_COMMIT=1
 PRINT_ENV=1
+FETCH_RUNTIME="${SAGE_RUNTIME_FETCH:-1}"
 
 usage() {
   cat <<EOF
@@ -33,6 +34,8 @@ used by the SAGE Semantic MapReduce NPU readiness experiments.
 Options:
   --allow-newer       Allow the submodule branch to be ahead of the documented
                       pinned commit. Default: require the exact pinned commit.
+  --offline           Do not fetch from remotes; validate the already-checked-out
+                      submodule branches and commits.
   --no-print-env      Do not print dev-hub environment exports.
   -h, --help          Show this help.
 
@@ -48,6 +51,8 @@ Environment overrides:
   SAGE_TRITON_ASCEND_BRANCH Default: ${EXPECTED_TRITON_ASCEND_BRANCH}
   SAGE_TRITON_ASCEND_COMMIT Default: ${EXPECTED_TRITON_ASCEND_COMMIT}
   SAGE_CONTAINER_ROOT       Default: ${CONTAINER_SAGE_ROOT}
+  SAGE_RUNTIME_FETCH        Default: ${FETCH_RUNTIME}; set to 0 for offline
+                            validation of existing submodule checkouts.
 
 The dev-hub container normally mounts /home/shuhao as /workspace. The printed
 VLLM_ENGINE_PYTHONPATH therefore puts the SAGE submodule first:
@@ -63,6 +68,10 @@ while [[ "$#" -gt 0 ]]; do
   case "$1" in
     --allow-newer)
       STRICT_COMMIT=0
+      shift
+      ;;
+    --offline)
+      FETCH_RUNTIME=0
       shift
       ;;
     --no-print-env)
@@ -107,7 +116,11 @@ check_submodule() {
   else
     git -C "${SAGE_ROOT}" submodule update --init "${relative_path}"
   fi
-  git -C "${path}" fetch origin "${branch}"
+  if [[ "${FETCH_RUNTIME}" == "1" ]]; then
+    git -C "${path}" fetch origin "${branch}"
+  else
+    echo "[INFO] ${label}: skipping remote fetch; validating local submodule checkout."
+  fi
   git -C "${path}" checkout "${branch}"
 
   actual_branch="$(git -C "${path}" branch --show-current)"

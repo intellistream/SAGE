@@ -434,23 +434,37 @@ Table~\ref{tab:adapter-baselines} adds adjacent-framework baselines for Ray-loca
 \subsection{Real-Online Readiness}
 
 \begin{table}[t]
-\caption{Single-NPU online endpoint run. The endpoint served Qwen2.5-7B on one Ascend 910B2 NPU. Each row reports eight measured streaming requests after warmup. The table validates endpoint integration and measurement plumbing rather than SOTA serving performance.}
+\caption{Single-NPU online endpoint run. The endpoint served Qwen2.5-7B on one Ascend 910B2 NPU. The row reports eight measured streaming requests after warmup. The table validates endpoint integration and measurement plumbing rather than SOTA serving performance.}
 \label{tab:realonline}
 \centering
 \small
 \begin{tabular}{lcccc}
 \toprule
-Concurrency & OK & TTFT ms & TPOT ms & Tok/s \\
+Endpoint & OK & TTFT ms & TPOT ms & Tok/s \\
 \midrule
-1 & 8/8 & 117.69 & 70.18 & 13.82 \\
-2 & 8/8 & 1,494.64 & 70.24 & 13.883 \\
+910B2, c=1 & 8/8 & 68.63 & 19.88 & 45.23 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The online endpoint results in Table~\ref{tab:realonline} attach a live model-serving endpoint to the workload effort. The purpose is not to benchmark serving throughput, but to validate that the reducer path can be connected to an external LLM service and measured with standard serving metrics. The concurrency-2 row has much larger TTFT because requests queue behind the active decode in this constrained setup. The similar TPOT values indicate that the decode path itself is stable across the two small runs.
+\begin{table}[t]
+\caption{Real-online LLM reducer sanity runs on the same single-NPU endpoint. The reducer uses the same evidence schema and scorer as the deterministic experiments. These are integration-quality results over one model, one seed, and two workload sizes, not a broad serving-performance comparison.}
+\label{tab:llm-reducer-online}
+\centering
+\small
+\begin{tabular}{lrrrrrr}
+\toprule
+Run & Events & Shards & Precision & Recall & F1 & Reduce ms \\
+\midrule
+Smoke & 2,000 & 4 & 1.00 & 0.25 & 0.40 & 48,626.03 \\
+Sanity & 20,000 & 8 & 1.00 & 1.00 & 1.00 & 5,055.39 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-Endpoint health is not sufficient for a semantic reducer. Follow-up online probes against an NPU3 Qwen2.5-7B endpoint were able to launch the service, pass health checks, and execute authenticated chat requests after local vLLM-HUST compatibility fixes, but the model did not satisfy the reducer JSON contract: an incident-shaped prompt produced repeated non-JSON text, structured output entered the schema path but did not close valid JSON, and even a minimal JSON prompt produced repeated non-JSON text. We therefore treat these probes as serving/generation readiness evidence, not as LLM reducer quality results. The lesson for the system design is that \textsc{SemanticReduce} needs a first-class contract and readiness gate; otherwise a nominally live LLM endpoint can silently invalidate an experiment.
+The online endpoint results in Table~\ref{tab:realonline} attach a live model-serving endpoint to the workload effort. The purpose is not to benchmark serving throughput, but to validate that the reducer path can be connected to an external LLM service and measured with standard serving metrics. The same one-command run first checks that the serving process stays on the selected NPU, rejects missing Triton-Ascend runtime support, waits for health, and then records a smoke request before invoking the reducer.
+
+Endpoint health is not sufficient for a semantic reducer. Earlier probes showed that a live endpoint can still fail the reducer contract by emitting malformed JSON or by crashing on the first generation request. The final single-NPU run fixes those serving-readiness issues and completes the LLM-backed reducer path, as shown in Table~\ref{tab:llm-reducer-online}. The 2k run recovers only one of four injected incidents because the evidence set is sparse; the 20k run recovers all four with denser evidence. This is a useful sanity result because it demonstrates an operational \textsc{SemanticReduce} integration under the common evidence/scoring contract. It is not evidence that LLM reduction dominates the deterministic reducer across workloads.
 
 The benchmark records more than a summary score. Each run stores the configuration, reducer name, injected incidents, detected incidents, matched incident IDs, missed incident IDs, and latency measurements. This matters because reducer experiments require diagnosing which incident changed and which evidence path caused the change. If an LLM reducer improves recall only by emitting vague incidents, precision falls and the detected incident list exposes the behavior; if it is too expensive, latency and token accounting can be attached to the same report schema.
 
