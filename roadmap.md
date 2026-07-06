@@ -26,7 +26,7 @@ feature branches:
   - pinned commit: `ffa12e4a7a8e09433f1105d6511121f096fe88c5`
 - `external/vllm-hust-dev-hub`
   - branch: `feature/sage-semantic-mapreduce-dev-hub`
-  - pinned commit: `9a05905d67b31f91469b00d16d61d9146273ce87`
+  - pinned commit: `32ca8c130f237efe6adcc225831810eca2ccfbd3`
 - `external/ascend-runtime-manager`
   - branch: `feature/sage-semantic-mapreduce-runtime-manager`
   - pinned commit: `40a2afed0ae7896e004cf6d0f67c0d89e7e1582b`
@@ -134,11 +134,17 @@ which means the remaining issue is the Ascend Triton runtime/build environment,
 not the Semantic MapReduce workload. This is also a debug artifact, not a paper
 result.
 
+Follow-up fix: `external/vllm-hust-dev-hub` commit
+`32ca8c130f237efe6adcc225831810eca2ccfbd3` now exports
+`TRITON_NPU_COMPILER_PATH` inside the managed engine launcher after sourcing the
+Ascend toolkit environment. The next validation step is an NPU3-only smoke run
+when NPU3 is idle.
+
 ## Immediate Next Steps
 
 1. Fix the remaining Triton runtime dependency.
-   The next concrete blocker is Triton active-driver discovery inside vLLM-HUST
-   startup. Do not bypass this by allowing V1 model runner fallback. Finish the
+   The active-driver discovery fix has been added to the dev-hub launcher. Do
+   not bypass this by allowing V1 model runner fallback. Finish validating the
    `external/triton-ascend-hust` build path so the runtime works from the
    repository submodule without borrowing build artifacts from a shared home
    checkout.

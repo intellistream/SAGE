@@ -528,7 +528,7 @@ specific upstream feature branch:
 - upstream PR: `vLLM-HUST/vllm-ascend-hust#101`
 - dev-hub submodule path: `external/vllm-hust-dev-hub`
 - dev-hub branch: `feature/sage-semantic-mapreduce-dev-hub`
-- dev-hub pinned commit: `9a05905d67b31f91469b00d16d61d9146273ce87`
+- dev-hub pinned commit: `32ca8c130f237efe6adcc225831810eca2ccfbd3`
 - Ascend runtime manager submodule path: `external/ascend-runtime-manager`
 - Ascend runtime manager branch: `feature/sage-semantic-mapreduce-runtime-manager`
 - Ascend runtime manager pinned commit:

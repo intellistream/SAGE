@@ -119,7 +119,7 @@ The expected base vLLM-HUST checkout is `external/vllm-hust` at
 `feature/kvplane-prefix-cache-admission`. The expected vLLM-Ascend-HUST commit is
 `339b27ad69aa12b8f56bbd1885c046be4e53c945` on the project readiness branch.
 The matching dev-hub branch is `feature/sage-semantic-mapreduce-dev-hub`,
-pinned at `9a05905d67b31f91469b00d16d61d9146273ce87`.
+pinned at `32ca8c130f237efe6adcc225831810eca2ccfbd3`.
 The dev-hub container helper is also pinned as
 `external/ascend-runtime-manager` on
 `feature/sage-semantic-mapreduce-runtime-manager` at
