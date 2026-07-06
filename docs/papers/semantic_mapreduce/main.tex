@@ -40,11 +40,11 @@ Large-scale data systems efficiently scan, join, and aggregate massive datasets,
 
 Modern data systems are very good at moving, filtering, joining, and aggregating data. Hadoop MapReduce made large-scale analysis programmable through local map tasks followed by global reduction~\cite{dean2004mapreduce}; Spark and Flink improved the execution model for iterative, in-memory, batch, and stream workloads~\cite{zaharia2012spark,carbone2015flink}; Ray generalized distributed execution for emerging AI applications~\cite{moritz2018ray}. These systems are essential infrastructure, but they do not directly answer a different class of analysis questions: are these distributed symptoms part of the same incident, what evidence supports the hypothesis, which evidence conflicts with it, and what action should an operator take next?
 
-This distinction appears even in a controlled telemetry workload. Figure~\ref{fig:intro-motivation} contrasts a naive stitched pipeline with the Semantic MapReduce design. In the NPU-backed LLM serving workload, map-only alerts reach 0.3075 mean F1 and emit 3.50 outputs per true incident; window aggregation improves F1 to 0.7129 but still emits 1.76 fragments per incident. An incident-level reducer reaches 0.9579 F1 while reducing the report load to 1.04 outputs per true incident. The improvement therefore comes from changing the analysis contract itself: the system must turn shard-local observations into evidence objects and reduce them into incident hypotheses with traceable support, so reduction becomes a semantic operation rather than only a numeric or windowed aggregate.
+This distinction appears even in a controlled telemetry workload. Figure~\ref{fig:intro-motivation} contrasts a naive stitched pipeline with the Semantic MapReduce design. In the NPU-backed LLM serving workload, map-only alerts reach 0.3075 mean F1 and emit 3.50 outputs per true incident; window aggregation improves F1 to 0.7129 but still emits 1.76 fragments per incident. An incident-level reducer reaches 0.9579 F1 while reducing the report load to 1.04 outputs per true incident. The gain is not due to a stronger scanner or a larger model. It comes from changing the analysis contract: shard-local observations become evidence objects, and the global operation reduces evidence into incident hypotheses with traceable support.
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/fig1-semantic-mapreduce-motivation.png}
-\caption{Motivating comparison. Naive stitching can send telemetry through scripts and an LLM agent, but the question of whether shard-local symptoms form one incident remains an implicit prompt convention. Semantic MapReduce makes the concrete boundary explicit: telemetry shards produce evidence objects, a semantic reducer merges them, and the report carries audit-trace links to the supporting evidence.}
+\caption{Motivating comparison. Naive stitching can connect telemetry, scripts, and an LLM agent, but it leaves the central systems question implicit: which shard-local symptoms should be merged into the same incident? Semantic MapReduce makes that boundary explicit. Shards produce evidence objects, a semantic reducer performs incident-level fusion, and the report carries audit links back to the evidence that supports each hypothesis.}
 \Description{A two-row figure. The top row shows telemetry flowing through scripts and an LLM agent into a report, with a dashed same-incident question showing the missing semantic boundary. The bottom row shows telemetry shards, local evidence extraction, evidence objects, a semantic reducer, an audit trace, and an evidence-linked incident hypothesis.}
 \label{fig:intro-motivation}
 \end{figure*}
@@ -57,9 +57,9 @@ We argue that the right abstraction is neither a monolithic agent nor a replacem
 
 We instantiate this idea in an anonymized prototype. The prototype is a dataflow-native framework for modular, controllable, and transparent LLM-augmented reasoning. Its stream API exposes familiar dataflow composition primitives, its runtime provides local and optional distributed execution entrypoints, and its serving integration keeps inference engines outside the core package through explicit contracts. Rather than treating LLM analysis as a single prompt-response interaction, the prototype represents analysis as a workflow graph whose operators can be inspected, replayed, replaced, and connected to external systems. This makes the prototype an orchestration layer above or beside Spark, Flink, Ray, databases, vector systems, and LLM serving engines.
 
-The resulting structure addresses cases that a chat interface over telemetry leaves implicit. The prototype can express a pipeline in which different shards are analyzed independently, local outputs are normalized into evidence objects, reduction logic is selected by policy, and final explanations remain connected to the intermediate decisions that produced them. The same workflow can run with a deterministic reducer, with a stub reducer for interface testing, or with an LLM-backed reducer for semantic fusion. The prototype therefore makes LLM-native analysis operationally structured.
+The resulting structure addresses cases that a chat interface over telemetry leaves implicit. The prototype can express a pipeline in which shards are analyzed independently, local outputs are normalized into evidence objects, reduction logic is selected by policy, and final explanations remain connected to the intermediate decisions that produced them. The same workflow can run with a deterministic reducer, with a stub reducer for interface testing, or with an LLM-backed reducer for semantic fusion. LLM-native analysis becomes a workflow with named operator boundaries rather than an application-specific prompt convention.
 
-The evidence boundary is deliberately narrow. The current workload does not implement production-grade distributed shuffle or exactly-once fault tolerance, and the main quality results do not claim LLM superiority over a deterministic reducer. It implements a reproducible workload, diagnostic baselines, a deterministic reducer, an \texttt{llm-stub} reducer for CI, and an OpenAI-compatible reducer path used for readiness probes. The supported claim is that the prototype expresses MapReduce-like semantic orchestration as a standard operator workflow and exposes meaningful reducer failure modes. It is not a replacement for existing execution engines.
+The evidence boundary is deliberately narrow. The current workload does not implement production-grade distributed shuffle or exactly-once fault tolerance, and the main quality results do not claim LLM superiority over a deterministic reducer. It implements a reproducible workload, diagnostic baselines, a deterministic reducer, an \texttt{llm-stub} reducer for offline interface checks, and an OpenAI-compatible reducer path used for readiness probes. The supported claim is that the prototype expresses MapReduce-like semantic orchestration as a standard operator workflow and exposes meaningful reducer failure modes. It is not a replacement for existing execution engines.
 
 This paper makes five contributions:
 
@@ -68,7 +68,7 @@ This paper makes five contributions:
 \item It maps the abstraction onto workflow, stream, runtime, evidence, and serving-integration boundaries, emphasizing how an orchestration layer can sit above existing data and execution engines.
 \item It describes the mechanisms that make the abstraction practical: explicit workflow graphs, stream composition, reducer plug-ins, evidence objects, and auditable traces.
 \item It introduces a reproducible large-scale analysis workload for NPU-backed LLM serving telemetry, including injected incidents, evidence operators, incident reduction, and precision/recall/F1 scoring.
-\item It reports a 10-seed evaluation, an operator ablation, and real-endpoint readiness probes, showing where incident-level reduction helps, where map-stage evidence policy still determines recall, and why LLM reducers need an explicit JSON/evidence contract before quality claims are meaningful.
+\item It reports a 10-seed evaluation, an operator ablation, and real-endpoint readiness probes, showing where incident-level reduction helps, where map-stage evidence policy still determines recall, and why LLM-backed reducers require an explicit output contract before quality claims are meaningful.
 \end{enumerate}
 
 \section{Motivation}
@@ -191,15 +191,11 @@ Evaluation harness & Ground truth, precision/recall/F1, missed incidents, reduce
 
 Figure~\ref{fig:semantic-mapreduce-system} also shows the intended system boundary. External systems provide raw observations, pre-aggregation, indexing, and model serving. The orchestration layer coordinates the semantic workflow: \textsc{Shard}, \textsc{MapEvidence}, \textsc{Normalize}, \textsc{GroupEvidence}, \textsc{SemanticReduce}, and \textsc{ReportTrace}.
 
-This boundary is important for comparison. Spark, Flink, and Ray can execute large computations; an orchestration layer can call or sit beside them when semantic orchestration is needed. LlamaIndex, LangGraph, LangChain, and AutoGen provide useful LLM application abstractions, but they are not primarily dataflow runtimes for auditable large-scale evidence reduction. Data+AI platforms provide deep integration, but this design emphasizes an open workflow/runtime boundary and explicit evidence trace.
+This boundary is important for comparison. Spark, Flink, and Ray can execute large computations; the orchestration layer can call or sit beside them when semantic orchestration is needed. LlamaIndex, LangGraph, LangChain, and AutoGen provide useful LLM application abstractions, but they do not by themselves define the evidence object, incident reducer, scorer, and audit trail used in this workload. Data+AI platforms provide deep integration, while this design emphasizes an open workflow/runtime boundary and explicit reducer provenance.
 
 \paragraph{Workflow graph as the operator IR.}
 
-The workflow graph serves as an intermediate representation for LLM-augmented reasoning. A direct LLM integration often leaves the reasoning path inside a prompt chain or application glue code. In contrast, a workflow decomposes analysis into the standard operators introduced above. \textsc{MapEvidence} has a different role from \textsc{Normalize}; \textsc{SemanticReduce} has a different role from \textsc{ReportTrace}. This separation gives the system several practical properties.
-
-First, the workflow can be inspected. A developer can see where evidence is extracted, where it is compressed, and where global hypotheses are formed. Second, the workflow can be replayed. If a reducer emits a wrong incident, the system can rerun the same map outputs through a new reducer instead of regenerating all raw telemetry. Third, operators can be replaced independently. A deterministic reducer can be used for CI and regression tests, while an LLM-backed reducer can be evaluated under the same schema. Fourth, the workflow graph gives the runtime a place to record provenance: each final incident can be connected to the map outputs and reducer decision that produced it.
-
-This is the sense in which the system is more than a prompt wrapper. The graph is not only a programming convenience; it is the unit of reproducibility and auditability for semantic analysis.
+The workflow graph serves as an intermediate representation for LLM-augmented reasoning. A direct LLM integration often leaves the reasoning path inside a prompt chain or application glue code. In contrast, a workflow decomposes analysis into the standard operators introduced above. \textsc{MapEvidence} has a different role from \textsc{Normalize}; \textsc{SemanticReduce} has a different role from \textsc{ReportTrace}. This separation makes the workflow inspectable, replayable, and replaceable: a developer can see where evidence is extracted, rerun the same map outputs through a new reducer, and compare deterministic and LLM-backed reducers under one schema. The graph is therefore not only a programming convenience; it is the unit of reproducibility and auditability for semantic analysis.
 
 \paragraph{Stream composition as the data-system interface.}
 
@@ -225,7 +221,7 @@ Evidence objects are the bridge between data systems and LLM reasoning. Data eng
 
 \subsection{Reducers, Traces, and Integration}
 
-The current code introduces a reducer abstraction with four concrete roles: a map-only diagnostic baseline, a window-aggregation baseline, a deterministic incident reducer, and an \texttt{llm-stub} reducer. The map-only baseline reports shard-local candidates directly. The window-aggregation baseline merges candidates within each service/region/window but does not cluster adjacent windows into incident-level hypotheses. The deterministic reducer performs that incident-level clustering using structured fields. The stub reducer preserves the future LLM interface while delegating to the deterministic baseline so CI and offline experiments remain reproducible.
+The implementation introduces a reducer abstraction with four concrete roles: a map-only diagnostic baseline, a window-aggregation baseline, a deterministic incident reducer, and an \texttt{llm-stub} reducer. The map-only baseline reports shard-local candidates directly. The window-aggregation baseline merges candidates within each service/region/window but does not cluster adjacent windows into incident-level hypotheses. The deterministic reducer performs that incident-level clustering using structured fields. The stub reducer preserves the LLM interface while delegating to the deterministic baseline so offline experiments remain reproducible.
 
 The reducer interface is the extension point for LLM-backed reduction. An LLM reducer can take evidence objects, call a model under bounded context, and emit the same incident schema. Because scoring is unchanged, deterministic and LLM reducers can be compared on identical seeds and ground truth. This is an important systems property: changing the semantic reducer does not require rewriting the generator, shard mapper, scorer, report schema, or benchmark matrix.
 
@@ -243,9 +239,9 @@ The reducer interface is the extension point for LLM-backed reduction. An LLM re
   \If{$\pi = \textsc{Deterministic}$}
     \State $h \gets \Call{RuleMerge}{E_c}$
   \ElsIf{$\pi = \textsc{LLM}$}
-    \State $h \gets \Call{LLMMerge}{E_c}$ \Comment{Future implementation}
+    \State $h \gets \Call{LLMMerge}{E_c}$ \Comment{Same schema, model-backed merge}
   \Else
-    \State $h \gets \Call{HybridMerge}{E_c}$ \Comment{Rules filter, LLM adjudicates}
+    \State $h \gets \Call{HybridMerge}{E_c}$ \Comment{Rules filter, model adjudicates}
   \EndIf
   \If{$\Call{IsValidIncident}{h}$}
     \State $\mathcal{H} \gets \mathcal{H} \cup \{h\}$
@@ -256,7 +252,7 @@ The reducer interface is the extension point for LLM-backed reduction. An LLM re
 \end{algorithmic}
 \end{algorithm}
 
-Algorithm~\ref{alg:reducer-contract} shows the reducer interface used to separate evidence production from hypothesis formation. The current implementation includes diagnostic non-semantic reducers as well as the deterministic incident reducer; the \texttt{llm-stub} branch preserves the LLM call boundary. An LLM implementation changes how evidence is merged into hypotheses while keeping the incident schema and scorer fixed.
+Algorithm~\ref{alg:reducer-contract} shows the reducer interface used to separate evidence production from hypothesis formation. The evaluated implementation includes diagnostic non-semantic reducers as well as the deterministic incident reducer; the \texttt{llm-stub} branch preserves the LLM call boundary. An LLM-backed implementation changes how evidence is merged into hypotheses while keeping the incident schema and scorer fixed.
 
 \paragraph{Workflow trace and auditability.}
 
@@ -266,7 +262,7 @@ Auditability matters for both correctness and operations. A false positive is ex
 
 \paragraph{External integration points.}
 
-The prototype can integrate with external systems at three points. Upstream, data engines can supply shards, windows, or materialized feature tables. In the middle, model-serving systems can provide LLM calls for map, reduce, or final explanation operators. Downstream, incident-management or observability tools can consume structured hypotheses and evidence-linked reports. The current workload uses a synthetic generator and deterministic reducer, but the interfaces are chosen so that real Spark/Ray/Flink scans, real vector retrieval, and real serving telemetry can be substituted later.
+The prototype can integrate with external systems at three points. Upstream, data engines can supply shards, windows, or materialized feature tables. In the middle, model-serving systems can provide LLM calls for map, reduce, or final explanation operators. Downstream, incident-management or observability tools can consume structured hypotheses and evidence-linked reports. The evaluated workload uses a synthetic generator and deterministic reducer, but the interfaces are chosen so that real Spark/Ray/Flink scans, vector retrieval, and serving telemetry can be substituted without changing the reducer contract.
 
 This integration path is central to the design. The system does not duplicate mature execution engines. It makes semantic orchestration explicit across systems that otherwise remain disconnected: databases, stream processors, vector stores, LLM serving endpoints, and human-facing incident reports.
 
@@ -274,7 +270,7 @@ This integration path is central to the design. The system does not duplicate ma
 
 Another way to describe the boundary is to separate the semantic control plane from the data plane. The data plane moves records, executes scans, stores logs, manages model kernels, and serves tokens. These performance-critical tasks remain in engines designed for them. The semantic control plane decides how analysis is decomposed, which summaries become evidence, which reducer combines that evidence, and how the final report exposes provenance. The prototype belongs primarily to this control plane.
 
-This distinction is useful because LLM-native analysis often fails when the control plane is hidden inside an application script. For example, a notebook can query a database, call an LLM, and write a report, but the boundaries between data extraction, evidence selection, hypothesis formation, and explanation are implicit. Reproducing the result requires reproducing the notebook state and the human decisions around it. In our prototype, these steps are represented as workflow operators and report fields. The system can therefore record the exact reducer used, the top-k evidence budget, the seed, the matched incidents, and the missed incidents.
+This distinction is useful because LLM-native analysis often fails when the control plane is hidden inside an application script. For example, a notebook can query a database, call an LLM, and write a report, but the boundaries between data extraction, evidence selection, hypothesis formation, and explanation are implicit. Reproducing the result requires reproducing the notebook state and the human decisions around it. In this prototype, these steps are represented as workflow operators and report fields, so the system can record the reducer, evidence budget, seed, matched incidents, and missed incidents.
 
 The control-plane view also clarifies the integration boundary. A distributed deployment may push map operators into Spark or Ray, stream events through Flink, or call an LLM endpoint for semantic reduction. In each case, the orchestration layer owns the orchestration contract: operator graph, reducer selection, evidence schema, trace capture, and report generation. This is the level at which the contribution is strongest.
 
@@ -312,26 +308,20 @@ The workload instantiates the six operators directly. \textsc{Shard} partitions 
 
 The workload reports precision, recall, F1, throughput, map latency, reduce latency, detected incidents, injected incidents, and missed incidents. Reports also include seed, top-k, reducer name, and incident matching metadata.
 
-\paragraph{Current implementation.}
+The implementation has three components. The generator creates synthetic telemetry and hidden incidents. The map stage implements \textsc{Shard}, \textsc{MapEvidence}, and \textsc{Normalize} by partitioning events, computing local summaries, and producing anomaly candidates. The reducer implements \textsc{GroupEvidence} and \textsc{SemanticReduce} over shard summaries. The default reducer is deterministic: it clusters candidates using incident type, service, region, and temporal overlap. The map-only and window-aggregation reducers are diagnostic baselines that approximate alert-only and windowed-analytics workflows without incident-level semantic reduction. The \texttt{llm-stub} reducer is an interface placeholder that exercises the same resolver and report path while delegating to the deterministic reducer.
 
-The current implementation has three pieces. The generator creates synthetic telemetry and hidden incidents. The map stage implements \textsc{Shard}, \textsc{MapEvidence}, and \textsc{Normalize} by partitioning events, computing local summaries, and producing anomaly candidates. The reducer implements \textsc{GroupEvidence} and \textsc{SemanticReduce} over shard summaries. The default reducer is deterministic. It clusters candidates using incident type, service, region, and temporal overlap. The map-only and window-aggregation reducers are diagnostic baselines that approximate alert-only and windowed-analytics workflows without incident-level semantic reduction. The \texttt{llm-stub} reducer is an interface placeholder that exercises the same resolver and report path but delegates to the deterministic reducer.
-
-The report schema is deliberately richer than the minimum needed for precision and recall. It includes the map policy, reducer name, seed, top-k, injected incidents, detected incidents, matched incident IDs, and missed incidents. This makes the artifact useful for debugging operator behavior. When a run misses an incident, the missed incident ID is preserved in the report rather than disappearing into the aggregate recall number; when a map policy changes, the same reducer and scorer can be replayed over the new evidence stream.
-
-\paragraph{Case study walkthrough.}
+The report schema is deliberately richer than the minimum needed for precision and recall. It includes the map policy, reducer name, seed, top-k, injected incidents, detected incidents, matched incident IDs, and missed incidents. This enables per-run diagnosis of operator behavior. When a run misses an incident, the missed incident ID is preserved in the report rather than disappearing into the aggregate recall number; when a map policy changes, the same reducer and scorer can be replayed over the new evidence stream.
 
 A typical run proceeds as follows. The generator emits events for services such as \texttt{prefill}, \texttt{decode}, and \texttt{scheduler}. It injects incidents such as a latency spike or NPU saturation over a bounded time window. The shard map stage computes local evidence: elevated p95 latency, higher queue depth, or high NPU utilization. Each local summary is compact enough to be passed to the reducer. The reducer then merges adjacent or related candidates into incident hypotheses. The final report presents incident type, service, region, time window, confidence-like scores, and matching information.
 
 This walkthrough is simple, but it illustrates the value proposition. The workload is not a single SQL query and not a single prompt. It is a workflow whose operators correspond to system responsibilities: sharding, local evidence extraction, normalization, grouping, semantic merging, reporting, and evaluation. Each responsibility can evolve independently. A future LLM reducer can replace the deterministic reducer without changing the generator or scorer; a real telemetry source can replace the synthetic generator without changing the reducer contract.
 
-\paragraph{Experimental provenance.}
-
-The workload is designed to make reducer behavior reproducible without placing environment-management details in the paper body. Each experiment records the workload scale, shard count, seed, reducer, top-k budget, detected incidents, missed incidents, and latency measurements. This provenance is sufficient to distinguish algorithmic changes in the reducer from changes in input generation or scoring. The accompanying artifact contains the implementation and per-run reports needed to rerun the study.
+The workload is designed to make reducer behavior reproducible without placing environment-management details in the paper body. Each experiment records the workload scale, shard count, seed, reducer, top-k budget, detected incidents, missed incidents, and latency measurements. This provenance is sufficient to distinguish algorithmic changes in the reducer from changes in input generation or scoring. The accompanying artifact contains the implementation and per-run records needed to rerun the study.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/fig3-evaluation-harness.png}
-\caption{Evaluation harness for the large-scale analysis workload. The same generated telemetry and injected incidents feed the evidence stage, reducer variants, and common scorer. Solid reducer rows correspond to implemented comparison regimes, while the dashed LLM/hybrid branch marks planned extensions rather than completed LLM-reducer results. Ground truth is used only by the scorer, and workflow-trace artifacts link results back to evidence objects.}
+\caption{Evaluation harness for the large-scale analysis workload. The same generated telemetry and injected incidents feed the evidence stage, reducer variants, and common scorer. Solid reducer rows correspond to implemented comparison regimes, while the dashed LLM/hybrid branch marks planned extensions rather than completed LLM-reducer results. Ground truth is used only by the scorer, and workflow traces link results back to evidence objects.}
 \Description{A five-stage evaluation pipeline. A workload generator produces telemetry; injected incidents provide ground truth; an evidence stage emits evidence objects; reducer variants compare map-only, window aggregate, deterministic, and planned LLM or hybrid reducers; a common scorer reports precision, recall, F1, latency, throughput, matched and missed incidents, and workflow traces.}
 \label{fig:evaluation-harness}
 \end{figure*}
@@ -355,7 +345,7 @@ Events & Shards & Top-k & Runs \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:configs} lists the reproduced configurations. The evaluation is deliberately scoped to operator behavior under one workload harness. It does not claim tuned cluster deployments of Spark, Flink, Ray, LangGraph, LlamaIndex, or AutoGen. The main comparison fixes the generator, evidence schema, scorer, and report format, then varies two pieces: the map evidence policy and the reducer. This lets us separate three questions that were conflated in earlier drafts: whether incident-level reduction helps, whether the map stage preserves enough evidence for any reducer to succeed, and whether adjacent orchestration frameworks provide the missing semantic contract by themselves.
+Table~\ref{tab:configs} lists the reproduced configurations. The evaluation is deliberately scoped to operator behavior under one workload harness. The main comparison fixes the generator, evidence schema, scorer, and report format, then varies two pieces: the map evidence policy and the reducer. This separates three questions: whether incident-level reduction helps, whether the map stage preserves enough evidence for any reducer to succeed, and whether adjacent orchestration frameworks provide the missing semantic contract by themselves. The experiments are not tuned cluster deployments of Spark, Flink, Ray, LangGraph, LlamaIndex, or AutoGen.
 
 \subsection{Reducer Quality}
 
@@ -376,7 +366,7 @@ Incident reducer & 0.9500 & 0.9750 & 0.9579 & 4.15 \\
 \end{tabular}
 \end{table}
 
-The aggregate results in Table~\ref{tab:aggregate} show why incident-level reduction is the relevant operation. Map-only alerts emit many duplicate shard-local candidates and consume the top-k budget before all incidents are represented. Window aggregation improves recall but still reports multiple windows for one incident. The incident reducer keeps recall at 0.9750 while reducing average detections from 7.05 to 4.15, raising F1 from 0.7129 to 0.9579. This is the measured advantage of semantic reduction in the current workload: fewer duplicate hypotheses, not faster scanning.
+The aggregate results in Table~\ref{tab:aggregate} show why incident-level reduction is the relevant operation. Map-only alerts emit duplicate shard-local candidates and consume the top-k budget before all incidents are represented. Window aggregation improves recall but still reports multiple windows for one incident. The incident reducer keeps recall at 0.9750 while reducing average detections from 7.05 to 4.15, raising F1 from 0.7129 to 0.9579. This is the measured advantage in the current workload: semantic reduction changes the unit of output from alert fragments to incident hypotheses.
 
 \begin{table}[t]
 \caption{MapEvidence policy ablation for the deterministic incident reducer. The tail-aware policy preserves high-p95 NPU saturation evidence; mean-only corresponds to the earlier mean-utilization rule.}
@@ -420,7 +410,7 @@ Total latency, ms & 475.34 & 972.91 \\
 
 The local runtime metrics in Table~\ref{tab:runtime} show that the map stage dominates measured workload time because it scans and summarizes event shards. The reduce stage is sub-millisecond in the current baseline because it performs deterministic clustering over compact candidate summaries. The workload therefore exercises the intended architecture: raw event processing precedes semantic reduction, and the reducer sees compressed evidence rather than all raw events.
 
-These numbers are not distributed systems performance claims. The current runs are local and do not evaluate cluster scheduling, shuffle, or fault recovery. They establish a reproducible baseline for later reducer studies. If an LLM reducer improves recall but adds latency or token cost, the same harness can quantify the tradeoff. A complete evaluation would report end-to-end latency and cost for deterministic, LLM-backed, and hybrid reducers under the same workload.
+These numbers are local runtime measurements, not distributed systems performance claims. They establish a reproducible baseline for reducer studies. If an LLM reducer improves recall but adds latency or token cost, the same harness can quantify the tradeoff under the same evidence and scoring interface.
 
 \begin{table}[t]
 \caption{Adjacent-framework adapter baselines over the same 20 tail-aware runs. Each adapter receives the same evidence objects and calls the same incident reducer and scorer; equal quality is therefore expected.}
@@ -438,8 +428,6 @@ Ray-local & 0.9579 & 39,100 & 1,917.48 \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-\paragraph{Adjacent-system baselines.}
 
 Table~\ref{tab:adapter-baselines} adds adjacent-framework baselines for Ray-local, LangGraph-local, and LlamaIndex-docstore wrappers. The table should not be read as a leaderboard over those systems: the experiment intentionally fixes the evidence schema, incident reducer, scorer, and report format. Its value is diagnostic. Without semantic reduction, the workflows in Table~\ref{tab:aggregate} stop at shard-local alerts or window fragments. Once the semantic-reduce contract is supplied, adjacent frameworks can drive the same computation and obtain identical quality. This supports a narrower claim: existing systems are useful substrates, but the missing abstraction for this workload is the evidence-linked reducer contract and its audit trail, not another generic execution wrapper. Ray-local also reported NPU-detection and \texttt{/tmp/ray} space warnings on this host, so its overhead should not be read as tuned Ray performance.
 
@@ -464,17 +452,13 @@ The online endpoint results in Table~\ref{tab:realonline} attach a live model-se
 
 Endpoint health is not sufficient for a semantic reducer. Follow-up online probes against an NPU3 Qwen2.5-7B endpoint were able to launch the service, pass health checks, and execute authenticated chat requests after local vLLM-HUST compatibility fixes, but the model did not satisfy the reducer JSON contract: an incident-shaped prompt produced repeated non-JSON text, structured output entered the schema path but did not close valid JSON, and even a minimal JSON prompt produced repeated non-JSON text. We therefore treat these probes as serving/generation readiness evidence, not as LLM reducer quality results. The lesson for the system design is that \textsc{SemanticReduce} needs a first-class contract and readiness gate; otherwise a nominally live LLM endpoint can silently invalidate an experiment.
 
-\paragraph{Audit artifacts.}
-
-The benchmark produces artifacts beyond a single summary table. Each run records the configuration, reducer name, injected incidents, detected incidents, matched incident IDs, missed incident IDs, and latency measurements. This matters because reducer experiments require more than a single score. A researcher should be able to identify which incident changed and inspect the evidence path that caused the change.
-
-The artifact structure also supports regression testing. If a code change improves mean F1 but introduces a systematic false positive in one service or region, the per-run reports expose that pattern. If an LLM reducer improves recall only by emitting many vague incidents, precision falls and the detected incident list shows why. If an LLM reducer is too expensive, latency and token accounting can be attached to the same report schema. In this sense, the workload is not only a synthetic generator; it is an experimental harness for studying semantic reducers under controlled conditions.
+The benchmark records more than a summary score. Each run stores the configuration, reducer name, injected incidents, detected incidents, matched incident IDs, missed incident IDs, and latency measurements. This matters because reducer experiments require diagnosing which incident changed and which evidence path caused the change. If an LLM reducer improves recall only by emitting vague incidents, precision falls and the detected incident list exposes the behavior; if it is too expensive, latency and token accounting can be attached to the same report schema.
 
 \subsection{Lessons}
 
 The evaluation gives three lessons. First, the workload is not merely a classifier benchmark. Precision measures whether the reducer avoids inventing incidents from noisy evidence; recall measures whether the map and reduce stages preserve weak but real incidents; the missed-incident list shows which operator boundary failed. Second, the incident reducer improves quality mainly by changing the unit of output from windows to hypotheses. The output count drops toward the four injected incidents while recall remains high. Third, the map policy matters as much as the reducer: if a saturation event never becomes evidence, no downstream LLM can recover it without going back to raw telemetry.
 
-These lessons define the role of an LLM reducer more narrowly than the introduction's motivating vision. A model should not be rewarded for basic scanning, thresholding, or duplicate removal that deterministic operators already handle. Its useful role is to adjudicate ambiguous evidence groups, use service relationships to reject false positives, explain why symptoms belong together, and produce operator-facing reports from bounded evidence objects. That experiment remains future work; the current artifact establishes the operator contract and the baseline failure modes that such a reducer must beat.
+These lessons define the role of an LLM reducer more narrowly than the introduction's motivating vision. A model should not be rewarded for basic scanning, thresholding, or duplicate removal that deterministic operators already handle. Its useful role is to adjudicate ambiguous evidence groups, use service relationships to reject false positives, explain why symptoms belong together, and produce operator-facing reports from bounded evidence objects. That experiment remains future work; the current benchmark establishes the operator contract and baseline failure modes that such a reducer must beat.
 
 \section{Discussion}
 
