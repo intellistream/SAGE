@@ -117,6 +117,7 @@ fi
 BASE_URL="http://127.0.0.1:${PORT}"
 ENV_FILE="${DEV_HUB}/.env"
 SERVER_STARTED=0
+VLLM_CONTAINER_LOG_FILE="/tmp/sage-smr-vllm.redacted.log"
 
 port_is_listening() {
   ss -ltn "sport = :${PORT}" | awk 'NR > 1 { found = 1 } END { exit(found ? 0 : 1) }'
@@ -174,12 +175,30 @@ assert_managed_npu_processes_stay_on_target() {
   fi
 }
 
+assert_no_triton_fallback() {
+  local triton_log="${OUTPUT_ROOT}/vllm-triton-check.log"
+
+  if sudo -n docker inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
+    timeout 8s sudo -n docker exec "${CONTAINER_NAME}" sh -lc \
+      "test -f '${VLLM_CONTAINER_LOG_FILE}' && tail -260 '${VLLM_CONTAINER_LOG_FILE}'" \
+      > "${triton_log}" 2>/dev/null || true
+  fi
+
+  if [[ -s "${triton_log}" ]] && grep -Eq \
+    "Triton not installed or not compatible|Failed to import Triton kernels|triton\\.language\\.target_info|Model Runner V2 requires Triton; using the V1 model runner" \
+    "${triton_log}"; then
+    die "Triton-Ascend is unavailable or vLLM fell back to the V1 model runner. See ${triton_log}."
+  fi
+}
+
 wait_for_health() {
   local deadline=$((SECONDS + 900))
   while (( SECONDS < deadline )); do
     assert_managed_npu_processes_stay_on_target
+    assert_no_triton_fallback
     if curl -fsS "${BASE_URL}/health" >/dev/null 2>&1; then
       assert_managed_npu_processes_stay_on_target
+      assert_no_triton_fallback
       log "Endpoint health check passed: ${BASE_URL}/health"
       return
     fi
@@ -202,7 +221,45 @@ stop_server() {
   )
 }
 
-trap stop_server EXIT
+collect_diagnostics() {
+  mkdir -p "${OUTPUT_ROOT}"
+
+  {
+    echo "command_line=$0 $*"
+    echo "timestamp_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "sage_head=$(git -C "${SAGE_ROOT}" rev-parse HEAD 2>/dev/null || true)"
+    echo "container=${CONTAINER_NAME}"
+    echo "systemd_unit=${SYSTEMD_UNIT}"
+    echo "port=${PORT}"
+    echo "npu_device=${NPU_DEVICE}"
+  } > "${OUTPUT_ROOT}/run-command.env" 2>/dev/null || true
+
+  systemctl --user --no-pager --full status "${SYSTEMD_UNIT}" \
+    > "${OUTPUT_ROOT}/systemd-status.txt" 2>&1 || true
+  journalctl --user -u "${SYSTEMD_UNIT}" --no-pager -n 300 \
+    > "${OUTPUT_ROOT}/systemd-journal-tail.txt" 2>&1 || true
+
+  if sudo -n docker inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
+    sudo -n docker inspect "${CONTAINER_NAME}" \
+      > "${OUTPUT_ROOT}/docker-inspect.json" 2>&1 || true
+    sudo -n docker top "${CONTAINER_NAME}" -eo pid,ppid,stat,etime,args \
+      > "${OUTPUT_ROOT}/docker-top.txt" 2>&1 || true
+    timeout 20s sudo -n docker exec "${CONTAINER_NAME}" sh -lc \
+      "test -f '${VLLM_CONTAINER_LOG_FILE}' && cat '${VLLM_CONTAINER_LOG_FILE}'" \
+      > "${OUTPUT_ROOT}/vllm-service.redacted.log" 2>&1 || true
+  fi
+
+  ss -ltnp > "${OUTPUT_ROOT}/ports.txt" 2>&1 || true
+  npu-smi info > "${OUTPUT_ROOT}/npu-smi-exit.txt" 2>/dev/null || true
+}
+
+on_exit() {
+  local exit_code=$?
+  set +e
+  collect_diagnostics "$@"
+  stop_server
+  exit "${exit_code}"
+}
 
 write_metadata() {
   mkdir -p "${OUTPUT_ROOT}"
@@ -244,6 +301,7 @@ EOF
 
 print_plan
 [[ "${DRY_RUN}" == "1" ]] && exit 0
+trap 'on_exit "$@"' EXIT
 
 [[ -x "${PREPARE_RUNTIME}" ]] || die "Missing runtime preparation script: ${PREPARE_RUNTIME}"
 [[ -d "${DEV_HUB}" ]] || die "Missing dev-hub submodule: ${DEV_HUB}"
@@ -286,11 +344,11 @@ if [[ "${SKIP_SERVER_MANAGEMENT}" == "0" ]]; then
     VLLM_ENGINE_GPU_MEM_UTIL=0.60 \
     VLLM_ENGINE_ENABLE_CHUNKED_PREFILL=1 \
     VLLM_ENGINE_ENABLE_PREFIX_CACHING=1 \
-    VLLM_ENGINE_CONTAINER_LOG_FILE=/tmp/sage-smr-vllm.redacted.log \
+    VLLM_ENGINE_CONTAINER_LOG_FILE="${VLLM_CONTAINER_LOG_FILE}" \
     VLLM_ENGINE_EXTRA_ARGS_JSON='["--max-num-batched-tokens","2048","--generation-config","vllm","--structured-outputs-config","{\"backend\":\"xgrammar\",\"disable_any_whitespace\":true}"]' \
     VLLM_ENGINE_PYTHON=/workspace/vllm-hust-dev-container-env/bin/python \
     VLLM_ENGINE_BIN=/workspace/vllm-hust-dev-container-env/bin/vllm \
-    VLLM_ENGINE_PYTHONPATH=/workspace/SAGE/external/vllm-ascend-hust:/workspace/vllm-hust:/workspace/vllm-ascend-hust \
+    VLLM_ENGINE_PYTHONPATH=/workspace/SAGE/external/triton-ascend-hust/python:/workspace/SAGE/external/vllm-ascend-hust:/workspace/vllm-hust:/workspace/vllm-ascend-hust \
     COMPILE_CUSTOM_KERNELS=1 \
     VLLM_PLUGINS=ascend \
     VLLM_SEGMENT_REUSE_ENABLE=0 \

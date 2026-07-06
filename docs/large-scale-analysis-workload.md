@@ -529,6 +529,10 @@ specific upstream feature branch:
 - Ascend runtime manager branch: `feature/sage-semantic-mapreduce-runtime-manager`
 - Ascend runtime manager pinned commit:
   `40a2afed0ae7896e004cf6d0f67c0d89e7e1582b`
+- Triton-Ascend-HUST submodule path: `external/triton-ascend-hust`
+- Triton-Ascend-HUST branch: `feature/sage-semantic-mapreduce-triton-runtime`
+- Triton-Ascend-HUST pinned commit:
+  `2abb29fbeb4d3906e9fa1b7d93514ac60aa83cf0`
 
 The submodule contains the following compatibility changes:
 
@@ -554,6 +558,10 @@ The submodule contains the following compatibility changes:
 - `external/ascend-runtime-manager/src/hust_ascend_manager/container.py`: honor
   `HUST_ASCEND_CONTAINER_NPU_DEVICES` so the dev-hub container can mount only
   the requested `/dev/davinci*` device nodes.
+- `external/triton-ascend-hust`: pin the Triton-Ascend runtime used by
+  vLLM-Ascend. The NPU3 launcher treats missing Triton backends or V1 model
+  runner fallback as a startup failure, not as a valid real-online experiment
+  path.
 - `$HOME/vllm-hust/vllm/v1/core/kv_cache_manager.py` and
   `$HOME/vllm-hust/vllm/knorm/manager.py`: align local KV-cache/Knorm method
   signatures with the current vLLM core.
@@ -575,9 +583,10 @@ The launcher checks the submodule commits, verifies that port `18383` and NPU3
 are free, starts the endpoint through `external/vllm-hust-dev-hub/manage.sh`,
 passes `HUST_ASCEND_CONTAINER_NPU_DEVICES=3` to the runtime manager so the
 container mounts only the requested NPU device, and fails fast if any managed
-container process appears outside NPU3 while the service starts. It then runs a
-smoke request, runs a small online latency probe, runs the LLM reducer workload,
-writes metadata and logs under
+container process appears outside NPU3 while the service starts. It also scans
+the vLLM startup log and fails if Triton-Ascend is unavailable or vLLM falls
+back to the V1 model runner. It then runs a smoke request, runs a small online
+latency probe, runs the LLM reducer workload, writes metadata and logs under
 `.sage/benchmarks/real_online_semantic_mapreduce/`, and stops the service it
 started unless `--keep-server` is passed.
 

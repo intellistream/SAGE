@@ -10,3 +10,7 @@
 	path = external/ascend-runtime-manager
 	url = git@github.com:vLLM-HUST/ascend-runtime-manager.git
 	branch = feature/sage-semantic-mapreduce-runtime-manager
+[submodule "external/triton-ascend-hust"]
+	path = external/triton-ascend-hust
+	url = git@github.com:vLLM-HUST/triton-ascend-hust.git
+	branch = feature/sage-semantic-mapreduce-triton-runtime

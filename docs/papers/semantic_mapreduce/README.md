@@ -120,6 +120,10 @@ The dev-hub container helper is also pinned as
 `external/ascend-runtime-manager` on
 `feature/sage-semantic-mapreduce-runtime-manager` at
 `40a2afed0ae7896e004cf6d0f67c0d89e7e1582b`.
+The matching Triton-Ascend runtime is pinned as
+`external/triton-ascend-hust` on
+`feature/sage-semantic-mapreduce-triton-runtime` at
+`2abb29fbeb4d3906e9fa1b7d93514ac60aa83cf0`.
 
 Before launching a real NPU endpoint, validate the runtime branch and use the
 printed dev-hub overrides:
@@ -132,8 +136,9 @@ For the NPU3 real-online Semantic MapReduce experiment, prefer the one-command
 launcher. It initializes the SAGE-pinned submodules, checks that NPU3 and port
 18383 are free, starts vLLM-HUST through the dev-hub submodule with the
 runtime-manager NPU-device whitelist, fails if any managed container process
-appears outside NPU3 during startup, runs smoke and latency probes, runs the LLM
-reducer workload, and records metadata under
+appears outside NPU3 during startup, fails if Triton-Ascend is unavailable or
+vLLM falls back to the V1 model runner, runs smoke and latency probes, runs the
+LLM reducer workload, and records metadata under
 `.sage/benchmarks/real_online_semantic_mapreduce/`:
 
 ```bash

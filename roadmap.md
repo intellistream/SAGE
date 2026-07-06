@@ -30,6 +30,9 @@ feature branches:
 - `external/vllm-ascend-hust`
   - branch: `feature/sage-semantic-mapreduce-npu-readiness`
   - pinned commit: `339b27ad69aa12b8f56bbd1885c046be4e53c945`
+- `external/triton-ascend-hust`
+  - branch: `feature/sage-semantic-mapreduce-triton-runtime`
+  - pinned commit: `2abb29fbeb4d3906e9fa1b7d93514ac60aa83cf0`
 
 The reproducibility entry point is:
 
@@ -69,6 +72,8 @@ The one-command experiment launcher now:
   only `/dev/davinci3` plus required control devices;
 - records managed container PIDs and verifies that any managed NPU process is
   on NPU3;
+- treats Triton-Ascend backend import failures or vLLM V1 model runner fallback
+  as startup failures rather than acceptable experiment fallbacks;
 - starts and stops the dev-hub service through `manage.sh`;
 - records metadata, NPU snapshots, prepare logs, and startup logs.
 
@@ -87,7 +92,7 @@ real NPU bring-up:
 
 ## Latest Real-Online Experiment Attempt
 
-The latest attempted run was:
+The latest attempted full bring-up run was:
 
 ```bash
 .sage/benchmarks/real_online_semantic_mapreduce/20260705T173002Z-npu3-semantic-mapreduce
@@ -104,17 +109,35 @@ directory contains startup metadata and NPU audit files, but no `smoke.json` or
 LLM reducer result files. Treat this as a bring-up/debug artifact, not an
 experimental result.
 
+On 2026-07-06, the runtime was tightened so Triton-Ascend failures are no
+longer accepted as an implicit fallback path. The current smoke bring-up was:
+
+```bash
+.sage/benchmarks/real_online_semantic_mapreduce/20260706T024144Z-npu3-semantic-mapreduce
+```
+
+This run validated the new failure policy: the script stopped the dev-hub
+service after seeing Triton-Ascend import failure in the vLLM startup log. The
+observed error changed from the previous `triton.language.target_info` issue to
+`No module named 'triton_kernels.matmul_ogs'`, which means the pinned
+`external/triton-ascend-hust` source is now part of the runtime path, but the
+paired `triton_kernels` module/package still needs to be installed or pinned.
+This is also a debug artifact, not a paper result.
+
 ## Immediate Next Steps
 
-1. Capture the full in-container vLLM log for the failed NPU3 startup.
-   The current SAGE output only records the dev-hub systemd startup log. The
-   launcher should copy `/tmp/sage-smr-vllm.redacted.log` into the run output
-   directory on failure and on cleanup.
+1. Fix the remaining Triton runtime dependency.
+   The next concrete blocker is `No module named 'triton_kernels.matmul_ogs'`
+   during vLLM startup. Do not bypass this by allowing V1 model runner fallback.
+   Identify whether `triton_kernels` should come from a vLLM dependency, a
+   Triton-Ascend build artifact, or another pinned submodule/package, then add
+   it to the automated setup path.
 
 2. Continue debugging the NPU3 `/health` failure using only NPU3.
    The previous compatibility failures were resolved far enough to reach engine
-   initialization and model loading. The next task is to identify why the engine
-   exits before the OpenAI server becomes healthy.
+   initialization and model loading. The current policy is to fail before
+   `/health` if Triton-Ascend is unavailable or vLLM would fall back to the V1
+   model runner.
 
 3. Once `/health` passes, run the launcher end to end and require these
    artifacts before claiming a real-online result:
@@ -177,4 +200,3 @@ The minimum useful experimental ladder is:
 The most important minimal enhancement remains a pluggable reducer interface
 that can switch between deterministic, LLM, and hybrid reducers while sharing
 the same scorer and trace format.
-
