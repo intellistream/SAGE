@@ -106,13 +106,17 @@ The vLLM-Ascend-HUST compatibility patches used for NPU3 real-online readiness
 are tracked as a SAGE submodule:
 
 ```bash
-git submodule update --init --recursive external/vllm-ascend-hust
-cd external/vllm-ascend-hust
-git checkout feature/sage-semantic-mapreduce-npu-readiness
-git rev-parse HEAD
+git submodule update --init --recursive \
+  external/vllm-hust \
+  external/vllm-ascend-hust \
+  external/vllm-hust-dev-hub \
+  external/ascend-runtime-manager
+git submodule update --init external/triton-ascend-hust
 ```
 
-The expected commit for this draft is
+The expected base vLLM-HUST checkout is `external/vllm-hust` at
+`ffa12e4a7a8e09433f1105d6511121f096fe88c5` on
+`feature/kvplane-prefix-cache-admission`. The expected vLLM-Ascend-HUST commit is
 `339b27ad69aa12b8f56bbd1885c046be4e53c945` on the project readiness branch.
 The matching dev-hub branch is `feature/sage-semantic-mapreduce-dev-hub`,
 pinned at `9a05905d67b31f91469b00d16d61d9146273ce87`.
@@ -123,7 +127,7 @@ The dev-hub container helper is also pinned as
 The matching Triton-Ascend runtime is pinned as
 `external/triton-ascend-hust` on
 `feature/sage-semantic-mapreduce-triton-runtime` at
-`2abb29fbeb4d3906e9fa1b7d93514ac60aa83cf0`.
+`89263bb5b68b61707d7dcdd309615b84560ff5a3`.
 
 Before launching a real NPU endpoint, validate the runtime branch and use the
 printed dev-hub overrides:
@@ -131,6 +135,10 @@ printed dev-hub overrides:
 ```bash
 tools/benchmark_carrier/prepare_vllm_ascend_runtime_branch.sh
 ```
+
+The validation step rejects runtime submodule paths that are symlinks to shared
+home-directory checkouts. Real-online runs should use the independent
+`external/*` submodules recorded by this repository.
 
 For the NPU3 real-online Semantic MapReduce experiment, prefer the one-command
 launcher. It initializes the SAGE-pinned submodules, checks that NPU3 and port

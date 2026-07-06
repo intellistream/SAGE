@@ -21,6 +21,9 @@ databases.
 SAGE now records the external runtime dependencies as submodules on project
 feature branches:
 
+- `external/vllm-hust`
+  - branch: `feature/kvplane-prefix-cache-admission`
+  - pinned commit: `ffa12e4a7a8e09433f1105d6511121f096fe88c5`
 - `external/vllm-hust-dev-hub`
   - branch: `feature/sage-semantic-mapreduce-dev-hub`
   - pinned commit: `9a05905d67b31f91469b00d16d61d9146273ce87`
@@ -32,13 +35,18 @@ feature branches:
   - pinned commit: `339b27ad69aa12b8f56bbd1885c046be4e53c945`
 - `external/triton-ascend-hust`
   - branch: `feature/sage-semantic-mapreduce-triton-runtime`
-  - pinned commit: `2abb29fbeb4d3906e9fa1b7d93514ac60aa83cf0`
+  - pinned commit: `89263bb5b68b61707d7dcdd309615b84560ff5a3`
 
 The reproducibility entry point is:
 
 ```bash
 tools/benchmark_carrier/run_npu3_semantic_mapreduce_experiment.sh
 ```
+
+The runtime preparation script now rejects symlinked runtime submodule paths.
+The NPU3 experiment should depend on `external/*` submodules in this repository,
+not on shared `$HOME/vllm-hust`, `$HOME/vllm-ascend-hust`, or
+`$HOME/triton-ascend-hust` checkouts.
 
 It prepares the pinned submodules, starts vLLM-HUST through the dev-hub
 `manage.sh` path, targets port `18383`, and defaults to NPU3 only. The script
@@ -118,20 +126,22 @@ longer accepted as an implicit fallback path. The current smoke bring-up was:
 
 This run validated the new failure policy: the script stopped the dev-hub
 service after seeing Triton-Ascend import failure in the vLLM startup log. The
-observed error changed from the previous `triton.language.target_info` issue to
-`No module named 'triton_kernels.matmul_ogs'`, which means the pinned
-`external/triton-ascend-hust` source is now part of the runtime path, but the
-paired `triton_kernels` module/package still needs to be installed or pinned.
-This is also a debug artifact, not a paper result.
+initial `triton_kernels.matmul_ogs` path issue was fixed by adding
+`external/triton-ascend-hust/python/triton_kernels` to the runtime path and by
+bootstrapping the Triton-Ascend runtime before launch. The next startup attempt
+then failed on Triton active-driver detection (`0 active driver(s) found`),
+which means the remaining issue is the Ascend Triton runtime/build environment,
+not the Semantic MapReduce workload. This is also a debug artifact, not a paper
+result.
 
 ## Immediate Next Steps
 
 1. Fix the remaining Triton runtime dependency.
-   The next concrete blocker is `No module named 'triton_kernels.matmul_ogs'`
-   during vLLM startup. Do not bypass this by allowing V1 model runner fallback.
-   Identify whether `triton_kernels` should come from a vLLM dependency, a
-   Triton-Ascend build artifact, or another pinned submodule/package, then add
-   it to the automated setup path.
+   The next concrete blocker is Triton active-driver discovery inside vLLM-HUST
+   startup. Do not bypass this by allowing V1 model runner fallback. Finish the
+   `external/triton-ascend-hust` build path so the runtime works from the
+   repository submodule without borrowing build artifacts from a shared home
+   checkout.
 
 2. Continue debugging the NPU3 `/health` failure using only NPU3.
    The previous compatibility failures were resolved far enough to reach engine

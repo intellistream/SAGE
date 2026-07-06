@@ -3,20 +3,22 @@ set -euo pipefail
 
 SAGE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ASCEND_SUBMODULE_PATH="${SAGE_ROOT}/external/vllm-ascend-hust"
+VLLM_HUST_SUBMODULE_PATH="${SAGE_ROOT}/external/vllm-hust"
 DEV_HUB_SUBMODULE_PATH="${SAGE_ROOT}/external/vllm-hust-dev-hub"
 RUNTIME_MANAGER_SUBMODULE_PATH="${SAGE_ROOT}/external/ascend-runtime-manager"
 TRITON_ASCEND_SUBMODULE_PATH="${SAGE_ROOT}/external/triton-ascend-hust"
 EXPECTED_ASCEND_BRANCH="${SAGE_VLLM_ASCEND_BRANCH:-feature/sage-semantic-mapreduce-npu-readiness}"
 EXPECTED_ASCEND_COMMIT="${SAGE_VLLM_ASCEND_COMMIT:-339b27ad69aa12b8f56bbd1885c046be4e53c945}"
+EXPECTED_VLLM_HUST_BRANCH="${SAGE_VLLM_HUST_BRANCH:-feature/kvplane-prefix-cache-admission}"
+EXPECTED_VLLM_HUST_COMMIT="${SAGE_VLLM_HUST_COMMIT:-ffa12e4a7a8e09433f1105d6511121f096fe88c5}"
 EXPECTED_DEV_HUB_BRANCH="${SAGE_VLLM_DEV_HUB_BRANCH:-feature/sage-semantic-mapreduce-dev-hub}"
 EXPECTED_DEV_HUB_COMMIT="${SAGE_VLLM_DEV_HUB_COMMIT:-9a05905d67b31f91469b00d16d61d9146273ce87}"
 EXPECTED_RUNTIME_MANAGER_BRANCH="${SAGE_ASCEND_RUNTIME_MANAGER_BRANCH:-feature/sage-semantic-mapreduce-runtime-manager}"
 EXPECTED_RUNTIME_MANAGER_COMMIT="${SAGE_ASCEND_RUNTIME_MANAGER_COMMIT:-40a2afed0ae7896e004cf6d0f67c0d89e7e1582b}"
 EXPECTED_TRITON_ASCEND_BRANCH="${SAGE_TRITON_ASCEND_BRANCH:-feature/sage-semantic-mapreduce-triton-runtime}"
-EXPECTED_TRITON_ASCEND_COMMIT="${SAGE_TRITON_ASCEND_COMMIT:-2abb29fbeb4d3906e9fa1b7d93514ac60aa83cf0}"
+EXPECTED_TRITON_ASCEND_COMMIT="${SAGE_TRITON_ASCEND_COMMIT:-89263bb5b68b61707d7dcdd309615b84560ff5a3}"
 CONTAINER_SAGE_ROOT="${SAGE_CONTAINER_ROOT:-/workspace/SAGE}"
-CONTAINER_VLLM_HUST="${SAGE_CONTAINER_VLLM_HUST:-/workspace/vllm-hust}"
-CONTAINER_VLLM_ASCEND_FALLBACK="${SAGE_CONTAINER_VLLM_ASCEND_FALLBACK:-/workspace/vllm-ascend-hust}"
+CONTAINER_VLLM_HUST="${SAGE_CONTAINER_VLLM_HUST:-${CONTAINER_SAGE_ROOT}/external/vllm-hust}"
 STRICT_COMMIT=1
 PRINT_ENV=1
 
@@ -37,6 +39,8 @@ Options:
 Environment overrides:
   SAGE_VLLM_ASCEND_BRANCH   Default: ${EXPECTED_ASCEND_BRANCH}
   SAGE_VLLM_ASCEND_COMMIT   Default: ${EXPECTED_ASCEND_COMMIT}
+  SAGE_VLLM_HUST_BRANCH     Default: ${EXPECTED_VLLM_HUST_BRANCH}
+  SAGE_VLLM_HUST_COMMIT     Default: ${EXPECTED_VLLM_HUST_COMMIT}
   SAGE_VLLM_DEV_HUB_BRANCH  Default: ${EXPECTED_DEV_HUB_BRANCH}
   SAGE_VLLM_DEV_HUB_COMMIT  Default: ${EXPECTED_DEV_HUB_COMMIT}
   SAGE_ASCEND_RUNTIME_MANAGER_BRANCH  Default: ${EXPECTED_RUNTIME_MANAGER_BRANCH}
@@ -48,7 +52,9 @@ Environment overrides:
 The dev-hub container normally mounts /home/shuhao as /workspace. The printed
 VLLM_ENGINE_PYTHONPATH therefore puts the SAGE submodule first:
 
+  /workspace/SAGE/external/triton-ascend-hust/python/triton_kernels
   /workspace/SAGE/external/triton-ascend-hust/python
+  /workspace/SAGE/external/vllm-hust
   /workspace/SAGE/external/vllm-ascend-hust
 EOF
 }
@@ -90,6 +96,12 @@ check_submodule() {
   local actual_branch
   local actual_commit
 
+  if [[ -L "${path}" ]]; then
+    echo "[ERROR] ${label} submodule path is a symlink: ${path} -> $(readlink "${path}")" >&2
+    echo "[ERROR] Use an independent git submodule checkout under ${SAGE_ROOT}/external." >&2
+    exit 1
+  fi
+
   if [[ "${recursive}" == "1" ]]; then
     git -C "${SAGE_ROOT}" submodule update --init --recursive "${relative_path}"
   else
@@ -126,6 +138,12 @@ check_submodule() {
 }
 
 check_submodule \
+  "vLLM-HUST base runtime" \
+  "${VLLM_HUST_SUBMODULE_PATH}" \
+  "${EXPECTED_VLLM_HUST_BRANCH}" \
+  "${EXPECTED_VLLM_HUST_COMMIT}"
+
+check_submodule \
   "vLLM-HUST dev-hub" \
   "${DEV_HUB_SUBMODULE_PATH}" \
   "${EXPECTED_DEV_HUB_BRANCH}" \
@@ -155,7 +173,7 @@ if [[ "${PRINT_ENV}" == "1" ]]; then
 
 # dev-hub launch overrides for SAGE Semantic MapReduce NPU readiness:
 export SAGE_VLLM_DEV_HUB="${SAGE_ROOT}/external/vllm-hust-dev-hub"
-export VLLM_ENGINE_PYTHONPATH="${CONTAINER_SAGE_ROOT}/external/triton-ascend-hust/python:${CONTAINER_SAGE_ROOT}/external/vllm-ascend-hust:${CONTAINER_VLLM_HUST}:${CONTAINER_VLLM_ASCEND_FALLBACK}"
+export VLLM_ENGINE_PYTHONPATH="${CONTAINER_SAGE_ROOT}/external/triton-ascend-hust/python/triton_kernels:${CONTAINER_SAGE_ROOT}/external/triton-ascend-hust/python:${CONTAINER_VLLM_HUST}:${CONTAINER_SAGE_ROOT}/external/vllm-ascend-hust"
 export COMPILE_CUSTOM_KERNELS=1
 export VLLM_ASCEND_DISABLE_ADD_RMS_NORM_BIAS_CUSTOM_OP=1
 export VLLM_ASCEND_DISABLE_TOP_K_TOP_P_CUSTOM_OP=1

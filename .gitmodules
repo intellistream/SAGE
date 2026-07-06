@@ -14,3 +14,7 @@
 	path = external/triton-ascend-hust
 	url = git@github.com:vLLM-HUST/triton-ascend-hust.git
 	branch = feature/sage-semantic-mapreduce-triton-runtime
+[submodule "external/vllm-hust"]
+	path = external/vllm-hust
+	url = git@github.com:vLLM-HUST/vllm-hust.git
+	branch = feature/kvplane-prefix-cache-admission

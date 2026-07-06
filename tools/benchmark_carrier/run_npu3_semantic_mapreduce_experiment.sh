@@ -4,6 +4,7 @@ set -euo pipefail
 SAGE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 DEV_HUB="${SAGE_ROOT}/external/vllm-hust-dev-hub"
 PREPARE_RUNTIME="${SAGE_ROOT}/tools/benchmark_carrier/prepare_vllm_ascend_runtime_branch.sh"
+BOOTSTRAP_TRITON_ASCEND="${SAGE_ROOT}/tools/benchmark_carrier/bootstrap_triton_ascend_runtime.sh"
 
 NPU_DEVICE="${SAGE_REAL_ONLINE_NPU_DEVICE:-3}"
 PORT="${SAGE_REAL_ONLINE_PORT:-18383}"
@@ -304,6 +305,7 @@ print_plan
 trap 'on_exit "$@"' EXIT
 
 [[ -x "${PREPARE_RUNTIME}" ]] || die "Missing runtime preparation script: ${PREPARE_RUNTIME}"
+[[ -x "${BOOTSTRAP_TRITON_ASCEND}" ]] || die "Missing Triton-Ascend bootstrap script: ${BOOTSTRAP_TRITON_ASCEND}"
 [[ -d "${DEV_HUB}" ]] || die "Missing dev-hub submodule: ${DEV_HUB}"
 [[ -d "${MODEL_PATH}" ]] || die "Model path does not exist: ${MODEL_PATH}"
 [[ -f "${ENV_FILE}" ]] || die "Missing dev-hub .env with VLLM_HUST_API_KEY: ${ENV_FILE}"
@@ -316,6 +318,7 @@ if [[ "${ALLOW_NEWER_RUNTIME}" == "1" ]]; then
 else
   "${PREPARE_RUNTIME}" --no-print-env | tee "${OUTPUT_ROOT}/prepare-runtime.log"
 fi
+"${BOOTSTRAP_TRITON_ASCEND}" 2>&1 | tee "${OUTPUT_ROOT}/bootstrap-triton-ascend.log"
 
 if [[ "${SKIP_SERVER_MANAGEMENT}" == "0" ]]; then
   require_port_free
@@ -348,7 +351,7 @@ if [[ "${SKIP_SERVER_MANAGEMENT}" == "0" ]]; then
     VLLM_ENGINE_EXTRA_ARGS_JSON='["--max-num-batched-tokens","2048","--generation-config","vllm","--structured-outputs-config","{\"backend\":\"xgrammar\",\"disable_any_whitespace\":true}"]' \
     VLLM_ENGINE_PYTHON=/workspace/vllm-hust-dev-container-env/bin/python \
     VLLM_ENGINE_BIN=/workspace/vllm-hust-dev-container-env/bin/vllm \
-    VLLM_ENGINE_PYTHONPATH=/workspace/SAGE/external/triton-ascend-hust/python:/workspace/SAGE/external/vllm-ascend-hust:/workspace/vllm-hust:/workspace/vllm-ascend-hust \
+    VLLM_ENGINE_PYTHONPATH=/workspace/SAGE/external/triton-ascend-hust/python/triton_kernels:/workspace/SAGE/external/triton-ascend-hust/python:/workspace/SAGE/external/vllm-hust:/workspace/SAGE/external/vllm-ascend-hust \
     COMPILE_CUSTOM_KERNELS=1 \
     VLLM_PLUGINS=ascend \
     VLLM_SEGMENT_REUSE_ENABLE=0 \

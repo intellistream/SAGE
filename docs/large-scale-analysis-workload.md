@@ -221,7 +221,7 @@ VLLM_ENGINE_ENFORCE_EAGER=1 \
 VLLM_ENGINE_ENABLE_PREFIX_CACHING=0 \
 VLLM_ENGINE_ENABLE_CHUNKED_PREFILL=0 \
 VLLM_PLUGINS=ascend \
-VLLM_ENGINE_PYTHONPATH=/workspace/vllm-hust:/workspace/vllm-ascend-hust \
+VLLM_ENGINE_PYTHONPATH=/workspace/SAGE/external/vllm-hust:/workspace/SAGE/external/vllm-ascend-hust \
 bash manage.sh foreground
 ```
 
@@ -357,7 +357,7 @@ VLLM_ENGINE_ENFORCE_EAGER=1 \
 VLLM_ENGINE_ENABLE_PREFIX_CACHING=0 \
 VLLM_ENGINE_ENABLE_CHUNKED_PREFILL=0 \
 VLLM_PLUGINS=ascend \
-VLLM_ENGINE_PYTHONPATH=/workspace/vllm-hust:/workspace/vllm-ascend-hust \
+VLLM_ENGINE_PYTHONPATH=/workspace/SAGE/external/vllm-hust:/workspace/SAGE/external/vllm-ascend-hust \
 VLLM_ENGINE_EXTRA_ARGS_JSON='["--generation-config","vllm","--structured-outputs-config","{\"backend\":\"xgrammar\",\"disable_any_whitespace\":true}"]' \
 bash manage.sh foreground
 ```
@@ -518,6 +518,10 @@ vLLM-HUST/vLLM-Ascend checkout, not SAGE workload logic. SAGE records the
 vLLM-Ascend-HUST side as a submodule so the experiment can be reproduced from a
 specific upstream feature branch:
 
+- base vLLM-HUST submodule path: `external/vllm-hust`
+- base vLLM-HUST branch: `feature/kvplane-prefix-cache-admission`
+- base vLLM-HUST pinned commit:
+  `ffa12e4a7a8e09433f1105d6511121f096fe88c5`
 - submodule path: `external/vllm-ascend-hust`
 - branch: `feature/sage-semantic-mapreduce-npu-readiness`
 - pinned commit: `339b27ad69aa12b8f56bbd1885c046be4e53c945`
@@ -532,7 +536,7 @@ specific upstream feature branch:
 - Triton-Ascend-HUST submodule path: `external/triton-ascend-hust`
 - Triton-Ascend-HUST branch: `feature/sage-semantic-mapreduce-triton-runtime`
 - Triton-Ascend-HUST pinned commit:
-  `2abb29fbeb4d3906e9fa1b7d93514ac60aa83cf0`
+  `89263bb5b68b61707d7dcdd309615b84560ff5a3`
 
 The submodule contains the following compatibility changes:
 
@@ -562,8 +566,8 @@ The submodule contains the following compatibility changes:
   vLLM-Ascend. The NPU3 launcher treats missing Triton backends or V1 model
   runner fallback as a startup failure, not as a valid real-online experiment
   path.
-- `$HOME/vllm-hust/vllm/v1/core/kv_cache_manager.py` and
-  `$HOME/vllm-hust/vllm/knorm/manager.py`: align local KV-cache/Knorm method
+- `external/vllm-hust/vllm/v1/core/kv_cache_manager.py` and
+  `external/vllm-hust/vllm/knorm/manager.py`: align local KV-cache/Knorm method
   signatures with the current vLLM core.
 
 Before launching dev-hub, validate the SAGE-pinned runtime branches:
@@ -579,14 +583,16 @@ feature-branch submodules, use the one-command launcher:
 tools/benchmark_carrier/run_npu3_semantic_mapreduce_experiment.sh
 ```
 
-The launcher checks the submodule commits, verifies that port `18383` and NPU3
-are free, starts the endpoint through `external/vllm-hust-dev-hub/manage.sh`,
-passes `HUST_ASCEND_CONTAINER_NPU_DEVICES=3` to the runtime manager so the
-container mounts only the requested NPU device, and fails fast if any managed
-container process appears outside NPU3 while the service starts. It also scans
-the vLLM startup log and fails if Triton-Ascend is unavailable or vLLM falls
-back to the V1 model runner. It then runs a smoke request, runs a small online
-latency probe, runs the LLM reducer workload, writes metadata and logs under
+The launcher checks that runtime dependencies are independent submodule
+checkouts rather than symlinks to shared `$HOME` repositories, validates the
+pinned commits, verifies that port `18383` and NPU3 are free, starts the
+endpoint through `external/vllm-hust-dev-hub/manage.sh`, passes
+`HUST_ASCEND_CONTAINER_NPU_DEVICES=3` to the runtime manager so the container
+mounts only the requested NPU device, and fails fast if any managed container
+process appears outside NPU3 while the service starts. It also scans the vLLM
+startup log and fails if Triton-Ascend is unavailable or vLLM falls back to the
+V1 model runner. It then runs a smoke request, runs a small online latency
+probe, runs the LLM reducer workload, writes metadata and logs under
 `.sage/benchmarks/real_online_semantic_mapreduce/`, and stops the service it
 started unless `--keep-server` is passed.
 
@@ -622,7 +628,7 @@ VLLM_ENGINE_EXTRA_ARGS_JSON='["--generation-config","vllm","--structured-outputs
 VLLM_PLUGINS=ascend \
 VLLM_ENGINE_PYTHON=/workspace/vllm-hust-dev-container-env/bin/python \
 VLLM_ENGINE_BIN=/workspace/vllm-hust-dev-container-env/bin/vllm \
-VLLM_ENGINE_PYTHONPATH=/workspace/SAGE/external/vllm-ascend-hust:/workspace/vllm-hust:/workspace/vllm-ascend-hust \
+VLLM_ENGINE_PYTHONPATH=/workspace/SAGE/external/triton-ascend-hust/python/triton_kernels:/workspace/SAGE/external/triton-ascend-hust/python:/workspace/SAGE/external/vllm-hust:/workspace/SAGE/external/vllm-ascend-hust \
 bash manage.sh foreground
 ```
 
