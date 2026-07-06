@@ -27,8 +27,8 @@ feature branches:
 - `external/vllm-hust-dev-hub`
   - branch: `feature/sage-semantic-mapreduce-dev-hub`
   - pinned commit: `32ca8c130f237efe6adcc225831810eca2ccfbd3`
-- `external/ascend-runtime-manager`
-  - branch: `feature/sage-semantic-mapreduce-runtime-manager`
+- `third_party/ascend-runtime-manager`
+  - branch: `feature/semantic-mapreduce-runtime-integration`
   - pinned commit: `40a2afed0ae7896e004cf6d0f67c0d89e7e1582b`
 - `external/vllm-ascend-hust`
   - branch: `feature/sage-semantic-mapreduce-npu-readiness`

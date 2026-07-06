@@ -264,6 +264,11 @@ on_exit() {
 
 write_metadata() {
   mkdir -p "${OUTPUT_ROOT}"
+  local runtime_manager_path="${SAGE_ROOT}/third_party/ascend-runtime-manager"
+  local runtime_manager_dirty="false"
+  if [[ -n "$(git -C "${runtime_manager_path}" status --short)" ]]; then
+    runtime_manager_dirty="true"
+  fi
   {
     echo "{"
     echo "  \"provenance\": \"real-online\","
@@ -274,7 +279,14 @@ write_metadata() {
     echo "  \"model_path\": \"${MODEL_PATH}\","
     echo "  \"served_model_name\": \"${SERVED_MODEL_NAME}\","
     echo "  \"conda_env\": \"${CONDA_ENV}\","
+    echo "  \"parent_repo_commit\": \"$(git -C "${SAGE_ROOT}" rev-parse HEAD)\","
     echo "  \"git_commit\": \"$(git -C "${SAGE_ROOT}" rev-parse HEAD)\","
+    echo "  \"ascend_runtime_manager\": {"
+    echo "    \"path\": \"third_party/ascend-runtime-manager\","
+    echo "    \"commit\": \"$(git -C "${runtime_manager_path}" rev-parse HEAD)\","
+    echo "    \"branch\": \"$(git -C "${runtime_manager_path}" branch --show-current)\","
+    echo "    \"dirty\": ${runtime_manager_dirty}"
+    echo "  },"
     echo "  \"submodules\": $(git -C "${SAGE_ROOT}" submodule status | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')"
     echo "}"
   } > "${OUTPUT_ROOT}/metadata.json"
@@ -311,13 +323,13 @@ trap 'on_exit "$@"' EXIT
 [[ -f "${ENV_FILE}" ]] || die "Missing dev-hub .env with VLLM_HUST_API_KEY: ${ENV_FILE}"
 
 mkdir -p "${OUTPUT_ROOT}"
-write_metadata
 
 if [[ "${ALLOW_NEWER_RUNTIME}" == "1" ]]; then
   "${PREPARE_RUNTIME}" --allow-newer --no-print-env | tee "${OUTPUT_ROOT}/prepare-runtime.log"
 else
   "${PREPARE_RUNTIME}" --no-print-env | tee "${OUTPUT_ROOT}/prepare-runtime.log"
 fi
+write_metadata
 "${BOOTSTRAP_TRITON_ASCEND}" 2>&1 | tee "${OUTPUT_ROOT}/bootstrap-triton-ascend.log"
 
 if [[ "${SKIP_SERVER_MANAGEMENT}" == "0" ]]; then

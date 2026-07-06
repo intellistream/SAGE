@@ -529,8 +529,8 @@ specific upstream feature branch:
 - dev-hub submodule path: `external/vllm-hust-dev-hub`
 - dev-hub branch: `feature/sage-semantic-mapreduce-dev-hub`
 - dev-hub pinned commit: `32ca8c130f237efe6adcc225831810eca2ccfbd3`
-- Ascend runtime manager submodule path: `external/ascend-runtime-manager`
-- Ascend runtime manager branch: `feature/sage-semantic-mapreduce-runtime-manager`
+- Ascend runtime manager submodule path: `third_party/ascend-runtime-manager`
+- Ascend runtime manager branch: `feature/semantic-mapreduce-runtime-integration`
 - Ascend runtime manager pinned commit:
   `40a2afed0ae7896e004cf6d0f67c0d89e7e1582b`
 - Triton-Ascend-HUST submodule path: `external/triton-ascend-hust`
@@ -559,7 +559,7 @@ The submodule contains the following compatibility changes:
   and `external/vllm-ascend-hust/vllm_ascend/compilation/passes/norm_quant_fusion_pass.py`:
   make `VLLM_ASCEND_DISABLE_ADD_RMS_NORM_BIAS_CUSTOM_OP=1` also disable graph
   fusion registrations that require `_C_ascend.npu_add_rms_norm_bias`.
-- `external/ascend-runtime-manager/src/hust_ascend_manager/container.py`: honor
+- `third_party/ascend-runtime-manager/src/hust_ascend_manager/container.py`: honor
   `HUST_ASCEND_CONTAINER_NPU_DEVICES` so the dev-hub container can mount only
   the requested `/dev/davinci*` device nodes.
 - `external/triton-ascend-hust`: pin the Triton-Ascend runtime used by
@@ -582,6 +582,14 @@ feature-branch submodules, use the one-command launcher:
 ```bash
 tools/benchmark_carrier/run_npu3_semantic_mapreduce_experiment.sh
 ```
+
+Runtime-management changes for Ascend/NPU device mounting, Docker/container
+setup, CANN, torch_npu, and dev-hub integration must be made in
+`third_party/ascend-runtime-manager` on
+`feature/semantic-mapreduce-runtime-integration`. Do not depend on
+`/home/<user>/ascend-runtime-manager` or another shared checkout. If an
+external checkout has a useful fix, port it into this submodule feature branch
+and record the resulting submodule commit in the experiment metadata.
 
 The launcher checks that runtime dependencies are independent submodule
 checkouts rather than symlinks to shared `$HOME` repositories, validates the

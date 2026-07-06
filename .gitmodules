@@ -6,10 +6,6 @@
 	path = external/vllm-hust-dev-hub
 	url = git@github.com:vLLM-HUST/vllm-hust-dev-hub.git
 	branch = feature/sage-semantic-mapreduce-dev-hub
-[submodule "external/ascend-runtime-manager"]
-	path = external/ascend-runtime-manager
-	url = git@github.com:vLLM-HUST/ascend-runtime-manager.git
-	branch = feature/sage-semantic-mapreduce-runtime-manager
 [submodule "external/triton-ascend-hust"]
 	path = external/triton-ascend-hust
 	url = git@github.com:vLLM-HUST/triton-ascend-hust.git
@@ -18,3 +14,7 @@
 	path = external/vllm-hust
 	url = git@github.com:vLLM-HUST/vllm-hust.git
 	branch = feature/kvplane-prefix-cache-admission
+[submodule "third_party/ascend-runtime-manager"]
+	path = third_party/ascend-runtime-manager
+	url = git@github.com:vLLM-HUST/ascend-runtime-manager.git
+	branch = feature/semantic-mapreduce-runtime-integration

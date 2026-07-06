@@ -110,7 +110,7 @@ git submodule update --init --recursive \
   external/vllm-hust \
   external/vllm-ascend-hust \
   external/vllm-hust-dev-hub \
-  external/ascend-runtime-manager
+  third_party/ascend-runtime-manager
 git submodule update --init external/triton-ascend-hust
 ```
 
@@ -121,8 +121,8 @@ The expected base vLLM-HUST checkout is `external/vllm-hust` at
 The matching dev-hub branch is `feature/sage-semantic-mapreduce-dev-hub`,
 pinned at `32ca8c130f237efe6adcc225831810eca2ccfbd3`.
 The dev-hub container helper is also pinned as
-`external/ascend-runtime-manager` on
-`feature/sage-semantic-mapreduce-runtime-manager` at
+`third_party/ascend-runtime-manager` on
+`feature/semantic-mapreduce-runtime-integration` at
 `40a2afed0ae7896e004cf6d0f67c0d89e7e1582b`.
 The matching Triton-Ascend runtime is pinned as
 `external/triton-ascend-hust` on
