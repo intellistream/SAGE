@@ -520,11 +520,15 @@ specific upstream feature branch:
 
 - submodule path: `external/vllm-ascend-hust`
 - branch: `feature/sage-semantic-mapreduce-npu-readiness`
-- pinned commit: `b8a09892162872ef7ba509434f6000b24480fd5c`
+- pinned commit: `339b27ad69aa12b8f56bbd1885c046be4e53c945`
 - upstream PR: `vLLM-HUST/vllm-ascend-hust#101`
 - dev-hub submodule path: `external/vllm-hust-dev-hub`
 - dev-hub branch: `feature/sage-semantic-mapreduce-dev-hub`
 - dev-hub pinned commit: `9a05905d67b31f91469b00d16d61d9146273ce87`
+- Ascend runtime manager submodule path: `external/ascend-runtime-manager`
+- Ascend runtime manager branch: `feature/sage-semantic-mapreduce-runtime-manager`
+- Ascend runtime manager pinned commit:
+  `40a2afed0ae7896e004cf6d0f67c0d89e7e1582b`
 
 The submodule contains the following compatibility changes:
 
@@ -537,18 +541,47 @@ The submodule contains the following compatibility changes:
   absent.
 - `external/vllm-ascend-hust/vllm_ascend/patch/platform/patch_balance_schedule.py`:
   accept the current vLLM scheduler arguments.
+- `external/vllm-ascend-hust/vllm_ascend/platform.py`: skip the optional
+  layer-sharding validator when the current vLLM platform base class does not
+  expose that helper.
+- `external/vllm-ascend-hust/vllm_ascend/worker/model_runner_v1.py`: restore
+  the `pin_memory` attribute expected by the Ascend runner when paired with the
+  current vLLM GPU runner.
+- `external/vllm-ascend-hust/vllm_ascend/compilation/graph_fusion_pass_manager.py`
+  and `external/vllm-ascend-hust/vllm_ascend/compilation/passes/norm_quant_fusion_pass.py`:
+  make `VLLM_ASCEND_DISABLE_ADD_RMS_NORM_BIAS_CUSTOM_OP=1` also disable graph
+  fusion registrations that require `_C_ascend.npu_add_rms_norm_bias`.
+- `external/ascend-runtime-manager/src/hust_ascend_manager/container.py`: honor
+  `HUST_ASCEND_CONTAINER_NPU_DEVICES` so the dev-hub container can mount only
+  the requested `/dev/davinci*` device nodes.
 - `$HOME/vllm-hust/vllm/v1/core/kv_cache_manager.py` and
   `$HOME/vllm-hust/vllm/knorm/manager.py`: align local KV-cache/Knorm method
   signatures with the current vLLM core.
 
-Before launching dev-hub, validate the SAGE-pinned runtime branch and copy the
-printed environment overrides into the launch shell:
+Before launching dev-hub, validate the SAGE-pinned runtime branches:
 
 ```bash
 tools/benchmark_carrier/prepare_vllm_ascend_runtime_branch.sh
 ```
 
-Use the dev-hub launcher, not a manual container command:
+For a reproducible NPU3 run based only on this SAGE checkout and its
+feature-branch submodules, use the one-command launcher:
+
+```bash
+tools/benchmark_carrier/run_npu3_semantic_mapreduce_experiment.sh
+```
+
+The launcher checks the submodule commits, verifies that port `18383` and NPU3
+are free, starts the endpoint through `external/vllm-hust-dev-hub/manage.sh`,
+passes `HUST_ASCEND_CONTAINER_NPU_DEVICES=3` to the runtime manager so the
+container mounts only the requested NPU device, and fails fast if any managed
+container process appears outside NPU3 while the service starts. It then runs a
+smoke request, runs a small online latency probe, runs the LLM reducer workload,
+writes metadata and logs under
+`.sage/benchmarks/real_online_semantic_mapreduce/`, and stops the service it
+started unless `--keep-server` is passed.
+
+For manual debugging, use the dev-hub launcher, not a manual container command:
 
 ```bash
 cd external/vllm-hust-dev-hub
@@ -610,7 +643,7 @@ Cleanup uses the dev-hub container cleanup path with the container and port
 pinned:
 
 ```bash
-cd "$HOME/vllm-hust-dev-hub"
+cd external/vllm-hust-dev-hub
 VLLM_ENGINE_CONTAINER=sage-lsa-npu3-qwen25-7b \
 VLLM_ENGINE_PORT=18383 \
 VLLM_ENGINE_AGGRESSIVE_CLEANUP=1 \

@@ -89,10 +89,11 @@ tools/benchmark_carrier/setup_esage_conda_env.sh \
   --prepare-source-env
 ```
 
-This delegates vLLM-HUST repository sync and editable installs to:
+This delegates vLLM-HUST repository sync and editable installs to the pinned
+dev-hub submodule:
 
 ```bash
-bash "$HOME/vllm-hust-dev-hub/scripts/quickstart.sh" \
+bash "$PWD/external/vllm-hust-dev-hub/scripts/quickstart.sh" \
   --conda \
   --install \
   --install-mode refresh \
@@ -112,10 +113,13 @@ git rev-parse HEAD
 ```
 
 The expected commit for this draft is
-`b8a09892162872ef7ba509434f6000b24480fd5c` from
-`vLLM-HUST/vllm-ascend-hust#101`.
+`339b27ad69aa12b8f56bbd1885c046be4e53c945` on the project readiness branch.
 The matching dev-hub branch is `feature/sage-semantic-mapreduce-dev-hub`,
 pinned at `9a05905d67b31f91469b00d16d61d9146273ce87`.
+The dev-hub container helper is also pinned as
+`external/ascend-runtime-manager` on
+`feature/sage-semantic-mapreduce-runtime-manager` at
+`40a2afed0ae7896e004cf6d0f67c0d89e7e1582b`.
 
 Before launching a real NPU endpoint, validate the runtime branch and use the
 printed dev-hub overrides:
@@ -124,8 +128,20 @@ printed dev-hub overrides:
 tools/benchmark_carrier/prepare_vllm_ascend_runtime_branch.sh
 ```
 
-For real endpoint replay work, start vLLM-HUST through the hub launcher rather
-than by hand inside the container:
+For the NPU3 real-online Semantic MapReduce experiment, prefer the one-command
+launcher. It initializes the SAGE-pinned submodules, checks that NPU3 and port
+18383 are free, starts vLLM-HUST through the dev-hub submodule with the
+runtime-manager NPU-device whitelist, fails if any managed container process
+appears outside NPU3 during startup, runs smoke and latency probes, runs the LLM
+reducer workload, and records metadata under
+`.sage/benchmarks/real_online_semantic_mapreduce/`:
+
+```bash
+tools/benchmark_carrier/run_npu3_semantic_mapreduce_experiment.sh
+```
+
+For manual endpoint replay work, start vLLM-HUST through the hub launcher
+rather than by hand inside the container:
 
 ```bash
 cd external/vllm-hust-dev-hub
