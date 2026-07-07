@@ -1,6 +1,6 @@
 # Semantic MapReduce Roadmap
 
-Last updated: 2026-07-06.
+Last updated: 2026-07-07.
 
 ## Current Status
 
@@ -22,11 +22,11 @@ SAGE now records the external runtime dependencies as submodules on project
 feature branches:
 
 - `external/vllm-hust`
-  - branch: `feature/kvplane-prefix-cache-admission`
-  - pinned commit: `ffa12e4a7a8e09433f1105d6511121f096fe88c5`
+  - branch: `feature/sage-semantic-mapreduce-vllm-runtime`
+  - pinned commit: `5de748bea122fb0917adc6117fbb37429b60aa24`
 - `external/vllm-hust-dev-hub`
   - branch: `feature/sage-semantic-mapreduce-dev-hub`
-  - pinned commit: `32ca8c130f237efe6adcc225831810eca2ccfbd3`
+  - pinned commit: `7ab74990d5bfc4953d7bb1f99dfb93720e2adc81`
 - `third_party/ascend-runtime-manager`
   - branch: `feature/semantic-mapreduce-runtime-integration`
   - pinned commit: `40a2afed0ae7896e004cf6d0f67c0d89e7e1582b`
@@ -35,7 +35,7 @@ feature branches:
   - pinned commit: `339b27ad69aa12b8f56bbd1885c046be4e53c945`
 - `external/triton-ascend-hust`
   - branch: `feature/sage-semantic-mapreduce-triton-runtime`
-  - pinned commit: `89263bb5b68b61707d7dcdd309615b84560ff5a3`
+  - pinned commit: `612d5772bcd4ee7a75ab4939aa3580d937147d83`
 
 The reproducibility entry point is:
 
@@ -89,6 +89,17 @@ The runtime-manager feature branch now supports
 `HUST_ASCEND_CONTAINER_NPU_DEVICES`, which is necessary on shared machines
 because the default container path mounts all `/dev/davinci*` devices.
 
+Common runtime fixes discovered during this bring-up have also been upstreamed:
+
+- `vLLM-HUST/vllm-hust#102` merged the source-tree Triton metadata fallback and
+  Knorm `free()` signature compatibility fix.
+- `vLLM-HUST/vllm-hust#103` merged the Ascend CI read-only checkout URL fix so
+  self-hosted runners do not fail before tests on SSH host-key setup.
+- `vLLM-HUST/vllm-hust-dev-hub#25` merged the override for the Ascend runtime
+  manager source path.
+- `vLLM-HUST/triton-ascend-hust#1` merged the Ascend-only Triton build/import
+  compatibility fixes.
+
 The vLLM-Ascend feature branch includes narrow compatibility fixes found during
 real NPU bring-up:
 
@@ -98,7 +109,7 @@ real NPU bring-up:
 - make `VLLM_ASCEND_DISABLE_ADD_RMS_NORM_BIAS_CUSTOM_OP=1` also disable graph
   fusion registrations that require `_C_ascend.npu_add_rms_norm_bias`.
 
-## Latest Real-Online Experiment Attempt
+## Latest Real-Online Experiment
 
 The latest attempted full bring-up run was:
 
@@ -135,28 +146,36 @@ not the Semantic MapReduce workload. This is also a debug artifact, not a paper
 result.
 
 Follow-up fix: `external/vllm-hust-dev-hub` commit
-`32ca8c130f237efe6adcc225831810eca2ccfbd3` now exports
+`7ab74990d5bfc4953d7bb1f99dfb93720e2adc81` now exports
 `TRITON_NPU_COMPILER_PATH` inside the managed engine launcher after sourcing the
-Ascend toolkit environment. The next validation step is an NPU3-only smoke run
-when NPU3 is idle.
+Ascend toolkit environment.
+
+The first paper-usable NPU3 real-online run is:
+
+```bash
+.sage/benchmarks/real_online_semantic_mapreduce/20260706T170917Z-npu3-semantic-mapreduce
+```
+
+This run used only NPU3 through the repository submodules and produced:
+
+- smoke request latency: 5556.71 ms;
+- online probe: 8/8 successful requests, mean TTFT 68.63 ms, mean TPOT
+  19.88 ms, 45.23 output tokens/s;
+- 2k LLM reducer run: precision 1.0, recall 0.25, F1 0.4, reduce latency
+  48626.03 ms;
+- 20k LLM reducer run: precision 1.0, recall 1.0, F1 1.0, reduce latency
+  5055.39 ms.
 
 ## Immediate Next Steps
 
-1. Fix the remaining Triton runtime dependency.
-   The active-driver discovery fix has been added to the dev-hub launcher. Do
-   not bypass this by allowing V1 model runner fallback. Finish validating the
-   `external/triton-ascend-hust` build path so the runtime works from the
-   repository submodule without borrowing build artifacts from a shared home
-   checkout.
+1. Keep the NPU3 real-online path reproducible from repository submodules.
+   Do not borrow runtime code or build artifacts from shared home-directory
+   checkouts.
 
-2. Continue debugging the NPU3 `/health` failure using only NPU3.
-   The previous compatibility failures were resolved far enough to reach engine
-   initialization and model loading. The current policy is to fail before
-   `/health` if Triton-Ascend is unavailable or vLLM would fall back to the V1
-   model runner.
+2. Repeat the real-online run across multiple seeds and event counts to separate
+   reducer behavior from one-off endpoint variance.
 
-3. Once `/health` passes, run the launcher end to end and require these
-   artifacts before claiming a real-online result:
+3. Require these artifacts before claiming any new real-online result:
    - `smoke.json`;
    - online probe summaries;
    - LLM reducer workload JSON files;

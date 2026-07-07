@@ -538,6 +538,18 @@ specific upstream feature branch:
 - Triton-Ascend-HUST pinned commit:
   `612d5772bcd4ee7a75ab4939aa3580d937147d83`
 
+The common fixes discovered while bringing up the NPU3 path have been sent
+upstream and merged:
+
+- `vLLM-HUST/vllm-hust#102`: source-tree Triton metadata fallback and Knorm
+  `free()` signature compatibility.
+- `vLLM-HUST/vllm-hust#103`: read-only HTTPS checkout URLs for Ascend CI
+  smoke/regression workflows.
+- `vLLM-HUST/vllm-hust-dev-hub#25`: configurable Ascend runtime manager source
+  path for embedded/submodule launch layouts.
+- `vLLM-HUST/triton-ascend-hust#1`: Ascend-only Triton build/import
+  compatibility fixes.
+
 The submodule contains the following compatibility changes:
 
 - `external/vllm-ascend-hust/vllm_ascend/ops/layernorm.py`: add
