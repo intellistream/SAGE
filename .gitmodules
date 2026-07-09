@@ -18,3 +18,7 @@
 	path = third_party/ascend-runtime-manager
 	url = git@github.com:vLLM-HUST/ascend-runtime-manager.git
 	branch = feature/semantic-mapreduce-runtime-integration
+[submodule "third_party/llm-serving-workloads"]
+	path = third_party/llm-serving-workloads
+	url = git@github.com:vLLM-HUST/llm-serving-workloads.git
+	branch = feature/semantic-mapreduce-workloads
