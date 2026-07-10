@@ -6,23 +6,23 @@ keeps real-online evidence provenance explicit.
 
 ## Latest Hardcase Result
 
-Artifact:
+Clean replay artifact:
 
 ```text
-.sage/benchmarks/real_online_semantic_merge/20260710T-npu3-pairwise-action-v2-hardcases/
+.sage/benchmarks/real_online_semantic_merge/clean-pairwise-action-hardcases-c3d4dfa/
 ```
 
 Provenance:
 
 - Evidence label: `real-online`
 - Endpoint: `http://127.0.0.1:18383`
-- Model: `qwen25-7b-instruct`
+- Model: `qwen25-7b-sage-realonline`
 - Hardware: NPU3, Ascend 910B2
 - Conda env: `esage-vllm-hust-dev`
-- Parent commit: `e119ddac6eed01f38ba1ac1df2a8f5df6fb1ba61`
-- Parent dirty: `true`
+- Parent commit: `c3d4dfa79638a59432da8424175aed9339abafb5`
+- Parent dirty: `false`
 - `third_party/llm-serving-workloads`: `79ed8e3469c0bcfccdf1cd0a66efa2db27156055`
-- `third_party/ascend-runtime-manager`: `40a2afed0ae7896e004cf6d0f67c0d89e7e1582b`, dirty
+- `third_party/ascend-runtime-manager`: `c5b0461aaecffe7e5011f8fab0944d32bedb1092`, clean
 - Workload source: repo-local `src/sage/workloads/semantic_merge_analysis.py`
 - Scenarios: `ambiguous-disconnected-merge`, `ambiguous-temporal-split`, `ambiguous-overmerge`
 - Seed: `7`
@@ -142,11 +142,11 @@ cases.
   been visually checked for overlap/overflow.
 - No-NPU regression tests pass under `esage-vllm-hust-dev`:
   `29 passed` for the semantic-merge and large-scale-analysis workload tests.
-- The three-hardcase NPU3 result remains a mechanism probe: F1 0.8857, zero
-  fallback, zero invalid schema, zero invalid action, single seed, dirty parent
-  commit.
-- No additional NPU run is required before paper polishing; the next hardware
-  run should be a clean replay, not exploratory prompt tuning.
+- The three-hardcase NPU3 clean replay passes the artifact gate: F1 0.8857,
+  zero fallback, zero invalid schema, zero invalid action, single seed, clean
+  parent commit.
+- No additional NPU run is required for the current submission package unless
+  the paper is upgraded to make multi-seed live robustness claims.
 
 ## Claims Not Yet Supported
 
@@ -230,25 +230,23 @@ edit interfaces, evidence-linked validators, fallback-safe execution,
 real-online NPU endpoint evidence, and claim discipline around coverage,
 latency, token cost, and traceability.
 
-## Next Step
+## Status
 
-Continue paper polish without more exploratory NPU use. Before freezing a
-submission artifact, run one clean replay rather than a larger NPU burn:
+READY for the current single-seed mechanism claim. The clean replay has passed.
+The remaining useful next experiment is optional strengthening, not a blocker:
 
-1. Clean-commit replay of the same three hardcases with
-   `llm-pairwise-action-validated`.
-2. Confirm zero fallback, zero invalid schema/action, and the
-   `ambiguous-disconnected-merge` F1 1.0 result.
-3. If the clean replay holds, run a minimal multi-seed hardcase sweep across
+1. Run a minimal multi-seed hardcase sweep across
    `ambiguous-disconnected-merge`, `ambiguous-temporal-split`, and
    `ambiguous-overmerge`.
-4. Report per-case accepted edit count, fallback count, invalid action/schema,
+2. Report per-case accepted edit count, fallback count, invalid action/schema,
    token cost, latency, support evidence recall, and failure taxonomy.
 
 ## Clean Replay Artifact Gate
 
-Run this gate only from a clean parent commit and only when NPU3 is idle. The
-goal is to reproduce the current hardcase mechanism result, not to tune prompts.
+The gate below has been run successfully for
+`.sage/benchmarks/real_online_semantic_merge/clean-pairwise-action-hardcases-c3d4dfa/`.
+Run it again only when refreshing the submission artifact or changing reducer
+code.
 
 Prerequisite endpoint path:
 
