@@ -38,13 +38,14 @@ In the current hardcase probe, the validated action reducer records accepted
 edits and zero fallback. If future runs fall back, that should be reported as a
 negative result rather than folded into a success claim.
 
-**Is the single-seed dirty artifact enough?**
+**Is the single-seed clean artifact enough?**
 
-Not for a final robustness claim. It is enough to motivate the mechanism and
-define the clean replay gate. Before submission, the hardcase result should be
-rerun from a clean commit with `git.dirty=false`, full manifest provenance, and
-the same pass criteria: zero fallback/invalid outputs, action-validated F1 above
-`hybrid-hint`, disconnected merge F1 1.0, and no regression on overmerge.
+Not for a broad robustness claim, but it is enough for the current mechanism
+claim. The hardcase result has been rerun from a clean parent commit with
+`git.dirty=false`, full manifest provenance, and the same pass criteria: zero
+fallback/invalid outputs, action-validated F1 above `hybrid-hint`,
+disconnected merge F1 1.0, and no regression on overmerge. Multi-seed and
+production-trace replay remain follow-up evidence, not current claims.
 
 **Is the workload toy?**
 
@@ -59,8 +60,7 @@ schema and coverage gate.
 
 - Existing systems can serve as substrates; the missing abstraction here is the
   evidence-linked semantic reducer contract, not another execution engine.
-- The live result is a mechanism probe unless clean replay and multi-seed
-  hardcase sweeps are completed.
+- The live result is a clean single-seed mechanism result; it should not be
+  described as multi-seed robustness or production-trace generality.
 - The prototype does not replace Spark, Flink, Ray, databases, observability
   tools, LangGraph, LlamaIndex, or data+AI platforms.
-

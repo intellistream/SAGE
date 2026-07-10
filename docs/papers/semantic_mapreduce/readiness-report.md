@@ -19,7 +19,9 @@ Provenance:
 - Model: `qwen25-7b-sage-realonline`
 - Hardware: NPU3, Ascend 910B2
 - Conda env: `esage-vllm-hust-dev`
-- Parent commit: `c3d4dfa79638a59432da8424175aed9339abafb5`
+- Clean replay parent commit: `c3d4dfa79638a59432da8424175aed9339abafb5`
+- Paper package commit: any later paper-only synchronization commit that
+  preserves this clean replay artifact and result table.
 - Parent dirty: `false`
 - `third_party/llm-serving-workloads`: `79ed8e3469c0bcfccdf1cd0a66efa2db27156055`
 - `third_party/ascend-runtime-manager`: `c5b0461aaecffe7e5011f8fab0944d32bedb1092`, clean
@@ -152,7 +154,7 @@ cases.
 
 - Do not claim broad multi-seed robustness for live LLM-backed reduction.
 - Do not claim a quality-cost frontier; the action reducer still adds roughly
-  534 estimated tokens and 724 ms mean reduce latency in the small live probe.
+  534 estimated tokens and 326 ms mean reduce latency in the small live probe.
 - Do not claim production trace generality; the current mechanism suite is
   repo-local and controlled.
 - Do not claim that this replaces Spark, Flink, Ray, databases, LangGraph, or
@@ -256,11 +258,11 @@ Prerequisite endpoint path:
 SAGE_REAL_ONLINE_NPU_DEVICE=3 \
 SAGE_REAL_ONLINE_PORT=18383 \
 SAGE_REAL_ONLINE_RUN_ID=clean-semantic-merge-endpoint \
-SAGE_REAL_ONLINE_EVENT_SIZES=2000 \
-SAGE_REAL_ONLINE_SHARD_COUNTS=4 \
-SAGE_REAL_ONLINE_TOP_KS=8 \
-SAGE_REAL_ONLINE_SKIP_LLM_REDUCER=1 \
-tools/benchmark_carrier/run_npu3_semantic_mapreduce_experiment.sh
+SAGE_REAL_ONLINE_EVENTS=2000 \
+SAGE_REAL_ONLINE_SHARDS=4 \
+tools/benchmark_carrier/run_npu3_semantic_mapreduce_experiment.sh \
+  --skip-llm-reducer \
+  --run-id clean-semantic-merge-endpoint
 ```
 
 Clean hardcase replay:
@@ -271,7 +273,7 @@ OUTDIR=.sage/benchmarks/real_online_semantic_merge/${RUN_ID} \
 ALLOW_NPU3_REAL_ONLINE=1 \
 SAGE_SMR_CONDA_ENV=esage-vllm-hust-dev \
 SAGE_SMR_LLM_BASE_URL=http://127.0.0.1:18383 \
-SAGE_SMR_LLM_MODEL=qwen25-7b-instruct \
+SAGE_SMR_LLM_MODEL=qwen25-7b-sage-realonline \
 SAGE_SMR_LLM_MAX_EVIDENCE=24 \
 SAGE_SMR_LLM_MAX_CANDIDATES=12 \
 SAGE_SMR_LLM_MAX_TOKENS=8 \
@@ -287,6 +289,7 @@ Required manifest fields:
 
 - `evidence_label=real-online`.
 - `conda_env=esage-vllm-hust-dev`.
+- `hardware.npu_device=3` or equivalent `device_label=NPU3`.
 - `git.commit`, `git.branch`, and `git.dirty=false`.
 - Endpoint `base_url`, `model`, and `api_key_env`.
 - Workload source: repo-local `src/sage/workloads/semantic_merge_analysis.py`.
@@ -295,8 +298,8 @@ Required manifest fields:
   `third_party/ascend-runtime-manager`.
 - Reducers, scenarios, seed, shards, incidents, token limits, and result path.
 
-Pass criteria for upgrading the current mechanism claim from "dirty mechanism
-probe" to "clean single-seed real-online result":
+Pass criteria for keeping the current mechanism claim at "clean single-seed
+real-online result":
 
 - `llm-pairwise-action-validated` has `fallback=0`, `invalid action=0`, and
   `invalid schema=0` over the three hardcases.

@@ -97,13 +97,13 @@ Current evidence-chain interpretation:
 5. The 2026-07-09 semantic-merge live matrix tests what happens after evidence
    coverage is sufficient: raw model edits can help or hurt, while validation
    makes unsafe edits auditable and rejectable.
-6. The 2026-07-10 pairwise-action v2 live probe narrows model output to one
-   enumerated action per candidate pair. In the three-hardcase seed-7 run,
+6. The clean pairwise-action replay narrows model output to one enumerated
+   action per candidate pair. In the three-hardcase seed-7 run,
    `llm-pairwise-action-validated` improves mean F1 from 0.6948 to 0.8857,
    records zero invalid actions, zero invalid-schema runs, and zero fallback.
-   This supports the constrained reducer-interface mechanism, while the dirty
-   development provenance and single-seed scope prevent broader robustness
-   claims.
+   This supports the constrained reducer-interface mechanism with clean
+   provenance; the remaining boundary is single-seed scope, not a clean
+   evidence blocker.
 
 Additional one-command real-online smoke:
 
