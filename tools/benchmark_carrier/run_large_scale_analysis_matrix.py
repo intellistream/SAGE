@@ -4,7 +4,11 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
+import platform
 import statistics
+import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -56,14 +60,32 @@ def _aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         by_size.setdefault(size_key, []).append(row)
 
     def summarize(groups: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+        quality_metrics = ("precision", "recall", "f1")
+        cost_metrics = ("total_tokens", "estimated_cost_usd")
         return {
             name: {
-                metric: {
-                    "mean": _mean([float(row[metric]) for row in group_rows]),
-                    "min": min(float(row[metric]) for row in group_rows),
-                    "max": max(float(row[metric]) for row in group_rows),
+                **{
+                    metric: {
+                        "mean": _mean([float(row[metric]) for row in group_rows]),
+                        "min": min(float(row[metric]) for row in group_rows),
+                        "max": max(float(row[metric]) for row in group_rows),
+                    }
+                    for metric in quality_metrics
+                },
+                "cost": {
+                    metric: {
+                        "mean": _mean(
+                            [float(row.get(metric, 0.0)) for row in group_rows]
+                        ),
+                        "min": min(
+                            float(row.get(metric, 0.0)) for row in group_rows
+                        ),
+                        "max": max(
+                            float(row.get(metric, 0.0)) for row in group_rows
+                        ),
+                    }
+                    for metric in cost_metrics
                 }
-                for metric in ("precision", "recall", "f1")
             }
             for name, group_rows in sorted(groups.items())
         }
@@ -136,6 +158,84 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _git_output(args: list[str]) -> str:
+    try:
+        return subprocess.check_output(
+            ["git", *args], text=True, stderr=subprocess.DEVNULL
+        ).strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return "unknown"
+
+
+def _submodule_info(path: str) -> dict[str, Any]:
+    module_path = Path(path)
+    if not module_path.exists():
+        return {"path": path, "present": False}
+
+    def run(args: list[str]) -> str:
+        try:
+            return subprocess.check_output(
+                ["git", "-C", path, *args], text=True, stderr=subprocess.DEVNULL
+            ).strip()
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return "unknown"
+
+    return {
+        "path": path,
+        "present": True,
+        "commit": run(["rev-parse", "HEAD"]),
+        "branch": run(["rev-parse", "--abbrev-ref", "HEAD"]),
+        "dirty": bool(run(["status", "--porcelain"])),
+    }
+
+
+def _write_manifest(
+    outdir: Path,
+    *,
+    args: argparse.Namespace,
+    sizes: list[tuple[int, int, int]],
+    seeds: list[int],
+    reducers: list[str],
+    map_policies: list[str],
+) -> None:
+    manifest = {
+        "run_id": outdir.name,
+        "created_unix": int(time.time()),
+        "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "command_args": vars(args),
+        "sizes": [
+            {"events": events, "shards": shards, "top_k": top_k}
+            for events, shards, top_k in sizes
+        ],
+        "seeds": seeds,
+        "reducers": reducers,
+        "map_policies": map_policies,
+        "python": {
+            "version": platform.python_version(),
+            "executable": sys.executable,
+        },
+        "conda_env": os.environ.get("CONDA_DEFAULT_ENV", ""),
+        "git": {
+            "commit": _git_output(["rev-parse", "HEAD"]),
+            "branch": _git_output(["rev-parse", "--abbrev-ref", "HEAD"]),
+            "dirty": bool(_git_output(["status", "--porcelain"])),
+        },
+        "evidence_label": "simulation/model",
+        "workload_source": {
+            "kind": "repo-local",
+            "path": "src/sage/workloads/large_scale_analysis.py",
+            "suite": "large_scale_analysis",
+        },
+        "shared_workload_submodule": _submodule_info(
+            "third_party/llm-serving-workloads"
+        ),
+    }
+    (outdir / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
 def main() -> int:
     args = _parse_args()
     sizes = _parse_sizes(args.sizes)
@@ -146,6 +246,14 @@ def main() -> int:
     run_id = args.run_id or time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     outdir = Path(args.output_root) / run_id
     outdir.mkdir(parents=True, exist_ok=True)
+    _write_manifest(
+        outdir,
+        args=args,
+        sizes=sizes,
+        seeds=seeds,
+        reducers=reducers,
+        map_policies=map_policies,
+    )
 
     rows: list[dict[str, Any]] = []
     for events, shards, top_k in sizes:
@@ -190,6 +298,15 @@ def main() -> int:
                         "total_duration_ms": payload["total_duration_ms"],
                         "detected_incident_count": payload["detected_incident_count"],
                         "matched_incident_count": payload["matched_incident_count"],
+                        "total_tokens": payload["cost_accounting"].get(
+                            "total_tokens", 0
+                        ),
+                        "estimated_cost_usd": payload["cost_accounting"].get(
+                            "estimated_cost_usd", 0.0
+                        ),
+                        "token_source": payload["cost_accounting"].get(
+                            "token_source", ""
+                        ),
                         "missed_incident_ids": ";".join(
                             item["incident_id"] for item in payload["missed_incidents"]
                         ),

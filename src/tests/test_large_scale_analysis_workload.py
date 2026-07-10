@@ -56,6 +56,11 @@ def test_large_scale_workload_recovers_injected_incidents() -> None:
     assert all("matched_incident_id" in item for item in report.detected_incidents)
     assert set(report.to_dict()["operator_duration_ms"]) == set(STANDARD_OPERATORS)
     assert report.to_dict()["operator_duration_ms"]["MapEvidence"] > 0
+    assert report.reducer_trace["reducer"] == "deterministic"
+    assert report.workflow_trace["matched_incident_ids"]
+    assert report.workflow_trace["missed_incident_ids"] == []
+    assert report.workflow_trace["evidence_trace"]["candidate_count"] > 0
+    assert report.cost_accounting["token_source"] == "offline-no-llm-call"
 
 
 def test_large_scale_workload_accepts_llm_stub_reducer() -> None:
@@ -99,6 +104,32 @@ def test_large_scale_workload_accepts_diagnostic_baselines() -> None:
     assert map_only_report.precision <= window_report.precision
     assert all("matched_incident_id" in item for item in map_only_report.detected_incidents)
     assert all("matched_incident_id" in item for item in window_report.detected_incidents)
+
+
+def test_baseline_aware_map_policy_recovers_low_baseline_latency_spike() -> None:
+    tail_report = run_large_scale_analysis_workload(
+        event_count=50_000,
+        shard_count=16,
+        seed=23,
+        top_k=12,
+        map_policy="tail-aware",
+    )
+    baseline_report = run_large_scale_analysis_workload(
+        event_count=50_000,
+        shard_count=16,
+        seed=23,
+        top_k=12,
+        map_policy="baseline-aware",
+    )
+
+    assert tail_report.recall == 0.75
+    assert tail_report.missed_incidents[0]["failure_type"] == "no_overlapping_map_evidence"
+    assert baseline_report.recall == 1.0
+    assert baseline_report.missed_incidents == []
+    assert any(
+        item["service"] == "router" and item["matched_incident_id"] == "incident-3"
+        for item in baseline_report.detected_incidents
+    )
 
 
 def test_large_scale_workload_accepts_reducer_instance() -> None:
@@ -166,6 +197,8 @@ def test_cli_llm_openai_reducer_writes_report(monkeypatch, tmp_path) -> None:
     assert payload["reducer_name"] == "llm-openai"
     assert payload["event_count"] == 1200
     assert "detected_incidents" in payload
+    assert payload["workflow_trace"]["evidence_trace"]["shard_count"] == 4
+    assert payload["cost_accounting"]["total_tokens"] == 0
 
 
 def test_openai_completion_reducer_parses_json_incidents() -> None:
@@ -201,6 +234,8 @@ def test_openai_completion_reducer_parses_json_incidents() -> None:
     assert incidents[0]["llm_model"] == "unit-test-model"
     assert incidents[0]["service"] == "decode"
     assert incidents[0]["region"] == "npu-a"
+    assert reducer.trace()["model"] == "unit-test-model"
+    assert reducer.cost_accounting()["token_source"] == "estimated_chars_div4"
 
 
 def test_openai_completion_reducer_uses_evidence_as_source_of_truth() -> None:
@@ -267,7 +302,14 @@ def test_openai_completion_reducer_can_request_json_schema(monkeypatch) -> None:
 
         def read(self) -> bytes:
             return json.dumps(
-                {"choices": [{"message": {"content": "{\"incidents\": []}"}}]}
+                {
+                    "choices": [{"message": {"content": "{\"incidents\": []}"}}],
+                    "usage": {
+                        "prompt_tokens": 11,
+                        "completion_tokens": 6,
+                        "total_tokens": 17,
+                    },
+                }
             ).encode("utf-8")
 
     def fake_urlopen(request, timeout):  # type: ignore[no-untyped-def]
@@ -290,3 +332,4 @@ def test_openai_completion_reducer_can_request_json_schema(monkeypatch) -> None:
     assert payload["response_format"]["json_schema"]["schema"]["required"] == [
         "incidents"
     ]
+    assert reducer._last_response_usage["total_tokens"] == 17

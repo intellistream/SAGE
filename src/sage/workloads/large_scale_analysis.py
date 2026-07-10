@@ -87,6 +87,9 @@ class WorkloadReport:
     missed_incidents: list[dict[str, Any]]
     detected_incidents: list[dict[str, Any]]
     operator_duration_ms: dict[str, float] = field(default_factory=dict)
+    reducer_trace: dict[str, Any] = field(default_factory=dict)
+    workflow_trace: dict[str, Any] = field(default_factory=dict)
+    cost_accounting: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -114,6 +117,9 @@ class WorkloadReport:
             "injected_incidents": self.injected_incidents,
             "missed_incidents": self.missed_incidents,
             "detected_incidents": self.detected_incidents,
+            "reducer_trace": self.reducer_trace,
+            "workflow_trace": self.workflow_trace,
+            "cost_accounting": self.cost_accounting,
         }
 
 
@@ -139,14 +145,42 @@ class IncidentReducer(ABC):
     def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
         """Fuse shard summaries into globally ranked incident hypotheses."""
 
+    def trace(self) -> dict[str, Any]:
+        """Return reducer-specific audit metadata for the latest reduce call."""
+
+        return {
+            "reducer": self.name,
+            "contract": "summaries -> incident_hypotheses",
+        }
+
+    def cost_accounting(self) -> dict[str, Any]:
+        """Return token and cost metadata for the latest reduce call."""
+
+        return _offline_cost_accounting(self.name)
+
 
 class DeterministicIncidentReducer(IncidentReducer):
     """Threshold-based reducer used as the reproducible baseline."""
 
     name = "deterministic"
 
+    def __init__(self) -> None:
+        self._last_trace: dict[str, Any] = {}
+
     def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
-        return _reduce_summaries_deterministic(summaries)
+        window_detections = _reduce_summaries_by_window(summaries)
+        incidents = _cluster_window_detections_by_target(window_detections)
+        self._last_trace = _base_reducer_trace(
+            self.name,
+            summaries,
+            candidate_count=len(window_detections),
+            output_incident_count=len(incidents),
+            contract_detail="window evidence clustered by service, region, and time adjacency",
+        )
+        return incidents
+
+    def trace(self) -> dict[str, Any]:
+        return self._last_trace or super().trace()
 
 
 class MapOnlyIncidentReducer(IncidentReducer):
@@ -158,6 +192,9 @@ class MapOnlyIncidentReducer(IncidentReducer):
     """
 
     name = "map-only"
+
+    def __init__(self) -> None:
+        self._last_trace: dict[str, Any] = {}
 
     def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
         detections: list[dict[str, Any]] = []
@@ -187,7 +224,17 @@ class MapOnlyIncidentReducer(IncidentReducer):
             key=lambda item: (item["score"], item["evidence_count"]),
             reverse=True,
         )
+        self._last_trace = _base_reducer_trace(
+            self.name,
+            summaries,
+            candidate_count=len(detections),
+            output_incident_count=len(detections),
+            contract_detail="reports shard-local evidence without global grouping",
+        )
         return detections
+
+    def trace(self) -> dict[str, Any]:
+        return self._last_trace or super().trace()
 
 
 class WindowAggregateIncidentReducer(IncidentReducer):
@@ -195,8 +242,22 @@ class WindowAggregateIncidentReducer(IncidentReducer):
 
     name = "window-aggregate"
 
+    def __init__(self) -> None:
+        self._last_trace: dict[str, Any] = {}
+
     def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
-        return _reduce_summaries_by_window(summaries)
+        detections = _reduce_summaries_by_window(summaries)
+        self._last_trace = _base_reducer_trace(
+            self.name,
+            summaries,
+            candidate_count=sum(summary.candidate_count for summary in summaries),
+            output_incident_count=len(detections),
+            contract_detail="groups duplicate shard evidence by service, region, and window",
+        )
+        return detections
+
+    def trace(self) -> dict[str, Any]:
+        return self._last_trace or super().trace()
 
 
 class LLMStubIncidentReducer(IncidentReducer):
@@ -211,10 +272,11 @@ class LLMStubIncidentReducer(IncidentReducer):
 
     def __init__(self, baseline: IncidentReducer | None = None) -> None:
         self._baseline = baseline or DeterministicIncidentReducer()
+        self._last_trace: dict[str, Any] = {}
 
     def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
         incidents = self._baseline.reduce(summaries)
-        return [
+        stub_incidents = [
             {
                 **incident,
                 "reducer": self.name,
@@ -225,6 +287,21 @@ class LLMStubIncidentReducer(IncidentReducer):
             }
             for incident in incidents
         ]
+        self._last_trace = {
+            **_base_reducer_trace(
+                self.name,
+                summaries,
+                candidate_count=sum(summary.candidate_count for summary in summaries),
+                output_incident_count=len(stub_incidents),
+                contract_detail="CI-safe LLM reducer interface check over deterministic fusion",
+            ),
+            "baseline_reducer": self._baseline.name,
+            "llm_call": "stubbed",
+        }
+        return stub_incidents
+
+    def trace(self) -> dict[str, Any]:
+        return self._last_trace or super().trace()
 
 
 class OpenAICompletionIncidentReducer(IncidentReducer):
@@ -260,6 +337,8 @@ class OpenAICompletionIncidentReducer(IncidentReducer):
         self.endpoint_type = endpoint_type
         self.structured_output = structured_output
         self.last_call: dict[str, Any] = {}
+        self._last_response_usage: dict[str, Any] = {}
+        self._last_cost_accounting: dict[str, Any] = _offline_cost_accounting(self.name)
 
     def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
         evidence = _reduce_summaries_by_window(summaries)[: self.max_evidence]
@@ -270,6 +349,12 @@ class OpenAICompletionIncidentReducer(IncidentReducer):
         parsed = _extract_json_payload(text)
         incidents = _normalize_llm_incidents(parsed, evidence)
         incidents = _repair_llm_incident_coverage(incidents, evidence)
+        self._last_cost_accounting = _llm_cost_accounting(
+            reducer_name=self.name,
+            prompt=prompt,
+            response=text,
+            usage=self._last_response_usage,
+        )
         self.last_call = {
             "model": self.model,
             "base_url": self.base_url,
@@ -280,12 +365,31 @@ class OpenAICompletionIncidentReducer(IncidentReducer):
             "response_chars": len(text),
             "input_evidence_count": len(evidence),
             "output_incident_count": len(incidents),
+            "cost_accounting": self._last_cost_accounting,
         }
         for incident in incidents:
             incident["reducer"] = self.name
             incident["llm_model"] = self.model
             incident["llm_latency_ms"] = round(latency_ms, 2)
         return incidents
+
+    def trace(self) -> dict[str, Any]:
+        if not self.last_call:
+            return super().trace()
+        return {
+            "reducer": self.name,
+            "contract": "evidence_objects -> JSON incident_hypotheses",
+            "model": self.last_call.get("model"),
+            "endpoint_type": self.last_call.get("endpoint_type"),
+            "structured_output": self.last_call.get("structured_output"),
+            "input_evidence_count": self.last_call.get("input_evidence_count"),
+            "output_incident_count": self.last_call.get("output_incident_count"),
+            "latency_ms": self.last_call.get("latency_ms"),
+            "token_source": self._last_cost_accounting.get("token_source"),
+        }
+
+    def cost_accounting(self) -> dict[str, Any]:
+        return self._last_cost_accounting
 
     def _completion(self, prompt: str) -> str:
         endpoint_type = self.endpoint_type.strip().lower()
@@ -344,6 +448,9 @@ class OpenAICompletionIncidentReducer(IncidentReducer):
                 f"LLM reducer endpoint returned HTTP {exc.code}: {body[:300]}"
             ) from exc
         parsed = json.loads(body) if body else {}
+        self._last_response_usage = (
+            parsed.get("usage") if isinstance(parsed.get("usage"), dict) else {}
+        )
         choices = parsed.get("choices") or []
         if not choices:
             raise RuntimeError("LLM reducer endpoint returned no choices.")
@@ -526,21 +633,107 @@ def operator_durations(
     }
 
 
+def _offline_cost_accounting(reducer_name: str) -> dict[str, Any]:
+    return {
+        "reducer": reducer_name,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "estimated_cost_usd": 0.0,
+        "token_source": "offline-no-llm-call",
+        "pricing_source": "not-applicable",
+    }
+
+
+def _llm_cost_accounting(
+    *,
+    reducer_name: str,
+    prompt: str,
+    response: str,
+    usage: dict[str, Any],
+) -> dict[str, Any]:
+    provider_usage = bool(usage)
+    prompt_tokens = _coerce_int(
+        usage.get("prompt_tokens") if provider_usage else None,
+        math.ceil(len(prompt) / 4),
+    )
+    completion_tokens = _coerce_int(
+        usage.get("completion_tokens") if provider_usage else None,
+        math.ceil(len(response) / 4),
+    )
+    total_tokens = _coerce_int(
+        usage.get("total_tokens") if provider_usage else None,
+        prompt_tokens + completion_tokens,
+    )
+    input_cost_per_m = _coerce_float(
+        os.environ.get("SAGE_LSA_LLM_INPUT_COST_PER_M"), 0.0
+    )
+    output_cost_per_m = _coerce_float(
+        os.environ.get("SAGE_LSA_LLM_OUTPUT_COST_PER_M"), 0.0
+    )
+    estimated_cost = (
+        prompt_tokens * input_cost_per_m / 1_000_000
+        + completion_tokens * output_cost_per_m / 1_000_000
+    )
+    pricing_source = (
+        "env:SAGE_LSA_LLM_INPUT_COST_PER_M/SAGE_LSA_LLM_OUTPUT_COST_PER_M"
+        if input_cost_per_m or output_cost_per_m
+        else "unset-zero"
+    )
+    return {
+        "reducer": reducer_name,
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": total_tokens,
+        "estimated_cost_usd": round(estimated_cost, 8),
+        "token_source": "provider-usage" if provider_usage else "estimated_chars_div4",
+        "pricing_source": pricing_source,
+    }
+
+
+def _base_reducer_trace(
+    reducer_name: str,
+    summaries: list[ShardSummary],
+    *,
+    candidate_count: int,
+    output_incident_count: int,
+    contract_detail: str,
+) -> dict[str, Any]:
+    return {
+        "reducer": reducer_name,
+        "contract": "summaries -> incident_hypotheses",
+        "contract_detail": contract_detail,
+        "input_shard_count": len(summaries),
+        "input_event_count": sum(summary.event_count for summary in summaries),
+        "input_candidate_count": sum(summary.candidate_count for summary in summaries),
+        "candidate_count": candidate_count,
+        "output_incident_count": output_incident_count,
+    }
+
+
 def map_shard(
     shard_id: int,
     events: list[AnalysisEvent],
     *,
     map_policy: str = "tail-aware",
 ) -> ShardSummary:
-    if map_policy not in {"tail-aware", "mean-only"}:
+    if map_policy not in {"tail-aware", "mean-only", "baseline-aware"}:
         raise ValueError(
-            f"Unknown map_policy {map_policy!r}. Expected tail-aware or mean-only."
+            f"Unknown map_policy {map_policy!r}. Expected tail-aware, "
+            "mean-only, or baseline-aware."
         )
     started = time.perf_counter()
     grouped: dict[tuple[str, str, int], list[AnalysisEvent]] = defaultdict(list)
+    baseline_latency: dict[tuple[str, str], float] = defaultdict(float)
+    baseline_values: dict[tuple[str, str], list[float]] = defaultdict(list)
     for event in events:
         window = event.minute // 20
         grouped[(event.service, event.region, window)].append(event)
+        baseline_values[(event.service, event.region)].append(event.latency_ms)
+
+    if map_policy == "baseline-aware":
+        for key, values in baseline_values.items():
+            baseline_latency[key] = _percentile(values, 0.50)
 
     candidates: list[dict[str, Any]] = []
     for (service, region, window), bucket in grouped.items():
@@ -557,8 +750,11 @@ def map_shard(
         mean_npu = statistics.fmean(npu_utils)
 
         latency_anomaly = p95_latency > 135 or p95_latency > mean_latency * 1.9
+        if map_policy == "baseline-aware":
+            robust_baseline = max(1.0, baseline_latency[(service, region)])
+            latency_anomaly = latency_anomaly or p95_latency > robust_baseline * 2.4
         queue_anomaly = mean_queue > 10
-        if map_policy == "tail-aware":
+        if map_policy in {"tail-aware", "baseline-aware"}:
             npu_anomaly = mean_npu > 0.84 or p95_npu > 0.98
             npu_score = 0.34
         else:
@@ -587,6 +783,11 @@ def map_shard(
                 "mean_npu_util": round(mean_npu, 4),
                 "p95_npu_util": round(p95_npu, 4),
                 "mean_queue_depth": round(mean_queue, 2),
+                "baseline_latency_ms": round(
+                    baseline_latency[(service, region)], 2
+                )
+                if map_policy == "baseline-aware"
+                else None,
                 "score": round(score, 4),
                 "signals": [
                     name
@@ -637,6 +838,7 @@ def _build_llm_reduce_prompt(evidence: list[dict[str, Any]]) -> str:
             "p95_npu_util": item.get("p95_npu_util", item["mean_npu_util"]),
             "mean_queue_depth": item["mean_queue_depth"],
             "evidence_count": item["evidence_count"],
+            "baseline_latency_ms": item.get("baseline_latency_ms"),
         }
         for idx, item in enumerate(evidence)
     ]
@@ -988,6 +1190,11 @@ def _reduce_summaries_by_window(summaries: list[ShardSummary]) -> list[dict[str,
             item.get("p95_npu_util", item["mean_npu_util"]) for item in candidates
         )
         mean_queue_depth = max(item["mean_queue_depth"] for item in candidates)
+        baselines = [
+            item.get("baseline_latency_ms")
+            for item in candidates
+            if item.get("baseline_latency_ms") is not None
+        ]
         window_detections.append(
             {
                 "service": service,
@@ -1003,6 +1210,9 @@ def _reduce_summaries_by_window(summaries: list[ShardSummary]) -> list[dict[str,
                 "mean_npu_util": mean_npu_util,
                 "p95_npu_util": p95_npu_util,
                 "mean_queue_depth": mean_queue_depth,
+                "baseline_latency_ms": round(statistics.fmean(baselines), 2)
+                if baselines
+                else None,
                 "summary": _explain_candidate(
                     {
                         **candidates[0],
@@ -1023,7 +1233,12 @@ def _reduce_summaries_by_window(summaries: list[ShardSummary]) -> list[dict[str,
 
 def _reduce_summaries_deterministic(summaries: list[ShardSummary]) -> list[dict[str, Any]]:
     window_detections = _reduce_summaries_by_window(summaries)
+    return _cluster_window_detections_by_target(window_detections)
 
+
+def _cluster_window_detections_by_target(
+    window_detections: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     by_target: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for detection in window_detections:
         by_target[(detection["service"], detection["region"])].append(detection)
@@ -1139,6 +1354,118 @@ def match_detections(
     return matched_incidents, matched_detections
 
 
+def _annotate_missed_incidents(
+    missed_incidents: list[dict[str, Any]], summaries: list[ShardSummary]
+) -> list[dict[str, Any]]:
+    annotated: list[dict[str, Any]] = []
+    for missed in missed_incidents:
+        candidate_matches = []
+        for summary in summaries:
+            for candidate in summary.candidates:
+                same_target = (
+                    candidate["service"] == missed["service"]
+                    and candidate["region"] == missed["region"]
+                )
+                overlaps_time = (
+                    candidate["start_minute"] <= missed["end_minute"]
+                    and candidate["end_minute"] >= missed["start_minute"]
+                )
+                if same_target and overlaps_time:
+                    candidate_matches.append(
+                        {
+                            "shard_id": summary.shard_id,
+                            "start_minute": candidate["start_minute"],
+                            "end_minute": candidate["end_minute"],
+                            "score": candidate["score"],
+                            "signals": candidate["signals"],
+                            "event_count": candidate["event_count"],
+                            "p95_latency_ms": candidate["p95_latency_ms"],
+                            "baseline_latency_ms": candidate.get(
+                                "baseline_latency_ms"
+                            ),
+                        }
+                    )
+        candidate_matches.sort(
+            key=lambda item: (item["score"], item["event_count"]),
+            reverse=True,
+        )
+        if candidate_matches:
+            failure_type = "reducer_dropped_map_evidence"
+            explanation = (
+                "MapEvidence produced overlapping evidence, but the reducer "
+                "did not emit a matching incident hypothesis."
+            )
+        else:
+            failure_type = "no_overlapping_map_evidence"
+            explanation = (
+                "MapEvidence produced no overlapping candidate for this "
+                "service, region, and time range."
+            )
+        annotated.append(
+            {
+                **missed,
+                "failure_type": failure_type,
+                "failure_explanation": explanation,
+                "overlapping_candidate_count": len(candidate_matches),
+                "best_overlapping_candidates": candidate_matches[:3],
+            }
+        )
+    return annotated
+
+
+def _build_workflow_trace(
+    *,
+    summaries: list[ShardSummary],
+    detections: list[dict[str, Any]],
+    incidents: list[InjectedIncident],
+    matched_incident_ids: set[str],
+    missed_incidents: list[dict[str, Any]],
+    reducer: IncidentReducer,
+) -> dict[str, Any]:
+    detected_trace = []
+    for rank, detection in enumerate(detections, start=1):
+        detected_trace.append(
+            {
+                "rank": rank,
+                "service": detection.get("service"),
+                "region": detection.get("region"),
+                "start_minute": detection.get("start_minute"),
+                "end_minute": detection.get("end_minute"),
+                "signals": detection.get("signals", []),
+                "score": detection.get("score"),
+                "evidence_count": detection.get("evidence_count"),
+                "evidence_ids": detection.get("evidence_ids", []),
+                "matched_incident_id": detection.get("matched_incident_id"),
+                "reducer": detection.get("reducer", reducer.name),
+            }
+        )
+    return {
+        "operators": list(STANDARD_OPERATORS),
+        "reducer_contract": reducer.trace().get(
+            "contract", "summaries -> incident_hypotheses"
+        ),
+        "matched_incident_ids": sorted(matched_incident_ids),
+        "missed_incident_ids": [item["incident_id"] for item in missed_incidents],
+        "injected_incident_ids": [incident.incident_id for incident in incidents],
+        "evidence_trace": {
+            "shard_count": len(summaries),
+            "candidate_count": sum(summary.candidate_count for summary in summaries),
+            "event_count": sum(summary.event_count for summary in summaries),
+            "shards": [
+                {
+                    "shard_id": summary.shard_id,
+                    "event_count": summary.event_count,
+                    "candidate_count": summary.candidate_count,
+                    "duration_ms": round(summary.duration_ms, 2),
+                    "top_services": summary.top_services,
+                }
+                for summary in summaries
+            ],
+            "detected_incidents": detected_trace,
+        },
+    }
+
+
 def run_large_scale_analysis_workload(
     *,
     event_count: int = 50_000,
@@ -1171,12 +1498,27 @@ def run_large_scale_analysis_workload(
     matched, precision, recall, f1, coverage = score_detections(
         detections, dataset.incidents
     )
-    matched_incident_ids, _ = match_detections(detections, dataset.incidents)
+    matched_incident_ids = {
+        detection["matched_incident_id"]
+        for detection in detections
+        if detection.get("matched_incident_id")
+    }
     missed_incidents = [
         incident_to_dict(incident)
         for incident in dataset.incidents
         if incident.incident_id not in matched_incident_ids
     ]
+    missed_incidents = _annotate_missed_incidents(missed_incidents, summaries)
+    reducer_trace = incident_reducer.trace()
+    workflow_trace = _build_workflow_trace(
+        summaries=summaries,
+        detections=detections,
+        incidents=dataset.incidents,
+        matched_incident_ids=matched_incident_ids,
+        missed_incidents=missed_incidents,
+        reducer=incident_reducer,
+    )
+    cost_accounting = incident_reducer.cost_accounting()
     report_duration_ms = (time.perf_counter() - report_started) * 1000
     total_duration_ms = (time.perf_counter() - started) * 1000
     return WorkloadReport(
@@ -1206,6 +1548,9 @@ def run_large_scale_analysis_workload(
             reduce_duration_ms=reduce_duration_ms,
             report_duration_ms=report_duration_ms,
         ),
+        reducer_trace=reducer_trace,
+        workflow_trace=workflow_trace,
+        cost_accounting=cost_accounting,
     )
 
 
@@ -1219,7 +1564,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     parser.add_argument("--top-k", type=int, default=12)
     parser.add_argument(
         "--map-policy",
-        choices=("tail-aware", "mean-only"),
+        choices=("tail-aware", "mean-only", "baseline-aware"),
         default="tail-aware",
         help="MapEvidence policy for NPU saturation candidates.",
     )

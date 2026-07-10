@@ -245,6 +245,11 @@ stop_server() {
     VLLM_ENGINE_CONTAINER="${CONTAINER_NAME}" \
       bash manage.sh stop || true
   )
+  if sudo -n docker inspect -f '{{.State.Running}}' "${CONTAINER_NAME}" 2>/dev/null | grep -q '^true$'; then
+    log "Stopping experiment-owned container ${CONTAINER_NAME}."
+    sudo -n docker stop "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+  fi
+  npu-smi info > "${OUTPUT_ROOT}/npu-smi-post-stop.txt" 2>/dev/null || true
 }
 
 collect_diagnostics() {
@@ -322,6 +327,7 @@ submodule_paths = [
     "external/vllm-hust",
     "external/vllm-hust-dev-hub",
     "third_party/ascend-runtime-manager",
+    "third_party/llm-serving-workloads",
 ]
 
 submodules = {}
@@ -335,6 +341,7 @@ for rel in submodule_paths:
 
 metadata = {
     "provenance": "real-online",
+    "evidence_label": "real-online",
     "sage_root": str(root),
     "run_id": os.environ["RUN_ID"],
     "base_url": os.environ["BASE_URL"],
@@ -344,6 +351,15 @@ metadata = {
     "conda_env": os.environ["CONDA_ENV"],
     "parent_repo_commit": git(root, "rev-parse", "HEAD"),
     "parent_repo_dirty": bool(git(root, "status", "--short")),
+    "workload_source": {
+        "type": "repo-local",
+        "path": "src/sage/workloads/large_scale_analysis.py",
+        "runner": "tools/benchmark_carrier/run_large_scale_analysis_workload.py",
+    },
+    "shared_workload_submodule": {
+        "path": "third_party/llm-serving-workloads",
+        **submodules["third_party/llm-serving-workloads"],
+    },
     "submodules": submodules,
     "submodule_status": git(root, "submodule", "status", check=False),
 }
