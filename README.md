@@ -132,6 +132,25 @@ python sage-tutorials/L1-common/hello_world.py
 - `sage chat --ask "Hello, SAGE!"`
 - `sage index ingest --source ./docs --index local-docs`
 
+### Semantic MapReduce artifact gates
+
+The active Semantic MapReduce paper path uses the project-specific
+`esage-vllm-hust-dev` conda environment. The root `Makefile` runs common
+development and artifact gates through that environment by default, including:
+
+```bash
+make test-quick
+make shared-workloads-probe
+make semantic-mr-offline-smoke
+```
+
+`make shared-workloads-probe` records provenance for the pinned
+`third_party/llm-serving-workloads` submodule. `make semantic-mr-offline-smoke`
+runs the no-NPU Semantic MapReduce suite over repo-local workloads. These are
+artifact/reproducibility gates; real online reducer runs still require an
+explicit vLLM-HUST endpoint and should use the scripts documented under
+`docs/papers/semantic_mapreduce/`.
+
 ### Core verification
 
 ```bash
