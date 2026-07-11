@@ -12,6 +12,16 @@ Clean replay artifact:
 .sage/benchmarks/real_online_semantic_merge/clean-pairwise-action-hardcases-c3d4dfa/
 ```
 
+Artifact package:
+
+```text
+.sage/benchmarks/real_online_semantic_merge/clean-pairwise-action-hardcases-c3d4dfa.tar.gz
+sha256: 80eb03e4d3e735ce46b5b1fff7cb79e323fb7be37ebbd0cdf86f395b35fd6d30
+```
+
+The `.sage/` tree is ignored by git, so the raw clean replay should be attached
+as a separate artifact package rather than committed to the paper branch.
+
 Provenance:
 
 - Evidence label: `real-online`
@@ -147,6 +157,12 @@ cases.
 - The three-hardcase NPU3 clean replay passes the artifact gate: F1 0.8857,
   zero fallback, zero invalid schema, zero invalid action, single seed, clean
   parent commit.
+- Implementation-layer boundary is explicit: the submitted Semantic MapReduce
+  mechanism does not require new Ascend kernel, Triton operator, mask/packing,
+  or runtime-operator semantic changes. If future work needs such behavior, it
+  must land in the pinned `external/triton-ascend-hust` feature branch rather
+  than as an ad hoc `vllm-ascend-hust` workaround; `vllm-ascend-hust` remains
+  thin glue, and `vllm-hust` owns scheduler/KV/request-metadata concerns.
 - No additional NPU run is required for the current submission package unless
   the paper is upgraded to make multi-seed live robustness claims.
 
