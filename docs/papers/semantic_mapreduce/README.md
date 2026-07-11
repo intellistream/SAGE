@@ -133,6 +133,18 @@ The map-only and window-aggregate rows are diagnostic baselines that isolate the
 benefit of incident-level semantic reduction. They are not full external-system
 SOTA comparisons.
 
+Representative seed-7 scale/timing checks from the same artifact:
+
+| events | shards | top-k | precision | recall | F1 | throughput events/s | map ms | reduce ms | detected |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 50,000 | 16 | 12 | `1.0000` | `1.0000` | `1.0000` | `105,804.39` | `72.94` | `0.35` | `4/4` |
+| 100,000 | 32 | 16 | `1.0000` | `1.0000` | `1.0000` | `101,601.48` | `169.61` | `0.31` | `4/4` |
+
+These two rows are scale/timing sanity checks, not replacements for the
+ten-seed quality matrix. They show that map/evidence extraction dominates the
+local runtime while deterministic semantic reduction over compact candidates is
+sub-millisecond in these runs.
+
 An additional baseline-aware evidence-policy matrix was recorded after the
 2026-07-08 NPU3 real-online run:
 
@@ -414,7 +426,7 @@ pinned at `7ab74990d5bfc4953d7bb1f99dfb93720e2adc81`.
 The dev-hub container helper is also pinned as
 `third_party/ascend-runtime-manager` on
 `feature/semantic-mapreduce-runtime-integration` at
-`40a2afed0ae7896e004cf6d0f67c0d89e7e1582b`.
+`c5b0461aaecffe7e5011f8fab0944d32bedb1092`.
 The matching Triton-Ascend runtime is pinned as
 `external/triton-ascend-hust` on
 `feature/sage-semantic-mapreduce-triton-runtime` at

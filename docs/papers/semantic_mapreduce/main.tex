@@ -226,17 +226,13 @@ The artifact also includes a semantic-merge suite that separates several workloa
 
 \subsection{Pipeline and Implementation}
 
-The workload instantiates the operator model directly. \textsf{Shard} partitions generated telemetry by shard count, service, region, and time. \textsf{MapEvidence} computes shard-level statistics, anomaly candidates, and local summaries. \textsf{Normalize} converts candidates into scored evidence objects with provenance fields. \textsf{GroupEvidence} clusters candidates by incident type, service, region, and temporal overlap. \textsf{SemanticReduce} emits incident hypotheses with map-only, window, deterministic, hybrid, stubbed, or OpenAI-compatible reducers. \textsf{Edit} and \textsf{Validate} are exercised by candidate-level and one-token action reducers: the model may propose bounded keep/merge/split/abstain decisions, while the system assembles evidence-linked edits, checks schema/root/affected-service invariants, and falls back when required. \textsf{ReportTrace} scores hypotheses, records matched/missed incidents, classifies reducer failures, and emits per-run reports.
+The workload instantiates the operator model directly. \textsf{Shard} partitions telemetry by shard count, service, region, and time. \textsf{MapEvidence} and \textsf{Normalize} turn local anomalies into scored evidence objects, and \textsf{GroupEvidence} clusters candidates by incident type, service, region, and temporal overlap. \textsf{SemanticReduce} then emits hypotheses through map-only, window, deterministic, hybrid, stubbed, or model-backed reducers. Candidate-level and one-token action reducers exercise \textsf{Edit} and \textsf{Validate}: the model proposes bounded actions, while the system assembles evidence-linked edits, checks schema and service invariants, and falls back when required. \textsf{ReportTrace} scores hypotheses, records matched and missed incidents, classifies reducer failures, and emits per-run reports.
 
 The workload reports precision, recall, F1, throughput, map latency, reduce latency, detected incidents, injected incidents, and missed incidents. Reports also include seed, top-k, reducer name, and incident matching metadata.
 
 The implementation has three components. The generator creates synthetic telemetry and hidden incidents. The map stage implements \textsf{Shard}, \textsf{MapEvidence}, and \textsf{Normalize} by partitioning events, computing local summaries, and producing anomaly candidates. The reducer implements \textsf{GroupEvidence} and \textsf{SemanticReduce} over shard summaries. The default reducer is deterministic: it clusters candidates using incident type, service, region, and temporal overlap. The map-only and window-aggregation reducers are diagnostic baselines that approximate alert-only and windowed-analytics workflows without incident-level semantic reduction. The \texttt{llm-stub} reducer is an interface placeholder that exercises the same resolver and report path while delegating to the deterministic reducer.
 
 The report schema is deliberately richer than the minimum needed for precision and recall. It includes the map policy, reducer name, seed, top-k, injected incidents, detected incidents, matched incident IDs, and missed incidents. This enables per-run diagnosis of operator behavior. When a run misses an incident, the missed incident ID is preserved in the report rather than disappearing into the aggregate recall number; when a map policy changes, the same reducer and scorer can be replayed over the new evidence stream.
-
-A typical run proceeds as follows. The generator emits events for services such as \texttt{prefill}, \texttt{decode}, and \texttt{scheduler}. It injects incidents such as a latency spike or NPU saturation over a bounded time window. The shard map stage computes local evidence: elevated p95 latency, higher queue depth, or high NPU utilization. Each local summary is compact enough to be passed to the reducer. The reducer then merges adjacent or related candidates into incident hypotheses. The final report presents incident type, service, region, time window, confidence-like scores, and matching information.
-
-This walkthrough is simple, but it illustrates the value proposition. The workload is not a single SQL query and not a single prompt. It is a workflow whose operators correspond to system responsibilities: sharding, local evidence extraction, normalization, grouping, semantic merging, reporting, and evaluation. Each responsibility can evolve independently. The implemented OpenAI-compatible reducer can replace the deterministic reducer without changing the generator or scorer; a real telemetry source can replace the synthetic generator without changing the reducer contract.
 
 The workload is designed to make reducer behavior reproducible without placing environment-management details in the paper body. Each experiment records the workload scale, shard count, seed, reducer, top-k budget, detected incidents, missed incidents, and latency measurements. This provenance is sufficient to distinguish algorithmic changes in the reducer from changes in input generation or scoring. The accompanying artifact contains the implementation and per-run records needed to rerun the study.
 
@@ -253,21 +249,24 @@ The workload is designed to make reducer behavior reproducible without placing e
 \subsection{Setup and Scope}
 
 \begin{table}[t]
-\caption{Workload configurations. Each configuration is run with ten seeds (7, 11, 13, 17, 19, 23, 29, 31, 37, and 41), two map policies, and four reducer regimes.}
+\caption{Workload scales and representative seed-7 tail-aware deterministic runs. The full matrix repeats these two scales across ten seeds, map policies, and reducer regimes. Both representative runs detect all four injected incidents; their timing shows that \textsf{MapEvidence} dominates while reduction over compact evidence remains sub-millisecond.}
 \label{tab:configs}
 \centering
-\small
-\begin{tabular}{rrrr}
+\scriptsize
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{rrrrrrrr}
 \toprule
-Events & Shards & Top-k & Runs \\
+Events & Shards & Top-k & P/R/F1 & Thru. & Map & Reduce & Det. \\
+ & & & & k ev/s & ms & ms & \\
 \midrule
-50,000 & 16 & 12 & 80 \\
-100,000 & 32 & 16 & 80 \\
+50,000 & 16 & 12 & 1.00/1.00/1.00 & 105.8 & 72.94 & 0.35 & 4/4 \\
+100,000 & 32 & 16 & 1.00/1.00/1.00 & 101.6 & 169.61 & 0.31 & 4/4 \\
 \bottomrule
 \end{tabular}
+}
 \end{table}
 
-Table~\ref{tab:configs} lists the reproduced configurations. The evaluation is deliberately scoped to operator behavior under one workload harness. The main comparison fixes the generator, evidence schema, scorer, and report format, then varies two pieces: the map evidence policy and the reducer. This separates three questions: whether incident-level reduction helps, whether the map stage preserves enough evidence for any reducer to succeed, and whether adjacent orchestration frameworks provide the missing semantic contract by themselves. The experiments are not tuned cluster deployments of Spark, Flink, Ray, LangGraph, LlamaIndex, or AutoGen.
+Table~\ref{tab:configs} lists the reproduced scales and representative single-seed runs used for scale/timing sanity checks. These rows are not the only quality evidence; the paper uses the ten-seed matrix for reducer and map-policy conclusions. They show a useful systems property: doubling events and shards roughly doubles map time, while the deterministic reducer still runs over compact evidence in less than one millisecond. The evaluation is deliberately scoped to operator behavior under one workload harness. The main comparison fixes the generator, evidence schema, scorer, and report format, then varies two pieces: the map evidence policy and the reducer. This separates three questions: whether incident-level reduction helps, whether the map stage preserves enough evidence for any reducer to succeed, and whether adjacent orchestration frameworks provide the missing semantic contract by themselves. The experiments are not tuned cluster deployments of Spark, Flink, Ray, LangGraph, LlamaIndex, or AutoGen.
 
 The artifact also includes a separate shared-workload probe from a pinned workload submodule. Across seeds 7, 11, and 13, the probe generates 23 canonical LLM-serving cases per seed and 1,232 supported requests per seed, covering session-affine, RAG, long-context, tool-agent, coding-assistant, dynamic-corpus, memory-reuse, and preemption/resume surfaces. We use this probe to record workload-source provenance and to keep prototype-specific Semantic MapReduce stress cases separate from general LLM-serving scenario catalogs. It is not used as evidence that a reducer improves incident quality.
 

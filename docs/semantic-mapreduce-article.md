@@ -1,4 +1,4 @@
-# From MapReduce to Semantic Reduce: SAGE for LLM-Native Data Analysis
+# Semantic MapReduce: SAGE for LLM-Native Data Analysis
 
 ## Scope and Evidence Boundary
 
@@ -28,17 +28,17 @@ already a universally better reducer.
 
 ## Title Recommendation
 
-Recommended title:
+Recommended paper title:
 
-**From MapReduce to Semantic Reduce: Orchestrating LLMs over Large-Scale Data**
+**Semantic MapReduce: Orchestrating LLMs over Large-Scale Data**
 
-This title leads with the research idea rather than the product name. It frames
-the contribution as an abstraction shift: traditional MapReduce separates local
+This title leads with the abstraction rather than the product name. It frames
+the contribution as a systems contract: traditional MapReduce separates local
 processing from global aggregation, while LLM-native analysis needs semantic
-evidence fusion, conflict handling, hypothesis generation, and traceable
-explanation.
+evidence fusion, conflict handling, hypothesis generation, bounded model edits,
+and traceable explanation.
 
-Possible subtitle:
+Possible talk subtitle:
 
 **SAGE as an AI-Native Orchestration Layer for Auditable Data Analysis**
 
@@ -66,6 +66,8 @@ SAGE 当前仓库已经具备支撑这一方向的核心系统边界。README �
 
 在当前 10-seed 大规模 telemetry 矩阵中，tail-aware evidence policy 下，`map-only` 的 mean F1 为 0.3075，`window-aggregate` 为 0.7129，deterministic incident reducer 为 0.9579。这个结果说明 proposal 不是普通 agent workflow：在相同 generator、evidence schema、scorer 和 report contract 下，显式 SemanticReduce 把输出单位从 alert/window fragments 改成 incident hypotheses，并显著减少重复报告。后续 baseline-aware evidence policy 进一步把低 baseline 服务上的 latency spike 纳入 evidence，使 deterministic reducer 在 50K/100K 10-seed 矩阵上达到 1.0000 mean precision/recall/F1；这不是“调参掩盖问题”，而是 operator boundary 的价值：trace 能告诉我们问题发生在 MapEvidence policy，而不是笼统归咎于 LLM 或 reducer。
 
+单次规模 sanity run 也解释了系统开销来自哪里。seed 7、50K events、16 shards、top-k 12 的 tail-aware deterministic run 检出 4/4 个注入 incident，precision/recall/F1 均为 1.0，throughput 为 105.8K events/s，MapEvidence latency 为 72.94 ms，SemanticReduce latency 为 0.35 ms。seed 7、100K events、32 shards、top-k 16 同样检出 4/4，precision/recall/F1 均为 1.0，throughput 为 101.6K events/s，MapEvidence latency 为 169.61 ms，SemanticReduce latency 为 0.31 ms。这说明当前 workload 的成本主要在 shard scan 和 evidence extraction，reduce over compact evidence 本身很轻；而多 seed 100K recall 下降则说明 workload 不是玩具，因为 evidence policy 一旦漏掉尾部 NPU saturation 或低 baseline latency spike，任何下游 reducer 都无法凭空恢复 incident。
+
 为了把 LLM reducer 的挑战机制化，我们又加入 semantic-merge suite。主论文矩阵包含 single-service、cascade、shared-bottleneck、concurrent、false-correlation、partial-evidence 和 ambiguous-overmerge 七类场景。七场景 10-seed 聚合下，`map-only` F1 为 0.0906，`service-local` 为 0.0922，`window-aggregate` 为 0.4531，`semantic-graph` 为 0.7696，`hybrid-hint` 为 0.8173。`partial-evidence` 暴露的是缺少 root evidence 时 affected-service contract 的问题，`hybrid-hint` 把该场景 F1 从 0.5761 提高到 0.8878；`ambiguous-overmerge` 暴露的是两个相关 incident 被压成一个 candidate 时需要 safe split 的问题。这些场景把 Semantic MR 必须处理的 reducer challenge 转成了可复现的机制测试。
 
 真实 LLM 路径的实机结果也按同样逻辑解释。full-evidence prompting 在三个 hard semantic-merge 场景上都只有 F1 0.4000，说明“把 evidence 全塞给模型”会丢 incident unit 和 evidence links；raw `llm-hybrid` 则暴露了 candidate editing 的机会和风险：它在 ambiguous-overmerge 上把 F1 从 0.8571 提高到 1.0000，说明 split 操作确实是 semantic reducer 需要的能力；但它在 partial-evidence 上又加入额外碎片，把 F1 从 1.0000 降到 0.6667。`llm-hybrid-validated` 通过 schema validator、coverage validator、root/affected consistency、evidence-reference validator 和 fallback，把不合格编辑转成可审计的 rejected operation，并保持 hybrid baseline。这里的贡献不是说 LLM 已经稳定赢 deterministic，而是证明：一旦把 LLM 作为 semantic reducer，就必须有 validated candidate editing 和 no-regression fallback。
@@ -86,7 +88,7 @@ SAGE 当前仓库已经具备支撑这一方向的核心系统边界。README �
 
 与现有系统相比，SAGE 的位置需要谨慎表述。Spark 和 Flink 是强大的 batch/stream 执行引擎，适合 scan、join、window aggregation 和状态计算；Ray 是通用分布式 AI/Python compute runtime；LangGraph、LangChain、AutoGen 更强调 agent 或 workflow 编排；LlamaIndex 强在数据连接、索引和 RAG；Databricks、Snowflake Cortex、BigQuery ML 等 data+AI 平台提供深度集成能力。这些方向都需要进一步系统调研。SAGE 的差异化不应建立在“别人不能做”这种夸张判断上，而应建立在更精确的边界上：SAGE 把 LLM reasoning workflow 作为显式 dataflow/stream/runtime 对象，并强调 semantic reduce、auditable evidence 和与外部数据系统的开放集成。
 
-因此，这篇文章的核心贡献可以谨慎概括为三点。第一，提出 Semantic MapReduce 作为大规模数据上 LLM-native analysis 的系统抽象：局部 evidence extraction，全局 semantic reduction，可追溯 explanation。第二，明确 SAGE 在该抽象中的定位：它不是底层执行引擎替代品，而是 AI-native orchestration layer。第三，通过 large-scale analysis workload 给出一个可复现 baseline，展示 shard-level analysis 和 deterministic incident reduction 的可行性，同时暴露当前 reducer 在 precision/recall 上的改进空间。
+因此，这篇文章的核心贡献可以谨慎概括为四点。第一，提出 Semantic MapReduce 作为大规模数据上 LLM-native analysis 的算子模型：局部 evidence extraction，全局 semantic reduction，bounded Edit，system-owned Validate，以及可追溯 ReportTrace。第二，明确 SAGE 在该抽象中的定位：它不是底层执行引擎替代品，而是 AI-native orchestration layer，负责 workflow/stream/runtime 与 evidence/reducer/trace 的系统边界。第三，通过 large-scale analysis workload 和 semantic-merge suite 给出可复现 benchmark：前者展示 shard-level map 与 incident-level reduce 的差异，后者把 cascade、false correlation、partial evidence、ambiguous merge/split 等 reducer challenge 变成可测场景。第四，通过真实 OpenAI-compatible endpoint 上的 clean hardcase replay 说明：可靠的 LLM semantic reducer 不应自由生成完整 JSON hypothesis，而应通过 one-token action classification 把模型约束在 `Edit`，再由系统完成 evidence binding、validation 和 fallback。
 
 下一步最小增强不是再写一个更长 prompt，而是把 one-token action reducer 做成更稳定的实验主线：从 clean commit 复跑多 seed hardcase，加入 batched pair judging、candidate compression 和 temporal grouping 约束，比较 accepted edit count、fallback rate、invalid action、invalid schema、token/latency 与 F1/support recall。只有当这个 validated path 在更宽场景上稳定超过 hybrid-hint，文章才能把它写成强质量 claim；在那之前，它已经足以支撑一个清晰的系统 claim：LLM semantic reducer 需要 constrained edit interface。
 
@@ -107,7 +109,7 @@ remove duplicates, handle conflicts, and form structured hypotheses, and final
 stages generate traceable explanations. We introduce a synthetic large-scale
 analysis workload based on NPU-backed LLM serving telemetry, with injected
 latency spikes, NPU saturation, and queue backlog incidents. Across a small
-multi-seed matrix, the deterministic reducer baseline reaches mean precision
+multi-seed matrix, the deterministic reducer baseline reaches mean F1
 0.9579 under a tail-aware evidence policy, compared with 0.3075 for map-only
 alerts and 0.7129 for window aggregation. A seven-family semantic-merge suite
 further shows that map-only, service-local, and window aggregation fail to
@@ -117,7 +119,12 @@ the core systems challenge: raw model calls may return valid JSON while losing
 incident units or evidence links, and unconstrained candidate edits may regress
 quality. SAGE addresses this with an explicit evidence schema, deterministic
 baselines, coverage gates, validated candidate editing, no-regression fallback,
-token/cost accounting, and auditable workflow traces.
+token/cost accounting, and auditable workflow traces. In the latest clean
+single-seed hardcase replay, a one-token pairwise action reducer restricts the
+model to KEEP/MERGE/SPLIT/ABSTAIN and lets the system assemble validated edits;
+it improves mean F1 from 0.6948 for the hybrid-hint baseline to 0.8857 with
+zero invalid actions, invalid schemas, or fallbacks. This is evidence for the
+bounded Edit/Validate protocol, not a broad multi-seed robustness claim.
 
 ## Slide Outline
 
@@ -205,11 +212,13 @@ same schema and scorer.
   incident reducer F1 0.9579.
 - Baseline-aware evidence policy reaches 1.0000 deterministic F1 on the
   current 50K/100K 10-seed matrix.
+- Seed-7 scale sanity checks detect 4/4 incidents at both 50K and 100K; map
+  latency grows from 72.94 ms to 169.61 ms, while reduce latency stays below
+  0.4 ms over compact evidence.
 - Seven-family semantic-merge suite: window F1 0.4531, semantic-graph F1
   0.7696, hybrid-hint F1 0.8173.
-- Ambiguous-candidate stress suite: full evidence coverage; constrained raw
-  pairwise editing can improve one hard merge case, while validated robustness
-  still requires stronger structured output.
+- Clean hardcase replay: one-token action validation improves F1 from 0.6948
+  to 0.8857 with zero invalid actions, invalid schemas, or fallbacks.
 - Real-online LLM reducer probes record token/latency cost and edit/fallback
   behavior under the same scorer.
 
@@ -263,6 +272,10 @@ Supported by current code and workload:
 - SAGE can be positioned as an orchestration layer above or beside data engines.
 - Current benchmark reports precision, recall, F1, throughput, map latency,
   reduce latency, detected incidents, injected incidents, and missed incidents.
+- The current Semantic MapReduce mechanism does not require new accelerator
+  kernels, mask/packing primitives, Triton operators, or low-level runtime
+  operator semantics; future primitive changes must go through the pinned
+  Triton-Ascend submodule rather than ad hoc vLLM-Ascend patches.
 
 Not supported as current claims:
 
