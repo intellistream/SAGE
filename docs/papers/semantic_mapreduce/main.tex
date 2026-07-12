@@ -1,4 +1,4 @@
-\documentclass[sigplan,10pt,anonymous]{acmart}
+\documentclass[sigplan,anonymous,review,nonacm]{acmart}
 
 \renewcommand\footnotetextcopyrightpermission[1]{}
 \settopmatter{printfolios=true}
@@ -127,15 +127,15 @@ This model separates the part a model may do from the part the system must own. 
   sys/.style={draw=green!45!black, rounded corners=2pt, minimum height=0.88cm, minimum width=1.78cm, align=center, fill=green!4},
   llm/.style={draw=orange!75!black, rounded corners=2pt, minimum height=0.88cm, minimum width=1.70cm, align=center, fill=orange!8},
   arr/.style={-{Latex[length=2.1mm]}, thick},
-  note/.style={font=\footnotesize, align=center}
+  note/.style={font=\small, align=center}
 ]
 \node[op] (shard) {Shard};
 \node[op, right=0.38cm of shard] (map) {Map\\Evidence};
 \node[op, right=0.38cm of map] (norm) {Normalize};
 \node[op, right=0.38cm of norm] (group) {Group\\Evidence};
 \node[op, right=0.38cm of group] (reduce) {Semantic\\Reduce};
-\node[llm, right=0.38cm of reduce] (edit) {Edit\\{\footnotesize enum action}};
-\node[sys, right=0.38cm of edit] (validate) {Validate\\{\footnotesize evidence+schema}};
+\node[llm, right=0.38cm of reduce] (edit) {Edit\\enum};
+\node[sys, right=0.38cm of edit] (validate) {Validate\\schema};
 \node[sys, right=0.38cm of validate] (report) {Report\\Trace};
 \draw[arr] (shard) -- node[above,note] {$D_i$} (map);
 \draw[arr] (map) -- node[above,note] {$E_i$} (norm);
@@ -250,18 +250,16 @@ The workload is designed to make reducer behavior reproducible without placing e
 \caption{Workload scales and representative seed-7 tail-aware deterministic runs. The full matrix repeats these two scales across ten seeds, map policies, and reducer regimes. Both representative runs detect all four injected incidents; their timing shows that \textsf{MapEvidence} dominates while reduction over compact evidence remains sub-millisecond. Evidence: derived artifact.}
 \label{tab:configs}
 \centering
-\scriptsize
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{rrrrrrrr}
+\small
+\begin{tabular}{lccccc}
 \toprule
-Events & Shards & Top-k & P/R/F1 & Thru. & Map & Reduce & Det. \\
- & & & & k ev/s & ms & ms & \\
+Scale & Top-k & P/R/F1 & Thru. & Map/Red. & Det. \\
+ & & & k ev/s & ms & \\
 \midrule
-50,000 & 16 & 12 & 1.00/1.00/1.00 & 105.8 & 72.94 & 0.35 & 4/4 \\
-100,000 & 32 & 16 & 1.00/1.00/1.00 & 101.6 & 169.61 & 0.31 & 4/4 \\
+50K/16 & 12 & 1.00/1.00/1.00 & 105.8 & 72.94/0.35 & 4/4 \\
+100K/32 & 16 & 1.00/1.00/1.00 & 101.6 & 169.61/0.31 & 4/4 \\
 \bottomrule
 \end{tabular}
-}
 \end{table}
 
 Table~\ref{tab:configs} lists the reproduced scales and representative single-seed runs used for scale/timing sanity checks. These rows are not the only quality evidence; the paper uses the ten-seed matrix for reducer and map-policy conclusions. They show a useful systems property: doubling events and shards roughly doubles map time, while the deterministic reducer still runs over compact evidence in less than one millisecond.
@@ -339,42 +337,38 @@ Table~\ref{tab:semantic-merge-suite} adds the semantic-merge suite. A root cause
 \caption{MapEvidence policy ablation for the deterministic incident reducer. The tail-aware policy preserves high-p95 NPU saturation evidence; mean-only corresponds to the earlier mean-utilization rule. Evidence: derived artifact.}
 \label{tab:map-ablation}
 \centering
-\scriptsize
-\resizebox{\columnwidth}{!}{%
+\small
 \begin{tabular}{llcccc}
 \toprule
-Size & Map policy & Precision & Recall & F1 & Missed runs \\
+Config & Policy & P & R & F1 & Missed \\
 \midrule
-50K/16/12 & Mean-only & 0.9200 & 0.9750 & 0.9413 & 1/10 \\
-50K/16/12 & Tail-aware & 0.9200 & 0.9750 & 0.9413 & 1/10 \\
-100K/32/16 & Mean-only & 0.9750 & 0.9250 & 0.9464 & 3/10 \\
-100K/32/16 & Tail-aware & 0.9800 & 0.9750 & 0.9746 & 1/10 \\
+50K/16/12 & Mean & 0.9200 & 0.9750 & 0.9413 & 1/10 \\
+50K/16/12 & Tail & 0.9200 & 0.9750 & 0.9413 & 1/10 \\
+100K/32/16 & Mean & 0.9750 & 0.9250 & 0.9464 & 3/10 \\
+100K/32/16 & Tail & 0.9800 & 0.9750 & 0.9746 & 1/10 \\
 \bottomrule
 \end{tabular}
-}
 \end{table}
 
 \begin{table}[t]
 \caption{Coverage gate over ten seeds. A reducer-quality comparison is meaningful only when injected incidents enter the evidence objects. Baseline-aware evidence reaches full coverage for 10K and larger settings in this workload; the 2K tail-aware setting does not. Evidence: derived artifact.}
 \label{tab:coverage-gate}
 \centering
-\scriptsize
-\resizebox{\columnwidth}{!}{%
+\small
 \begin{tabular}{llccc}
 \toprule
-Config & Policy & Coverage mean & Coverage min & Candidates mean \\
+Config & Policy & Cov. mean & Cov. min & Cand. mean \\
 \midrule
 2K/4/8 & Tail-aware & 0.3000 & 0.0000 & 1.9 \\
-2K/4/8 & Baseline-aware & 0.7750 & 0.5000 & 5.1 \\
+2K/4/8 & Base-aware & 0.7750 & 0.5000 & 5.1 \\
 10K/8/12 & Tail-aware & 0.9250 & 0.7500 & 18.2 \\
-10K/8/12 & Baseline-aware & 1.0000 & 1.0000 & 39.5 \\
+10K/8/12 & Base-aware & 1.0000 & 1.0000 & 39.5 \\
 50K/16/12 & Tail-aware & 0.9750 & 0.7500 & 48.6 \\
-50K/16/12 & Baseline-aware & 1.0000 & 1.0000 & 97.7 \\
+50K/16/12 & Base-aware & 1.0000 & 1.0000 & 97.7 \\
 100K/32/16 & Tail-aware & 0.9750 & 0.7500 & 47.5 \\
-100K/32/16 & Baseline-aware & 1.0000 & 1.0000 & 112.0 \\
+100K/32/16 & Base-aware & 1.0000 & 1.0000 & 112.0 \\
 \bottomrule
 \end{tabular}
-}
 \end{table}
 
 Table~\ref{tab:map-ablation} is the most important diagnostic result. The larger workload exposes a failure that is not solved by changing the reducer alone: with mean-only NPU detection, three of ten 100K runs miss at least one incident. The missed cases include NPU saturation windows whose mean utilization is diluted by surrounding normal events, even though their tail utilization is high. Adding a stricter p95 NPU signal to \textsf{MapEvidence} reduces missed runs from three to one and raises 100K F1 from 0.9464 to 0.9746.
@@ -396,20 +390,18 @@ The real-online runs attach the same reducer contract to a live OpenAI-compatibl
 \label{tab:pairwise-action-online}
 \centering
 \small
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{lrrrrrrrrrr}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lrrrrrrrrrr}
 \toprule
-Reducer & Precision & Recall & F1 & Support recall & Reduce ms & Tokens & Edits & Invalid act. & Invalid schema & Fallback \\
+Reducer & Precision & Recall & F1 & Support rec. & Reduce ms & Tokens & Edits & Invalid act. & Invalid sch. & Fallback \\
 \midrule
 Semantic graph & 0.3810 & 0.3333 & 0.3463 & 0.4167 & 0.53 & 0.0 & 0.0 & 0.0 & 0 & 0.0 \\
 Hybrid hint & 0.6349 & 0.9167 & 0.6948 & 0.6528 & 0.28 & 0.0 & 0.0 & 0.0 & 0 & 0.0 \\
 LLM pairwise & 0.3810 & 0.3333 & 0.3463 & 0.4167 & 16313.58 & 506.7 & 0.0 & 0.0 & 3 & 1.0 \\
-Validated LLM pairwise & 0.6349 & 0.9167 & 0.6948 & 0.6528 & 451.73 & 505.7 & 0.0 & 0.0 & 3 & 1.0 \\
-LLM pairwise action & 0.8889 & 0.9167 & 0.8857 & 0.9444 & 327.17 & 534.0 & 2.3 & 0.0 & 0 & 0.0 \\
-Validated LLM pairwise action & 0.8889 & 0.9167 & 0.8857 & 0.9444 & 325.71 & 534.0 & 2.3 & 0.0 & 0 & 0.0 \\
+Validated pairwise & 0.6349 & 0.9167 & 0.6948 & 0.6528 & 451.73 & 505.7 & 0.0 & 0.0 & 3 & 1.0 \\
+LLM action & 0.8889 & 0.9167 & 0.8857 & 0.9444 & 327.17 & 534.0 & 2.3 & 0.0 & 0 & 0.0 \\
+Validated action & 0.8889 & 0.9167 & 0.8857 & 0.9444 & 325.71 & 534.0 & 2.3 & 0.0 & 0 & 0.0 \\
 \bottomrule
-\end{tabular}
-}
+\end{tabular*}
 \end{table*}
 
 A follow-up pairwise edit probe narrows the interface further. Instead of asking the model to rewrite complete candidates, the reducer proposes short candidate pairs. The first version still asks for a small JSON decision list; it produces one useful raw merge on an ambiguous disconnected-merge case, but independent validated calls can omit the required \texttt{decisions} field or emit non-JSON text. Table~\ref{tab:pairwise-action-online} shows the next design step: the model is restricted to one token, \texttt{KEEP}, \texttt{MERGE}, \texttt{SPLIT}, or \texttt{ABSTAIN}, for each proposed pair. The runtime then assembles the edit payload and applies the same schema, root/affected-service, evidence-reference, and fallback validators. This removes the free-form JSON failure mode in the three-hardcase probe: the validated action path records zero invalid actions, zero invalid-schema runs, zero fallbacks, and raises mean F1 from 0.6948 to 0.8857. On disconnected merge it reaches F1 1.0000 with three evidence-preserving merges; on temporal fragmentation it improves F1 from 0.5000 to 0.8000 but still over-reports; on ambiguous-overmerge it abstains and preserves the baseline. The evidence supports a sharper systems claim: reliable LLM-backed semantic reduction needs a constrained edit interface where the model supplies bounded semantic judgments and the system owns JSON construction, validation, and traceability.
@@ -433,7 +425,7 @@ Semantic MapReduce deliberately separates the semantic control plane from the da
 
 \textbf{LLM data and workflow systems.} LOTUS and Palimpzest expose LLM calls as declarative or optimizable data-processing operators~\cite{patel2024semanticoperators,liu2024palimpzest}. LangGraph, LlamaIndex, and AutoGen provide useful abstractions for agents, retrieval, tool use, and multi-agent workflows~\cite{langchain2026langgraph,llamaindex2026,wu2023autogen}. Semantic MapReduce is complementary: it focuses less on query optimization or agent control flow alone and more on workflow/stream orchestration, incident-level semantic reduction, and evidence-linked audit traces under one scorer.
 
-\textbf{Serving and observability.} vLLM shows how memory management and scheduling shape LLM serving performance~\cite{kwon2023vllm}. DeathStarBench, FIRM, the Illinois trace dataset, OpenTelemetry Demo, AIOps Challenge 2020, and LO2 provide realistic service graphs, metrics, logs, traces, and fault labels~\cite{gan2019deathstarbench,qiu2020firm,qiu2020tracedataset,opentelemetry2026demo,netman2020aiopschallenge,bakhtin2025lo2}. Root-cause localization systems such as CloudRanger, MicroRank, and TraceRCA exploit service dependencies and trace contrasts for diagnosis~\cite{wang2018cloudranger,yu2021microrank,li2021tracerca}. These datasets and techniques are natural inputs to Semantic MapReduce; the current controlled workload isolates the reducer contract before replacing the generator with production-derived traces.
+\textbf{Serving and observability.} vLLM shows how memory management and scheduling shape LLM serving performance~\cite{kwon2023vllm}. DeathStarBench, FIRM, the Illinois trace dataset, OpenTelemetry Demo, AIOps Challenge 2020, and LO2 provide realistic service graphs, metrics, logs, traces, and fault labels~\cite{gan2019deathstarbench,qiu2020firm,qiu2020tracedataset,opentelemetry2026demo,netman2020aiopschallenge,bakhtin2025lo2}. Root-cause localization systems such as CloudRanger and MicroRank exploit service dependencies and trace contrasts for diagnosis~\cite{wang2018cloudranger,yu2021microrank}. These datasets and techniques are natural inputs to Semantic MapReduce; the current controlled workload isolates the reducer contract before replacing the generator with production-derived traces.
 
 \textbf{Data+AI platforms.} Databricks, Snowflake Cortex, and BigQuery ML integrate analytics engines with machine learning and LLM functionality. They are important reference points, but systematic product comparison is outside this paper. The distinction we claim is narrower: an open workflow/runtime layer can sit above multiple engines and make semantic reducer behavior auditable through standard evidence, validation, and trace operators.
 
