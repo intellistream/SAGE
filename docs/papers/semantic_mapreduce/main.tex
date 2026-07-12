@@ -237,7 +237,7 @@ The workload is designed to make reducer behavior reproducible without placing e
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/fig3-evaluation-harness.png}
-\caption{Evaluation harness for the large-scale analysis workload. The same generated telemetry and injected incidents feed the evidence stage, reducer variants, and common scorer. Solid reducer rows correspond to the large-scale matrix; the dashed model-backed branch is evaluated only in the separate semantic-merge hardcase probe. Ground truth is used only by the scorer, and workflow traces link results back to evidence objects.}
+\caption{Evaluation harness for the large-scale analysis workload. The same generated telemetry and injected incidents feed the evidence stage, reducer variants, and common scorer, so quality differences come from the semantic reduction contract rather than input drift. Solid reducer rows correspond to the large-scale matrix; the dashed model-backed branch is evaluated only in the separate semantic-merge hardcase probe.}
 \Description{A five-stage evaluation pipeline. A workload generator produces telemetry; injected incidents provide ground truth; an evidence stage emits evidence objects; reducer variants compare map-only, window aggregate, deterministic, and planned LLM or hybrid reducers; a common scorer reports precision, recall, F1, latency, throughput, matched and missed incidents, and workflow traces.}
 \label{fig:evaluation-harness}
 \end{figure*}
@@ -269,7 +269,7 @@ The evaluation follows the operator contract rather than a single leaderboard. Q
 The artifact also includes a separate shared-workload probe from a pinned workload submodule. Across seeds 7, 11, and 13, the probe generates 23 canonical LLM-serving cases per seed and 1,232 supported requests per seed, covering session-affine, RAG, long-context, tool-agent, coding-assistant, dynamic-corpus, memory-reuse, and preemption/resume surfaces. We use this probe to record workload-source provenance and to keep prototype-specific Semantic MapReduce stress cases separate from general LLM-serving scenario catalogs. It is not used as evidence that a reducer improves incident quality.
 
 \begin{table}[t]
-\caption{Shared workload-source probe from the pinned workload submodule. This table records scenario coverage and provenance, not Semantic MapReduce reducer quality.}
+\caption{Shared workload-source probe from the pinned workload submodule. This table records scenario coverage and provenance for the artifact boundary; Semantic MapReduce quality is measured only on workloads with injected incident labels and a common scorer.}
 \label{tab:shared-workload-probe}
 \centering
 \small
@@ -294,7 +294,7 @@ Table~\ref{tab:shared-workload-probe} gives the shared workload side of the arti
 \subsection{Reducer Quality}
 
 \begin{table}[t]
-\caption{Reducer comparison with the tail-aware map policy across 20 runs. Map-only and window-aggregate are diagnostic baselines for alert-style and windowed-analytics workflows. The \texttt{llm-stub} row delegates to the deterministic reducer and is included only as an interface check. Evidence: derived artifact.}
+\caption{Reducer comparison with the tail-aware map policy across 20 runs. Map-only and window-aggregate are diagnostic baselines for alert-style and windowed-analytics workflows; the incident reducer improves F1 by changing the output unit from alert fragments to incident hypotheses. Evidence: derived artifact.}
 \label{tab:aggregate}
 \centering
 \small
