@@ -98,13 +98,61 @@
 - After commit `33055c8`, the same preflight rejects the old endpoint metadata
   because its parent commit is `c3d4dfa`. This is the intended stale-provenance
   negative control; a new online run requires a newly launched endpoint manifest.
+- A new controlled endpoint at commit `5a8419e` passed runtime pins, NPU3-only
+  binding, Triton import, model loading, and health gates. The follow-on real-online
+  matrix covers workload seeds 7/11/13 across all three hardcases.
+- Action-validated aggregate over 9 case/seed rows: F1 0.9301 vs hybrid-hint
+  0.7204, support recall 0.9815, 2.2222 accepted edits, 536.1111 estimated
+  tokens, and 324.1933 ms reduce latency; fallback, invalid action, and invalid
+  schema are all zero.
+- Per scenario, action-validated is 1.0 F1 on disconnected merge for all seeds;
+  temporal split is 0.8/1.0/1.0 with seed-7 retaining two unmatched fragments;
+  overmerge is 0.8571 for all seeds with zero edits and one wrong-root miss.
+- The free-form `llm-pairwise-validated` negative control has invalid JSON/schema
+  and fallback on all 9 runs, matches hybrid F1, and averages 7.50 s because one
+  seed-7 call took 62.5 s. The one-token contract therefore removes a concrete
+  output-contract/tail-latency failure, not merely prompt wording.
+- The real-online artifact records clean parent and all runtime/workload
+  submodules, dedicated env, NPU3, model, workload source, and per-case schema.
+  The managed service was stopped; a repo-owned aggressive cleanup removed its
+  known isolated-container engine child, and NPU3/18383 are now free.
+- The first rebuilt review PDF was 12 pages, with body/conclusion ending on page
+  11 and all 18 references isolated on page 12. Before checking the live CFP,
+  this was conservatively treated as a total-page failure and prompted useful
+  removal of repeated prose; the official rule later confirmed references are
+  excluded from the 11-page limit.
+- Visual inspection of pages 9, 11, and 12 found no clipping or unreadable
+  real-online table content. Page 9 is text-dense but legible; page 11 ends
+  cleanly at the conclusion; page 12's large unused lower/right area confirms
+  packaging, rather than content overflow, is the immediate PDF defect.
+- Compacting repeated open-challenge/audit prose (without removing evidence or
+  scope limits) yields an 11-page PDF. A complete page-by-page visual pass found
+  all three figures, seven tables, equations, algorithm, and references legible
+  and unclipped; the real-online table now begins page 10 at full column span.
+- The first raw tarball was not double-blind safe: endpoint diagnostics exposed
+  the local username, home path, hostname/private IP, and unrelated historical
+  journal entries. The raw evidence remains unchanged, while the submission
+  packager now allowlists six endpoint provenance files, sanitizes identity
+  fields, records pre/post hashes, and rejects residual identity/email/private-IP
+  matches. The extracted anonymous tar passes both anonymity and evidence gates.
+- The official ASPLOS 2027 CFP confirms the required class already used by the
+  draft (`sigplan,anonymous,review,nonacm`), US Letter, 10pt body, double-blind
+  metadata/repository requirements, and an 11-page limit that excludes the
+  generative-AI acknowledgment and references. It forbids reference squeezing
+  and requires 8pt references, so the temporary 7pt bibliography override was
+  removed. After adding complete clickable citation links, the final PDF has 11
+  counted pages plus one references-only continuation page, uses 8pt references,
+  and places the required generative-AI disclosure immediately before them.
+- Citation audit corrected the LO2 entry's erroneous three-author attribution
+  to the paper's full eight-author list and added official USENIX, DOI, arXiv,
+  or project links to every reference while retaining full author names.
 - Semantic workload code already classifies missed and false-positive incidents;
   the per-case reporter should surface these taxonomies rather than invent a new
   failure model.
 - Existing tests already assert trace/cost/failure-taxonomy completeness and the
   hybrid/action contract, so the new reporter can be tested with a small raw
   fixture without touching model/network code.
-- The online comparison script's gate is incomplete for the user's standard:
+- Before hardening, the online comparison script's gate was incomplete for the user's standard:
   it checks opt-in plus endpoint health but does not fail closed on dirty parent/
   submodules, exact NPU3 binding, dedicated-env resolution, or process occupancy;
   it also calls bare `conda` and creates the output directory before health

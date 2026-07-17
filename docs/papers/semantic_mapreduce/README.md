@@ -21,17 +21,18 @@ Rationale:
   contribution: the hard part is not simply calling an LLM, but making
   semantic reduction explicit, validated, auditable, and comparable under one
   evidence schema and scorer.
-- The draft currently follows the ACM `acmart` anonymous two-column form used
-  by ASPLOS-style submissions. Page-count and anonymity details must be checked
-  against the active CFP before submission.
-- SOSP/OSDI remain plausible future targets after the prototype has a real
-  LLM-backed reducer, real telemetry, stronger distributed execution evidence,
-  and a deeper related-work comparison.
+- The draft follows the ASPLOS 2027 anonymous review form. The official CFP was
+  rechecked on 2026-07-18: the 11-page limit excludes acknowledgments used only
+  for generative-AI disclosure, references, and appendices; references must not
+  be compressed. See <https://www.asplos-conference.org/asplos2027/cfp/>.
+- SOSP/OSDI remain plausible future targets after production-derived telemetry,
+  cross-model/repeated-sampling evidence, stronger distributed execution, and a
+  deeper related-work comparison.
 
 Template:
 
-- `main.tex` uses the official ACM `acmart` class in the CFP-recommended form:
-  `\documentclass[sigplan,10pt,anonymous]{acmart}`.
+- `main.tex` uses the official ACM `acmart` class in the CFP-required form:
+  `\documentclass[sigplan,anonymous,review,nonacm]{acmart}`.
 - The document enables page numbers with `\settopmatter{printfolios=true}` and
   uses `\pagestyle{plain}`.
 
@@ -64,7 +65,8 @@ The current submission framing is:
 - The artifact supports shard-level map, evidence objects, reducer variants,
   missed-incident reporting, workflow trace, failure taxonomy, run manifests,
   and token/cost accounting fields.
-- The deterministic reducer is the current reproducible quality baseline.
+- `hybrid-hint` is the strong deterministic/hybrid hardcase baseline; the
+  incident reducer remains the reproducible full-suite quality baseline.
 - `llm-stub` is a pluggability check only; it intentionally has the same
   quality as the deterministic reducer.
 - Real `llm-openai` reducer runs on NPU3 validate the live reducer path,
@@ -263,6 +265,28 @@ evidence-preserving merges and improves F1 from `0.7273` for `hybrid-hint` to
 yet a robust validated claim: independent `llm-pairwise-validated` calls still
 fall back because the model sometimes omits the required `decisions` list even
 after one retry, and `ambiguous-temporal-split` remains unsolved.
+
+The current clean result supersedes that intermediate pairwise probe:
+
+```text
+.sage/benchmarks/real_online_semantic_merge/20260718T-smr-hardcases-3seed-5a8419e/
+.sage/benchmarks/semantic-mapreduce-3seed-real-online-5a8419e-anonymous.tar.gz
+```
+
+The anonymous archive is generated with
+`tools/benchmark_carrier/package_semantic_merge_artifact.py`. It retains the
+full comparison matrix and an allowlisted endpoint provenance slice, records
+source/package checksums, and rejects username, home-path, host/private-IP, or
+email leakage before packaging.
+
+Across workload seeds 7/11/13 and the three full-coverage hardcases,
+`llm-pairwise-action-validated` reaches mean F1 0.9301 versus 0.7204 for
+`hybrid-hint`, support recall 0.9815, and 2.2222 accepted edits per run with
+zero fallback, invalid action, or invalid schema. The free-form validated
+pairwise negative has invalid schema and fallback in all nine runs. Per-case
+JSON/CSV report tokens, latency, and failure taxonomy. This is controlled
+multi-workload-seed mechanism evidence on one model/endpoint, not a production,
+cross-model, or stochastic robustness claim.
 
 Full workload-suite documentation:
 
@@ -566,16 +590,16 @@ For the semantic-merge suite, use the candidate-level LLM comparison harness:
 ALLOW_NPU3_REAL_ONLINE=1 \
 SAGE_SMR_LLM_BASE_URL=http://127.0.0.1:18383 \
 SAGE_SMR_LLM_MODEL=<served-model-name> \
+SAGE_SMR_ENDPOINT_METADATA=<controlled-endpoint-metadata.json> \
 tools/benchmark_carrier/run_npu3_semantic_merge_llm_comparison.sh
 ```
 
-This compares `semantic-graph`, `hybrid-hint`, `llm-hybrid`,
-`llm-hybrid-validated`, and `llm-openai` on the same seeds, scenarios,
-evidence objects, and scorer. It
-records token cost, latency, candidate counts, repair counts, split counts,
-fallback counts, invalid JSON/schema counts, coverage, and support-evidence
-recall. The quality claim for live LLM-backed reduction should be based on
-accepted candidate edits that preserve the validation contract and improve over
+The comparison runner fails closed unless the parent and repo-owned submodules
+are clean and the endpoint metadata matches the current commit, NPU3, dedicated
+environment, URL, and served model. It records token cost, latency, candidate
+counts, accepted edits, fallback/invalid counts, coverage, support recall, and
+per-case failure taxonomy. The quality claim for live LLM-backed reduction must
+come from accepted edits that preserve the validation contract and improve over
 the deterministic/hybrid baselines under the same scorer.
 
 Current NPU3 semantic-merge matrix artifact:

@@ -6,21 +6,24 @@ keeps real-online evidence provenance explicit.
 
 ## Latest Hardcase Result
 
-Clean replay artifact:
+Clean three-workload-seed real-online artifact:
 
 ```text
-.sage/benchmarks/real_online_semantic_merge/clean-pairwise-action-hardcases-c3d4dfa/
+.sage/benchmarks/real_online_semantic_merge/20260718T-smr-hardcases-3seed-5a8419e/
 ```
 
-Artifact package:
+Anonymous submission artifact package:
 
 ```text
-.sage/benchmarks/real_online_semantic_merge/clean-pairwise-action-hardcases-c3d4dfa.tar.gz
-sha256: 80eb03e4d3e735ce46b5b1fff7cb79e323fb7be37ebbd0cdf86f395b35fd6d30
+.sage/benchmarks/semantic-mapreduce-3seed-real-online-5a8419e-anonymous.tar.gz
+sha256: 161446f93164b3985c481613768d22f5330a2dafeec4399f90615b1d83f6d640
 ```
 
-The `.sage/` tree is ignored by git, so the raw clean replay should be attached
-as a separate artifact package rather than committed to the paper branch.
+The `.sage/` tree is ignored by git, so this archive should be attached as a
+separate artifact rather than committed. The raw local evidence remains intact;
+the submission package uses an allowlist, replaces identity-bearing paths,
+hostnames, and private IPs, excludes historical service logs, and records source
+and packaged SHA-256 hashes in `ANONYMIZATION_MANIFEST.json`.
 
 Provenance:
 
@@ -29,7 +32,7 @@ Provenance:
 - Model: `qwen25-7b-sage-realonline`
 - Hardware: NPU3, Ascend 910B2
 - Conda env: `esage-vllm-hust-dev`
-- Clean replay parent commit: `c3d4dfa79638a59432da8424175aed9339abafb5`
+- Clean run parent commit: `5a8419eddd9b1971e38b8d2109e3bf8c78a44f8c`
 - Paper package commit: any later paper-only synchronization commit that
   preserves this clean replay artifact and result table.
 - Parent dirty: `false`
@@ -37,7 +40,7 @@ Provenance:
 - `third_party/ascend-runtime-manager`: `c5b0461aaecffe7e5011f8fab0944d32bedb1092`, clean
 - Workload source: repo-local `src/sage/workloads/semantic_merge_analysis.py`
 - Scenarios: `ambiguous-disconnected-merge`, `ambiguous-temporal-split`, `ambiguous-overmerge`
-- Seed: `7`
+- Workload seeds: `7`, `11`, `13`
 
 ## Operator Model Update
 
@@ -64,23 +67,21 @@ JSON assembly, schema validation, root/affected-service checks, fallback, and
 trace capture. This is the central abstraction that should carry the ASPLOS
 paper narrative.
 
-Three-hardcase aggregate:
+Three-hardcase, three-workload-seed aggregate (nine rows per reducer):
 
 | Reducer | Precision | Recall | F1 | Support recall | Tokens | Accepted edits | Fallback | Invalid action | Invalid schema |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `semantic-graph` | 0.3810 | 0.3333 | 0.3463 | 0.4167 | 0.0 | 0.0 | 0.0 | 0.0 | 0 |
-| `hybrid-hint` | 0.6349 | 0.9167 | 0.6948 | 0.6528 | 0.0 | 0.0 | 0.0 | 0.0 | 0 |
-| `llm-pairwise` | 0.3810 | 0.3333 | 0.3463 | 0.4167 | 506.7 | 0.0 | 1.0 | 0.0 | 3 |
-| `llm-pairwise-validated` | 0.6349 | 0.9167 | 0.6948 | 0.6528 | 506.7 | 0.0 | 1.0 | 0.0 | 3 |
-| `llm-pairwise-action` | 0.8889 | 0.9167 | 0.8857 | 0.9444 | 534.0 | 2.3333 | 0.0 | 0.0 | 0 |
-| `llm-pairwise-action-validated` | 0.8889 | 0.9167 | 0.8857 | 0.9444 | 534.0 | 2.3333 | 0.0 | 0.0 | 0 |
+| `semantic-graph` | 0.4427 | 0.4722 | 0.4318 | 0.5185 | 0.0 | 0.0 | 0.0 | 0.0 | 0 |
+| `hybrid-hint` | 0.6596 | 0.9167 | 0.7204 | 0.7083 | 0.0 | 0.0 | 0.0 | 0.0 | 0 |
+| `llm-pairwise-validated` | 0.6596 | 0.9167 | 0.7204 | 0.7083 | 508.7 | 0.0 | 1.0 | 0.0 | 9 |
+| `llm-pairwise-action-validated` | 0.9630 | 0.9167 | 0.9301 | 0.9815 | 536.1 | 2.2222 | 0.0 | 0.0 | 0 |
 
 Per-case action-validated outcomes:
 
 | Scenario | Hybrid F1 | Action-validated F1 | Accepted merges | Main interpretation |
 | --- | ---: | ---: | ---: | --- |
 | `ambiguous-disconnected-merge` | 0.7273 | 1.0000 | 3 | Succeeds: validated merge edits repair fragmented incident evidence. |
-| `ambiguous-temporal-split` | 0.5000 | 0.8000 | 4 | Partial success: evidence is present and edits are valid, but pair proposal still over-reports. |
+| `ambiguous-temporal-split` | 0.5769 | 0.9333 | 3.67 | Two seeds reach F1 1.0; seed 7 retains two unmatched fragments. |
 | `ambiguous-overmerge` | 0.8571 | 0.8571 | 0 | Safe abstention: action reducer avoids gratuitous edits and preserves baseline. |
 
 ## Accepted Edit Example
@@ -120,9 +121,8 @@ The validator recorded `schema_valid=true`, `fallback_count=0`,
 - Action granularity: enum actions are sufficient for disconnected merge and
   safe abstention, but temporal grouping may need multi-pair grouping or
   transitive closure constraints.
-- Model semantic ability: the model can make useful bounded merge decisions
-  when the pair proposal exposes the right relation; it is not yet proven
-  robust across seeds.
+- Model semantic ability: useful bounded merge decisions repeat across three
+  workload seeds, but cross-model and repeated-sampling robustness are untested.
 - Validator conservatism: not the blocker in the latest run; no validator
   rejection or fallback occurred for action-validated outputs.
 
@@ -137,9 +137,9 @@ current prototype, one-token pairwise action classification maps the model only
 to `Edit` and converts output instability into bounded action uncertainty:
 invalid model text becomes `ABSTAIN`, evidence references are supplied by the
 system, validators enforce the incident schema, and fallback protects baseline
-output. A single-seed real-online hardcase probe shows this design can accept
-validated merge edits and improve over `hybrid-hint` on covered ambiguous merge
-cases.
+output. A three-workload-seed real-online hardcase matrix shows this design can
+accept validated merge edits and improve over `hybrid-hint` on covered ambiguous
+merge cases under one model and endpoint.
 
 ## Current Final State
 
@@ -149,28 +149,32 @@ cases.
   while `Validate`, trace generation, and fallback remain system-owned.
 - The action reducer is written as an `Edit` + `Validate` instance, not as a
   prompt-engineering trick.
-- The current PDF compiles to 11 total pages in the local ACM-style draft, with
-  references beginning on page 11. The operator figure and hardcase table have
-  been visually checked for overlap/overflow.
+- The current PDF keeps all counted paper content within the ASPLOS 11-page
+  limit; the generative-AI acknowledgment and references begin on page 11 and
+  spill to a references-only page 12, which the official CFP excludes from the
+  limit. All pages have been visually checked for overlap/overflow.
 - No-NPU regression tests pass under `esage-vllm-hust-dev`:
-  `29 passed` for the semantic-merge and large-scale-analysis workload tests.
-- The three-hardcase NPU3 clean replay passes the artifact gate: F1 0.8857,
-  zero fallback, zero invalid schema, zero invalid action, single seed, clean
-  parent commit.
+  `33 passed` for the semantic-merge, large-scale-analysis, reporter, artifact
+  verifier, and anonymous-packaging tests.
+- The three-hardcase, three-workload-seed NPU3 matrix passes the artifact gate:
+  F1 0.9301 versus 0.7204 for `hybrid-hint`, support recall 0.9815, zero
+  fallback/invalid schema/invalid action, and clean parent/submodule provenance.
 - Implementation-layer boundary is explicit: the submitted Semantic MapReduce
   mechanism does not require new Ascend kernel, Triton operator, mask/packing,
   or runtime-operator semantic changes. If future work needs such behavior, it
   must land in the pinned `external/triton-ascend-hust` feature branch rather
   than as an ad hoc `vllm-ascend-hust` workaround; `vllm-ascend-hust` remains
   thin glue, and `vllm-hust` owns scheduler/KV/request-metadata concerns.
-- No additional NPU run is required for the current submission package unless
-  the paper is upgraded to make multi-seed live robustness claims.
+- No additional NPU run is required for the controlled three-workload-seed
+  mechanism claim; cross-model, repeated-sampling, and production-trace claims
+  remain outside the evidence boundary.
 
 ## Claims Not Yet Supported
 
-- Do not claim broad multi-seed robustness for live LLM-backed reduction.
+- Do not turn three controlled workload seeds on one model into broad stochastic,
+  cross-model, or production robustness.
 - Do not claim a quality-cost frontier; the action reducer still adds roughly
-  534 estimated tokens and 326 ms mean reduce latency in the small live probe.
+  536 estimated tokens and 324 ms mean reduce latency in the live matrix.
 - Do not claim production trace generality; the current mechanism suite is
   repo-local and controlled.
 - Do not claim that this replaces Spark, Flink, Ray, databases, LangGraph, or
@@ -250,19 +254,16 @@ latency, token cost, and traceability.
 
 ## Status
 
-READY for the current single-seed mechanism claim. The clean replay has passed.
-The remaining useful next experiment is optional strengthening, not a blocker:
-
-1. Run a minimal multi-seed hardcase sweep across
-   `ambiguous-disconnected-merge`, `ambiguous-temporal-split`, and
-   `ambiguous-overmerge`.
-2. Report per-case accepted edit count, fallback count, invalid action/schema,
-   token cost, latency, support evidence recall, and failure taxonomy.
+READY for the controlled three-workload-seed mechanism claim. The real-online
+matrix and machine-executable artifact/anonymity gates pass. Per-case/seed JSON and CSV
+report F1, support recall, accepted edits, fallback, invalid action/schema,
+tokens, latency, and failure taxonomy. The anonymous PDF has 11 counted pages
+plus one references-only overflow page and has passed a complete visual inspection.
 
 ## Clean Replay Artifact Gate
 
 The gate below has been run successfully for
-`.sage/benchmarks/real_online_semantic_merge/clean-pairwise-action-hardcases-c3d4dfa/`.
+`.sage/benchmarks/real_online_semantic_merge/20260718T-smr-hardcases-3seed-5a8419e/`.
 Run it again only when refreshing the submission artifact or changing reducer
 code.
 
@@ -293,9 +294,10 @@ SAGE_SMR_LLM_MODEL=qwen25-7b-sage-realonline \
 SAGE_SMR_LLM_MAX_EVIDENCE=24 \
 SAGE_SMR_LLM_MAX_CANDIDATES=12 \
 SAGE_SMR_LLM_MAX_TOKENS=8 \
-SEEDS=7 \
+SAGE_SMR_ENDPOINT_METADATA=.sage/benchmarks/real_online_semantic_mapreduce/20260718T-smr-multiseed-endpoint-5a8419e/metadata.json \
+SEEDS=7,11,13 \
 SCENARIOS=ambiguous-disconnected-merge,ambiguous-temporal-split,ambiguous-overmerge \
-REDUCERS=semantic-graph,hybrid-hint,llm-pairwise,llm-pairwise-validated,llm-pairwise-action,llm-pairwise-action-validated \
+REDUCERS=semantic-graph,hybrid-hint,llm-pairwise-validated,llm-pairwise-action-validated \
 SHARDS=8 \
 INCIDENTS=4 \
 bash tools/benchmark_carrier/run_npu3_semantic_merge_llm_comparison.sh
@@ -314,11 +316,11 @@ Required manifest fields:
   `third_party/ascend-runtime-manager`.
 - Reducers, scenarios, seed, shards, incidents, token limits, and result path.
 
-Pass criteria for keeping the current mechanism claim at "clean single-seed
-real-online result":
+Pass criteria for keeping the current mechanism claim at a clean three-workload-
+seed real-online result:
 
 - `llm-pairwise-action-validated` has `fallback=0`, `invalid action=0`, and
-  `invalid schema=0` over the three hardcases.
+  `invalid schema=0` over all nine case/seed runs.
 - Mean F1 for `llm-pairwise-action-validated` is greater than `hybrid-hint`
   under the same scorer.
 - `ambiguous-disconnected-merge` reaches F1 1.0 with at least one accepted
@@ -326,7 +328,31 @@ real-online result":
 - `ambiguous-overmerge` does not regress below `hybrid-hint`.
 - The result directory contains `manifest.txt`, `run_metadata.json`,
   `python-env.json`, `matrix/manifest.json`, `matrix/summary.json`,
-  `matrix/scenario_summary.json`, and `comparison_summary.json`.
+  `matrix/scenario_summary.json`, `comparison_summary.json`,
+  `case_seed_summary.json`, `case_seed_summary.csv`, and `artifact_gate.json`.
+
+Machine-executable gate:
+
+```bash
+python tools/benchmark_carrier/verify_semantic_merge_artifact.py \
+  .sage/benchmarks/real_online_semantic_merge/20260718T-smr-hardcases-3seed-5a8419e \
+  --endpoint-metadata \
+  .sage/benchmarks/real_online_semantic_mapreduce/20260718T-smr-multiseed-endpoint-5a8419e/metadata.json
+```
+
+Anonymous package and recheck:
+
+```bash
+python tools/benchmark_carrier/package_semantic_merge_artifact.py \
+  --comparison-dir .sage/benchmarks/real_online_semantic_merge/20260718T-smr-hardcases-3seed-5a8419e \
+  --endpoint-dir .sage/benchmarks/real_online_semantic_mapreduce/20260718T-smr-multiseed-endpoint-5a8419e \
+  --output-dir .sage/benchmarks/submission_semantic_mapreduce/20260718T-smr-hardcases-3seed-5a8419e-anonymous \
+  --archive .sage/benchmarks/semantic-mapreduce-3seed-real-online-5a8419e-anonymous.tar.gz
+python tools/benchmark_carrier/verify_semantic_merge_artifact.py \
+  .sage/benchmarks/submission_semantic_mapreduce/20260718T-smr-hardcases-3seed-5a8419e-anonymous/comparison \
+  --endpoint-metadata \
+  .sage/benchmarks/submission_semantic_mapreduce/20260718T-smr-hardcases-3seed-5a8419e-anonymous/endpoint/metadata.json
+```
 
 Fail criteria:
 

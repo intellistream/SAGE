@@ -58,6 +58,42 @@
   syntax clean, and 20 focused tests pass.
 - Committed the auditable evidence slice as `33055c8` and verified the clean gate
   rejects stale endpoint provenance from commit `c3d4dfa`.
+- Committed preflight evidence as `5a8419e`, launched a new controlled NPU3
+  endpoint, passed full runtime/Triton/health gates, and completed a minimal
+  three-seed real-online hardcase matrix.
+- Generated 36 raw reducer reports plus per-case JSON/CSV. Action-validated
+  improves mean F1 from hybrid 0.7204 to 0.9301 with zero fallback or invalid
+  outputs; the free-form validated negative fails schema in all 9 LLM rows.
+- Stopped the exact managed service and used its repo-owned isolated-container
+  cleanup for the residual child; confirmed NPU3 has no process and port 18383
+  has no listener.
+- Added a machine-checkable artifact verifier plus regression test, generated a
+  checksummed real-online artifact archive, and passed the gate on the three-seed
+  evidence package.
+- Updated the abstract, evaluation table, claim ledger, readiness report,
+  reviewer packet, and artifact README to the scoped three-seed result; rebuilt
+  the PDF successfully.
+- Rendered the PDF and visually inspected the real-online evidence page,
+  conclusion page, and bibliography page. The table is legible, but the build
+  is 12 pages and therefore remains blocked on the 11-page packaging gate.
+- Removed repeated positioning prose from the open-challenges/audit sections,
+  rebuilt to exactly 11 pages, rerendered every page, and completed a full visual
+  inspection with no clipping, overlaps, or unreadable tables/figures.
+- Audited the raw archive for double-blind leakage, added an allowlisted
+  anonymizing packager and regression test, generated the anonymous archive,
+  extracted it independently, and passed both the anonymity scan and evidence
+  verifier. The raw run remains untouched for provenance.
+- Ran the complete applicable suite in `esage-vllm-hust-dev`: Ruff and shell
+  syntax clean, 33 tests passed, raw and anonymous artifact gates passed, all
+  submodules clean, NPU3 free, and port 18383 closed.
+- Checked the live ASPLOS 2027 CFP, removed the temporary bibliography squeeze,
+  added the mandated generative-AI disclosure, and rebuilt. At this stage the PDF
+  remained 11 total pages, used the required review class and 8pt references,
+  had no author metadata, and the updated final page was visually clean.
+- Audited all 18 bibliography entries, corrected LO2's author list, and added
+  clickable official/DOI/arXiv links. The final file is 12 PDF pages only because
+  references continue onto page 12; all counted content remains within page 11,
+  matching the official CFP, and both reference pages were visually inspected.
 
 ## Test Results
 
@@ -73,6 +109,16 @@
 | Online preflight dirty gate | Dirty parent must prevent model access | Refused with explicit dirty-parent error | PASS |
 | Ruff + shell syntax | Changed Python/shell files are clean | All checks passed | PASS |
 | Stale endpoint provenance gate | Old commit metadata must be rejected | Rejected `c3d4dfa` vs current `33055c8` | PASS |
+| New endpoint preflight | NPU3/env/model/commit/submodules/health | All gates passed at `5a8419e` | PASS |
+| Three-seed real-online hardcases | Action path beats hybrid without invalid/fallback | F1 0.9301 vs 0.7204; all invalid/fallback counts zero | PASS |
+| Managed cleanup | Only launched service removed; NPU3/18383 free | No NPU3 process; no listener | PASS |
+| Artifact gate | Complete fields, clean provenance, baselines/controls, checksums | PASS on `20260718T-smr-hardcases-3seed-5a8419e` | PASS |
+| PDF build | Tectonic build; counted content ≤11 pages; references 8pt | 12 PDF pages, page 12 references only | PASS |
+| PDF visual check | Tables/content are legible and unclipped | All content plus final reference pages inspected | PASS |
+| Final PDF packaging | Official anonymous review form and 11-page counted-content limit | Body ends on page 11; references excluded by CFP | PASS |
+| Anonymous artifact | No identity/private-IP/email leak; exact evidence survives | Extracted tar clean; verifier PASS | PASS |
+| Complete applicable test suite | Workloads, reporter, artifact gate/packager | `33 passed in 4.35s` | PASS |
+| Final device/submodule state | NPU3/18383 free; all submodules clean | Verified | PASS |
 
 ## Error Log
 
@@ -83,13 +129,19 @@
 | 2026-07-18 | Unsupported `npu-smi info -i 3` form | 1 | Switch to advertised type/process forms for the installed CLI. |
 | 2026-07-18 | Offline manifest omitted Conda name under direct interpreter | 1 | Infer environment from `sys.prefix`; do not use the dirty diagnostic as submission evidence. |
 | 2026-07-18 | Ruff import/format findings | 1 | Applied automated fixes and reran checks/tests. |
+| 2026-07-18 | Runtime-generated dev-hub lock dirtied preflight | 1 | Preserved it in endpoint artifact; source checkout returned clean. |
+| 2026-07-18 | Managed stop left launched engine child | 1 | Ran scoped repo-owned container cleanup and verified device/port free. |
+| 2026-07-18 | Poll wrapper JS parse error | 1 | Simplified polling; live run continued unaffected. |
+| 2026-07-18 | ImageMagick `montage` unavailable for contact sheet | 1 | Inspected rendered pages directly with the image viewer. |
+| 2026-07-18 | Two combined doc/planning patches missed current context | 2 | Reapplied as narrow patches with exact context. |
+| 2026-07-18 | Ruff found an unused `shutil` import in the packager | 1 | Removed it; all checks pass. |
 
 ## 5-Question Reboot Check
 
 | Question | Answer |
 |---|---|
-| Where am I? | Phase 1: repository and evidence recovery. |
-| Where am I going? | Evidence schema, multi-seed closure, conditional online run, paper/artifact gates. |
+| Where am I? | Submission-readiness gates complete. |
+| Where am I going? | Final provenance commit and goal closure. |
 | What's the goal? | Auditable ASPLOS 2027 submission readiness without evidence overclaiming. |
 | What have I learned? | See `findings.md`. |
 | What have I done? | See this session log. |
