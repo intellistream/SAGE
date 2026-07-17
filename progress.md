@@ -56,6 +56,8 @@
   request or output directory was created.
 - Applied Ruff import/format fixes and reran validation: Ruff clean, shell
   syntax clean, and 20 focused tests pass.
+- Committed the auditable evidence slice as `33055c8` and verified the clean gate
+  rejects stale endpoint provenance from commit `c3d4dfa`.
 
 ## Test Results
 
@@ -70,6 +72,7 @@
 | Semantic merge focused suite | Reporter + workload/operator contracts | `20 passed in 0.62s` | PASS |
 | Online preflight dirty gate | Dirty parent must prevent model access | Refused with explicit dirty-parent error | PASS |
 | Ruff + shell syntax | Changed Python/shell files are clean | All checks passed | PASS |
+| Stale endpoint provenance gate | Old commit metadata must be rejected | Rejected `c3d4dfa` vs current `33055c8` | PASS |
 
 ## Error Log
 

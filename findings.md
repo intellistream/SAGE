@@ -95,6 +95,9 @@
   wrong device/env, existing output, dirty parent/submodules, commit/submodule
   provenance mismatch, or failed health check. A preflight-only invocation
   correctly stopped at the current dirty-parent gate before contacting the model.
+- After commit `33055c8`, the same preflight rejects the old endpoint metadata
+  because its parent commit is `c3d4dfa`. This is the intended stale-provenance
+  negative control; a new online run requires a newly launched endpoint manifest.
 - Semantic workload code already classifies missed and false-positive incidents;
   the per-case reporter should surface these taxonomies rather than invent a new
   failure model.
