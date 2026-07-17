@@ -6,8 +6,8 @@ import csv
 import json
 import os
 import platform
-import subprocess
 import statistics
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -15,11 +15,8 @@ from typing import Any
 
 from sage.workloads.semantic_merge_analysis import SCENARIOS, run_semantic_merge_workload
 
-
 DEFAULT_SEEDS = "7,11,13,17,19,23,29,31,37,41"
-DEFAULT_REDUCERS = (
-    "map-only,service-local,window-aggregate,semantic-graph,hybrid-hint,llm-stub"
-)
+DEFAULT_REDUCERS = "map-only,service-local,window-aggregate,semantic-graph,hybrid-hint,llm-stub"
 DEFAULT_SCENARIOS = ",".join(SCENARIOS)
 
 
@@ -91,9 +88,7 @@ def _scenario_summary(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "precision_mean": _mean([float(row["precision"]) for row in group]),
                 "recall_mean": _mean([float(row["recall"]) for row in group]),
                 "f1_mean": _mean([float(row["f1"]) for row in group]),
-                "evidence_coverage_mean": _mean(
-                    [float(row["evidence_coverage"]) for row in group]
-                ),
+                "evidence_coverage_mean": _mean([float(row["evidence_coverage"]) for row in group]),
                 "root_evidence_coverage_mean": _mean(
                     [float(row["root_evidence_coverage"]) for row in group]
                 ),
@@ -131,11 +126,19 @@ def _parse_args() -> argparse.Namespace:
 
 def _git_output(args: list[str]) -> str:
     try:
-        return subprocess.check_output(
-            ["git", *args], text=True, stderr=subprocess.DEVNULL
-        ).strip()
+        return subprocess.check_output(["git", *args], text=True, stderr=subprocess.DEVNULL).strip()
     except (subprocess.CalledProcessError, FileNotFoundError):
         return "unknown"
+
+
+def _environment_name() -> str:
+    configured = os.environ.get("CONDA_DEFAULT_ENV", "").strip()
+    if configured:
+        return configured
+    prefix = Path(sys.prefix)
+    if prefix.parent.name == "envs":
+        return prefix.name
+    return ""
 
 
 def _submodule_info(path: str) -> dict[str, Any]:
@@ -180,7 +183,7 @@ def _write_manifest(
             "version": platform.python_version(),
             "executable": sys.executable,
         },
-        "conda_env": os.environ.get("CONDA_DEFAULT_ENV", ""),
+        "conda_env": _environment_name(),
         "git": {
             "commit": _git_output(["rev-parse", "HEAD"]),
             "branch": _git_output(["rev-parse", "--abbrev-ref", "HEAD"]),
@@ -192,9 +195,7 @@ def _write_manifest(
             "path": "src/sage/workloads/semantic_merge_analysis.py",
             "suite": "semantic_merge_analysis",
         },
-        "shared_workload_submodule": _submodule_info(
-            "third_party/llm-serving-workloads"
-        ),
+        "shared_workload_submodule": _submodule_info("third_party/llm-serving-workloads"),
     }
     (outdir / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
@@ -237,9 +238,7 @@ def main() -> int:
                     reducer=reducer,
                 )
                 payload = report.to_dict()
-                artifact = outdir / (
-                    f"{scenario}_seed{seed}_{reducer.replace('-', '_')}.json"
-                )
+                artifact = outdir / (f"{scenario}_seed{seed}_{reducer.replace('-', '_')}.json")
                 artifact.write_text(
                     json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
                     encoding="utf-8",
@@ -275,9 +274,7 @@ def main() -> int:
         writer.writeheader()
         writer.writerows(rows)
     scenario_summary = _scenario_summary(rows)
-    with (outdir / "scenario_summary.csv").open(
-        "w", newline="", encoding="utf-8"
-    ) as handle:
+    with (outdir / "scenario_summary.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(scenario_summary[0].keys()))
         writer.writeheader()
         writer.writerows(scenario_summary)

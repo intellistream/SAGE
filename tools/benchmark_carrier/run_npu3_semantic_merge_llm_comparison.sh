@@ -11,6 +11,11 @@ if [[ "${ALLOW_NPU3_REAL_ONLINE:-0}" != "1" ]]; then
   exit 2
 fi
 
+die() {
+  echo "[ERROR] $*" >&2
+  exit 1
+}
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
@@ -27,31 +32,112 @@ MODEL="${SAGE_SMR_LLM_MODEL:-qwen3-32b}"
 API_KEY_ENV="${SAGE_SMR_LLM_API_KEY_ENV:-VLLM_HUST_API_KEY}"
 ENV_FILE="${SAGE_SMR_LLM_ENV_FILE:-$REPO_ROOT/external/vllm-hust-dev-hub/.env}"
 CONDA_ENV="${SAGE_SMR_CONDA_ENV:-esage-vllm-hust-dev}"
+CONDA_EXE="${SAGE_SMR_CONDA_EXE:-/home/shuhao/miniconda3/bin/conda}"
+NPU_DEVICE="${SAGE_SMR_NPU_DEVICE:-3}"
+ENDPOINT_METADATA="${SAGE_SMR_ENDPOINT_METADATA:-}"
+PREFLIGHT_ONLY="${SAGE_SMR_PREFLIGHT_ONLY:-0}"
 LLM_MAX_EVIDENCE="${SAGE_SMR_LLM_MAX_EVIDENCE:-24}"
 LLM_MAX_CANDIDATES="${SAGE_SMR_LLM_MAX_CANDIDATES:-12}"
 LLM_MAX_TOKENS="${SAGE_SMR_LLM_MAX_TOKENS:-384}"
 LLM_TIMEOUT_SEC="${SAGE_SMR_LLM_TIMEOUT_SEC:-240}"
 
-mkdir -p "$OUTDIR"
-
 export RUN_ID OUTDIR BASE_URL MODEL API_KEY_ENV CONDA_ENV
+export NPU_DEVICE ENDPOINT_METADATA
 export SEEDS SCENARIOS REDUCERS SHARDS INCIDENTS
 export LLM_MAX_EVIDENCE LLM_MAX_CANDIDATES LLM_MAX_TOKENS LLM_TIMEOUT_SEC
 
+run_python() {
+  "$CONDA_EXE" run --no-capture-output -n "$CONDA_ENV" env PYTHONPATH=src "$@"
+}
+
+[[ "$NPU_DEVICE" == "3" ]] || die "Refusing non-NPU3 comparison: $NPU_DEVICE"
+[[ "$CONDA_ENV" == "esage-vllm-hust-dev" ]] \
+  || die "Expected dedicated environment esage-vllm-hust-dev, got $CONDA_ENV"
+[[ -x "$CONDA_EXE" ]] || die "Conda executable not found: $CONDA_EXE"
+[[ -n "$ENDPOINT_METADATA" && -f "$ENDPOINT_METADATA" ]] \
+  || die "Set SAGE_SMR_ENDPOINT_METADATA to the controlled endpoint metadata.json"
+[[ ! -e "$OUTDIR" ]] || die "Output directory already exists: $OUTDIR"
+[[ -z "$(git status --porcelain)" ]] \
+  || die "Parent repository is dirty; commit or otherwise preserve scoped changes first."
+
+required_submodules=(
+  external/vllm-hust
+  external/vllm-ascend-hust
+  external/triton-ascend-hust
+  external/vllm-hust-dev-hub
+  third_party/ascend-runtime-manager
+  third_party/llm-serving-workloads
+)
+for submodule in "${required_submodules[@]}"; do
+  [[ -d "$submodule" && ! -L "$submodule" ]] \
+    || die "Missing or symlinked repo-owned submodule: $submodule"
+  [[ -z "$(git -C "$submodule" status --porcelain)" ]] \
+    || die "Submodule is dirty: $submodule"
+done
+
+run_python python - "$ENDPOINT_METADATA" <<'PY'
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+metadata = json.loads(path.read_text(encoding="utf-8"))
+
+
+def git(*args: str) -> str:
+    return subprocess.check_output(["git", *args], text=True).strip()
+
+
+expected = {
+    "evidence_label": "real-online",
+    "base_url": os.environ["BASE_URL"],
+    "npu_device": os.environ["NPU_DEVICE"],
+    "served_model_name": os.environ["MODEL"],
+    "conda_env": os.environ["CONDA_ENV"],
+    "parent_repo_commit": git("rev-parse", "HEAD"),
+    "parent_repo_dirty": False,
+}
+errors = []
+for name, value in expected.items():
+    actual = metadata.get(name)
+    if name == "npu_device":
+        actual = str(actual)
+    if actual != value:
+        errors.append(f"{name}: expected {value!r}, got {actual!r}")
+
+recorded = metadata.get("submodules", {})
+for submodule in (
+    "external/vllm-hust",
+    "external/vllm-ascend-hust",
+    "external/triton-ascend-hust",
+    "external/vllm-hust-dev-hub",
+    "third_party/ascend-runtime-manager",
+    "third_party/llm-serving-workloads",
+):
+    entry = recorded.get(submodule, {})
+    current = subprocess.check_output(
+        ["git", "-C", submodule, "rev-parse", "HEAD"], text=True
+    ).strip()
+    if entry.get("commit") != current or entry.get("dirty") is not False:
+        errors.append(f"submodule provenance mismatch: {submodule}")
+
+if errors:
+    raise SystemExit("Endpoint provenance gate failed:\n- " + "\n- ".join(errors))
+PY
+
 health_url="${BASE_URL%/}/health"
 if ! curl -fsS --max-time 5 "$health_url" >/dev/null; then
-  echo "Endpoint health check failed: $health_url" >&2
-  echo "Start the service through external/vllm-hust-dev-hub/manage.sh on NPU3 first." >&2
-  exit 3
+  die "Endpoint health check failed: $health_url"
 fi
 
-run_python() {
-  if [[ -n "$CONDA_ENV" ]]; then
-    conda run -n "$CONDA_ENV" env PYTHONPATH=src "$@"
-  else
-    env PYTHONPATH=src "$@"
-  fi
-}
+if [[ "$PREFLIGHT_ONLY" == "1" ]]; then
+  echo "PREFLIGHT_OK endpoint=$BASE_URL model=$MODEL npu=$NPU_DEVICE env=$CONDA_ENV"
+  exit 0
+fi
+
+mkdir -p "$OUTDIR"
 
 record_python_env() {
   run_python python -c '
@@ -75,6 +161,8 @@ print(json.dumps({"python": sys.executable, "version": sys.version, "packages": 
   echo "repo_branch=$(git rev-parse --abbrev-ref HEAD)"
   echo "repo_dirty=$([[ -n "$(git status --short)" ]] && echo true || echo false)"
   echo "conda_env=$CONDA_ENV"
+  echo "npu_device=$NPU_DEVICE"
+  echo "endpoint_metadata=$ENDPOINT_METADATA"
   echo "scenarios=$SCENARIOS"
   echo "seeds=$SEEDS"
   echo "reducers=$REDUCERS"
@@ -90,7 +178,7 @@ print(json.dumps({"python": sys.executable, "version": sys.version, "packages": 
 } > "$OUTDIR/manifest.txt"
 record_python_env > "$OUTDIR/python-env.json"
 
-python - "$OUTDIR/run_metadata.json" <<'PY'
+run_python python - "$OUTDIR/run_metadata.json" <<'PY'
 import json
 import os
 import subprocess
@@ -127,6 +215,11 @@ metadata = {
     "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     "evidence_label": "real-online",
     "conda_env": os.environ.get("CONDA_ENV", ""),
+    "hardware": {
+        "npu_device": int(os.environ.get("NPU_DEVICE", "-1")),
+        "device_label": f"NPU{os.environ.get('NPU_DEVICE', '')}",
+    },
+    "endpoint_provenance": os.environ.get("ENDPOINT_METADATA", ""),
     "endpoint": {
         "base_url": os.environ.get("BASE_URL", ""),
         "model": os.environ.get("MODEL", ""),
@@ -189,7 +282,7 @@ run_python python tools/benchmark_carrier/run_semantic_merge_matrix.py \
   --output-root "$OUTDIR" \
   --run-id matrix
 
-python - "$OUTDIR/matrix/manifest.json" "$OUTDIR/run_metadata.json" <<'PY'
+run_python python - "$OUTDIR/matrix/manifest.json" "$OUTDIR/run_metadata.json" <<'PY'
 import json
 import sys
 from pathlib import Path
