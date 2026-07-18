@@ -555,6 +555,48 @@ def test_openai_pairwise_action_validated_reducer_assembles_legal_edits() -> Non
     assert reducer.last_call["merge_count"] >= 1
     assert reducer.last_call["accepted_edit_count"] == reducer.last_call["merge_count"]
     assert reducer.last_call["action_trace"]
+    assert reducer.last_call["raw_response_retained"] is True
+    assert reducer.last_call["temperature"] == 0.0
+    assert reducer.last_call["request_trace"]
+    assert all(item["status"] == "ok" for item in reducer.last_call["request_trace"])
+    assert all(item["response_text"] in {"KEEP", "MERGE"} for item in reducer.last_call["request_trace"])
+    assert all(item["provider_response"] is None for item in reducer.last_call["request_trace"])
+    assert reducer.last_call["provider_usage_available"] is False
+    assert reducer.last_call["provider_total_tokens"] is None
+    assert reducer.last_call["token_measurement_source"] == "char-estimate"
+
+
+def test_provider_usage_is_summed_across_bounded_action_requests() -> None:
+    usage = sma._provider_usage_from_request_trace(
+        [
+            {
+                "provider_response": {
+                    "usage": {
+                        "prompt_tokens": 10,
+                        "completion_tokens": 2,
+                        "total_tokens": 12,
+                    }
+                }
+            },
+            {
+                "provider_response": {
+                    "usage": {
+                        "prompt_tokens": 11,
+                        "completion_tokens": 1,
+                        "total_tokens": 12,
+                    }
+                }
+            },
+        ]
+    )
+
+    assert usage == {
+        "provider_usage_available": True,
+        "provider_prompt_tokens": 21,
+        "provider_response_tokens": 3,
+        "provider_total_tokens": 24,
+        "token_measurement_source": "provider-usage",
+    }
 
 
 def test_openai_pairwise_action_invalid_output_abstains_without_fallback() -> None:
@@ -583,3 +625,31 @@ def test_openai_pairwise_action_invalid_output_abstains_without_fallback() -> No
         item["action"] == "ABSTAIN" and item["valid"] is False
         for item in reducer.last_call["action_trace"]
     )
+
+
+def test_openai_pairwise_action_request_failure_preserves_auditable_baseline() -> None:
+    reducer = OpenAIPairwiseActionValidatedMergeReducer(
+        base_url="http://example.invalid",
+        model="unit-test-model",
+        api_key="unit-test-key",
+    )
+
+    def fail(_prompt: str) -> str:
+        raise RuntimeError("controlled endpoint failure")
+
+    reducer._completion_action = fail
+    report = sma.run_semantic_merge_workload(
+        seed=7,
+        shard_count=8,
+        incident_count=4,
+        scenario="ambiguous-disconnected-merge",
+        reducer=reducer,
+    )
+
+    contract = reducer.last_call["contract_trace"]
+    assert report.detected_incident_count > 0
+    assert reducer.last_call["fallback_count"] == 1
+    assert reducer.last_call["request_trace"][0]["status"] == "error"
+    assert contract["validator_owned"] is True
+    assert contract["commit_outcome"] == "preserved-baseline"
+    assert contract["replay_id"]

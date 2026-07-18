@@ -11,10 +11,19 @@ from typing import Any
 TARGET = "llm-pairwise-action-validated"
 BASELINE = "hybrid-hint"
 NEGATIVE = "llm-pairwise-validated"
-SCENARIOS = {
+HARDCASE_SCENARIOS = {
     "ambiguous-disconnected-merge",
     "ambiguous-temporal-split",
     "ambiguous-overmerge",
+}
+FULL_SCENARIOS = {
+    "single-service",
+    "cascade",
+    "shared-bottleneck",
+    "concurrent",
+    "false-correlation",
+    "partial-evidence",
+    *HARDCASE_SCENARIOS,
 }
 REQUIRED_CASE_FIELDS = {
     "scenario",
@@ -30,6 +39,15 @@ REQUIRED_CASE_FIELDS = {
     "reduce_duration_ms",
     "failure_taxonomy",
 }
+FULL_REQUIRED_CASE_FIELDS = REQUIRED_CASE_FIELDS | {"sample_id"}
+TARGET_CONTRACT_FIELDS = {
+    "validator_owned",
+    "commit_outcome",
+    "replay_id",
+    "raw_response_retained",
+    "request_attempt_count",
+    "request_failure_count",
+}
 
 
 def _load(path: Path) -> Any:
@@ -44,7 +62,13 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def verify(artifact_dir: Path, endpoint_metadata_path: Path) -> dict[str, Any]:
+def verify(
+    artifact_dir: Path,
+    endpoint_metadata_path: Path,
+    *,
+    profile: str = "hardcase",
+    min_samples: int = 1,
+) -> dict[str, Any]:
     required = {
         "run_metadata": artifact_dir / "run_metadata.json",
         "comparison_summary": artifact_dir / "comparison_summary.json",
@@ -77,7 +101,13 @@ def verify(artifact_dir: Path, endpoint_metadata_path: Path) -> dict[str, Any]:
     expect(run.get("git", {}).get("dirty") is False, "parent repository was dirty")
     expect(manifest.get("evidence_label") == "real-online", "matrix is not real-online")
     expect(set(manifest.get("seeds", [])) >= {7, 11, 13}, "required seeds 7/11/13 are absent")
-    expect(set(manifest.get("scenarios", [])) == SCENARIOS, "hardcase scenario set changed")
+    expected_scenarios = (
+        HARDCASE_SCENARIOS if profile == "hardcase" else FULL_SCENARIOS
+    )
+    expect(
+        set(manifest.get("scenarios", [])) == expected_scenarios,
+        f"{profile} scenario set changed",
+    )
     expect(
         {TARGET, BASELINE, NEGATIVE}.issubset(manifest.get("reducers", [])),
         "target, strong baseline, or negative control is absent",
@@ -105,7 +135,9 @@ def verify(artifact_dir: Path, endpoint_metadata_path: Path) -> dict[str, Any]:
     )
 
     seeds = sorted(set(manifest.get("seeds", [])))
-    expected_rows = len(seeds) * len(SCENARIOS)
+    samples = int(manifest.get("samples", 1))
+    expect(samples >= min_samples, f"samples={samples}, required at least {min_samples}")
+    expected_rows = len(seeds) * len(expected_scenarios) * samples
     groups = {
         reducer: [row for row in rows if row.get("reducer") == reducer]
         for reducer in (TARGET, BASELINE, NEGATIVE)
@@ -116,38 +148,81 @@ def verify(artifact_dir: Path, endpoint_metadata_path: Path) -> dict[str, Any]:
             f"{reducer} has {len(group)} rows, expected {expected_rows}",
         )
         for row in group:
-            missing = REQUIRED_CASE_FIELDS - set(row)
+            required_fields = REQUIRED_CASE_FIELDS
+            if profile == "full":
+                required_fields = FULL_REQUIRED_CASE_FIELDS
+                if reducer == TARGET:
+                    required_fields = required_fields | TARGET_CONTRACT_FIELDS
+            missing = required_fields - set(row)
             expect(not missing, f"{reducer} row missing fields: {sorted(missing)}")
 
     target_rows = groups[TARGET]
     baseline_rows = groups[BASELINE]
     negative_rows = groups[NEGATIVE]
-    target_by_case = {(row["scenario"], row["seed"]): row for row in target_rows}
-    baseline_by_case = {(row["scenario"], row["seed"]): row for row in baseline_rows}
-    expect(
-        all(
-            row["fallback_count"] == 0
-            and row["invalid_action_count"] == 0
-            and row["invalid_schema_count"] == 0
-            for row in target_rows
-        ),
-        "target has fallback or invalid output",
-    )
-    expect(
-        all(row["fallback_count"] > 0 and row["invalid_schema_count"] > 0 for row in negative_rows),
-        "free-form validated negative did not exercise schema fallback",
-    )
+    target_by_case = {
+        (row["scenario"], row["seed"], row.get("sample_id", 1)): row
+        for row in target_rows
+    }
+    baseline_by_case = {
+        (row["scenario"], row["seed"], row.get("sample_id", 1)): row
+        for row in baseline_rows
+    }
+    if profile == "hardcase":
+        expect(
+            all(
+                row["fallback_count"] == 0
+                and row["invalid_action_count"] == 0
+                and row["invalid_schema_count"] == 0
+                for row in target_rows
+            ),
+            "target has fallback or invalid output",
+        )
+        expect(
+            all(
+                row["fallback_count"] > 0 and row["invalid_schema_count"] > 0
+                for row in negative_rows
+            ),
+            "free-form validated negative did not exercise schema fallback",
+        )
+    else:
+        for row in target_rows:
+            expect(
+                row.get("validator_owned") is True,
+                "target commit is not validator-owned",
+            )
+            expect(
+                row.get("commit_outcome") in {"committed", "preserved-baseline"},
+                "target commit outcome absent",
+            )
+            expect(bool(row.get("replay_id")), "target replay ID absent")
+            expect(
+                row.get("raw_response_retained") is True,
+                "target raw response not retained",
+            )
 
     target_f1 = statistics.fmean(row["f1"] for row in target_rows)
     baseline_f1 = statistics.fmean(row["f1"] for row in baseline_rows)
     expect(target_f1 > baseline_f1, "target mean F1 does not exceed hybrid-hint")
-    for seed in seeds:
-        disconnected = target_by_case[("ambiguous-disconnected-merge", seed)]
-        expect(disconnected["f1"] == 1.0, f"seed {seed} disconnected merge is not F1 1.0")
-        expect(disconnected["accepted_edit_count"] > 0, f"seed {seed} has no accepted merge edit")
-        overmerge = target_by_case[("ambiguous-overmerge", seed)]
-        baseline = baseline_by_case[("ambiguous-overmerge", seed)]
-        expect(overmerge["f1"] >= baseline["f1"], f"seed {seed} regresses overmerge")
+    if profile == "hardcase":
+        for seed in seeds:
+            for sample_id in range(1, samples + 1):
+                disconnected = target_by_case[
+                    ("ambiguous-disconnected-merge", seed, sample_id)
+                ]
+                expect(
+                    disconnected["f1"] == 1.0,
+                    f"seed {seed} sample {sample_id} disconnected merge is not F1 1.0",
+                )
+                expect(
+                    disconnected["accepted_edit_count"] > 0,
+                    f"seed {seed} sample {sample_id} has no accepted merge edit",
+                )
+                overmerge = target_by_case[("ambiguous-overmerge", seed, sample_id)]
+                baseline = baseline_by_case[("ambiguous-overmerge", seed, sample_id)]
+                expect(
+                    overmerge["f1"] >= baseline["f1"],
+                    f"seed {seed} sample {sample_id} regresses overmerge",
+                )
 
     checksums = {name: _sha256(path) for name, path in required.items()}
     checksums["endpoint_metadata"] = _sha256(endpoint_metadata_path)
@@ -157,7 +232,9 @@ def verify(artifact_dir: Path, endpoint_metadata_path: Path) -> dict[str, Any]:
         "evidence_label": run.get("evidence_label"),
         "parent_commit": run_git.get("commit"),
         "seeds": seeds,
-        "scenarios": sorted(SCENARIOS),
+        "scenarios": sorted(expected_scenarios),
+        "profile": profile,
+        "samples": samples,
         "target_reducer": TARGET,
         "strong_baseline": BASELINE,
         "negative_control": NEGATIVE,
@@ -183,8 +260,15 @@ def main() -> int:
     parser.add_argument("artifact_dir", type=Path)
     parser.add_argument("--endpoint-metadata", required=True, type=Path)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--profile", choices=("hardcase", "full"), default="hardcase")
+    parser.add_argument("--min-samples", type=int, default=1)
     args = parser.parse_args()
-    result = verify(args.artifact_dir, args.endpoint_metadata)
+    result = verify(
+        args.artifact_dir,
+        args.endpoint_metadata,
+        profile=args.profile,
+        min_samples=args.min_samples,
+    )
     output = args.output or args.artifact_dir / "artifact_gate.json"
     output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(result, ensure_ascii=False, indent=2))

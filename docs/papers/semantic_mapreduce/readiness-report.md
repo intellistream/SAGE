@@ -4,7 +4,7 @@ This report summarizes the current EuroSys'27-readiness state for the Semantic
 MapReduce paper draft. It separates supported claims from mechanism probes and
 keeps real-online evidence provenance explicit.
 
-## Latest Hardcase Result
+## Primary Online Result
 
 Expanded nine-family, three-seed real-online artifact (27 rows per reducer):
 
@@ -246,6 +246,46 @@ repeated-sampling matrices remain robustness extensions.
 - Do not claim that validators prove the LLM is always useful; validators make
   model edits auditable, rejectable, and fallback-safe.
 
+## 2026-07-18 Evidence-Sprint Audit
+
+The submission-facing claim boundary is sound, but the current online evidence
+is still one sample per case on one model and endpoint. This sprint therefore
+added an executable repeated-sampling and candidate-budget harness rather than
+rewriting the existing point estimate as robustness evidence:
+
+- `run_semantic_merge_matrix.py --samples N` writes a distinct raw report for
+  every case/seed/reducer/sample tuple.
+- The bounded action reducer retains model text, provider response envelope,
+  prompt/response digests, timestamps, latency, and every request failure. No
+  credential or bearer header is retained.
+- `summarize_semantic_merge_stability.py` reports within-case F1 standard
+  deviation and exact action agreement. Cross-workload F1 variation is not
+  mislabeled as sampling instability.
+- Provider-reported token usage is used when available; otherwise the artifact
+  labels the value as a character-based estimate.
+- `run_npu3_semantic_merge_stability_sweep.sh` evaluates candidate budgets
+  `4,8,12` over all nine families, seeds `7,11,13`, and repeated samples, then
+  derives a quality--reducer-latency--token curve. It does not claim an
+  end-to-end serving speedup or a monetary-cost frontier.
+
+A deterministic five-sample development run over all nine families verified
+the repetition and aggregation plumbing. Its source evidence label is
+`simulation/model`; it is not LLM stability evidence. A public AIOps replay now
+also executes the reducer contract over the two detected official windows:
+valid bounded edits commit, an edit that cites missing evidence is rejected,
+the baseline is preserved, and deterministic replay succeeds. Because AIOps
+2020 does not provide incident-group merge/split labels, this is external
+contract conformance, not reducer-quality generalization.
+
+The real-online stability/budget sweep is currently **blocked**: the local test
+key predates a known terminal exposure and no post-exposure rotation has been
+attested. The runner now requires a secret-free JSON attestation with
+`rotated_utc`, `api_key_env`, and
+`operator_acknowledged_no_key_logged=true`, and records only its basename and
+SHA-256. A second model remains optional and requires a separately controlled
+endpoint with matching clean-commit metadata; no result is inferred in its
+absence.
+
 ## Reviewer Attack Prep
 
 **Is this just prompt engineering?**
@@ -318,7 +358,8 @@ latency, token cost, and traceability.
 
 ## Status
 
-READY for the bounded-contract mechanism claim and internal EuroSys review.
+READY for the bounded-contract mechanism claim and internal EuroSys review,
+but NOT frozen for submission.
 The real-online matrix and machine-executable artifact gates pass. Per-case/seed
 JSON and CSV report F1, support recall, accepted edits, fallback, invalid
 action/schema, tokens, latency, and failure taxonomy. The current PDF has 11

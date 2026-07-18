@@ -618,6 +618,7 @@ ALLOW_NPU3_REAL_ONLINE=1 \
 SAGE_SMR_LLM_BASE_URL=http://127.0.0.1:18383 \
 SAGE_SMR_LLM_MODEL=<served-model-name> \
 SAGE_SMR_ENDPOINT_METADATA=<controlled-endpoint-metadata.json> \
+SAGE_SMR_KEY_ROTATION_ATTESTATION=<untracked-rotation-attestation.json> \
 tools/benchmark_carrier/run_npu3_semantic_merge_llm_comparison.sh
 ```
 
@@ -625,9 +626,45 @@ The comparison runner fails closed unless the parent and repo-owned submodules
 are clean and the endpoint metadata matches the current commit, NPU3, dedicated
 environment, URL, and served model. It records token cost, latency, candidate
 counts, accepted edits, fallback/invalid counts, coverage, support recall, and
-per-case failure taxonomy. The quality claim for live LLM-backed reduction must
+per-case failure taxonomy. It also refuses to read the endpoint until a
+secret-free attestation states that the test key was rotated after the recorded
+exposure cutoff; only the attestation basename and SHA-256 enter metadata. The
+quality claim for live LLM-backed reduction must
 come from accepted edits that preserve the validation contract and improve over
 the deterministic/hybrid baselines under the same scorer.
+
+For the EuroSys stability and quality--cost gate, use the full wrapper after the
+same clean endpoint and key-rotation preconditions hold:
+
+```bash
+SAGE_SMR_ENDPOINT_METADATA=<controlled-endpoint-metadata.json> \
+SAGE_SMR_KEY_ROTATION_ATTESTATION=<untracked-rotation-attestation.json> \
+SAGE_SMR_SAMPLES=5 \
+tools/benchmark_carrier/run_npu3_semantic_merge_stability_sweep.sh
+```
+
+The wrapper runs all nine families and seeds `7,11,13` at candidate budgets
+`4,8,12`. Every repeated call has a distinct raw report and sample ID. The
+stability summary reports within-case F1 variation and exact action agreement;
+it does not interpret cross-family variation as stochastic instability. The
+budget summary uses provider token usage when present and labels the fallback
+character estimate. Both summaries are `derived-artifact`; their inputs retain
+their `real-online` provenance.
+
+Without credentials, the AIOps contract path remains directly executable:
+
+```bash
+PYTHONPATH=src python \
+  tools/benchmark_carrier/run_aiops2020_semantic_reduce_contract_replay.py \
+  --replay-dir .sage/benchmarks/aiops2020_public_replay/20260718T-may29-map-evidence-replay-v4 \
+  --output-root .sage/benchmarks/aiops2020_semantic_reduce_contract \
+  --run-id <run-id>
+```
+
+It checks bounded valid commit, missing-evidence rejection, baseline
+preservation, state digests, and deterministic replay over the detected public
+windows. AIOps 2020 lacks reducer-level incident-group labels, so this is
+external contract conformance, not reducer-quality evidence.
 
 Current NPU3 semantic-merge matrix artifact:
 

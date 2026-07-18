@@ -24,6 +24,7 @@ SCENARIOS="${SCENARIOS:-partial-evidence,false-correlation,concurrent}"
 REDUCERS="${REDUCERS:-semantic-graph,hybrid-hint,llm-hybrid,llm-hybrid-validated,llm-openai}"
 SHARDS="${SHARDS:-8}"
 INCIDENTS="${INCIDENTS:-4}"
+SAMPLES="${SAGE_SMR_SAMPLES:-1}"
 RUN_ID="${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)-npu3-semantic-merge-llm-comparison}"
 OUTDIR="${OUTDIR:-.sage/benchmarks/real_online_semantic_merge/${RUN_ID}}"
 
@@ -35,18 +36,23 @@ CONDA_ENV="${SAGE_SMR_CONDA_ENV:-esage-vllm-hust-dev}"
 CONDA_EXE="${SAGE_SMR_CONDA_EXE:-/home/shuhao/miniconda3/bin/conda}"
 NPU_DEVICE="${SAGE_SMR_NPU_DEVICE:-3}"
 ENDPOINT_METADATA="${SAGE_SMR_ENDPOINT_METADATA:-}"
+KEY_ROTATION_ATTESTATION="${SAGE_SMR_KEY_ROTATION_ATTESTATION:-}"
+KEY_EXPOSURE_CUTOFF_UTC="${SAGE_SMR_KEY_EXPOSURE_CUTOFF_UTC:-2026-07-18T00:00:00Z}"
 PREFLIGHT_ONLY="${SAGE_SMR_PREFLIGHT_ONLY:-0}"
 ALLOW_DIRTY_PARENT="${SAGE_SMR_ALLOW_DIRTY_PARENT:-0}"
 LLM_MAX_EVIDENCE="${SAGE_SMR_LLM_MAX_EVIDENCE:-24}"
 LLM_MAX_CANDIDATES="${SAGE_SMR_LLM_MAX_CANDIDATES:-12}"
 LLM_MAX_TOKENS="${SAGE_SMR_LLM_MAX_TOKENS:-384}"
 LLM_TIMEOUT_SEC="${SAGE_SMR_LLM_TIMEOUT_SEC:-240}"
+LLM_TEMPERATURE="${SAGE_SMR_LLM_TEMPERATURE:-0}"
 
 export RUN_ID OUTDIR BASE_URL MODEL API_KEY_ENV CONDA_ENV
 export NPU_DEVICE ENDPOINT_METADATA
+export KEY_ROTATION_ATTESTATION KEY_EXPOSURE_CUTOFF_UTC
 export ALLOW_DIRTY_PARENT
 export SEEDS SCENARIOS REDUCERS SHARDS INCIDENTS
-export LLM_MAX_EVIDENCE LLM_MAX_CANDIDATES LLM_MAX_TOKENS LLM_TIMEOUT_SEC
+export SAMPLES LLM_MAX_EVIDENCE LLM_MAX_CANDIDATES LLM_MAX_TOKENS LLM_TIMEOUT_SEC
+export LLM_TEMPERATURE
 
 run_python() {
   "$CONDA_EXE" run --no-capture-output -n "$CONDA_ENV" env PYTHONPATH=src "$@"
@@ -58,6 +64,8 @@ run_python() {
 [[ -x "$CONDA_EXE" ]] || die "Conda executable not found: $CONDA_EXE"
 [[ -n "$ENDPOINT_METADATA" && -f "$ENDPOINT_METADATA" ]] \
   || die "Set SAGE_SMR_ENDPOINT_METADATA to the controlled endpoint metadata.json"
+[[ -n "$KEY_ROTATION_ATTESTATION" && -f "$KEY_ROTATION_ATTESTATION" ]] \
+  || die "Set SAGE_SMR_KEY_ROTATION_ATTESTATION after rotating the exposed test key"
 [[ ! -e "$OUTDIR" ]] || die "Output directory already exists: $OUTDIR"
 if [[ -n "$(git status --porcelain)" && "$ALLOW_DIRTY_PARENT" != "1" ]]; then
   die "Parent repository is dirty; set SAGE_SMR_ALLOW_DIRTY_PARENT=1 only for a diff-hashed development run."
@@ -77,6 +85,34 @@ for submodule in "${required_submodules[@]}"; do
   [[ -z "$(git -C "$submodule" status --porcelain)" ]] \
     || die "Submodule is dirty: $submodule"
 done
+
+run_python python - "$KEY_ROTATION_ATTESTATION" <<'PY'
+import datetime as dt
+import json
+import os
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+attestation = json.loads(path.read_text(encoding="utf-8"))
+for forbidden in ("api_key", "key", "token", "secret", "value"):
+    if forbidden in attestation:
+        raise SystemExit(f"rotation attestation must not contain secret field: {forbidden}")
+if attestation.get("api_key_env") != os.environ["API_KEY_ENV"]:
+    raise SystemExit("rotation attestation API-key environment does not match")
+if attestation.get("operator_acknowledged_no_key_logged") is not True:
+    raise SystemExit("rotation attestation lacks no-key-logged acknowledgement")
+rotated = dt.datetime.fromisoformat(str(attestation["rotated_utc"]).replace("Z", "+00:00"))
+cutoff = dt.datetime.fromisoformat(
+    os.environ["KEY_EXPOSURE_CUTOFF_UTC"].replace("Z", "+00:00")
+)
+if rotated <= cutoff:
+    raise SystemExit("test key was not attested as rotated after the exposure cutoff")
+PY
+
+KEY_ROTATION_ATTESTATION_SHA256="$(sha256sum "$KEY_ROTATION_ATTESTATION" | awk '{print $1}')"
+KEY_ROTATION_ATTESTATION_NAME="$(basename "$KEY_ROTATION_ATTESTATION")"
+export KEY_ROTATION_ATTESTATION_SHA256 KEY_ROTATION_ATTESTATION_NAME
 
 run_python python - "$ENDPOINT_METADATA" <<'PY'
 import json
@@ -175,17 +211,24 @@ print(json.dumps({"python": sys.executable, "version": sys.version, "packages": 
   echo "conda_env=$CONDA_ENV"
   echo "npu_device=$NPU_DEVICE"
   echo "endpoint_metadata=$ENDPOINT_METADATA"
+  echo "key_rotation_attestation_name=$KEY_ROTATION_ATTESTATION_NAME"
+  echo "key_rotation_attestation_sha256=$KEY_ROTATION_ATTESTATION_SHA256"
+  echo "key_exposure_cutoff_utc=$KEY_EXPOSURE_CUTOFF_UTC"
   echo "scenarios=$SCENARIOS"
   echo "seeds=$SEEDS"
   echo "reducers=$REDUCERS"
   echo "shards=$SHARDS"
   echo "incidents=$INCIDENTS"
+  echo "samples=$SAMPLES"
   echo "base_url=$BASE_URL"
   echo "model=$MODEL"
   echo "llm_max_evidence=$LLM_MAX_EVIDENCE"
   echo "llm_max_candidates=$LLM_MAX_CANDIDATES"
   echo "llm_max_tokens=$LLM_MAX_TOKENS"
   echo "llm_timeout_sec=$LLM_TIMEOUT_SEC"
+  echo "llm_temperature=$LLM_TEMPERATURE"
+  echo "raw_response_retention=provider envelope and model text per request"
+  echo "retry_policy=record every attempt; bounded action path has no hidden retry"
   git submodule status --recursive || true
 } > "$OUTDIR/manifest.txt"
 record_python_env > "$OUTDIR/python-env.json"
@@ -233,6 +276,12 @@ metadata = {
         "device_label": f"NPU{os.environ.get('NPU_DEVICE', '')}",
     },
     "endpoint_provenance": os.environ.get("ENDPOINT_METADATA", ""),
+    "key_rotation": {
+        "attestation_name": os.environ.get("KEY_ROTATION_ATTESTATION_NAME", ""),
+        "attestation_sha256": os.environ.get("KEY_ROTATION_ATTESTATION_SHA256", ""),
+        "exposure_cutoff_utc": os.environ.get("KEY_EXPOSURE_CUTOFF_UTC", ""),
+        "secret_retained": False,
+    },
     "endpoint": {
         "base_url": os.environ.get("BASE_URL", ""),
         "model": os.environ.get("MODEL", ""),
@@ -243,7 +292,10 @@ metadata = {
         "max_candidates": int(os.environ.get("LLM_MAX_CANDIDATES", "0") or "0"),
         "max_tokens": int(os.environ.get("LLM_MAX_TOKENS", "0") or "0"),
         "timeout_sec": int(os.environ.get("LLM_TIMEOUT_SEC", "0") or "0"),
+        "temperature": float(os.environ.get("LLM_TEMPERATURE", "0") or "0"),
         "structured_output": True,
+        "raw_response_retention": "provider envelope and model text per request",
+        "retry_policy": "every request attempt recorded; no hidden action retry",
     },
     "workload": {
         "source": "repo-local",
@@ -253,6 +305,7 @@ metadata = {
         "reducers": os.environ.get("REDUCERS", ""),
         "shards": int(os.environ.get("SHARDS", "0") or "0"),
         "incidents": int(os.environ.get("INCIDENTS", "0") or "0"),
+        "samples": int(os.environ.get("SAMPLES", "1") or "1"),
     },
     "git": {
         "commit": git_output(["rev-parse", "HEAD"]),
@@ -292,6 +345,7 @@ export SAGE_SMR_LLM_MAX_EVIDENCE="$LLM_MAX_EVIDENCE"
 export SAGE_SMR_LLM_MAX_CANDIDATES="$LLM_MAX_CANDIDATES"
 export SAGE_SMR_LLM_MAX_TOKENS="$LLM_MAX_TOKENS"
 export SAGE_SMR_LLM_TIMEOUT_SEC="$LLM_TIMEOUT_SEC"
+export SAGE_SMR_LLM_TEMPERATURE="$LLM_TEMPERATURE"
 export SAGE_SMR_LLM_STRUCTURED_OUTPUT="${SAGE_SMR_LLM_STRUCTURED_OUTPUT:-1}"
 
 run_python python tools/benchmark_carrier/run_semantic_merge_matrix.py \
@@ -300,6 +354,7 @@ run_python python tools/benchmark_carrier/run_semantic_merge_matrix.py \
   --reducers "$REDUCERS" \
   --shards "$SHARDS" \
   --incidents "$INCIDENTS" \
+  --samples "$SAMPLES" \
   --output-root "$OUTDIR" \
   --run-id matrix
 
@@ -320,5 +375,10 @@ PY
 run_python python tools/benchmark_carrier/summarize_semantic_merge_llm_comparison.py \
   "$OUTDIR/matrix" \
   --output "$OUTDIR/comparison_summary.json"
+
+run_python python tools/benchmark_carrier/summarize_semantic_merge_stability.py \
+  "$OUTDIR/matrix" \
+  --output "$OUTDIR/stability_summary.json" \
+  --csv-output "$OUTDIR/stability_summary.csv"
 
 echo "RESULT_DIR=$OUTDIR"

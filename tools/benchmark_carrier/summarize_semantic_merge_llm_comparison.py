@@ -14,6 +14,13 @@ def _mean_int(costs: list[dict[str, Any]], name: str) -> float:
     return round(statistics.fmean(values), 4) if values else 0.0
 
 
+def _token_value(cost: dict[str, Any]) -> int:
+    measured = cost.get("provider_total_tokens")
+    return int(measured) if measured is not None else int(
+        cost.get("estimated_total_tokens", 0) or 0
+    )
+
+
 def _count_false(costs: list[dict[str, Any]], name: str) -> int:
     return sum(1 for cost in costs if cost.get(name) is False)
 
@@ -48,6 +55,15 @@ def _load_manifest(matrix_dir: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
 
 
+def _raw_report_path(matrix_dir: Path, summary: dict[str, Any]) -> Path:
+    reducer = str(summary["reducer"])
+    stem = f"{summary['scenario']}_seed{summary['seed']}_{reducer.replace('-', '_')}"
+    sample_path = matrix_dir / f"{stem}_sample{int(summary.get('sample_id', 1))}.json"
+    if sample_path.exists():
+        return sample_path
+    return matrix_dir / f"{stem}.json"
+
+
 def summarize_cases(matrix_dir: Path) -> list[dict[str, Any]]:
     """Build the submission-facing per-case/per-seed evidence table."""
     summary_rows = json.loads((matrix_dir / "summary.json").read_text(encoding="utf-8"))
@@ -57,11 +73,12 @@ def summarize_cases(matrix_dir: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for summary in summary_rows:
         reducer = str(summary["reducer"])
-        raw_path = matrix_dir / (
-            f"{summary['scenario']}_seed{summary['seed']}_{reducer.replace('-', '_')}.json"
-        )
+        raw_path = _raw_report_path(matrix_dir, summary)
         report = json.loads(raw_path.read_text(encoding="utf-8"))
         cost = report.get("cost_accounting", {}) or {}
+        metadata = (report.get("reducer_trace") or {}).get("metadata") or {}
+        contract = metadata.get("contract_trace") or {}
+        request_trace = metadata.get("request_trace") or []
         schema_valid = cost.get("schema_valid")
         json_valid = cost.get("json_valid")
         rows.append(
@@ -70,6 +87,7 @@ def summarize_cases(matrix_dir: Path) -> list[dict[str, Any]]:
                 "workload_source": workload_source,
                 "scenario": summary["scenario"],
                 "seed": int(summary["seed"]),
+                "sample_id": int(summary.get("sample_id", 1)),
                 "reducer": reducer,
                 "precision": float(summary["precision"]),
                 "recall": float(summary["recall"]),
@@ -83,11 +101,25 @@ def summarize_cases(matrix_dir: Path) -> list[dict[str, Any]]:
                 "json_valid": json_valid,
                 "schema_valid": schema_valid,
                 "estimated_total_tokens": int(cost.get("estimated_total_tokens", 0) or 0),
+                "provider_total_tokens": cost.get("provider_total_tokens"),
+                "total_tokens": _token_value(cost),
+                "token_measurement_source": cost.get(
+                    "token_measurement_source", "char-estimate"
+                ),
                 "reduce_duration_ms": float(report["reduce_duration_ms"]),
                 "model_latency_ms": (
                     float(cost["latency_ms"]) if cost.get("latency_ms") is not None else None
                 ),
                 "validator_reject_reason": cost.get("validator_reject_reason"),
+                "validator_owned": contract.get("validator_owned"),
+                "commit_outcome": contract.get("commit_outcome"),
+                "replay_id": contract.get("replay_id"),
+                "temperature": metadata.get("temperature"),
+                "raw_response_retained": metadata.get("raw_response_retained"),
+                "request_attempt_count": len(request_trace),
+                "request_failure_count": sum(
+                    item.get("status") != "ok" for item in request_trace
+                ),
                 "failure_taxonomy": _failure_counts(report),
             }
         )
@@ -113,11 +145,13 @@ def _write_case_csv(path: Path, rows: list[dict[str, Any]]) -> None:
 
 def summarize(matrix_dir: Path) -> list[dict[str, Any]]:
     aggregate = json.loads((matrix_dir / "aggregate.json").read_text())
+    summary_rows = json.loads((matrix_dir / "summary.json").read_text())
     rows: list[dict[str, Any]] = []
     for reducer, metrics in sorted(aggregate["by_reducer"].items()):
-        suffix = reducer.replace("-", "_")
         raw_reports = [
-            json.loads(path.read_text()) for path in sorted(matrix_dir.glob(f"*_{suffix}.json"))
+            json.loads(_raw_report_path(matrix_dir, summary).read_text())
+            for summary in summary_rows
+            if str(summary["reducer"]) == reducer
         ]
         costs = [report.get("cost_accounting", {}) for report in raw_reports]
         rows.append(
@@ -132,6 +166,12 @@ def summarize(matrix_dir: Path) -> list[dict[str, Any]]:
                 "reduce_ms_mean": metrics["reduce_duration_ms"]["mean"],
                 "detections_mean": metrics["detected_incident_count"]["mean"],
                 "estimated_tokens_mean": _mean_int(costs, "estimated_total_tokens"),
+                "provider_tokens_observed_runs": sum(
+                    cost.get("provider_total_tokens") is not None for cost in costs
+                ),
+                "total_tokens_mean": round(
+                    statistics.fmean(_token_value(cost) for cost in costs), 4
+                ) if costs else 0.0,
                 "repair_count_mean": _mean_int(costs, "repair_count"),
                 "split_count_mean": _mean_int(costs, "split_count"),
                 "merge_count_mean": _mean_int(costs, "merge_count"),

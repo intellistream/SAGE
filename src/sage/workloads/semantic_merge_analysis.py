@@ -818,6 +818,7 @@ class OpenAISemanticMergeReducer:
         max_tokens: int = 512,
         timeout_sec: int = 180,
         structured_output: bool = False,
+        temperature: float | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
@@ -826,6 +827,11 @@ class OpenAISemanticMergeReducer:
         self.max_tokens = max_tokens
         self.timeout_sec = timeout_sec
         self.structured_output = structured_output
+        self.temperature = (
+            float(os.environ.get("SAGE_SMR_LLM_TEMPERATURE", "0"))
+            if temperature is None
+            else float(temperature)
+        )
         self.last_call: dict[str, Any] = {}
 
     def reduce(self, evidence: list[EvidenceObject]) -> list[dict[str, Any]]:
@@ -852,6 +858,7 @@ class OpenAISemanticMergeReducer:
             "model": self.model,
             "base_url": self.base_url,
             "structured_output": self.structured_output,
+            "temperature": self.temperature,
             "latency_ms": round(latency_ms, 2),
             "json_valid": json_valid,
             "schema_valid": schema_valid,
@@ -884,7 +891,7 @@ class OpenAISemanticMergeReducer:
                 {"role": "user", "content": prompt},
             ],
             "max_tokens": self.max_tokens,
-            "temperature": 0.0,
+            "temperature": self.temperature,
         }
         if self.structured_output:
             payload["response_format"] = {"type": "json_object"}
@@ -937,6 +944,7 @@ class OpenAIHybridMergeReducer:
         structured_output: bool = False,
         allow_drop: bool = False,
         fallback_reducer: MergeReducer | None = None,
+        temperature: float | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
@@ -947,6 +955,11 @@ class OpenAIHybridMergeReducer:
         self.structured_output = structured_output
         self.allow_drop = allow_drop
         self.fallback_reducer = fallback_reducer
+        self.temperature = (
+            float(os.environ.get("SAGE_SMR_LLM_TEMPERATURE", "0"))
+            if temperature is None
+            else float(temperature)
+        )
         self.last_call: dict[str, Any] = {}
 
     def reduce(self, evidence: list[EvidenceObject]) -> list[dict[str, Any]]:
@@ -1080,7 +1093,7 @@ class OpenAIHybridMergeReducer:
                 {"role": "user", "content": prompt},
             ],
             "max_tokens": self.max_tokens,
-            "temperature": 0.0,
+            "temperature": self.temperature,
         }
         if self.structured_output:
             payload["response_format"] = {"type": "json_object"}
@@ -1289,7 +1302,7 @@ class OpenAIPairwiseMergeReducer(OpenAIHybridMergeReducer):
                 {"role": "user", "content": prompt},
             ],
             "max_tokens": self.max_tokens,
-            "temperature": 0.0,
+            "temperature": self.temperature,
         }
         if self.structured_output:
             payload["response_format"] = {"type": "json_object"}
@@ -1348,11 +1361,54 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
         prompt_chars = 0
         response_chars = 0
         invalid_action_count = 0
+        request_trace: list[dict[str, Any]] = []
         try:
             for pair in pairs:
                 prompt = _build_pair_action_prompt(pair)
                 prompt_chars += len(prompt)
-                text = self._completion_action(prompt)
+                request_started = time.perf_counter()
+                request_started_utc = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                self._last_provider_response = None
+                try:
+                    text = self._completion_action(prompt)
+                except Exception as exc:
+                    request_trace.append(
+                        {
+                            "pair": int(pair["pair"]),
+                            "attempt": 1,
+                            "started_utc": request_started_utc,
+                            "latency_ms": round(
+                                (time.perf_counter() - request_started) * 1000, 2
+                            ),
+                            "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
+                            "prompt_chars": len(prompt),
+                            "response_text": "",
+                            "response_sha256": hashlib.sha256(b"").hexdigest(),
+                            "provider_response": self._last_provider_response,
+                            "status": "error",
+                            "error_type": type(exc).__name__,
+                            "error_message": str(exc)[:300],
+                        }
+                    )
+                    raise
+                request_trace.append(
+                    {
+                        "pair": int(pair["pair"]),
+                        "attempt": 1,
+                        "started_utc": request_started_utc,
+                        "latency_ms": round(
+                            (time.perf_counter() - request_started) * 1000, 2
+                        ),
+                        "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
+                        "prompt_chars": len(prompt),
+                        "response_text": text,
+                        "response_sha256": hashlib.sha256(text.encode()).hexdigest(),
+                        "provider_response": self._last_provider_response,
+                        "status": "ok",
+                        "error_type": None,
+                        "error_message": None,
+                    }
+                )
                 response_chars += len(text)
                 action, action_valid = _parse_pair_action(text)
                 if not action_valid:
@@ -1392,6 +1448,14 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
         except Exception as exc:
             latency_ms = (time.perf_counter() - started) * 1000
             fallback_hypotheses = fallback.reduce(evidence)
+            provider_usage = _provider_usage_from_request_trace(request_trace)
+            contract_trace = _build_semantic_reduce_contract_trace(
+                candidates=candidates,
+                output_hypotheses=fallback_hypotheses,
+                evidence=evidence,
+                validation_trace={"fallback_count": 1},
+                bounded_actions=("KEEP", "MERGE", "SPLIT", "ABSTAIN"),
+            )
             self.last_call = {
                 "model": self.model,
                 "base_url": self.base_url,
@@ -1412,11 +1476,17 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
                 "estimated_total_tokens": _estimate_tokens_from_chars(
                     prompt_chars + response_chars
                 ),
+                **provider_usage,
                 "input_evidence_count": len(evidence),
                 "input_candidate_count": len(candidates),
                 "input_pair_count": len(pairs),
                 "invalid_action_count": invalid_action_count,
                 "retry_count": 0,
+                "retry_policy": "none; request failure triggers reducer fallback",
+                "temperature": self.temperature,
+                "raw_response_retained": True,
+                "request_trace": request_trace,
+                "contract_trace": contract_trace,
                 "output_incident_count": len(fallback_hypotheses),
                 "edit_trace": [],
                 "pair_trace": [],
@@ -1437,6 +1507,7 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
             ]
 
         latency_ms = (time.perf_counter() - started) * 1000
+        provider_usage = _provider_usage_from_request_trace(request_trace)
         validation_trace: dict[str, Any] = {
             "enabled": False,
             "repair_count": 0,
@@ -1472,11 +1543,16 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
             "estimated_total_tokens": _estimate_tokens_from_chars(
                 prompt_chars + response_chars
             ),
+            **provider_usage,
             "input_evidence_count": len(evidence),
             "input_candidate_count": len(candidates),
             "input_pair_count": len(pairs),
             "invalid_action_count": invalid_action_count,
             "retry_count": 0,
+            "retry_policy": "none; invalid enum maps to ABSTAIN",
+            "temperature": self.temperature,
+            "raw_response_retained": True,
+            "request_trace": request_trace,
             "output_incident_count": len(edited),
             "edit_trace": edit_trace,
             "pair_trace": pair_trace,
@@ -1518,7 +1594,7 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
                 {"role": "user", "content": prompt},
             ],
             "max_tokens": min(self.max_tokens, 8),
-            "temperature": 0.0,
+            "temperature": self.temperature,
         }
         req = urllib.request.Request(
             f"{self.base_url}/v1/chat/completions",
@@ -1538,6 +1614,7 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
                 f"LLM pairwise action endpoint returned HTTP {exc.code}: {body[:300]}"
             ) from exc
         parsed = json.loads(body) if body else {}
+        self._last_provider_response = parsed
         choices = parsed.get("choices") or []
         if not choices:
             raise RuntimeError("LLM pairwise action endpoint returned no choices.")
@@ -2801,6 +2878,40 @@ def _estimate_tokens_from_chars(chars: int) -> int:
     return max(1, (chars + 3) // 4) if chars else 0
 
 
+def _provider_usage_from_request_trace(
+    request_trace: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Sum provider-reported usage without treating estimates as measurements."""
+    prompt_tokens = 0
+    response_tokens = 0
+    total_tokens = 0
+    observed = False
+    for request in request_trace:
+        provider_response = request.get("provider_response")
+        usage = (
+            provider_response.get("usage")
+            if isinstance(provider_response, dict)
+            else None
+        )
+        if not isinstance(usage, dict):
+            continue
+        observed = True
+        prompt = usage.get("prompt_tokens", usage.get("input_tokens", 0))
+        response = usage.get("completion_tokens", usage.get("output_tokens", 0))
+        prompt_tokens += int(prompt or 0)
+        response_tokens += int(response or 0)
+        total_tokens += int(usage.get("total_tokens", 0) or 0)
+    if observed and total_tokens == 0:
+        total_tokens = prompt_tokens + response_tokens
+    return {
+        "provider_usage_available": observed,
+        "provider_prompt_tokens": prompt_tokens if observed else None,
+        "provider_response_tokens": response_tokens if observed else None,
+        "provider_total_tokens": total_tokens if observed else None,
+        "token_measurement_source": "provider-usage" if observed else "char-estimate",
+    }
+
+
 def _cost_accounting_for_reducer(
     reducer: MergeReducer, *, reduce_ms: float
 ) -> dict[str, Any]:
@@ -2832,6 +2943,15 @@ def _cost_accounting_for_reducer(
                 last_call.get("estimated_response_tokens", 0)
             ),
             "estimated_total_tokens": int(last_call.get("estimated_total_tokens", 0)),
+            "provider_usage_available": bool(
+                last_call.get("provider_usage_available", False)
+            ),
+            "provider_prompt_tokens": last_call.get("provider_prompt_tokens"),
+            "provider_response_tokens": last_call.get("provider_response_tokens"),
+            "provider_total_tokens": last_call.get("provider_total_tokens"),
+            "token_measurement_source": last_call.get(
+                "token_measurement_source", "char-estimate"
+            ),
         }
     return {
         "provider": "offline",
@@ -2841,6 +2961,11 @@ def _cost_accounting_for_reducer(
         "estimated_prompt_tokens": 0,
         "estimated_response_tokens": 0,
         "estimated_total_tokens": 0,
+        "provider_usage_available": False,
+        "provider_prompt_tokens": None,
+        "provider_response_tokens": None,
+        "provider_total_tokens": None,
+        "token_measurement_source": "not-applicable",
     }
 
 

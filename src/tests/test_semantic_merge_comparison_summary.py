@@ -46,6 +46,62 @@ def test_matrix_manifest_infers_conda_environment_from_interpreter(
     assert manifest["conda_env"] == expected
 
 
+def test_matrix_repeated_samples_have_distinct_artifacts(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    script = repo_root / "tools" / "benchmark_carrier" / "run_semantic_merge_matrix.py"
+    output_root = tmp_path / "matrix-output"
+    environment = {**os.environ, "PYTHONPATH": str(repo_root / "src")}
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--seeds",
+            "7",
+            "--samples",
+            "3",
+            "--reducers",
+            "hybrid-hint",
+            "--scenarios",
+            "single-service",
+            "--output-root",
+            str(output_root),
+            "--run-id",
+            "repeated-test",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+
+    assert result.returncode == 0, result.stderr
+    outdir = output_root / "repeated-test"
+    rows = json.loads((outdir / "summary.json").read_text(encoding="utf-8"))
+    assert [row["sample_id"] for row in rows] == [1, 2, 3]
+    assert len(list(outdir.glob("single-service_seed7_hybrid_hint_sample*.json"))) == 3
+    manifest = json.loads((outdir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["samples"] == 3
+
+    stability = repo_root / "tools" / "benchmark_carrier" / "summarize_semantic_merge_stability.py"
+    summary = subprocess.run(
+        [sys.executable, str(stability), str(outdir)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert summary.returncode == 0, summary.stderr
+    payload = json.loads(
+        (output_root / "stability_summary.json").read_text(encoding="utf-8")
+    )
+    assert payload["evidence_label"] == "derived-artifact"
+    assert payload["samples_per_case"] == 3
+    assert payload["by_reducer"]["hybrid-hint"]["samples"] == 3
+    assert payload["by_reducer"]["hybrid-hint"]["f1_stdev"] == 0.0
+    assert payload["by_reducer"]["hybrid-hint"]["within_case_f1_stdev_max"] == 0.0
+    assert payload["by_reducer"]["hybrid-hint"]["action_exact_agreement_min"] == 1.0
+
+
 def test_summary_emits_submission_facing_case_seed_rows(tmp_path: Path) -> None:
     matrix_dir = tmp_path / "matrix"
     matrix_dir.mkdir()
@@ -81,6 +137,8 @@ def test_summary_emits_submission_facing_case_seed_rows(tmp_path: Path) -> None:
             "json_valid": True,
             "schema_valid": False,
             "estimated_total_tokens": 507,
+            "provider_total_tokens": 123,
+            "token_measurement_source": "provider-usage",
             "latency_ms": 319.25,
             "validator_reject_reason": "affected_service_mismatch",
         },
@@ -130,6 +188,7 @@ def test_summary_emits_submission_facing_case_seed_rows(tmp_path: Path) -> None:
     assert row["evidence_label"] == "real-online"
     assert row["scenario"] == "ambiguous-disconnected-merge"
     assert row["seed"] == 11
+    assert row["sample_id"] == 1
     assert row["f1"] == 1.0
     assert row["support_evidence_recall"] == 0.875
     assert row["accepted_edit_count"] == 2
@@ -137,6 +196,9 @@ def test_summary_emits_submission_facing_case_seed_rows(tmp_path: Path) -> None:
     assert row["invalid_action_count"] == 3
     assert row["invalid_schema_count"] == 1
     assert row["estimated_total_tokens"] == 507
+    assert row["provider_total_tokens"] == 123
+    assert row["total_tokens"] == 123
+    assert row["token_measurement_source"] == "provider-usage"
     assert row["reduce_duration_ms"] == 321.5
     assert row["model_latency_ms"] == 319.25
     assert row["failure_taxonomy"] == {

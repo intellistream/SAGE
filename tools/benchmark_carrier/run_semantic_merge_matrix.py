@@ -117,6 +117,15 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--shards", type=int, default=8)
     parser.add_argument("--incidents", type=int, default=4)
     parser.add_argument(
+        "--samples",
+        type=int,
+        default=1,
+        help=(
+            "Independent reducer invocations per scenario/seed/reducer. "
+            "Use values >1 for real-online repeated-sampling stability."
+        ),
+    )
+    parser.add_argument(
         "--output-root",
         default=".sage/benchmarks/semantic_merge_analysis",
     )
@@ -179,6 +188,7 @@ def _write_manifest(
         "seeds": seeds,
         "reducers": reducers,
         "scenarios": scenarios,
+        "samples": args.samples,
         "python": {
             "version": platform.python_version(),
             "executable": sys.executable,
@@ -208,6 +218,8 @@ def main() -> int:
     seeds = [int(seed) for seed in _parse_csv(args.seeds)]
     reducers = _parse_csv(args.reducers)
     scenarios = _parse_csv(args.scenarios)
+    if args.samples < 1:
+        raise ValueError("--samples must be at least 1")
     unknown_scenarios = sorted(set(scenarios) - set(SCENARIOS))
     if unknown_scenarios:
         raise ValueError(
@@ -230,44 +242,50 @@ def main() -> int:
     for scenario in scenarios:
         for seed in seeds:
             for reducer in reducers:
-                report = run_semantic_merge_workload(
-                    seed=seed,
-                    shard_count=args.shards,
-                    incident_count=args.incidents,
-                    scenario=scenario,
-                    reducer=reducer,
-                )
-                payload = report.to_dict()
-                artifact = outdir / (f"{scenario}_seed{seed}_{reducer.replace('-', '_')}.json")
-                artifact.write_text(
-                    json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-                    encoding="utf-8",
-                )
-                row = {
-                    "scenario": scenario,
-                    "seed": seed,
-                    "shards": args.shards,
-                    "incidents": args.incidents,
-                    "reducer": reducer,
-                    "precision": payload["precision"],
-                    "recall": payload["recall"],
-                    "f1": payload["f1"],
-                    "evidence_coverage": payload["evidence_coverage"],
-                    "root_evidence_coverage": payload["root_evidence_coverage"],
-                    "support_evidence_recall": payload["support_evidence_recall"],
-                    "detected_incident_count": payload["detected_incident_count"],
-                    "matched_incident_count": payload["matched_incident_count"],
-                    "reduce_duration_ms": payload["reduce_duration_ms"],
-                    "missed_incident_ids": ";".join(
-                        item["incident_id"] for item in payload["missed_incidents"]
-                    ),
-                }
-                rows.append(row)
-                print(
-                    f"done scenario={scenario} seed={seed} reducer={reducer} "
-                    f"precision={payload['precision']} recall={payload['recall']} "
-                    f"f1={payload['f1']}"
-                )
+                for sample_id in range(1, args.samples + 1):
+                    report = run_semantic_merge_workload(
+                        seed=seed,
+                        shard_count=args.shards,
+                        incident_count=args.incidents,
+                        scenario=scenario,
+                        reducer=reducer,
+                    )
+                    payload = report.to_dict()
+                    payload["sample_id"] = sample_id
+                    stem = f"{scenario}_seed{seed}_{reducer.replace('-', '_')}"
+                    if args.samples > 1:
+                        stem += f"_sample{sample_id}"
+                    artifact = outdir / f"{stem}.json"
+                    artifact.write_text(
+                        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+                        encoding="utf-8",
+                    )
+                    row = {
+                        "scenario": scenario,
+                        "seed": seed,
+                        "sample_id": sample_id,
+                        "shards": args.shards,
+                        "incidents": args.incidents,
+                        "reducer": reducer,
+                        "precision": payload["precision"],
+                        "recall": payload["recall"],
+                        "f1": payload["f1"],
+                        "evidence_coverage": payload["evidence_coverage"],
+                        "root_evidence_coverage": payload["root_evidence_coverage"],
+                        "support_evidence_recall": payload["support_evidence_recall"],
+                        "detected_incident_count": payload["detected_incident_count"],
+                        "matched_incident_count": payload["matched_incident_count"],
+                        "reduce_duration_ms": payload["reduce_duration_ms"],
+                        "missed_incident_ids": ";".join(
+                            item["incident_id"] for item in payload["missed_incidents"]
+                        ),
+                    }
+                    rows.append(row)
+                    print(
+                        f"done scenario={scenario} seed={seed} sample={sample_id} "
+                        f"reducer={reducer} precision={payload['precision']} "
+                        f"recall={payload['recall']} f1={payload['f1']}"
+                    )
 
     with (outdir / "summary.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))

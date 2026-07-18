@@ -10,7 +10,8 @@ optional evidence upgrades.
 - [ ] Rotate the local dev-hub test API key that appeared in one local terminal
   diagnostic. Confirm that no key, bearer header, `.env` content, home path,
   hostname, private IP, or email address is present in tracked files or the
-  submission archive.
+  submission archive. Create an untracked, secret-free rotation attestation and
+  pass it through `SAGE_SMR_KEY_ROTATION_ATTESTATION`.
 - [ ] Freeze a clean SAGE commit with clean repo-owned submodules on their
   documented `feature/semantic-mapreduce-*` branches.
 - [ ] Start the controlled NPU3 endpoint from the pinned repo-owned dev-hub and
@@ -18,7 +19,7 @@ optional evidence upgrades.
   against the frozen commit.
 - [ ] Repeat all nine scenario families with seeds `7,11,13` using
   `hybrid-hint`, `llm-pairwise-validated`, and
-  `llm-pairwise-action-validated`. Do not set
+  `llm-pairwise-action-validated`, with at least five samples per case. Do not set
   `SAGE_SMR_ALLOW_DIRTY_PARENT=1` for this run.
 - [ ] Require the clean rerun to preserve the contract gate: every model action
   is accepted, rejected, or converted to `ABSTAIN`; committed outputs are
@@ -50,6 +51,8 @@ SAGE_SMR_NPU_DEVICE=3 \
 SAGE_SMR_LLM_BASE_URL=http://127.0.0.1:18383 \
 SAGE_SMR_LLM_MODEL=<served-model-name> \
 SAGE_SMR_ENDPOINT_METADATA=<clean-endpoint-metadata.json> \
+SAGE_SMR_KEY_ROTATION_ATTESTATION=<untracked-rotation-attestation.json> \
+SAGE_SMR_SAMPLES=5 \
 RUN_ID=<frozen-commit>-eurosys27-9family-3seed \
 tools/benchmark_carrier/run_npu3_semantic_merge_llm_comparison.sh
 ```
@@ -60,8 +63,9 @@ the readiness report.
 
 ## Optional Evidence Upgrades
 
-- [ ] Repeat bounded-action decisions across multiple sampling repetitions and
-  report variance or exact agreement, rather than only pooled means.
+- [x] Implement bounded-action repeated sampling, raw-attempt retention,
+  within-case variance/exact-agreement aggregation, and the full artifact gate.
+  The real-online execution remains a required freeze item above.
 - [ ] Add a second model or endpoint while holding candidate generation,
   validators, scorer, and workload seeds fixed.
 - [ ] Extend public/production-derived traces from `MapEvidence/Normalize`
