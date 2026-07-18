@@ -85,3 +85,7 @@
   supplement, and AI-tool disclosure match public requirements. Final author
   list, conflicts, per-author limit, ORCIDs, and HotCRP metadata remain
   author-owned upload checks rather than repository work.
+- 2026-07-18: Published the paper/evidence freeze as SAGE commit `14a2a13` on
+  `feature/semantic-mapreduce-paper`. Updated only the dedicated Semantic-MR
+  handoff in the dirty umbrella checkout, preserved all unrelated changes, and
+  pushed llm-optimizations commit `ecb36c3` to `main`.

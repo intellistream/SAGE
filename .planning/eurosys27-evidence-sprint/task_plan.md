@@ -39,7 +39,7 @@ boundary honestly, and prepare a clean, secret-safe submission freeze.
 - [completed] Rotate the user-owned local vLLM-HUST bearer key without logging
   it, attest the rotation, launch a clean NPU3 endpoint, and execute the
   full-nine-family repeated-sampling/candidate-budget sweep.
-- [in_progress] Validate and package the resulting real-online evidence, update the
+- [completed] Validate and package the resulting real-online evidence, update the
   paper/readiness/claim ledger and umbrella handoff, rebuild/inspect the PDF,
   then commit and push all new tracked work.
 
