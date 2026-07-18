@@ -5,7 +5,7 @@ large-scale analysis workload and Semantic MapReduce framing.
 
 ## Venue Choice
 
-Recommended style target: **ASPLOS full paper**, with the submission story
+Target: **EuroSys 2027 fall-cycle full paper**, with the submission story
 centered on the systems evidence chain: evidence coverage, semantic reducer
 contracts, validated model-backed edits, cost/latency accounting, and
 auditable traces.
@@ -14,17 +14,16 @@ Rationale:
 
 - The user asked for a traditional systems-conference long-paper target rather
   than an ML systems paper.
-- ASPLOS is a closer fit than MLSys for the current framing because the paper
-  emphasizes system abstraction, runtime/orchestration boundaries, workload
-  design, and careful claim discipline around LLM-serving integration.
-- The ASPLOS case is strongest when the paper reads as a systems-contract
+- EuroSys is a closer fit than an ML venue because the paper emphasizes a
+  distributed operator/runtime abstraction, recovery, workload design, and
+  careful claim discipline around model-serving integration.
+- The EuroSys case is strongest when the paper reads as a systems-contract
   contribution: the hard part is not simply calling an LLM, but making
   semantic reduction explicit, validated, auditable, and comparable under one
   evidence schema and scorer.
-- The draft follows the ASPLOS 2027 anonymous review form. The official CFP was
-  rechecked on 2026-07-18: the 11-page limit excludes acknowledgments used only
-  for generative-AI disclosure, references, and appendices; references must not
-  be compressed. See <https://www.asplos-conference.org/asplos2027/cfp/>.
+- The draft uses the EuroSys-recommended anonymous SIGPLAN ACM form. The 2027
+  fall deadline is 2026-09-24 AoE and the technical-content limit is 12 pages,
+  excluding references and appendices. See <https://2027.eurosys.org/cfp.html>.
 - SOSP/OSDI remain plausible future targets after production-derived telemetry,
   cross-model/repeated-sampling evidence, stronger distributed execution, and a
   deeper related-work comparison.
@@ -49,6 +48,11 @@ The generated PDF is:
 ```text
 docs/papers/semantic_mapreduce/main.pdf
 ```
+
+The remaining clean-tree experiment, anonymous-package, and final-PDF gates are
+tracked in [`NEXT_STEPS.md`](NEXT_STEPS.md). Treat that checklist as the
+submission-freeze source of truth; the diff-hashed expanded online run is
+development evidence, not the final anonymous package.
 
 ## Claim Discipline
 
@@ -187,7 +191,7 @@ Artifact:
 .sage/benchmarks/semantic_merge_analysis/20260709T-semantic-merge-suite-with-ambiguous-overmerge-10seed/
 ```
 
-The suite contains seven scenario families:
+The paper matrix contains nine scenario families:
 
 - `single-service`: sanity check where local alert-style reducers can recover
   the incident unit.
@@ -201,6 +205,10 @@ The suite contains seven scenario families:
 - `ambiguous-overmerge`: overlapping related incidents collapse into one graph
   candidate, so a reducer needs a safe split operation rather than another
   root hint.
+- `ambiguous-disconnected-merge`: one incident is fragmented by grouping and
+  requires evidence-preserving merge edits.
+- `ambiguous-temporal-split`: one incident spans candidate windows and tests
+  transitive temporal fusion.
 
 These scenarios keep the generator, evidence schema, reducer contract, and
 scorer fixed while varying the semantic merge challenge. This is more
@@ -210,12 +218,12 @@ over-merge, missing-evidence, and candidate-splitting cases.
 
 | reducer | mean precision | mean recall | mean F1 |
 | --- | ---: | ---: | ---: |
-| map-only | `0.0667` | `0.1429` | `0.0906` |
-| service-local | `0.0685` | `0.1429` | `0.0922` |
-| window-aggregate | `0.3457` | `0.6929` | `0.4531` |
-| semantic-graph | `0.7907` | `0.7643` | `0.7696` |
-| hybrid-hint | `0.8367` | `0.8143` | `0.8173` |
-| llm-stub | `0.7907` | `0.7643` | `0.7696` |
+| map-only | `0.0519` | `0.1111` | `0.0705` |
+| service-local | `0.0533` | `0.1111` | `0.0717` |
+| window-aggregate | `0.3779` | `0.7444` | `0.4916` |
+| semantic-graph | `0.6485` | `0.6639` | `0.6435` |
+| hybrid-hint | `0.7585` | `0.8556` | `0.7796` |
+| llm-stub | `0.6485` | `0.6639` | `0.6435` |
 
 The `llm-openai`, `llm-hybrid`, and `llm-hybrid-validated` reducer interfaces
 are implemented for this workload. `llm-openai` asks the model to regroup
@@ -266,7 +274,7 @@ yet a robust validated claim: independent `llm-pairwise-validated` calls still
 fall back because the model sometimes omits the required `decisions` list even
 after one retry, and `ambiguous-temporal-split` remains unsolved.
 
-The current clean result supersedes that intermediate pairwise probe:
+The clean hardcase result supersedes that intermediate pairwise probe:
 
 ```text
 .sage/benchmarks/real_online_semantic_merge/20260718T-smr-hardcases-3seed-5a8419e/
@@ -288,13 +296,32 @@ JSON/CSV report tokens, latency, and failure taxonomy. This is controlled
 multi-workload-seed mechanism evidence on one model/endpoint, not a production,
 cross-model, or stochastic robustness claim.
 
+The EuroSys coverage expansion runs the same three reducers over all nine
+families and seeds 7/11/13:
+
+```text
+.sage/benchmarks/real_online_semantic_merge/20260718T-eurosys27-9family-3seed-real-online-v2/
+```
+
+Across 27 rows per reducer, action validation raises pooled F1 from 0.7801 for
+`hybrid-hint` to 0.8571 and support recall from 0.7810 to 0.8795, with zero
+invalid actions, invalid schemas, or fallbacks. It averages 122.61 ms and 203.1
+estimated tokens, versus 3213.27 ms and 312.1 tokens for free-form validated
+pairwise decisions. The run is diff-hashed development provenance; the clean
+hardcase package remains the anonymous artifact until a clean full-coverage
+rerun is packaged.
+
 Full workload-suite documentation:
 
 ```text
 docs/semantic-merge-workload-suite.md
 ```
 
-Public replay candidates are tracked separately:
+Public replay and candidate sources are tracked separately. The completed
+AIOps 2020 replay artifact is
+`.sage/benchmarks/aiops2020_public_replay/20260718T-may29-map-evidence-replay-v4/`;
+it reports precision 1.0, recall 0.5, and F1 0.6667 over four labeled and eight
+negative windows without republishing raw dataset rows.
 
 ```text
 docs/semantic-mapreduce-public-data-candidates.md

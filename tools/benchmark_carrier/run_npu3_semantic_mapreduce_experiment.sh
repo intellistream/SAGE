@@ -304,6 +304,7 @@ write_metadata() {
   OUTPUT_ROOT="${OUTPUT_ROOT}" \
     python3 - <<'PY'
 import json
+import hashlib
 import os
 import subprocess
 from pathlib import Path
@@ -321,6 +322,16 @@ def git(cwd: Path, *args: str, check: bool = True) -> str:
 
 
 root = Path(os.environ["SAGE_ROOT"])
+
+
+def parent_worktree_state() -> dict[str, object]:
+    status = git(root, "status", "--porcelain=v1")
+    diff = subprocess.check_output(["git", "-C", str(root), "diff", "--binary", "HEAD"])
+    return {
+        "dirty": bool(status),
+        "dirty_paths": [line[3:] for line in status.splitlines() if len(line) > 3],
+        "tracked_diff_sha256": hashlib.sha256(diff).hexdigest(),
+    }
 submodule_paths = [
     "external/triton-ascend-hust",
     "external/vllm-ascend-hust",
@@ -339,6 +350,7 @@ for rel in submodule_paths:
         "dirty": bool(git(path, "status", "--short")),
     }
 
+worktree = parent_worktree_state()
 metadata = {
     "provenance": "real-online",
     "evidence_label": "real-online",
@@ -350,7 +362,9 @@ metadata = {
     "served_model_name": os.environ["SERVED_MODEL_NAME"],
     "conda_env": os.environ["CONDA_ENV"],
     "parent_repo_commit": git(root, "rev-parse", "HEAD"),
-    "parent_repo_dirty": bool(git(root, "status", "--short")),
+    "parent_repo_dirty": worktree["dirty"],
+    "parent_repo_dirty_paths": worktree["dirty_paths"],
+    "parent_repo_tracked_diff_sha256": worktree["tracked_diff_sha256"],
     "workload_source": {
         "type": "repo-local",
         "path": "src/sage/workloads/large_scale_analysis.py",

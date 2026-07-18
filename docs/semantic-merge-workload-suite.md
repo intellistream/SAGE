@@ -135,7 +135,7 @@ PYTHONPATH=src python tools/benchmark_carrier/run_semantic_merge_matrix.py \
 The matrix defaults to:
 
 - seeds: `7,11,13,17,19,23,29,31,37,41`
-- scenarios: all seven scenario families
+- scenarios: all nine scenario families
 - reducers: `map-only,service-local,window-aggregate,semantic-graph,hybrid-hint,llm-stub`
 
 Artifacts are written under:
@@ -228,7 +228,7 @@ Already implemented in the current artifact:
 
 ## 2026-07-10 Ambiguous Candidate Stress
 
-The stress extension asks a narrower question than the seven-scenario matrix:
+The stress extension asks a narrower question than the original seven-scenario matrix:
 can accepted model edits improve hard semantic merge cases once evidence
 coverage is already sufficient?
 

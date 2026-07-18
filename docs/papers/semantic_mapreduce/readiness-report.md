@@ -1,10 +1,27 @@
 # Semantic MapReduce Readiness Report
 
-This report summarizes the current ASPLOS-readiness state for the Semantic
+This report summarizes the current EuroSys'27-readiness state for the Semantic
 MapReduce paper draft. It separates supported claims from mechanism probes and
 keeps real-online evidence provenance explicit.
 
 ## Latest Hardcase Result
+
+Expanded nine-family, three-seed real-online artifact (27 rows per reducer):
+
+```text
+.sage/benchmarks/real_online_semantic_merge/20260718T-eurosys27-9family-3seed-real-online-v2/
+```
+
+| Reducer | Precision | Recall | F1 | Support recall | Reduce ms | Tokens | Accepted edits | Invalid/fallback |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `hybrid-hint` | 0.7692 | 0.8426 | 0.7801 | 0.7810 | 0.26 | 0.0 | 0.0 | 0 |
+| `llm-pairwise-validated` | 0.8065 | 0.8056 | 0.7896 | 0.8116 | 3213.27 | 312.1 | 0.6296 | 0 |
+| `llm-pairwise-action-validated` | 0.8852 | 0.8426 | 0.8571 | 0.8795 | 122.61 | 203.1 | 0.8148 | 0 |
+
+This is now the main workload-coverage result. The clean three-hardcase artifact
+below remains the strongest isolated ambiguity result and the anonymous package
+source; its free-form schema-failure behavior should not be generalized to the
+expanded structured-output run.
 
 Clean three-workload-seed real-online artifact:
 
@@ -64,7 +81,7 @@ pairwise JSON asks the model to implement too much of `SemanticReduce` and
 become reducer failures. The new action reducer maps the model to `Edit` only:
 the model emits a bounded enum action, while the system owns evidence binding,
 JSON assembly, schema validation, root/affected-service checks, fallback, and
-trace capture. This is the central abstraction that should carry the ASPLOS
+trace capture. This is the central abstraction that should carry the EuroSys
 paper narrative.
 
 Three-hardcase, three-workload-seed aggregate (nine rows per reducer):
@@ -145,17 +162,29 @@ merge cases under one model and endpoint.
 
 - Paper narrative has been updated around the `Semantic MapReduce Operator
   Model`.
+- The complete nine-family, ten-seed derived matrix contains 540 rows (90 per
+  reducer). `hybrid-hint` reaches mean F1 0.7796 versus 0.0705 map-only and
+  0.4916 window aggregation. Artifact:
+  `.sage/benchmarks/semantic_merge_analysis/20260718T-eurosys27-9family-10seed/`.
+- The runtime-contract matrix covers nine families x seeds 7/11/13. All 27
+  runs pass valid commit, invalid-edit rejection, baseline preservation,
+  checkpoint-digest restoration, and deterministic replay. Artifact:
+  `.sage/benchmarks/semantic_mapreduce_runtime_contract/20260718T-eurosys27-9family-3seed/`.
+- The AIOps Challenge 2020 May-29 public replay consumes the official daily ZIP
+  without republishing raw rows. It detects 2/4 official fault windows with
+  zero false positives over eight matched negative windows (precision 1.0,
+  recall 0.5, F1 0.6667). The misses are retained as evidence-coverage limits.
+  Artifact: `.sage/benchmarks/aiops2020_public_replay/20260718T-may29-map-evidence-replay-v4/`.
 - A new operator-algebra figure shows the model-facing boundary at `Edit`,
   while `Validate`, trace generation, and fallback remain system-owned.
 - The action reducer is written as an `Edit` + `Validate` instance, not as a
   prompt-engineering trick.
-- The current PDF keeps all counted paper content within the ASPLOS 11-page
-  limit; the generative-AI acknowledgment and references begin on page 11 and
-  spill to a references-only page 12, which the official CFP excludes from the
-  limit. All pages have been visually checked for overlap/overflow.
-- No-NPU regression tests pass under `esage-vllm-hust-dev`:
-  `33 passed` for the semantic-merge, large-scale-analysis, reporter, artifact
-  verifier, and anonymous-packaging tests.
+- The rebuilt EuroSys PDF is 11 pages total, within the 12-page technical-
+  content limit. All pages, tables, the operator diagram, and references were
+  rendered to PNG and visually checked for clipping, overlap, and legibility.
+- The final focused no-NPU regression selection passes under
+  `esage-vllm-hust-dev`: `47 passed` across semantic-merge, runtime-contract,
+  checkpoint/recovery, AIOps replay, summary, and shared-state tests.
 - The three-hardcase, three-workload-seed NPU3 matrix passes the artifact gate:
   F1 0.9301 versus 0.7204 for `hybrid-hint`, support recall 0.9815, zero
   fallback/invalid schema/invalid action, and clean parent/submodule provenance.
@@ -165,9 +194,43 @@ merge cases under one model and endpoint.
   must land in the pinned `external/triton-ascend-hust` feature branch rather
   than as an ad hoc `vllm-ascend-hust` workaround; `vllm-ascend-hust` remains
   thin glue, and `vllm-hust` owns scheduler/KV/request-metadata concerns.
-- No additional NPU run is required for the controlled three-workload-seed
-  mechanism claim; cross-model, repeated-sampling, and production-trace claims
-  remain outside the evidence boundary.
+- The nine-family derived matrix, 27-run runtime fault matrix, and nine-family
+  real-online action expansion are complete. The remaining submission gate is a
+  clean-tree repetition and anonymous packaging of the full-coverage online
+  matrix. Cross-model, repeated-sampling, and production incident-group claims
+  remain separate evidence upgrades.
+
+## EuroSys Workload-Coverage Gate
+
+The current workload inventory contains nine unique repo-local scenario
+families. All nine now have a common ten-seed derived matrix and three-seed
+runtime fault injection; three ambiguity families have the current real-online
+action matrix.
+
+Before submission, organize coverage by contract obligation rather than by
+adding more names:
+
+| Obligation | Existing families | What the action path must demonstrate |
+| --- | --- | --- |
+| Sanity/no-op | `single-service` | Preserve an already-correct incident without gratuitous edits. |
+| Positive cross-service fusion | `cascade`, `shared-bottleneck`, `ambiguous-disconnected-merge`, `ambiguous-temporal-split` | Accept only evidence-preserving merges and improve fragmentation when candidate ambiguity exists. |
+| Negative separation | `concurrent`, `false-correlation`, `ambiguous-overmerge` | Reject spurious merges or abstain without regressing the hybrid baseline. |
+| Incomplete evidence | `partial-evidence` | Expose that missing root evidence is a coverage/inference boundary; do not manufacture provenance. |
+| Recovery/admission | all families | Every action is accepted, rejected, or mapped to `ABSTAIN`; rejected edits retain `H_0`, and the trace records action, validation, latency, and tokens. |
+
+The completed real-online matrix uses all nine families with seeds `7`, `11`,
+and `13` (27 case/seed rows per reducer), under the same model, endpoint,
+evidence schema, scorer, and candidate generator. It keeps three fixed comparison
+regimes:
+
+1. `hybrid-hint` as the valid pre-edit state `H_0`;
+2. `llm-pairwise-validated` as the free-form/schema negative control; and
+3. `llm-pairwise-action-validated` as bounded `Edit` + system-owned `Validate`.
+
+The expanded run meets the admission gate: accepted edits do not violate schema
+or evidence invariants, pooled F1 improves, and all actions remain visible in
+the trace. Per-family deltas are retained in the artifact. Cross-model and
+repeated-sampling matrices remain robustness extensions.
 
 ## Claims Not Yet Supported
 
@@ -175,8 +238,9 @@ merge cases under one model and endpoint.
   cross-model, or production robustness.
 - Do not claim a quality-cost frontier; the action reducer still adds roughly
   536 estimated tokens and 324 ms mean reduce latency in the live matrix.
-- Do not claim production trace generality; the current mechanism suite is
-  repo-local and controlled.
+- Do not claim production incident-group generality; the AIOps replay covers
+  public labeled metrics at MapEvidence/Normalize, while reducer quality still
+  uses controlled incident-group labels.
 - Do not claim that this replaces Spark, Flink, Ray, databases, LangGraph, or
   LlamaIndex.
 - Do not claim that validators prove the LLM is always useful; validators make
@@ -254,11 +318,13 @@ latency, token cost, and traceability.
 
 ## Status
 
-READY for the controlled three-workload-seed mechanism claim. The real-online
-matrix and machine-executable artifact/anonymity gates pass. Per-case/seed JSON and CSV
-report F1, support recall, accepted edits, fallback, invalid action/schema,
-tokens, latency, and failure taxonomy. The anonymous PDF has 11 counted pages
-plus one references-only overflow page and has passed a complete visual inspection.
+READY for the bounded-contract mechanism claim and internal EuroSys review.
+The real-online matrix and machine-executable artifact gates pass. Per-case/seed
+JSON and CSV report F1, support recall, accepted edits, fallback, invalid
+action/schema, tokens, latency, and failure taxonomy. The current PDF has 11
+total pages and has passed a complete visual inspection. Final submission
+freeze still requires the clean full-coverage rerun and regenerated anonymous
+package tracked in [`NEXT_STEPS.md`](NEXT_STEPS.md).
 
 ## Clean Replay Artifact Gate
 

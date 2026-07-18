@@ -36,6 +36,7 @@ CONDA_EXE="${SAGE_SMR_CONDA_EXE:-/home/shuhao/miniconda3/bin/conda}"
 NPU_DEVICE="${SAGE_SMR_NPU_DEVICE:-3}"
 ENDPOINT_METADATA="${SAGE_SMR_ENDPOINT_METADATA:-}"
 PREFLIGHT_ONLY="${SAGE_SMR_PREFLIGHT_ONLY:-0}"
+ALLOW_DIRTY_PARENT="${SAGE_SMR_ALLOW_DIRTY_PARENT:-0}"
 LLM_MAX_EVIDENCE="${SAGE_SMR_LLM_MAX_EVIDENCE:-24}"
 LLM_MAX_CANDIDATES="${SAGE_SMR_LLM_MAX_CANDIDATES:-12}"
 LLM_MAX_TOKENS="${SAGE_SMR_LLM_MAX_TOKENS:-384}"
@@ -43,6 +44,7 @@ LLM_TIMEOUT_SEC="${SAGE_SMR_LLM_TIMEOUT_SEC:-240}"
 
 export RUN_ID OUTDIR BASE_URL MODEL API_KEY_ENV CONDA_ENV
 export NPU_DEVICE ENDPOINT_METADATA
+export ALLOW_DIRTY_PARENT
 export SEEDS SCENARIOS REDUCERS SHARDS INCIDENTS
 export LLM_MAX_EVIDENCE LLM_MAX_CANDIDATES LLM_MAX_TOKENS LLM_TIMEOUT_SEC
 
@@ -57,8 +59,9 @@ run_python() {
 [[ -n "$ENDPOINT_METADATA" && -f "$ENDPOINT_METADATA" ]] \
   || die "Set SAGE_SMR_ENDPOINT_METADATA to the controlled endpoint metadata.json"
 [[ ! -e "$OUTDIR" ]] || die "Output directory already exists: $OUTDIR"
-[[ -z "$(git status --porcelain)" ]] \
-  || die "Parent repository is dirty; commit or otherwise preserve scoped changes first."
+if [[ -n "$(git status --porcelain)" && "$ALLOW_DIRTY_PARENT" != "1" ]]; then
+  die "Parent repository is dirty; set SAGE_SMR_ALLOW_DIRTY_PARENT=1 only for a diff-hashed development run."
+fi
 
 required_submodules=(
   external/vllm-hust
@@ -77,6 +80,7 @@ done
 
 run_python python - "$ENDPOINT_METADATA" <<'PY'
 import json
+import hashlib
 import os
 import subprocess
 import sys
@@ -97,7 +101,7 @@ expected = {
     "served_model_name": os.environ["MODEL"],
     "conda_env": os.environ["CONDA_ENV"],
     "parent_repo_commit": git("rev-parse", "HEAD"),
-    "parent_repo_dirty": False,
+    "parent_repo_dirty": bool(git("status", "--porcelain")),
 }
 errors = []
 for name, value in expected.items():
@@ -106,6 +110,13 @@ for name, value in expected.items():
         actual = str(actual)
     if actual != value:
         errors.append(f"{name}: expected {value!r}, got {actual!r}")
+
+current_diff = subprocess.check_output(["git", "diff", "--binary", "HEAD"])
+current_diff_sha256 = hashlib.sha256(current_diff).hexdigest()
+if metadata.get("parent_repo_tracked_diff_sha256") != current_diff_sha256:
+    errors.append("parent tracked diff changed after endpoint launch")
+if expected["parent_repo_dirty"] and os.environ.get("ALLOW_DIRTY_PARENT") != "1":
+    errors.append("dirty parent requires SAGE_SMR_ALLOW_DIRTY_PARENT=1")
 
 recorded = metadata.get("submodules", {})
 for submodule in (
@@ -143,6 +154,7 @@ record_python_env() {
   run_python python -c '
 import importlib.metadata as metadata
 import json
+import hashlib
 import sys
 packages = {}
 for name in ("sage", "vllm", "torch", "torch-npu", "numpy"):
@@ -179,6 +191,7 @@ print(json.dumps({"python": sys.executable, "version": sys.version, "packages": 
 record_python_env > "$OUTDIR/python-env.json"
 
 run_python python - "$OUTDIR/run_metadata.json" <<'PY'
+import hashlib
 import json
 import os
 import subprocess
@@ -245,6 +258,14 @@ metadata = {
         "commit": git_output(["rev-parse", "HEAD"]),
         "branch": git_output(["rev-parse", "--abbrev-ref", "HEAD"]),
         "dirty": bool(git_output(["status", "--porcelain"])),
+        "dirty_paths": [
+            line[3:]
+            for line in git_output(["status", "--porcelain=v1"]).splitlines()
+            if len(line) > 3
+        ],
+        "tracked_diff_sha256": hashlib.sha256(
+            subprocess.check_output(["git", "diff", "--binary", "HEAD"])
+        ).hexdigest(),
     },
     "shared_workload_submodule": submodule_status("third_party/llm-serving-workloads"),
     "runtime_submodules": {

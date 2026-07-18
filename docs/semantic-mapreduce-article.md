@@ -84,7 +84,7 @@ SAGE 当前仓库已经具备支撑这一方向的核心系统边界。README �
 
 在真实执行面上，我们还做了小规模 real-online readiness 和 reducer smoke：通过本仓库 pinned 的 `external/vllm-hust-dev-hub/manage.sh` 在 NPU3 上启动 vLLM-HUST，并用项目专属 `esage-vllm-hust-dev` conda 环境发起 OpenAI-compatible 请求。启动过程中也暴露了运行时可复现性问题：dev-hub 默认寻找 sibling `ascend-runtime-manager`，而本课题要求使用 `third_party/ascend-runtime-manager` submodule；容器还需要显式挂载 `/data` 才能访问模型。因此我们在 runtime manager submodule 中加入了可配置 extra mounts，并在实验 provenance 中记录 manager 源码路径、模型、endpoint、eager fallback 和 submodule commits。这个结果不是 SOTA 性能对比，而是说明 SAGE 的实验路径已经可以从 orchestration workload 走到真实 vLLM-HUST endpoint，并能记录 latency/token/cost 这类 LLM semantic reducer 必需的成本指标。
 
-这个多 seed 结果比单次满分更有价值，因为它把系统挑战分解成可定位的 operator 问题。MapEvidence policy 决定 incident 是否进入 evidence set；SemanticReduce 决定 evidence 是否被合并成正确 hypothesis；ReportTrace 决定每个 match、miss、false positive 是否能被审计。对于 ASPLOS 风格的系统论文，这种分解比“LLM 是否回答对了”更重要：它让我们能设计 coverage gate、deterministic baseline、LLM-hybrid validator、structured output readiness probe、cost/latency accounting 和 trace audit。
+这个多 seed 结果比单次满分更有价值，因为它把系统挑战分解成可定位的 operator 问题。MapEvidence policy 决定 incident 是否进入 evidence set；SemanticReduce 决定 evidence 是否被合并成正确 hypothesis；ReportTrace 决定每个 match、miss、false positive 是否能被审计。对于 EuroSys 风格的系统论文，这种分解比“LLM 是否回答对了”更重要：它让我们能设计 coverage gate、deterministic baseline、LLM-hybrid validator、structured output readiness probe、cost/latency accounting 和 trace audit。
 
 与现有系统相比，SAGE 的位置需要谨慎表述。Spark 和 Flink 是强大的 batch/stream 执行引擎，适合 scan、join、window aggregation 和状态计算；Ray 是通用分布式 AI/Python compute runtime；LangGraph、LangChain、AutoGen 更强调 agent 或 workflow 编排；LlamaIndex 强在数据连接、索引和 RAG；Databricks、Snowflake Cortex、BigQuery ML 等 data+AI 平台提供深度集成能力。这些方向都需要进一步系统调研。SAGE 的差异化不应建立在“别人不能做”这种夸张判断上，而应建立在更精确的边界上：SAGE 把 LLM reasoning workflow 作为显式 dataflow/stream/runtime 对象，并强调 semantic reduce、auditable evidence 和与外部数据系统的开放集成。
 
@@ -111,7 +111,7 @@ analysis workload based on NPU-backed LLM serving telemetry, with injected
 latency spikes, NPU saturation, and queue backlog incidents. Across a small
 multi-seed matrix, the deterministic reducer baseline reaches mean F1
 0.9579 under a tail-aware evidence policy, compared with 0.3075 for map-only
-alerts and 0.7129 for window aggregation. A seven-family semantic-merge suite
+alerts and 0.7129 for window aggregation. A nine-family semantic-merge suite
 further shows that map-only, service-local, and window aggregation fail to
 recover incident-level hypotheses under cascade, false-correlation,
 partial-evidence, and ambiguous-overmerge cases. Live LLM reducer probes expose

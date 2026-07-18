@@ -8,7 +8,7 @@ framework, while the current paper-facing work is the Semantic MapReduce study.
 
 | Paper line | Status | Main files | Scope |
 | --- | --- | --- | --- |
-| Semantic MapReduce | Active ASPLOS-style systems paper | `docs/papers/semantic_mapreduce/main.tex`, `docs/papers/semantic_mapreduce/main.pdf`, `docs/papers/semantic_mapreduce/README.md` | SAGE as an orchestration layer for large-scale LLM-native data analysis: shard evidence extraction, semantic incident reduction, audit traces, and real-online reducer readiness. |
+| Semantic MapReduce | Active EuroSys'27 systems paper | `docs/papers/semantic_mapreduce/main.tex`, `docs/papers/semantic_mapreduce/main.pdf`, `docs/papers/semantic_mapreduce/README.md` | Auditable operator/runtime contract for evidence extraction, bounded semantic edits, validation, recovery, and real-online reduction. |
 
 There are no other first-class LaTeX paper directories under `docs/papers/` at
 the moment. If a new paper starts from SAGE, give it its own directory here and

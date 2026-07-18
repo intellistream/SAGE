@@ -27,7 +27,8 @@ systems submission preparation.
 | A constrained pairwise edit interface can produce live evidence-preserving merge gains on a covered hard case. | `OpenAIPairwiseMergeReducer` presents short candidate pairs and asks only for `merge`/`keep`/`split` decisions with evidence IDs. `test_openai_pairwise_validated_reducer_accepts_constrained_merge` verifies the validated path accepts evidence-preserving pair merges under a mocked response. In `.sage/benchmarks/real_online_semantic_merge/20260710T-npu3-pairwise-constrained-v2-hardcases/`, raw `llm-pairwise` on `ambiguous-disconnected-merge` returns legal JSON, accepts three merge decisions, and improves F1 from the `hybrid-hint` baseline 0.7273 to 1.0000 with 530 estimated tokens. The same run still fails on `ambiguous-temporal-split`, and the independent `llm-pairwise-validated` calls fall back because their model outputs do not contain the required `decisions` list. This intermediate result is superseded by the one-token action replay for the final validated mechanism claim. | "constrained pairwise editing can produce accepted live merge edits on at least one covered hard case", "free-form pairwise JSON motivates bounded action classification" |
 | One-token pairwise action classification converts LLM output instability into validated reducer edits. | `OpenAIPairwiseActionMergeReducer` and `OpenAIPairwiseActionValidatedMergeReducer` ask the model only for `KEEP`, `MERGE`, `SPLIT`, or `ABSTAIN`; the runtime assembles legal JSON edits and applies the same schema/root/affected/evidence validators. Invalid action text is fail-closed to `ABSTAIN` and counted. In `.sage/benchmarks/real_online_semantic_merge/20260718T-smr-hardcases-3seed-5a8419e/`, the validated action path improves mean F1 from 0.7204 (`hybrid-hint`) to 0.9301 over seeds 7/11/13 and three hardcases, with support recall 0.9815, 2.2222 accepted edits, zero fallback, and zero invalid action/schema. The free-form validated negative has invalid schema and fallback in all nine runs. Per-case/seed JSON/CSV and `artifact_gate.json` preserve failures, tokens, and latency. The endpoint and comparison manifests record clean parent/runtime/workload provenance, NPU3, model, environment, and evidence label. | "one-token action classification removes the free-form JSON failure mode across three controlled workload seeds", "validated pairwise action edits improve covered hardcases under the same scorer", "invalid model text becomes bounded action uncertainty rather than reducer failure" |
 | Semantic-merge reports include reproducibility and failure-diagnosis metadata. | The `20260709T-semantic-merge-suite-with-ambiguous-overmerge-10seed` artifact records `manifest.json`, reducer traces, cost accounting, missed-incident failure classes, and false-positive classes for each raw JSON report. | "records run provenance", "classifies missed and false-positive hypotheses" |
-| Public replay candidates have been source-probed. | `.sage/benchmarks/public_semantic_mapreduce_sources/20260708T-public-source-probe/` probes AIOps Challenge 2020, LO2, OpenTelemetry Demo, DeathStarBench, and the Illinois/FIRM trace page. Four are reachable at the metadata/repository level; Illinois returned HTTP 403 to the automated probe. | "source-level probe", "candidate public replay sources", "source-provenance artifact" |
+| A public telemetry replay exercises the evidence boundary. | `.sage/benchmarks/aiops2020_public_replay/20260718T-may29-map-evidence-replay-v4/` reads the official AIOps Challenge 2020 May-29 daily ZIP and four fault labels in place, evaluates eight matched negative windows, and archives no raw data. It detects two fault windows with zero false positives (precision 1.0, recall 0.5, F1 0.6667). | "public-dataset replay at MapEvidence/Normalize", "two misses expose weak or missing evidence", "not incident-group reducer quality" |
+| Runtime commit/reject/recovery is executable across the workload inventory. | `.sage/benchmarks/semantic_mapreduce_runtime_contract/20260718T-eurosys27-9family-3seed/` covers nine families x seeds 7/11/13. All 27 rows pass valid commit, invalid-edit rejection, baseline preservation, checkpoint digest restore, and deterministic replay. | "27-run derived runtime-contract matrix", "checkpoint recovery preserves committed semantic state", "not distributed exactly-once FT" |
 | Shared LLM-serving workloads are part of the formal artifact surface. | `third_party/llm-serving-workloads` is a pinned submodule at `79ed8e3469c0bcfccdf1cd0a66efa2db27156055`. `tools/benchmark_carrier/run_shared_llm_serving_workload_probe.py` records shared workload generation provenance. Artifact `.sage/benchmarks/shared_llm_serving_workloads/20260708T-shared-workload-probe-3seed/` covers 23 generated cases per seed and 1,232 supported requests per seed across seeds 7/11/13. | "uses shared workload-source provenance", "separates shared serving workload probes from repo-local Semantic MR mechanism workloads" |
 | The coverage sweep now reuses one map stage across reducer variants. | `run_large_scale_analysis_coverage_sweep.py` generates/shards/maps once per config, then runs multiple reducers over the same `ShardSummary` evidence objects. Offline suite smoke coverage stage dropped from about 2.18s to 0.67s for the same small config after the change. | "reuses evidence objects across reducer variants", "models the system benefit of a first-class evidence stage" |
 
@@ -35,11 +36,11 @@ systems submission preparation.
 
 | Claim | Current status | Required before stronger wording |
 | --- | --- | --- |
-| Live LLM-backed reduction improves beyond the strongest deterministic/hybrid reducer across seeds and broader suites. | Partially supported only for three controlled workload seeds and three full-coverage hardcases: action-validated reaches 0.9301 mean F1 versus 0.7204 for `hybrid-hint`, with zero invalid/fallback. This is not cross-model, repeated-sampling, broader-suite, or production evidence. | Add more hardcase/easy families, repeated model samples or models, and production-derived telemetry before broader robustness wording. |
+| Live LLM-backed reduction improves beyond the strongest hybrid reducer across the controlled workload inventory. | Supported for nine repo-local families x seeds 7/11/13 in `.sage/benchmarks/real_online_semantic_merge/20260718T-eurosys27-9family-3seed-real-online-v2/`: action validation reaches F1 0.8571 versus 0.7801 for `hybrid-hint`, support recall 0.8795 versus 0.7810, with zero invalid action/schema/fallback. | Keep wording limited to one model/endpoint and controlled telemetry; repeated samples, additional models, and production incident groups remain robustness upgrades. |
 | Live LLM-backed reduction provides a quality-cost/latency advantage. | The action-classification path improves controlled hardcase quality while adding about 536 estimated tokens and 324 ms mean reduce latency. Overmerge spends about 169 tokens while accepting no edits, and temporal split is the expensive case. This is a mechanism tradeoff, not a frontier claim. | Add candidate compression, batched pair judging, accepted-edit-only ablations, and broader workloads before claiming a quality-cost frontier. |
 | Full-evidence prompting is sufficient for semantic reduction. | Refuted by the current hard cases. `llm-openai` returns legal JSON but emits one incident per case, giving F1 0.4000 and support-evidence recall 0.2500 despite full evidence coverage. | Keep full-evidence prompting as a negative control, not as the target mechanism. |
 | The approach works over production telemetry. | The current main benchmark uses controlled synthetic telemetry grounded in LLM-serving signals; public and shared workload probes establish source/provenance surfaces but not production reducer quality. | Run on real vLLM-HUST/NPU telemetry or a production-derived trace with provenance. |
-| Reducer quality holds on public datasets. | Public sources have been probed for availability and integration fit; no dataset-specific loader/scorer has been run yet. | Add dataset-specific loaders and scorer mappings, then run the same reducer matrix. |
+| Reducer quality holds on public incident-group datasets. | AIOps 2020 now has a dataset-specific evidence loader/scorer, but its labels score individual fault windows rather than semantic merge/split hypotheses. | Add a public dataset with incident-group ground truth or a documented grouping-annotation protocol before transferring reducer-quality claims. |
 | External engines can execute the lower-level scans/shards. | Adapter probes show wrappers can drive the same contract; no tuned distributed Spark/Flink/Ray deployment is claimed. | Integrate a real Spark/Ray/Flink backend and measure orchestration overhead and data movement. |
 | Monetary cost accounting is complete. | Offline reducers report zero-token fields; LLM reducer records provider usage when available or chars/4 estimates otherwise. | Add provider-specific pricing config and vendor-specific billing metadata before claiming dollar-level cost. |
 
@@ -96,7 +97,7 @@ does not contain a full related-work survey.
 | `llm-hybrid` | Real OpenAI-compatible candidate editor over semantic-graph hypotheses, including bounded split edits. | Yes | Measured in the small live matrix; exposes why split edits need evidence and affected-service validation. |
 | `llm-hybrid-validated` | Candidate editor with schema validation, evidence/hint consistency checks, unsafe-drop suppression, and `hybrid-hint` fallback. | Yes | Supports the guarded-reduction mechanism in the small NPU3 matrix by making unsafe model edits rejectable. |
 | `llm-pairwise` | Real OpenAI-compatible pairwise editor over compact candidate pairs. | Yes | Shows that narrowing the model output surface can produce a live accepted merge, but free-form JSON remains unstable. |
-| `llm-pairwise-action-validated` | One-token pairwise action classifier; the model emits an enum and the system assembles validated edits. | Yes | Supports the constrained-edit-interface claim in the three-hardcase NPU3 probe. |
+| `llm-pairwise-action-validated` | One-token pairwise action classifier; the model emits an enum and the system assembles validated edits. | Yes | Main constrained-edit result across nine families x three seeds; the hardcase subset isolates merge/abstain behavior. |
 | `llm-openai` | Real OpenAI-compatible full-evidence semantic reducer. | Yes | Negative control for raw prompting; lower support-evidence recall on the small NPU3 matrix. |
 
 ## 2026-07-08/09 NPU3 Evidence Update
@@ -194,10 +195,10 @@ claim:
 src/sage/workloads/semantic_merge_analysis.py
 tools/benchmark_carrier/run_semantic_merge_workload.py
 tools/benchmark_carrier/run_semantic_merge_matrix.py
-.sage/benchmarks/semantic_merge_analysis/20260709T-semantic-merge-suite-with-ambiguous-overmerge-10seed/
+.sage/benchmarks/semantic_merge_analysis/20260718T-eurosys27-9family-10seed/
 ```
 
-The current suite covers seven workload families:
+The current paper suite covers nine workload families:
 
 - `single-service`: sanity check for local alert-style incidents.
 - `cascade`: root causes with downstream symptoms.
@@ -208,6 +209,10 @@ The current suite covers seven workload families:
   upstream hints.
 - `ambiguous-overmerge`: overlapping related incidents that expose whether a
   reducer can safely split an over-compressed candidate.
+- `ambiguous-disconnected-merge`: grouping fragments one incident and requires
+  evidence-preserving merge edits.
+- `ambiguous-temporal-split`: one incident spans candidate windows and tests
+  temporal/transitive fusion.
 
 The scorer requires the predicted hypothesis to recover the root service,
 region, overlapping time, and enough affected services. This makes
@@ -215,16 +220,16 @@ map-only/service-local reducers fail on incident-group scenarios because they
 emit symptom fragments, while `single-service` verifies that the benchmark is
 not constructed to make local reducers always fail.
 
-10-seed, seven-scenario aggregate:
+10-seed, nine-scenario aggregate (90 rows per reducer):
 
 | reducer | mean precision | mean recall | mean F1 | mean detections |
 | --- | ---: | ---: | ---: | ---: |
-| map-only | 0.0667 | 0.1429 | 0.0906 | 14.33 |
-| service-local | 0.0685 | 0.1429 | 0.0922 | 13.46 |
-| window-aggregate | 0.3457 | 0.6929 | 0.4531 | 8.07 |
-| semantic-graph | 0.7907 | 0.7643 | 0.7696 | 3.93 |
-| hybrid-hint | 0.8367 | 0.8143 | 0.8173 | 3.93 |
-| llm-stub | 0.7907 | 0.7643 | 0.7696 | 3.93 |
+| map-only | 0.0519 | 0.1111 | 0.0705 | 13.97 |
+| service-local | 0.0533 | 0.1111 | 0.0717 | 13.27 |
+| window-aggregate | 0.3779 | 0.7444 | 0.4916 | 8.17 |
+| semantic-graph | 0.6485 | 0.6639 | 0.6435 | 4.97 |
+| hybrid-hint | 0.7585 | 0.8556 | 0.7796 | 4.97 |
+| llm-stub | 0.6485 | 0.6639 | 0.6435 | 4.97 |
 
 Scenario-level mean F1:
 

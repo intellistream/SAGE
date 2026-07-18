@@ -246,7 +246,11 @@ def _child_commands(args: argparse.Namespace, outdir: Path) -> list[tuple[str, l
         if args.profile == "paper":
             seeds = "7,11,13,17,19,23,29,31,37,41"
             reducers = "map-only,service-local,window-aggregate,semantic-graph,hybrid-hint,llm-stub"
-            scenarios = "single-service,cascade,shared-bottleneck,concurrent,false-correlation,partial-evidence"
+            scenarios = (
+                "single-service,cascade,shared-bottleneck,concurrent,"
+                "false-correlation,partial-evidence,ambiguous-overmerge,"
+                "ambiguous-disconnected-merge,ambiguous-temporal-split"
+            )
         else:
             seeds = "7"
             reducers = "map-only,window-aggregate,semantic-graph,hybrid-hint,llm-stub"

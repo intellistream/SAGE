@@ -11,6 +11,7 @@ objects into a single hypothesis with provenance.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import random
@@ -1449,6 +1450,13 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
                 evidence_by_id=evidence_by_id,
                 fallback_hypotheses=fallback.reduce(evidence),
             )
+        contract_trace = _build_semantic_reduce_contract_trace(
+            candidates=candidates,
+            output_hypotheses=edited,
+            evidence=evidence,
+            validation_trace=validation_trace,
+            bounded_actions=("KEEP", "MERGE", "SPLIT", "ABSTAIN"),
+        )
         self.last_call = {
             "model": self.model,
             "base_url": self.base_url,
@@ -1474,6 +1482,7 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
             "pair_trace": pair_trace,
             "action_trace": responses,
             "validation_trace": validation_trace,
+            "contract_trace": contract_trace,
             "repair_count": int(validation_trace.get("repair_count", 0)),
             "fallback_count": int(validation_trace.get("fallback_count", 0)),
             "validator_reject_reason": validation_trace.get("fallback_reason"),
@@ -2596,6 +2605,57 @@ def _mark_validated_fallback(
     ]
 
 
+def _stable_payload_digest(payload: Any) -> str:
+    encoded = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _build_semantic_reduce_contract_trace(
+    *,
+    candidates: list[dict[str, Any]],
+    output_hypotheses: list[dict[str, Any]],
+    evidence: list[EvidenceObject],
+    validation_trace: dict[str, Any],
+    bounded_actions: tuple[str, ...],
+) -> dict[str, Any]:
+    """Build the replay key and state-transition record owned by the runtime.
+
+    The model never supplies these fields. They bind a reducer decision to the
+    exact candidate/evidence state and make commit versus baseline preservation
+    directly checkable in archived artifacts.
+    """
+
+    candidate_digest = _stable_payload_digest(candidates)
+    output_digest = _stable_payload_digest(output_hypotheses)
+    evidence_digest = _stable_payload_digest(
+        [evidence_to_dict(item) for item in sorted(evidence, key=lambda item: item.evidence_id)]
+    )
+    fallback_count = int(validation_trace.get("fallback_count", 0) or 0)
+    commit_outcome = "preserved-baseline" if fallback_count else "committed"
+    replay_id = _stable_payload_digest(
+        {
+            "candidate_state_digest": candidate_digest,
+            "evidence_state_digest": evidence_digest,
+            "bounded_actions": list(bounded_actions),
+        }
+    )
+    return {
+        "contract_version": "semantic-reduce/v1",
+        "bounded_actions": list(bounded_actions),
+        "candidate_state_digest": candidate_digest,
+        "evidence_state_digest": evidence_digest,
+        "committed_state_digest": output_digest,
+        "commit_outcome": commit_outcome,
+        "validator_owned": True,
+        "replay_id": replay_id,
+    }
+
+
 def _clusters_from_groups(
     groups: dict[tuple[str, str], list[EvidenceObject]], *, reducer: str
 ) -> list[dict[str, Any]]:
@@ -2966,6 +3026,17 @@ def run_semantic_merge_workload(
     reducer_metadata = getattr(merge_reducer, "last_call", {})
     if not isinstance(reducer_metadata, dict):
         reducer_metadata = {}
+    contract_trace = reducer_metadata.get("contract_trace", {})
+    operators = [
+        "Shard",
+        "MapEvidence",
+        "Normalize",
+        "GroupEvidence",
+        "SemanticReduce",
+    ]
+    if contract_trace:
+        operators.extend(["Edit", "Validate"])
+    operators.append("ReportTrace")
     return MergeReport(
         reducer_name=merge_reducer.name,
         scenario=dataset.scenario,
@@ -2998,16 +3069,10 @@ def run_semantic_merge_workload(
             merge_reducer, reduce_ms=reduce_ms
         ),
         workflow_trace={
-            "operators": [
-                "Shard",
-                "MapEvidence",
-                "Normalize",
-                "GroupEvidence",
-                "SemanticReduce",
-                "ReportTrace",
-            ],
+            "operators": operators,
             "dependency_graph": DEPENDENCIES,
             "evidence": [evidence_to_dict(item) for item in dataset.evidence],
+            "execution_contract": contract_trace,
         },
     )
 
