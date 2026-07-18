@@ -36,9 +36,9 @@ systems submission preparation.
 
 | Claim | Current status | Required before stronger wording |
 | --- | --- | --- |
-| Live LLM-backed reduction improves beyond the strongest hybrid reducer across the controlled workload inventory. | Supported for nine repo-local families x seeds 7/11/13 in `.sage/benchmarks/real_online_semantic_merge/20260718T-eurosys27-9family-3seed-real-online-v2/`: action validation reaches F1 0.8571 versus 0.7801 for `hybrid-hint`, support recall 0.8795 versus 0.7810, with zero invalid action/schema/fallback. | Keep wording limited to one model/endpoint and controlled telemetry; repeated samples, additional models, and production incident groups remain robustness upgrades. |
-| Live LLM-backed reduction provides a quality-cost/latency advantage. | The action-classification path improves controlled hardcase quality while adding about 536 estimated tokens and 324 ms mean reduce latency. Overmerge spends about 169 tokens while accepting no edits, and temporal split is the expensive case. This is a mechanism tradeoff, not a frontier claim. | Add candidate compression, batched pair judging, accepted-edit-only ablations, and broader workloads before claiming a quality-cost frontier. |
-| Repeated-sampling stability has been measured. | The harness now writes distinct case/seed/reducer/sample reports, retains every bounded-action response/provider envelope, and derives within-case F1 variance and exact action agreement. A deterministic five-sample development run validates plumbing only; the real-online sweep is blocked pending post-exposure key rotation. | Do not report a stability number until a clean `real-online` source matrix passes the full artifact gate. |
+| Live LLM-backed reduction improves beyond the strongest hybrid reducer across the controlled workload inventory. | Supported for nine repo-local families x seeds 7/11/13 x five samples at candidate budget 8 in `.sage/benchmarks/real_online_semantic_merge_stability/20260718T-eurosys27-9family-3seed-5sample-000c513/candidates-8/`: action validation reaches F1 0.8645 versus 0.7801 for `hybrid-hint`, with four rejected actions, zero invalid schema, and zero fallback. | Keep wording limited to one model/endpoint, temperature zero, and controlled telemetry; additional models and production incident groups remain robustness upgrades. |
+| Live LLM-backed reduction provides a quality-cost/latency advantage. | The controlled budgets 4/8/12 reach action F1 0.7791/0.8645/0.8571 with mean reducer latency 19.76/102.73/120.34 ms and mixed measured/estimated tokens 45.8/260.9/304.1. Budget 4 fails the quality gate; budget 8 is the best measured operating point. | This is a three-point operating boundary, not a general quality-cost frontier or end-to-end serving speedup. |
+| Repeated-sampling stability has been measured. | In the clean real-online budget-8 matrix, 135 action rows have zero within-case F1 standard deviation and mean exact action agreement 0.9926. Raw responses, provider envelopes, sample IDs, timestamps, request failures, replay IDs, and state digests are retained. | Supports repeatability only for one model/endpoint at temperature zero; do not infer cross-model or broad stochastic robustness. |
 | Token cost is measured rather than estimated. | New action traces retain provider usage and aggregate it when available; older artifacts and endpoints without usage retain the explicit `char-estimate` label. | Say "provider-reported tokens" only for rows whose `token_measurement_source` is `provider-usage`; otherwise say "estimated tokens." |
 | Full-evidence prompting is sufficient for semantic reduction. | Refuted by the current hard cases. `llm-openai` returns legal JSON but emits one incident per case, giving F1 0.4000 and support-evidence recall 0.2500 despite full evidence coverage. | Keep full-evidence prompting as a negative control, not as the target mechanism. |
 | The approach works over production telemetry. | The current main benchmark uses controlled synthetic telemetry grounded in LLM-serving signals; public and shared workload probes establish source/provenance surfaces but not production reducer quality. | Run on real vLLM-HUST/NPU telemetry or a production-derived trace with provenance. |
@@ -126,8 +126,9 @@ Current evidence-chain interpretation:
    reaches support recall 0.9815, and records zero invalid action/schema or
    fallback. This supports the constrained reducer-interface mechanism with
    clean endpoint, parent, environment, NPU3, and submodule provenance. The
-   remaining boundary is one model/endpoint, controlled telemetry, and no
-   repeated model sampling.
+   original diagnostic boundary is one model/endpoint and controlled telemetry;
+   the later full-coverage five-sample matrix supersedes it for submission-facing
+   quality and stability claims.
 
 Additional one-command real-online smoke:
 

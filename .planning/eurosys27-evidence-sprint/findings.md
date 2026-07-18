@@ -55,3 +55,21 @@
   `VLLM_HUST_API_KEY`. Rotation may proceed by generating the value inside a
   non-echoing process, atomically rewriting only the `.env` entry, preserving
   mode 0600, and recording a separate secret-free attestation.
+- The clean real-online sweep resolves the repeated-sampling blocker. At budget
+  8, action-validated F1 is 0.8645 versus hybrid 0.7801 over 135 rows, with zero
+  within-case F1 variance and 0.9926 mean exact action agreement.
+- The earlier zero-invalid point estimate does not generalize to repetition:
+  the budget-8 action path records four rejected proposed actions and budget 12
+  records five. This is positive contract evidence because validation contains
+  them, but the paper must report the rejections rather than say all actions are
+  valid. Schema invalid and fallback remain zero.
+- Candidate budget 4 is a genuine negative result: truncation harms temporal
+  relations and yields action F1 0.7791, just below the 0.7801 hybrid baseline.
+  Budget 8 is the best measured F1/cost point; budget 12 adds support recall but
+  raises tokens and tail latency while lowering F1 to 0.8571.
+- Free-form validated output remains a useful negative control under repetition:
+  at budget 8 it reaches F1 0.7932 with 39 invalid-schema fallbacks and much
+  higher p95 reducer latency (7846.07 ms versus 366.39 ms for bounded action).
+- The public AIOps replay still lacks reducer-level incident grouping labels.
+  Repeated online controlled evidence does not change that external-validity
+  boundary, and no second-model result is available.

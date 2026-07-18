@@ -25,7 +25,7 @@ Rationale:
   fall deadline is 2026-09-24 AoE and the technical-content limit is 12 pages,
   excluding references and appendices. See <https://2027.eurosys.org/cfp.html>.
 - SOSP/OSDI remain plausible future targets after production-derived telemetry,
-  cross-model/repeated-sampling evidence, stronger distributed execution, and a
+  cross-model evidence, stronger distributed execution, and a
   deeper related-work comparison.
 
 Template:
@@ -49,10 +49,10 @@ The generated PDF is:
 docs/papers/semantic_mapreduce/main.pdf
 ```
 
-The remaining clean-tree experiment, anonymous-package, and final-PDF gates are
-tracked in [`NEXT_STEPS.md`](NEXT_STEPS.md). Treat that checklist as the
-submission-freeze source of truth; the diff-hashed expanded online run is
-development evidence, not the final anonymous package.
+The remaining final-PDF and submission-policy gates are tracked in
+[`NEXT_STEPS.md`](NEXT_STEPS.md). Treat that checklist as the submission-freeze
+source of truth. The clean full-coverage repeated run and anonymous package are
+complete.
 
 ## Claim Discipline
 
@@ -274,11 +274,11 @@ yet a robust validated claim: independent `llm-pairwise-validated` calls still
 fall back because the model sometimes omits the required `decisions` list even
 after one retry, and `ambiguous-temporal-split` remains unsolved.
 
-The clean hardcase result supersedes that intermediate pairwise probe:
+The clean hardcase result supersedes that intermediate pairwise probe as a
+mechanism diagnostic:
 
 ```text
 .sage/benchmarks/real_online_semantic_merge/20260718T-smr-hardcases-3seed-5a8419e/
-.sage/benchmarks/semantic-mapreduce-3seed-real-online-5a8419e-anonymous.tar.gz
 ```
 
 The anonymous archive is generated with
@@ -296,20 +296,21 @@ JSON/CSV report tokens, latency, and failure taxonomy. This is controlled
 multi-workload-seed mechanism evidence on one model/endpoint, not a production,
 cross-model, or stochastic robustness claim.
 
-The EuroSys coverage expansion runs the same three reducers over all nine
-families and seeds 7/11/13:
+The submission-facing EuroSys result runs the same three reducers over all nine
+families, seeds 7/11/13, and five samples per case from clean commit `000c513`:
 
 ```text
-.sage/benchmarks/real_online_semantic_merge/20260718T-eurosys27-9family-3seed-real-online-v2/
+.sage/benchmarks/real_online_semantic_merge_stability/20260718T-eurosys27-9family-3seed-5sample-000c513/candidates-8/
+.sage/benchmarks/semantic-mapreduce-eurosys27-9family-5sample-000c513-anonymous.tar.gz
 ```
 
-Across 27 rows per reducer, action validation raises pooled F1 from 0.7801 for
-`hybrid-hint` to 0.8571 and support recall from 0.7810 to 0.8795, with zero
-invalid actions, invalid schemas, or fallbacks. It averages 122.61 ms and 203.1
-estimated tokens, versus 3213.27 ms and 312.1 tokens for free-form validated
-pairwise decisions. The run is diff-hashed development provenance; the clean
-hardcase package remains the anonymous artifact until a clean full-coverage
-rerun is packaged.
+Across 135 rows per reducer at candidate budget 8, action validation raises
+pooled F1 from 0.7801 for `hybrid-hint` to 0.8645. Within-case F1 standard
+deviation is zero and exact action agreement averages 0.9926. The validator
+rejects four proposed actions; invalid schema and fallback remain zero. The
+three-budget curve retains budget 4 as a failed quality point (F1 0.7791), while
+budgets 8 and 12 pass. The anonymous archive SHA-256 is
+`8587d935f204fd44057a63631b93b2b5c064d0287a74cbe0ab06d0e97a8b82bd`.
 
 Full workload-suite documentation:
 
@@ -644,7 +645,9 @@ tools/benchmark_carrier/run_npu3_semantic_merge_stability_sweep.sh
 ```
 
 The wrapper runs all nine families and seeds `7,11,13` at candidate budgets
-`4,8,12`. Every repeated call has a distinct raw report and sample ID. The
+`4,8,12`. Every repeated call has a distinct raw report and sample ID. A budget
+that fails the quality gate is retained in the tradeoff curve and does not
+prevent later budgets from running. The
 stability summary reports within-case F1 variation and exact action agreement;
 it does not interpret cross-family variation as stochastic instability. The
 budget summary uses provider token usage when present and labels the fallback

@@ -7,34 +7,42 @@ optional evidence upgrades.
 
 ## Required Before Submission Freeze
 
-- [ ] Rotate the local dev-hub test API key that appeared in one local terminal
+- [x] Rotate the local dev-hub test API key that appeared in one local terminal
   diagnostic. Confirm that no key, bearer header, `.env` content, home path,
   hostname, private IP, or email address is present in tracked files or the
   submission archive. Create an untracked, secret-free rotation attestation and
   pass it through `SAGE_SMR_KEY_ROTATION_ATTESTATION`.
-- [ ] Freeze a clean SAGE commit with clean repo-owned submodules on their
+- [x] Freeze a clean SAGE commit with clean repo-owned submodules on their
   documented `feature/semantic-mapreduce-*` branches.
-- [ ] Start the controlled NPU3 endpoint from the pinned repo-owned dev-hub and
+- [x] Start the controlled NPU3 endpoint from the pinned repo-owned dev-hub and
   runtime-manager paths in `esage-vllm-hust-dev`; record fresh endpoint metadata
   against the frozen commit.
-- [ ] Repeat all nine scenario families with seeds `7,11,13` using
+- [x] Repeat all nine scenario families with seeds `7,11,13` using
   `hybrid-hint`, `llm-pairwise-validated`, and
   `llm-pairwise-action-validated`, with at least five samples per case. Do not set
   `SAGE_SMR_ALLOW_DIRTY_PARENT=1` for this run.
-- [ ] Require the clean rerun to preserve the contract gate: every model action
+- [x] Require the clean rerun to preserve the contract gate: every model action
   is accepted, rejected, or converted to `ABSTAIN`; committed outputs are
   validator-owned; invalid edits preserve `H_0`; every row has a replay ID and
   state digests; fallback/invalid counts remain explicitly reported.
-- [ ] Regenerate the anonymous archive with
+- [x] Regenerate the anonymous archive with
   `package_semantic_merge_artifact.py`, run its anonymity audit and
   `verify_semantic_merge_artifact.py`, and record the archive SHA-256 here and
-  in `readiness-report.md`.
-- [ ] Rebuild `main.pdf` from the frozen source, rerun focused tests, inspect all
+  in `readiness-report.md`: `8587d935f204fd44057a63631b93b2b5c064d0287a74cbe0ab06d0e97a8b82bd`.
+- [x] Rebuild `main.pdf` from the frozen source, rerun focused tests, inspect all
   rendered pages, and cross-check every paper number against the frozen result
-  manifests and `claim-ledger.md`.
-- [ ] Verify the final EuroSys page limit, anonymity rules, conflicts, artifact
-  availability statement, and submission metadata against the live CFP before
-  upload.
+  manifests and `claim-ledger.md`. The final focused selection is `55 passed`;
+  the 11-page PDF SHA-256 is
+  `e6c285540cf916a579f2da73b8659fade44d471efe05eec0982fb32e1dfecd75`.
+- [x] Verify the paper against the live EuroSys 2027 CFP: at most 12 technical
+  pages plus references, letter/A4 two-column layout, page numbers, double-blind
+  anonymization, grayscale-readable figures, optional supplementary material,
+  and explicit AI-tool disclosure. Checked 2026-07-18 against
+  <https://2027.eurosys.org/cfp.html>.
+- [ ] Before upload, the authors must confirm the final author list, conflicts,
+  per-author three-submission limit, ORCIDs, concurrent/resubmission status,
+  artifact availability choice, and HotCRP metadata. These cannot be inferred
+  from the anonymous repository.
 
 ## Clean Rerun Shape
 
@@ -57,15 +65,15 @@ RUN_ID=<frozen-commit>-eurosys27-9family-3seed \
 tools/benchmark_carrier/run_npu3_semantic_merge_llm_comparison.sh
 ```
 
-Do not reuse the diff-hashed development artifact as the final anonymous
-package. Retain it as development evidence and name the clean replacement in
-the readiness report.
+The clean replacement is
+`.sage/benchmarks/semantic-mapreduce-eurosys27-9family-5sample-000c513-anonymous.tar.gz`.
+Retain the earlier diff-hashed run only as development evidence.
 
 ## Optional Evidence Upgrades
 
 - [x] Implement bounded-action repeated sampling, raw-attempt retention,
   within-case variance/exact-agreement aggregation, and the full artifact gate.
-  The real-online execution remains a required freeze item above.
+  The clean real-online execution is complete.
 - [ ] Add a second model or endpoint while holding candidate generation,
   validators, scorer, and workload seeds fixed.
 - [ ] Extend public/production-derived traces from `MapEvidence/Normalize`

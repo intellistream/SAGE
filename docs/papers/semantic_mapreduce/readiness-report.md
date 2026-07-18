@@ -6,22 +6,24 @@ keeps real-online evidence provenance explicit.
 
 ## Primary Online Result
 
-Expanded nine-family, three-seed real-online artifact (27 rows per reducer):
+Submission-facing nine-family, three-seed, five-sample real-online artifact
+(135 rows per reducer, candidate budget 8):
 
 ```text
-.sage/benchmarks/real_online_semantic_merge/20260718T-eurosys27-9family-3seed-real-online-v2/
+.sage/benchmarks/real_online_semantic_merge_stability/20260718T-eurosys27-9family-3seed-5sample-000c513/candidates-8/
 ```
 
 | Reducer | Precision | Recall | F1 | Support recall | Reduce ms | Tokens | Accepted edits | Invalid/fallback |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `hybrid-hint` | 0.7692 | 0.8426 | 0.7801 | 0.7810 | 0.26 | 0.0 | 0.0 | 0 |
-| `llm-pairwise-validated` | 0.8065 | 0.8056 | 0.7896 | 0.8116 | 3213.27 | 312.1 | 0.6296 | 0 |
-| `llm-pairwise-action-validated` | 0.8852 | 0.8426 | 0.8571 | 0.8795 | 122.61 | 203.1 | 0.8148 | 0 |
+| `hybrid-hint` | 0.7692 | 0.8426 | 0.7801 | 0.7810 | 0.23 | 0.0 | 0.0 | 0 |
+| `llm-pairwise-validated` | 0.7881 | 0.8426 | 0.7932 | 0.7948 | 1980.49 | 276.0 | 0.1259 | 39 schema / 39 fallback |
+| `llm-pairwise-action-validated` | 0.8975 | 0.8426 | 0.8645 | 0.8672 | 102.73 | 260.9 | 0.8148 | 4 action / 0 fallback |
 
-This is now the main workload-coverage result. The clean three-hardcase artifact
-below remains the strongest isolated ambiguity result and the anonymous package
-source; its free-form schema-failure behavior should not be generalized to the
-expanded structured-output run.
+This is the main workload-coverage and repeatability result. For the action
+path, within-case F1 standard deviation is zero, exact action agreement averages
+0.9926, schema invalid and fallback are zero, and the validator rejects four
+inadmissible proposed actions. The three-hardcase artifact below remains an
+isolated mechanism diagnostic and is no longer the anonymous package source.
 
 Clean three-workload-seed real-online artifact:
 
@@ -32,8 +34,8 @@ Clean three-workload-seed real-online artifact:
 Anonymous submission artifact package:
 
 ```text
-.sage/benchmarks/semantic-mapreduce-3seed-real-online-5a8419e-anonymous.tar.gz
-sha256: 161446f93164b3985c481613768d22f5330a2dafeec4399f90615b1d83f6d640
+.sage/benchmarks/semantic-mapreduce-eurosys27-9family-5sample-000c513-anonymous.tar.gz
+sha256: 8587d935f204fd44057a63631b93b2b5c064d0287a74cbe0ab06d0e97a8b82bd
 ```
 
 The `.sage/` tree is ignored by git, so this archive should be attached as a
@@ -49,15 +51,17 @@ Provenance:
 - Model: `qwen25-7b-sage-realonline`
 - Hardware: NPU3, Ascend 910B2
 - Conda env: `esage-vllm-hust-dev`
-- Clean run parent commit: `5a8419eddd9b1971e38b8d2109e3bf8c78a44f8c`
+- Clean run parent commit: `000c513eb4a90104ce09e2222d3ced62906117b2`
 - Paper package commit: any later paper-only synchronization commit that
   preserves this clean replay artifact and result table.
 - Parent dirty: `false`
 - `third_party/llm-serving-workloads`: `79ed8e3469c0bcfccdf1cd0a66efa2db27156055`
 - `third_party/ascend-runtime-manager`: `c5b0461aaecffe7e5011f8fab0944d32bedb1092`, clean
 - Workload source: repo-local `src/sage/workloads/semantic_merge_analysis.py`
-- Scenarios: `ambiguous-disconnected-merge`, `ambiguous-temporal-split`, `ambiguous-overmerge`
+- Scenarios: all nine controlled workload families
 - Workload seeds: `7`, `11`, `13`
+- Samples per case/seed/reducer: `5`
+- Candidate budgets: `4`, `8`, `12`; budget 8 is the primary configuration
 
 ## Operator Model Update
 
@@ -139,9 +143,9 @@ The validator recorded `schema_valid=true`, `fallback_count=0`,
   safe abstention, but temporal grouping may need multi-pair grouping or
   transitive closure constraints.
 - Model semantic ability: useful bounded merge decisions repeat across three
-  workload seeds, but cross-model and repeated-sampling robustness are untested.
-- Validator conservatism: not the blocker in the latest run; no validator
-  rejection or fallback occurred for action-validated outputs.
+  workload seeds and five samples, but cross-model robustness is untested.
+- Validator conservatism: four proposed actions are rejected at budget 8 and
+  five at budget 12; no action-path schema failure or fallback occurs.
 
 ## Strongest Current Claim
 
@@ -156,7 +160,9 @@ invalid model text becomes `ABSTAIN`, evidence references are supplied by the
 system, validators enforce the incident schema, and fallback protects baseline
 output. A three-workload-seed real-online hardcase matrix shows this design can
 accept validated merge edits and improve over `hybrid-hint` on covered ambiguous
-merge cases under one model and endpoint.
+merge cases under one model and endpoint. Five repeated samples per case show
+zero within-case F1 variation for the action path, while validator rejections
+remain explicit rather than being reported as successful model actions.
 
 ## Current Final State
 
@@ -183,22 +189,22 @@ merge cases under one model and endpoint.
   content limit. All pages, tables, the operator diagram, and references were
   rendered to PNG and visually checked for clipping, overlap, and legibility.
 - The final focused no-NPU regression selection passes under
-  `esage-vllm-hust-dev`: `47 passed` across semantic-merge, runtime-contract,
+  `esage-vllm-hust-dev`: `55 passed` across semantic-merge, runtime-contract,
   checkpoint/recovery, AIOps replay, summary, and shared-state tests.
-- The three-hardcase, three-workload-seed NPU3 matrix passes the artifact gate:
-  F1 0.9301 versus 0.7204 for `hybrid-hint`, support recall 0.9815, zero
-  fallback/invalid schema/invalid action, and clean parent/submodule provenance.
+- The full nine-family, three-seed, five-sample NPU3 matrix passes the artifact
+  gate at candidate budget 8: F1 0.8645 versus 0.7801 for `hybrid-hint`, zero
+  fallback/schema invalid, four rejected actions, and clean parent/submodule
+  provenance. The 0.9301 hardcase result remains diagnostic only.
 - Implementation-layer boundary is explicit: the submitted Semantic MapReduce
   mechanism does not require new Ascend kernel, Triton operator, mask/packing,
   or runtime-operator semantic changes. If future work needs such behavior, it
   must land in the pinned `external/triton-ascend-hust` feature branch rather
   than as an ad hoc `vllm-ascend-hust` workaround; `vllm-ascend-hust` remains
   thin glue, and `vllm-hust` owns scheduler/KV/request-metadata concerns.
-- The nine-family derived matrix, 27-run runtime fault matrix, and nine-family
-  real-online action expansion are complete. The remaining submission gate is a
-  clean-tree repetition and anonymous packaging of the full-coverage online
-  matrix. Cross-model, repeated-sampling, and production incident-group claims
-  remain separate evidence upgrades.
+- The nine-family derived matrix, 27-run runtime fault matrix, clean five-sample
+  real-online sweep, and anonymous full-coverage package are complete.
+  Cross-model and production incident-group claims remain separate evidence
+  upgrades.
 
 ## EuroSys Workload-Coverage Gate
 
@@ -227,17 +233,20 @@ regimes:
 2. `llm-pairwise-validated` as the free-form/schema negative control; and
 3. `llm-pairwise-action-validated` as bounded `Edit` + system-owned `Validate`.
 
-The expanded run meets the admission gate: accepted edits do not violate schema
-or evidence invariants, pooled F1 improves, and all actions remain visible in
-the trace. Per-family deltas are retained in the artifact. Cross-model and
-repeated-sampling matrices remain robustness extensions.
+The expanded repeated run meets the admission gate at candidate budgets 8 and
+12: accepted edits do not violate schema or evidence invariants, pooled F1
+improves, and accepted and rejected actions remain visible in the trace. Budget
+4 is intentionally retained as a failed quality point because candidate
+truncation reduces F1 to 0.7791. Cross-model matrices remain an external-
+validity extension.
 
 ## Claims Not Yet Supported
 
-- Do not turn three controlled workload seeds on one model into broad stochastic,
-  cross-model, or production robustness.
-- Do not claim a quality-cost frontier; the action reducer still adds roughly
-  536 estimated tokens and 324 ms mean reduce latency in the live matrix.
+- Do not turn three controlled workload seeds and five temperature-zero samples
+  on one model into broad stochastic, cross-model, or production robustness.
+- Do not claim a general quality-cost frontier. The three measured budget points
+  show an operating boundary: budget 8 reaches the best F1 (0.8645), while
+  budget 12 costs more and reaches 0.8571.
 - Do not claim production incident-group generality; the AIOps replay covers
   public labeled metrics at MapEvidence/Normalize, while reducer quality still
   uses controlled incident-group labels.
@@ -248,10 +257,9 @@ repeated-sampling matrices remain robustness extensions.
 
 ## 2026-07-18 Evidence-Sprint Audit
 
-The submission-facing claim boundary is sound, but the current online evidence
-is still one sample per case on one model and endpoint. This sprint therefore
-added an executable repeated-sampling and candidate-budget harness rather than
-rewriting the existing point estimate as robustness evidence:
+The submission-facing claim boundary is sound. This sprint added and executed
+an auditable repeated-sampling and candidate-budget harness rather than
+rewriting an earlier point estimate as robustness evidence:
 
 - `run_semantic_merge_matrix.py --samples N` writes a distinct raw report for
   every case/seed/reducer/sample tuple.
@@ -277,14 +285,23 @@ the baseline is preserved, and deterministic replay succeeds. Because AIOps
 2020 does not provide incident-group merge/split labels, this is external
 contract conformance, not reducer-quality generalization.
 
-The real-online stability/budget sweep is currently **blocked**: the local test
-key predates a known terminal exposure and no post-exposure rotation has been
-attested. The runner now requires a secret-free JSON attestation with
-`rotated_utc`, `api_key_env`, and
-`operator_acknowledged_no_key_logged=true`, and records only its basename and
-SHA-256. A second model remains optional and requires a separately controlled
-endpoint with matching clean-commit metadata; no result is inferred in its
-absence.
+The locally controlled test bearer key was rotated without printing or copying
+its value. A secret-free attestation records only `rotated_utc`, `api_key_env`,
+and `operator_acknowledged_no_key_logged=true`; the run metadata retains only
+the attestation basename and SHA-256. Literal-key scanning found zero matches in
+the real-online artifacts and tracked files. The clean sweep at commit
+`000c513` completed 1,215 reducer rows across budgets 4/8/12. Budgets 8 and 12
+pass the full artifact gate; budget 4 is preserved with gate `FAIL` because its
+0.7791 F1 does not exceed hybrid 0.7801. A second model remains unavailable and
+no cross-model result is inferred.
+
+The derived budget curve is:
+
+| Candidate budget | Action F1 | Support recall | Mean reduce ms | p95 ms | Tokens | Gate |
+| ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 4 | 0.7791 | 0.7455 | 19.76 | 104.81 | 45.8 | FAIL (below baseline) |
+| 8 | 0.8645 | 0.8672 | 102.73 | 366.39 | 260.9 | PASS |
+| 12 | 0.8571 | 0.8795 | 120.34 | 547.21 | 304.1 | PASS |
 
 Clean no-credential evidence at parent commit
 `e0ffdffeef7a059ee3059064eb5c86a25307738a`:
@@ -374,20 +391,22 @@ latency, token cost, and traceability.
 
 ## Status
 
-READY for the bounded-contract mechanism claim and internal EuroSys review,
-but NOT frozen for submission.
+READY for the bounded-contract mechanism claim and internal EuroSys review.
+The code, evidence, artifact, paper, and public CFP checks are frozen; only
+author-owned conflicts/identity/HotCRP metadata remain before submission.
 The real-online matrix and machine-executable artifact gates pass. Per-case/seed
 JSON and CSV report F1, support recall, accepted edits, fallback, invalid
 action/schema, tokens, latency, and failure taxonomy. The current PDF has 11
 total pages and has passed a complete visual inspection. Final submission
-freeze still requires the clean full-coverage rerun and regenerated anonymous
-package tracked in [`NEXT_STEPS.md`](NEXT_STEPS.md).
+The clean full-coverage rerun, regenerated anonymous package, rebuilt PDF, and
+public policy audit are complete. Author-owned upload checks remain in
+[`NEXT_STEPS.md`](NEXT_STEPS.md).
 
 The 2026-07-18 rebuilt PDF remains 11 letter-size pages. All pages were rendered
-and visually inspected after the coverage-table correction; fonts are embedded
-and no identity, home-path, email, replacement glyph, clipping, overlap, or
-table/caption drift was found. PDF SHA-256:
-`2ff1fe68fcad173274d6decfc9dd0ce09615068caeb8090b37e31eafa84b75b7`.
+and visually inspected after adding repeated-sampling and budget evidence;
+fonts are embedded and no identity, home-path, email, replacement glyph,
+clipping, overlap, or table/caption drift was found. PDF SHA-256:
+`e6c285540cf916a579f2da73b8659fade44d471efe05eec0982fb32e1dfecd75`.
 
 ## Clean Replay Artifact Gate
 

@@ -39,7 +39,9 @@ def test_package_sanitizes_identity_and_excludes_endpoint_logs(
     )
     output = tmp_path / "anonymous-package"
     archive = tmp_path / "anonymous-package.tar.gz"
-    result = package(comparison, endpoint, output, archive)
+    curve = tmp_path / "quality_latency_token_curve.json"
+    curve.write_text('{"path":"/home/reviewer/SAGE"}\n', encoding="utf-8")
+    result = package(comparison, endpoint, output, archive, (curve,))
 
     assert result["status"] == "PASS"
     assert archive.is_file()
@@ -47,5 +49,7 @@ def test_package_sanitizes_identity_and_excludes_endpoint_logs(
     packaged_text = (output / "comparison" / "run_metadata.json").read_text()
     assert "reviewer" not in packaged_text
     assert "192.168.1.9" not in packaged_text
+    assert (output / "supplementary" / curve.name).is_file()
     manifest = json.loads((output / "ANONYMIZATION_MANIFEST.json").read_text())
     assert manifest["status"] == "PASS"
+    assert manifest["supplementary_files"] == [curve.name]

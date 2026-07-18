@@ -95,6 +95,7 @@ def package(
     endpoint_dir: Path,
     output_dir: Path,
     archive_path: Path | None = None,
+    supplementary_files: tuple[Path, ...] = (),
 ) -> dict[str, Any]:
     if output_dir.exists():
         raise FileExistsError(f"refusing to overwrite existing output: {output_dir}")
@@ -116,7 +117,25 @@ def package(
         files[str(relative)] = _copy_sanitized(
             source, output_dir / relative, replacements
         )
+    for source in supplementary_files:
+        if not source.is_file():
+            raise FileNotFoundError(f"supplementary evidence is absent: {source}")
+        relative = Path("supplementary") / source.name
+        if str(relative) in files:
+            raise ValueError(f"duplicate supplementary filename: {source.name}")
+        files[str(relative)] = _copy_sanitized(
+            source, output_dir / relative, replacements
+        )
 
+    verification_args = ""
+    matrix_manifest = comparison_dir / "matrix" / "manifest.json"
+    if matrix_manifest.is_file():
+        manifest_payload = json.loads(matrix_manifest.read_text(encoding="utf-8"))
+        if len(manifest_payload.get("scenarios", [])) == 9:
+            verification_args = (
+                " --profile full --min-samples "
+                f"{int(manifest_payload.get('samples', 1))}"
+            )
     readme = output_dir / "README.md"
     readme.write_text(
         "# Anonymous Semantic MapReduce evidence\n\n"
@@ -126,7 +145,8 @@ def package(
         "Verify from the repository root:\n\n"
         "```bash\n"
         "python tools/benchmark_carrier/verify_semantic_merge_artifact.py "
-        "comparison --endpoint-metadata endpoint/metadata.json\n"
+        "comparison --endpoint-metadata endpoint/metadata.json"
+        f"{verification_args}\n"
         "```\n",
         encoding="utf-8",
     )
@@ -145,6 +165,7 @@ def package(
         "source_roots_redacted": True,
         "endpoint_allowlist": list(ENDPOINT_ALLOWLIST),
         "excluded_endpoint_logs": True,
+        "supplementary_files": [path.name for path in supplementary_files],
         "files": files,
     }
     manifest_path = output_dir / "ANONYMIZATION_MANIFEST.json"
@@ -169,12 +190,16 @@ def main() -> int:
     parser.add_argument("--endpoint-dir", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--archive", type=Path)
+    parser.add_argument(
+        "--supplementary-file", action="append", default=[], type=Path
+    )
     args = parser.parse_args()
     result = package(
         args.comparison_dir.resolve(),
         args.endpoint_dir.resolve(),
         args.output_dir.resolve(),
         args.archive.resolve() if args.archive else None,
+        tuple(path.resolve() for path in args.supplementary_file),
     )
     print(json.dumps(result, indent=2))
     return 0

@@ -36,10 +36,10 @@ boundary honestly, and prepare a clean, secret-safe submission freeze.
   verifier, and PDF based only on completed evidence.
 - [completed] Commit and push SAGE; update and push the umbrella handoff only after
   the corresponding SAGE work is real and published.
-- [in_progress] Rotate the user-owned local vLLM-HUST bearer key without logging
+- [completed] Rotate the user-owned local vLLM-HUST bearer key without logging
   it, attest the rotation, launch a clean NPU3 endpoint, and execute the
   full-nine-family repeated-sampling/candidate-budget sweep.
-- [pending] Validate and package the resulting real-online evidence, update the
+- [in_progress] Validate and package the resulting real-online evidence, update the
   paper/readiness/claim ledger and umbrella handoff, rebuild/inspect the PDF,
   then commit and push all new tracked work.
 
@@ -62,3 +62,5 @@ boundary honestly, and prepare a clean, secret-safe submission freeze.
 | Combined case-summary/artifact-verifier patch missed current verifier context | 1 | No partial patch applied; split into schema change and small verifier hunks against exact current lines. |
 | Broad regression collection could not import `tools` with `PYTHONPATH=src` | 1 | Rerun with the repository root and source tree: `PYTHONPATH=.:src`. |
 | Runtime-contract CLI does not accept the shorthand `--scenarios all` | 1 | Reran with the explicit nine-family comma-separated list; clean run passed. |
+| Endpoint startup left an empty untracked lock residue in the dev-hub submodule, causing clean-tree preflight to fail | 1 | Verified it was empty and unheld, moved it to ignored `.sage/runtime-residue/`, and reran preflight successfully without deleting user data. |
+| The stability wrapper stopped after candidate budget 4 failed the quality gate, although low-budget failure is a legitimate tradeoff point | 1 | Preserved the complete failed point, ran budgets 8/12 from the same clean endpoint, and changed the wrapper to retain gate outcomes while continuing the sweep. |

@@ -25,6 +25,12 @@ def summarize(run_dirs: list[Path]) -> dict[str, Any]:
         stability = json.loads(
             (run_dir / "stability_summary.json").read_text(encoding="utf-8")
         )
+        artifact_gate_path = run_dir / "artifact_gate.json"
+        artifact_gate = (
+            json.loads(artifact_gate_path.read_text(encoding="utf-8"))
+            if artifact_gate_path.is_file()
+            else {"status": "NOT_RUN", "failures": []}
+        )
         if metadata.get("evidence_label") != "real-online":
             raise ValueError(f"source run is not real-online: {run_dir}")
         budget = int(metadata["llm_reducer"]["max_candidates"])
@@ -37,6 +43,8 @@ def summarize(run_dirs: list[Path]) -> dict[str, Any]:
                 "model": model,
                 "candidate_budget": budget,
                 "samples": int(metadata["workload"].get("samples", 1)),
+                "artifact_gate_status": str(artifact_gate.get("status", "UNKNOWN")),
+                "artifact_gate_failures": list(artifact_gate.get("failures", [])),
             }
         )
         stability_by_reducer = stability.get("by_reducer", {})
@@ -68,6 +76,9 @@ def summarize(run_dirs: list[Path]) -> dict[str, Any]:
                         item["invalid_action_count_mean"]
                     ),
                     "invalid_schema_runs": int(item["invalid_schema_runs"]),
+                    "artifact_gate_status": str(
+                        artifact_gate.get("status", "UNKNOWN")
+                    ),
                 }
             )
     return {

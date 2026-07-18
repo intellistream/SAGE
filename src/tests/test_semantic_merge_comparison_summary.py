@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from tools.benchmark_carrier.summarize_semantic_merge_budget_sweep import summarize
+
 
 def test_matrix_manifest_infers_conda_environment_from_interpreter(
     tmp_path: Path,
@@ -206,3 +208,49 @@ def test_summary_emits_submission_facing_case_seed_rows(tmp_path: Path) -> None:
         "false_positive": {"over_merged_incidents": 1},
     }
     assert (tmp_path / "case_seed_summary.csv").is_file()
+
+
+def test_budget_summary_retains_quality_gate_outcome(tmp_path: Path) -> None:
+    run = tmp_path / "candidates-4"
+    run.mkdir()
+    (run / "run_metadata.json").write_text(
+        json.dumps(
+            {
+                "evidence_label": "real-online",
+                "run_id": "budget-4",
+                "git": {"commit": "a" * 40},
+                "endpoint": {"model": "model-a"},
+                "llm_reducer": {"max_candidates": 4},
+                "workload": {"samples": 5},
+            }
+        ),
+        encoding="utf-8",
+    )
+    comparison = {
+        "reducer": "llm-pairwise-action-validated",
+        "f1_mean": 0.7,
+        "support_evidence_recall_mean": 0.7,
+        "reduce_ms_mean": 1.0,
+        "estimated_tokens_mean": 2.0,
+        "total_tokens_mean": 3.0,
+        "provider_tokens_observed_runs": 1,
+        "fallback_count_mean": 0.0,
+        "invalid_action_count_mean": 0.0,
+        "invalid_schema_runs": 0,
+    }
+    (run / "comparison_summary.json").write_text(
+        json.dumps([comparison]), encoding="utf-8"
+    )
+    (run / "stability_summary.json").write_text(
+        json.dumps({"by_reducer": {comparison["reducer"]: {}}}), encoding="utf-8"
+    )
+    (run / "artifact_gate.json").write_text(
+        json.dumps({"status": "FAIL", "failures": ["below baseline"]}),
+        encoding="utf-8",
+    )
+
+    result = summarize([run])
+
+    assert result["sources"][0]["artifact_gate_status"] == "FAIL"
+    assert result["sources"][0]["artifact_gate_failures"] == ["below baseline"]
+    assert result["curve"][0]["artifact_gate_status"] == "FAIL"

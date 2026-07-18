@@ -54,3 +54,34 @@
   test key and authorized direct rotation. Resumed the evidence sprint to
   rotate it secret-safely, launch the clean NPU3 endpoint, and run the pending
   real-online stability/budget matrix.
+- 2026-07-18: Rotated the local test bearer key atomically without printing,
+  hashing, backing up, or placing it in command arguments. Preserved mode 0600
+  and wrote only a secret-free ignored attestation. A post-rotation smoke
+  returned HTTP 200.
+- 2026-07-18: Launched the pinned Qwen2.5-7B endpoint on NPU3 from clean commit
+  `000c513`, then completed nine families x seeds 7/11/13 x five samples x
+  three reducers at candidate budgets 4/8/12 (1,215 reducer rows). Raw provider
+  envelopes, model text, timing, request status, sample IDs, and provenance are
+  retained.
+- 2026-07-18: Budget 4 was retained with artifact gate FAIL (action F1 0.7791
+  versus hybrid 0.7801). Budgets 8 and 12 pass: action F1 0.8645/0.8571,
+  zero action-path fallback or schema invalid, and 4/5 rejected actions.
+  Budget 8 has zero within-case F1 standard deviation and 0.9926 mean exact
+  action agreement.
+- 2026-07-18: Stopped the experiment-owned NPU3 service and verified port 18383
+  closed. Scanning the new artifacts and all tracked files for the literal key
+  found zero matches.
+- 2026-07-18: Packaged the budget-8 full-coverage run plus the three-budget
+  curve into an anonymous archive. The full five-sample verifier passes; archive
+  SHA-256 is `8587d935f204fd44057a63631b93b2b5c064d0287a74cbe0ab06d0e97a8b82bd`.
+- 2026-07-18: Rebuilt the updated anonymous ACM paper. It remains 11 letter-size
+  pages; all pages were rendered and visually inspected, fonts are embedded,
+  and identity/replacement-glyph searches are clean. PDF SHA-256 is
+  `e6c285540cf916a579f2da73b8659fade44d471efe05eec0982fb32e1dfecd75`.
+- 2026-07-18: Final focused no-NPU regression passes under the dedicated env:
+  `55 passed` with six pre-existing deprecation warnings.
+- 2026-07-18: Checked the live official EuroSys 2027 CFP. The 11-page letter
+  paper, page numbering, anonymous form, grayscale-readable figures, separate
+  supplement, and AI-tool disclosure match public requirements. Final author
+  list, conflicts, per-author limit, ORCIDs, and HotCRP metadata remain
+  author-owned upload checks rather than repository work.

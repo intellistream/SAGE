@@ -32,6 +32,7 @@ mkdir -p "$SWEEP_ROOT"
 
 IFS=',' read -r -a budget_values <<< "$BUDGETS"
 run_dirs=()
+quality_gate_failures=0
 for raw_budget in "${budget_values[@]}"; do
   budget="${raw_budget//[[:space:]]/}"
   [[ "$budget" =~ ^[1-9][0-9]*$ ]] || {
@@ -54,6 +55,7 @@ for raw_budget in "${budget_values[@]}"; do
       "$budget" > "$SWEEP_ROOT/candidates-$budget.FAILED.txt"
     exit 1
   fi
+  set +e
   "$CONDA_EXE" run --no-capture-output -n "$CONDA_ENV" env PYTHONPATH=src \
     python tools/benchmark_carrier/verify_semantic_merge_artifact.py \
     "$outdir" \
@@ -61,10 +63,18 @@ for raw_budget in "${budget_values[@]}"; do
     --profile full \
     --min-samples "$SAMPLES" \
     --output "$outdir/artifact_gate.json"
+  gate_rc=$?
+  set -e
+  if [[ "$gate_rc" -ne 0 ]]; then
+    quality_gate_failures=$((quality_gate_failures + 1))
+    printf 'Candidate budget %s completed but did not pass the quality gate; retaining it as a tradeoff point.\n' \
+      "$budget" >&2
+  fi
 done
 
 "$CONDA_EXE" run --no-capture-output -n "$CONDA_ENV" env PYTHONPATH=src \
   python tools/benchmark_carrier/summarize_semantic_merge_budget_sweep.py \
   "${run_dirs[@]}" --output "$SWEEP_ROOT/quality_latency_token_curve.json"
 
+printf 'QUALITY_GATE_FAILURES=%s\n' "$quality_gate_failures"
 printf 'RESULT_DIR=%s\n' "$SWEEP_ROOT"
