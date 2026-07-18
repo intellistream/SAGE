@@ -34,7 +34,7 @@ boundary honestly, and prepare a clean, secret-safe submission freeze.
   satisfy preflight.
 - [completed] Synchronize paper, readiness, claim ledger, NEXT_STEPS, artifact
   verifier, and PDF based only on completed evidence.
-- [in_progress] Commit and push SAGE; update and push the umbrella handoff only after
+- [completed] Commit and push SAGE; update and push the umbrella handoff only after
   the corresponding SAGE work is real and published.
 
 ## Constraints

@@ -45,3 +45,8 @@
   embedded, no identity/home/email marker or replacement glyph was found, and
   the PDF SHA-256 is
   `2ff1fe68fcad173274d6decfc9dd0ce09615068caeb8090b37e31eafa84b75b7`.
+- 2026-07-18: Pushed the paper/evidence synchronization as SAGE commit
+  `fe9c8885ff39d1b11187d21f9a3f4d0b794930ce`. After that publication, updated
+  only the clean Semantic-MR handoff file in the dirty umbrella checkout,
+  preserving all unrelated user changes, and pushed llm-optimizations commit
+  `ac29450` to `main`.
