@@ -38,3 +38,6 @@
 - The umbrella repository is `/home/shuhao/llm-optimizations`; its venue label,
   taxonomy validator, priority notes, and a dedicated SAGE handoff must all point
   to EuroSys'27 rather than retaining the superseded ASPLOS'27 classification.
+- Published coordination state: SAGE paper/implementation commit `e342fda` is
+  on `origin/feature/semantic-mapreduce-paper`; umbrella handoff commit
+  `81e33b1` is on `origin/main`.

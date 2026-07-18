@@ -22,7 +22,7 @@ deliver a venue-compliant, visually checked paper with synchronized claims.
 - [completed] Reframe and revise the full paper for EuroSys, including related work, evaluation, limitations, and venue metadata.
 - [completed] Synchronize README, readiness report, claim ledger, workload docs, and artifact instructions.
 - [completed] Build the final PDF, inspect all pages/figures/tables, run tests and artifact verification, and report remaining evidence boundaries.
-- [in_progress] Record post-remediation submission gates, synchronize the
+- [completed] Record post-remediation submission gates, synchronize the
   `llm-optimizations` umbrella handoff, and publish all authorized repository
   changes.
 

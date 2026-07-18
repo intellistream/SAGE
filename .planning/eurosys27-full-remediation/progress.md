@@ -20,3 +20,12 @@
   anonymous artifact freeze, robustness extensions, and credential-rotation
   follow-up in SAGE and the `llm-optimizations` umbrella repository before
   committing and pushing both repositories.
+- 2026-07-18: Published SAGE paper/implementation commit `e342fda` plus the
+  three earlier local evidence-gate commits to
+  `origin/feature/semantic-mapreduce-paper`.
+- 2026-07-18: Published umbrella commit `81e33b1` to `origin/main`; it updates
+  the EuroSys27 workspace label, taxonomy validator, priority/roadmap/paper
+  documentation, persistent audit files, and the dedicated SAGE handoff.
+- 2026-07-18: Publication handoff phase complete. Remaining unchecked items in
+  `docs/papers/semantic_mapreduce/NEXT_STEPS.md` are future submission-freeze
+  gates, not unfinished work in this publication task.
