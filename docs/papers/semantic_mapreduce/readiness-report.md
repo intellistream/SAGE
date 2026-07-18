@@ -286,6 +286,22 @@ SHA-256. A second model remains optional and requires a separately controlled
 endpoint with matching clean-commit metadata; no result is inferred in its
 absence.
 
+Clean no-credential evidence at parent commit
+`e0ffdffeef7a059ee3059064eb5c86a25307738a`:
+
+```text
+.sage/benchmarks/semantic_mapreduce_runtime_contract/20260718T-eurosys27-9family-3seed-e0ffdff-clean/
+.sage/benchmarks/aiops2020_semantic_reduce_contract/20260718T-eurosys27-public-contract-e0ffdff-clean/
+```
+
+The runtime matrix is `derived-artifact`: 27/27 valid commits, invalid-edit
+rejections, baseline-preservation checks, checkpoint restores, and
+deterministic replays pass. The AIOps artifact is `replay`: it contains two
+stable evidence IDs from the previously detected public windows and passes
+valid commit, missing-evidence rejection, baseline preservation, and
+deterministic replay. Its contract-result SHA-256 is
+`f490e817a9ff1d04958d3853430c85fd879c716b574d666a39e03cdbdb7300ce`.
+
 ## Reviewer Attack Prep
 
 **Is this just prompt engineering?**
@@ -366,6 +382,12 @@ action/schema, tokens, latency, and failure taxonomy. The current PDF has 11
 total pages and has passed a complete visual inspection. Final submission
 freeze still requires the clean full-coverage rerun and regenerated anonymous
 package tracked in [`NEXT_STEPS.md`](NEXT_STEPS.md).
+
+The 2026-07-18 rebuilt PDF remains 11 letter-size pages. All pages were rendered
+and visually inspected after the coverage-table correction; fonts are embedded
+and no identity, home-path, email, replacement glyph, clipping, overlap, or
+table/caption drift was found. PDF SHA-256:
+`2ff1fe68fcad173274d6decfc9dd0ce09615068caeb8090b37e31eafa84b75b7`.
 
 ## Clean Replay Artifact Gate
 

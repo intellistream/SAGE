@@ -208,10 +208,10 @@ The workload also forces the system to preserve evidence. If the reducer reports
 
 Finally, the workload is intentionally reproducible. Seeds, event counts, shard counts, top-k values, reducer names, incident reports, missed incidents, reducer traces, workflow traces, run manifests, failure classes, and token/cost accounting fields are recorded. The same matrix can be rerun when a reducer changes. This gives the prototype a benchmark harness for model-backed reducer experiments without making the current paper depend on a live model endpoint.
 
-The semantic-merge workloads in Table~\ref{tab:workload-contract-coverage} separate positive edits from no-op and adversarial obligations. This matters because an edit protocol can appear strong if every case rewards merging. Sanity and cascade families test ordinary incident formation; concurrent and false-correlation families require separation; partial evidence distinguishes a map-coverage limit from a reducer error; and the three ambiguity families force merge, split, or abstain decisions after coverage is complete. All nine families use the same evidence schema and scorer in the ten-seed derived matrix; the hardcase subset is also evaluated real-online.
+The semantic-merge workloads in Table~\ref{tab:workload-contract-coverage} separate positive edits from no-op and adversarial obligations. This matters because an edit protocol can appear strong if every case rewards merging. Sanity and cascade families test ordinary incident formation; concurrent and false-correlation families require separation; partial evidence distinguishes a map-coverage limit from a reducer error; and the three ambiguity families force merge, split, or abstain decisions after coverage is complete. All nine families use the same evidence schema and scorer in both the ten-seed derived matrix and the three-seed real-online matrix; the ambiguity subset is retained only as a mechanism diagnostic.
 
 \begin{table*}[t]
-\caption{Workload coverage is organized by reducer-contract obligation. All nine families have ten-seed derived matrices and three-seed runtime fault injection; the final three-row subset also has real-online action evidence.}
+\caption{Workload coverage is organized by reducer-contract obligation. All nine families have ten-seed derived matrices, three-seed runtime fault injection, and three-seed real-online action evidence.}
 \label{tab:workload-contract-coverage}
 \centering
 \small
@@ -219,15 +219,15 @@ The semantic-merge workloads in Table~\ref{tab:workload-contract-coverage} separ
 \toprule
 Family & Evidence condition & Required reducer behavior & Current evidence tier \\
 \midrule
-Single service & local, complete & preserve a trivial incident & 10-seed derived \\
-Cascade & cross-service, complete & fuse downstream symptoms & 10-seed derived \\
-Shared bottleneck & shared cause, complete & recover one common cause & 10-seed derived \\
-Concurrent & overlapping independent incidents & keep incident units separate & 10-seed derived \\
-False correlation & correlated but unrelated symptoms & reject a spurious merge & 10-seed derived \\
-Partial evidence & root observation absent & expose coverage/inference boundary & 10-seed derived \\
-Ambiguous overmerge & candidate too coarse & split or safely abstain & 10-seed derived + 3-seed real-online \\
-Disconnected merge & one incident fragmented by grouping & accept evidence-preserving merges & 10-seed derived + 3-seed real-online \\
-Temporal split & one incident spans candidate windows & merge without losing temporal support & 10-seed derived + 3-seed real-online \\
+Single service & local, complete & preserve a trivial incident & derived + real-online \\
+Cascade & cross-service, complete & fuse downstream symptoms & derived + real-online \\
+Shared bottleneck & shared cause, complete & recover one common cause & derived + real-online \\
+Concurrent & overlapping independent incidents & keep incident units separate & derived + real-online \\
+False correlation & correlated but unrelated symptoms & reject a spurious merge & derived + real-online \\
+Partial evidence & root observation absent & expose coverage/inference boundary & derived + real-online \\
+Ambiguous overmerge & candidate too coarse & split or safely abstain & derived + real-online \\
+Disconnected merge & one incident fragmented by grouping & accept evidence-preserving merges & derived + real-online \\
+Temporal split & one incident spans candidate windows & merge without losing temporal support & derived + real-online \\
 \bottomrule
 \end{tabular}
 \end{table*}

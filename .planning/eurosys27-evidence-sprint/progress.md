@@ -25,3 +25,23 @@
   Added provider-usage token accounting with explicit estimate fallback, a
   secret-free key-rotation attestation gate, and a full-profile artifact-gate
   fixture. Static checks and 25 focused tests pass.
+- 2026-07-18: Committed and pushed the harness/claim-boundary slice at
+  `e0ffdffeef7a059ee3059064eb5c86a25307738a`; the broad relevant regression
+  selection passes (`53 passed`, six pre-existing deprecation warnings).
+- 2026-07-18: From that clean commit, reran the nine-family x three-seed
+  model-free runtime-contract matrix: all 27 rows pass valid commit, invalid
+  reference rejection, baseline preservation, checkpoint restore, and
+  deterministic replay.
+- 2026-07-18: From the same clean commit, ran public AIOps external contract
+  conformance over the two replay-detected windows. Valid commit, missing-
+  evidence rejection, baseline preservation, and deterministic replay pass;
+  this remains `replay`, not reducer-quality evidence.
+- 2026-07-18: Synchronized the paper, claim ledger, readiness report, README,
+  and freeze checklist with the clean evidence paths and the explicit online
+  blocker. Corrected Table 1 and Figure 2 wording so all nine online families,
+  rather than only the three diagnostics, are visibly primary.
+- 2026-07-18: Rebuilt the anonymous ACM PDF with Tectonic. It remains 11 letter-
+  size pages; all 11 rendered pages were visually inspected, fonts are
+  embedded, no identity/home/email marker or replacement glyph was found, and
+  the PDF SHA-256 is
+  `2ff1fe68fcad173274d6decfc9dd0ce09615068caeb8090b37e31eafa84b75b7`.

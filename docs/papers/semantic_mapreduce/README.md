@@ -666,6 +666,18 @@ preservation, state digests, and deterministic replay over the detected public
 windows. AIOps 2020 lacks reducer-level incident-group labels, so this is
 external contract conformance, not reducer-quality evidence.
 
+Clean replay artifact at commit `e0ffdff`:
+
+```text
+.sage/benchmarks/aiops2020_semantic_reduce_contract/20260718T-eurosys27-public-contract-e0ffdff-clean/
+```
+
+The corresponding clean nine-family runtime-contract matrix is:
+
+```text
+.sage/benchmarks/semantic_mapreduce_runtime_contract/20260718T-eurosys27-9family-3seed-e0ffdff-clean/
+```
+
 Current NPU3 semantic-merge matrix artifact:
 
 ```text

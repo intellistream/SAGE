@@ -29,12 +29,12 @@ boundary honestly, and prepare a clean, secret-safe submission freeze.
   manifests, external labels, endpoint/key/hardware readiness, and baselines.
 - [completed] Implement repeated-sampling, budget/cost aggregation, provenance and
   validation harnesses with no-online regression tests.
-- [in_progress] Execute all valid no-credential experiments; run clean real-online
+- [completed] Execute all valid no-credential experiments; run clean real-online
   matrices only if NPU3, controlled endpoint metadata, and rotated credentials
   satisfy preflight.
-- [pending] Synchronize paper, readiness, claim ledger, NEXT_STEPS, artifact
+- [completed] Synchronize paper, readiness, claim ledger, NEXT_STEPS, artifact
   verifier, and PDF based only on completed evidence.
-- [pending] Commit and push SAGE; update and push the umbrella handoff only after
+- [in_progress] Commit and push SAGE; update and push the umbrella handoff only after
   the corresponding SAGE work is real and published.
 
 ## Constraints
@@ -55,3 +55,4 @@ boundary honestly, and prepare a clean, secret-safe submission freeze.
 | Initial `jq` projections assumed object-shaped comparison summary and a nonexistent AIOps `summary.json` | 1 | Inspect actual keys; use the comparison array and AIOps `aggregate.json`/`manifest.json` paths. |
 | Combined case-summary/artifact-verifier patch missed current verifier context | 1 | No partial patch applied; split into schema change and small verifier hunks against exact current lines. |
 | Broad regression collection could not import `tools` with `PYTHONPATH=src` | 1 | Rerun with the repository root and source tree: `PYTHONPATH=.:src`. |
+| Runtime-contract CLI does not accept the shorthand `--scenarios all` | 1 | Reran with the explicit nine-family comma-separated list; clean run passed. |
