@@ -5,6 +5,7 @@ from pathlib import Path
 
 from tools.benchmark_carrier.package_semantic_merge_artifact import (
     ENDPOINT_ALLOWLIST,
+    _audit,
     package,
 )
 
@@ -17,7 +18,12 @@ def test_package_sanitizes_identity_and_excludes_endpoint_logs(
     comparison.mkdir()
     endpoint.mkdir()
     (comparison / "run_metadata.json").write_text(
-        '{"path":"/home/reviewer/SAGE","host":"host-192-168-1-9"}\n',
+        '{"path":"/home/reviewer/SAGE","host":"host-192-168-1-9",'
+        '"commit":"0123456789abcdef0123456789abcdef01234567",'
+        '"branch":"feature/semantic-mapreduce-paper",'
+        '"conda_env":"esage-vllm-hust-dev",'
+        '"api_key_env":"VLLM_HUST_API_KEY",'
+        '"runtime":"external/vllm-hust","system":"Semantic MapReduce"}\n',
         encoding="utf-8",
     )
     for name in ENDPOINT_ALLOWLIST:
@@ -49,7 +55,38 @@ def test_package_sanitizes_identity_and_excludes_endpoint_logs(
     packaged_text = (output / "comparison" / "run_metadata.json").read_text()
     assert "reviewer" not in packaged_text
     assert "192.168.1.9" not in packaged_text
+    assert "0123456789abcdef0123456789abcdef01234567" not in packaged_text
+    assert "feature/semantic-mapreduce-paper" not in packaged_text
+    assert "vllm-hust" not in packaged_text
+    assert "Semantic MapReduce" not in packaged_text
+    assert "REVISION_" in packaged_text
+    assert "ANONYMOUS_BRANCH" in packaged_text
+    assert "project-specific-env" in packaged_text
+    assert "MODEL_API_KEY" in packaged_text
+    assert json.loads(packaged_text)["publication_anonymized"] is True
     assert (output / "supplementary" / curve.name).is_file()
     manifest = json.loads((output / "ANONYMIZATION_MANIFEST.json").read_text())
     assert manifest["status"] == "PASS"
+    assert manifest["git_provenance_redacted"] is True
     assert manifest["supplementary_files"] == [curve.name]
+
+
+def test_anonymity_audit_rejects_reverse_identity_markers(tmp_path: Path) -> None:
+    package_dir = tmp_path / "package"
+    package_dir.mkdir()
+    (package_dir / "leak.txt").write_text(
+        "commit=0123456789abcdef0123456789abcdef01234567 "
+        "branch=feature/private-paper remote=https://github.com/intellistream/SAGE "
+        "system=Semantic MapReduce\n",
+        encoding="utf-8",
+    )
+    (package_dir / "SAGE-result.txt").write_text("otherwise clean\n", encoding="utf-8")
+
+    failures = _audit(package_dir, [])
+
+    assert any("Git revision remains" in failure for failure in failures)
+    assert any("Git branch remains" in failure for failure in failures)
+    assert any("public Git remote remains" in failure for failure in failures)
+    assert any("repository name remains" in failure for failure in failures)
+    assert any("public system name remains" in failure for failure in failures)
+    assert any("packaged path" in failure for failure in failures)

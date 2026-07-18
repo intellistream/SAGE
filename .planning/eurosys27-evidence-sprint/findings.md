@@ -73,3 +73,13 @@
 - The public AIOps replay still lacks reducer-level incident grouping labels.
   Repeated online controlled evidence does not change that external-validity
   boundary, and no second-model result is available.
+- Post-freeze reverse-identity audit found a P0 defect in the submission archive:
+  allowlisted manifests preserve the public SAGE commit, feature branch, exact
+  submodule revisions/branches, repository-specific environment and key names,
+  and SHA-bearing run IDs. The public parent commit resolves directly to the
+  author-bearing GitHub repository. The prior scanner covered local identity,
+  email, home paths, and private IPs, but not searchable Git provenance.
+- Raw real-online evidence must retain exact provenance. Only the publication
+  copy may replace it with deterministic opaque revision labels, accompanied by
+  a transformation manifest that records source/package hashes without copying
+  identity-bearing source paths or Git identifiers into the public archive.

@@ -89,3 +89,26 @@
   `feature/semantic-mapreduce-paper`. Updated only the dedicated Semantic-MR
   handoff in the dirty umbrella checkout, preserved all unrelated changes, and
   pushed llm-optimizations commit `ecb36c3` to `main`.
+- 2026-07-18: Reopened the sprint after the EuroSys double-blind review found a
+  searchable provenance leak in the nominally anonymous archive. Confirmed the
+  parent and pinned submodules remain clean at pushed commit `7405807`; began a
+  publication-only anonymization repair while preserving raw online evidence.
+- 2026-07-19: Implemented dual raw/publication provenance verification and a
+  reverse-identity audit for Git revisions, branch names, remotes, repository
+  names, runtime labels, paths, and environment/key identifiers. Generated and
+  independently extracted a 429-file opaque-provenance archive; full five-sample
+  artifact gate passes. The final generic-name review archive, regenerated
+  after path-level and unique-prefix checks, has SHA-256
+  `c92cb17f5e43a3a5b3699a736fc5bb410af9ffaf397d0773f63b2e41be4705d5`;
+  an independent extraction scan reports zero public system/repository names,
+  Git revisions/branches/remotes, local paths, or environment/key identifiers.
+- 2026-07-19: Added an untracked private-title PDF staging path so the public
+  technical-report title and submission title do not coincide in Git history.
+  The 11-page private review PDF has embedded fonts, passed text identity scans
+  and visual checks of the title, provenance table, online tables, and final
+  pages; the private system alias is also absent from Git history, and the final
+  private PDF SHA-256 is
+  `6924163cd3fefada557e4ec12234df1b603fc6be7a95623e1344600b25e7049f`.
+- 2026-07-19: Rebuilt the tracked public-title technical-report PDF separately
+  (11 letter-size pages) and ran the broadened no-NPU regression selection:
+  `68 passed`, with six pre-existing runtime-client deprecation warnings.

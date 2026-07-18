@@ -28,12 +28,15 @@ optional evidence upgrades.
 - [x] Regenerate the anonymous archive with
   `package_semantic_merge_artifact.py`, run its anonymity audit and
   `verify_semantic_merge_artifact.py`, and record the archive SHA-256 here and
-  in `readiness-report.md`: `8587d935f204fd44057a63631b93b2b5c064d0287a74cbe0ab06d0e97a8b82bd`.
-- [x] Rebuild `main.pdf` from the frozen source, rerun focused tests, inspect all
-  rendered pages, and cross-check every paper number against the frozen result
-  manifests and `claim-ledger.md`. The final focused selection is `55 passed`;
-  the 11-page PDF SHA-256 is
-  `e6c285540cf916a579f2da73b8659fade44d471efe05eec0982fb32e1dfecd75`.
+  in `readiness-report.md`:
+  `c92cb17f5e43a3a5b3699a736fc5bb410af9ffaf397d0773f63b2e41be4705d5`.
+  The superseded SHA-bearing archive is explicitly non-submittable.
+- [x] Build the private-title review PDF outside the tracked paper tree, rerun
+  focused tests, inspect all rendered pages, and cross-check every paper number
+  against the frozen result manifests and `claim-ledger.md`. The 11-page private
+  review PDF SHA-256 is
+  `6924163cd3fefada557e4ec12234df1b603fc6be7a95623e1344600b25e7049f`;
+  neither its title/system-name sources nor PDF is Git-tracked.
 - [x] Verify the paper against the live EuroSys 2027 CFP: at most 12 technical
   pages plus references, letter/A4 two-column layout, page numbers, double-blind
   anonymization, grayscale-readable figures, optional supplementary material,
@@ -65,8 +68,9 @@ RUN_ID=<frozen-commit>-eurosys27-9family-3seed \
 tools/benchmark_carrier/run_npu3_semantic_merge_llm_comparison.sh
 ```
 
-The clean replacement is
-`.sage/benchmarks/semantic-mapreduce-eurosys27-9family-5sample-000c513-anonymous.tar.gz`.
+The clean, double-blind replacement is
+`.sage/benchmarks/semantic-reduction-eurosys27-review-evidence.tar.gz`.
+The older SHA-bearing package must not be uploaded.
 Retain the earlier diff-hashed run only as development evidence.
 
 ## Optional Evidence Upgrades

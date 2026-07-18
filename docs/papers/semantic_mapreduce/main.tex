@@ -20,7 +20,13 @@
 \acmISBN{}
 \acmDOI{}
 
-\title{Semantic MapReduce: An Auditable Operator Contract for LLM-Backed Reduction}
+% The public technical-report title is intentionally distinct from the private
+% double-blind submission title. A submission staging directory may provide an
+% untracked anonymous-submission-title.tex that renews \papertitle.
+\newcommand{\systemname}{Semantic MapReduce}
+\newcommand{\papertitle}{\systemname: An Auditable Operator Contract for LLM-Backed Reduction}
+\IfFileExists{anonymous-submission-title.tex}{\input{anonymous-submission-title.tex}}{}
+\title{\papertitle}
 
 \author{Anonymous Authors}
 \affiliation{%
@@ -32,7 +38,7 @@
 \pagestyle{plain}
 
 \begin{abstract}
-Data engines define precise contracts for scans, joins, windows, and aggregation, but an LLM placed above those operators can still change analysis state through unaudited text. The missing contract specifies which records become evidence, which evidence may be fused, which model decisions are admissible, and what state remains after rejection. We present \emph{Semantic MapReduce}, an operator algebra and runtime contract for reducing partitioned observations into evidence-linked hypotheses. Its data-facing operators produce normalized evidence and candidate groups; \textsf{SemanticReduce} produces a valid baseline; a model may implement only a bounded \textsf{Edit} in \{\textsc{Keep}, \textsc{Merge}, \textsc{Split}, \textsc{Abstain}\}; and system-owned \textsf{Validate} and \textsf{ReportTrace} bind evidence identifiers, enforce invariants, preserve fallback state, and record replay keys and state digests. We integrate the contract with workflow/stream execution, checkpointable runtime state, public telemetry replay, and an OpenAI-compatible endpoint. Across nine controlled workload families and ten seeds, a hint-aware incident reducer reaches 0.7796 mean F1 versus 0.0705/0.4916 for map/window baselines. A 27-run fault-injection matrix validates commit, reject, checkpoint restore, and deterministic replay in every run. In a five-sample real-online matrix over the same nine families and three seeds, bounded action validation raises mean F1 from 0.7801 to 0.8645; all 135 outputs preserve schema and fallback state, while the validator rejects four inadmissible proposed actions. These results support a systems conclusion: model-backed reduction should enter a runtime as a bounded, evidence-linked state transition, not as unconstrained generated state.
+Data engines define precise contracts for scans, joins, windows, and aggregation, but an LLM placed above those operators can still change analysis state through unaudited text. The missing contract specifies which records become evidence, which evidence may be fused, which model decisions are admissible, and what state remains after rejection. We present \emph{\systemname{}}, an operator algebra and runtime contract for reducing partitioned observations into evidence-linked hypotheses. Its data-facing operators produce normalized evidence and candidate groups; \textsf{SemanticReduce} produces a valid baseline; a model may implement only a bounded \textsf{Edit} in \{\textsc{Keep}, \textsc{Merge}, \textsc{Split}, \textsc{Abstain}\}; and system-owned \textsf{Validate} and \textsf{ReportTrace} bind evidence identifiers, enforce invariants, preserve fallback state, and record replay keys and state digests. We integrate the contract with workflow/stream execution, checkpointable runtime state, public telemetry replay, and an OpenAI-compatible endpoint. Across nine controlled workload families and ten seeds, a hint-aware incident reducer reaches 0.7796 mean F1 versus 0.0705/0.4916 for map/window baselines. A 27-run fault-injection matrix validates commit, reject, checkpoint restore, and deterministic replay in every run. In a five-sample real-online matrix over the same nine families and three seeds, bounded action validation raises mean F1 from 0.7801 to 0.8645; all 135 outputs preserve schema and fallback state, while the validator rejects four inadmissible proposed actions. These results support a systems conclusion: model-backed reduction should enter a runtime as a bounded, evidence-linked state transition, not as unconstrained generated state.
 \end{abstract}
 
 \maketitle
@@ -46,7 +52,7 @@ Attaching an LLM to a database, dashboard, or agent loop does not define that tr
 
 We therefore ask: \emph{what operator and runtime contract can admit model judgments over partitioned evidence without delegating state integrity to the model?} Four requirements follow. Operator boundaries must carry typed evidence rather than prompt text; the model-visible decision must have a finite effect on runtime state; every accepted transition must preserve schema and provenance invariants; and rejection must leave a valid fallback state. These requirements distinguish an OS/PL contract---typed objects, state transitions, invariants, and recovery---from a prompt template.
 
-Semantic MapReduce realizes this contract with the algebra in Figure~\ref{fig:operator-algebra}. \textsf{Shard}, \textsf{MapEvidence}, \textsf{Normalize}, and \textsf{GroupEvidence} convert observations into bounded candidate groups. \textsf{SemanticReduce} computes a valid baseline $H_0$. An optional \textsf{Edit} proposes a transition $\Delta$ using only \textsc{Keep}, \textsc{Merge}, \textsc{Split}, or \textsc{Abstain}. System-owned \textsf{Validate} either commits the transition or preserves $H_0$; \textsf{ReportTrace} emits the hypothesis with the evidence and decisions needed to replay it. Rules, graph algorithms, or models may implement semantic policy, but only structured objects cross the contract.
+\systemname{} realizes this contract with the algebra in Figure~\ref{fig:operator-algebra}. \textsf{Shard}, \textsf{MapEvidence}, \textsf{Normalize}, and \textsf{GroupEvidence} convert observations into bounded candidate groups. \textsf{SemanticReduce} computes a valid baseline $H_0$. An optional \textsf{Edit} proposes a transition $\Delta$ using only \textsc{Keep}, \textsc{Merge}, \textsc{Split}, or \textsc{Abstain}. System-owned \textsf{Validate} either commits the transition or preserves $H_0$; \textsf{ReportTrace} emits the hypothesis with the evidence and decisions needed to replay it. Rules, graph algorithms, or models may implement semantic policy, but only structured objects cross the contract.
 
 \begin{figure*}[t]
 \centering
@@ -75,7 +81,7 @@ Semantic MapReduce realizes this contract with the algebra in Figure~\ref{fig:op
 \draw[arr] (validate) -- node[above,note] {$H$} (report);
 \draw[arr, dashed, green!45!black] (validate.south) to[out=-90,in=-90,looseness=0.8] node[below,note] {reject: preserve $H_0$} (reduce.south);
 \end{tikzpicture}
-\caption{Semantic MapReduce is an operator and state-transition contract. Existing data runtimes can supply the scale-facing operators. A model may influence only the bounded \textsf{Edit} transition; system-owned \textsf{Validate} binds evidence, checks schema and consistency invariants, and preserves a valid pre-edit state on rejection. \textsf{ReportTrace} makes the committed execution auditable.}
+\caption{\systemname{} is an operator and state-transition contract. Existing data runtimes can supply the scale-facing operators. A model may influence only the bounded \textsf{Edit} transition; system-owned \textsf{Validate} binds evidence, checks schema and consistency invariants, and preserves a valid pre-edit state on rejection. \textsf{ReportTrace} makes the committed execution auditable.}
 \label{fig:operator-algebra}
 \end{figure*}
 
@@ -116,11 +122,11 @@ This problem exposes six system challenges:
 
 These constraints motivate a system that treats LLM interpretation as a workflow over evidence objects, not as a final chat step after data processing.
 
-\section{Semantic MapReduce Operator Model}
+\section{\systemname{} Operator Model}
 
-The central claim of Semantic MapReduce is that LLM-native analysis needs standard operators, analogous in spirit to \texttt{map} and \texttt{reduce}, but with contracts for evidence, bounded semantic edits, validation, and explanation. The abstraction is not an agent prompt wrapped around a database. It is an operator model in which observations become evidence, evidence becomes reducer candidates, reducer candidates become hypotheses, and every semantic edit is either validated or rejected before it affects the report.
+The central claim of \systemname{} is that LLM-native analysis needs standard operators, analogous in spirit to \texttt{map} and \texttt{reduce}, but with contracts for evidence, bounded semantic edits, validation, and explanation. The abstraction is not an agent prompt wrapped around a database. It is an operator model in which observations become evidence, evidence becomes reducer candidates, reducer candidates become hypotheses, and every semantic edit is either validated or rejected before it affects the report.
 
-Let $D$ denote a collection of observations, $\mathcal{E}$ evidence objects, $\mathcal{C}$ reducer candidates, $\mathcal{H}$ hypotheses, $\Delta$ reducer edits, $\mathcal{T}$ workflow trace records, and $\mathcal{Y}$ the final report. Semantic MapReduce composes the following operators:
+Let $D$ denote a collection of observations, $\mathcal{E}$ evidence objects, $\mathcal{C}$ reducer candidates, $\mathcal{H}$ hypotheses, $\Delta$ reducer edits, $\mathcal{T}$ workflow trace records, and $\mathcal{Y}$ the final report. \systemname{} composes the following operators:
 
 \begin{align}
 \mathcal{A} &= \{\textsc{Keep},\textsc{Merge},\textsc{Split},\textsc{Abstain}\} \\
@@ -148,10 +154,10 @@ External data engines may implement the scale-facing operators, while LLM framew
 
 \textbf{Report and trace.} \textsf{ReportTrace} turns hypotheses into operator-facing reports. The report should include the claim, supporting evidence, possible conflicting evidence, and suggested actions. It should also preserve the workflow trace so a user can inspect how the conclusion was formed.
 
-Semantic MapReduce differs from an agent loop because its units of parallelism, evidence compression, reduction, and reporting are explicit. It also differs from ordinary stream processing: stream windows can compute features and alerts, but semantic reduction turns local findings into a global explanation.
+\systemname{} differs from an agent loop because its units of parallelism, evidence compression, reduction, and reporting are explicit. It also differs from ordinary stream processing: stream windows can compute features and alerts, but semantic reduction turns local findings into a global explanation.
 
 \begin{algorithm}[t]
-\caption{Semantic MapReduce Workflow}
+\caption{\systemname{} Workflow}
 \label{alg:semantic-mapreduce}
 \small
 \begin{algorithmic}[1]
@@ -202,7 +208,7 @@ The task is to recover injected incidents from event streams. A detected inciden
 
 \paragraph{Why this workload exercises the system.}
 
-The workload is designed to stress the orchestration layer rather than raw storage throughput. It has enough structure to require semantic reasoning: incidents are injected across services, regions, and time windows, while local symptoms appear as latency, error, utilization, or queue-depth changes. A single shard can observe symptoms, but the global conclusion depends on how those symptoms are merged. This matches the Semantic MapReduce pattern.
+The workload is designed to stress the orchestration layer rather than raw storage throughput. It has enough structure to require semantic reasoning: incidents are injected across services, regions, and time windows, while local symptoms appear as latency, error, utilization, or queue-depth changes. A single shard can observe symptoms, but the global conclusion depends on how those symptoms are merged. This matches the \systemname{} pattern.
 
 The workload also forces the system to preserve evidence. If the reducer reports a latency spike, the report must include which shard-level candidates supported the decision. If it misses a saturation incident, the report should expose the missed incident ID. This is why the workload reports both detected and injected incidents, not only aggregate F1. The goal is not merely to score a classifier; it is to evaluate an auditable analysis workflow.
 
@@ -276,10 +282,10 @@ Table~\ref{tab:configs} lists the reproduced scales and representative single-se
 
 The evaluation follows the operator contract rather than a single leaderboard. Q1 asks whether the workload exposes the right semantic object: incident hypotheses rather than alert fragments. Q2 asks whether \textsf{MapEvidence} surfaces enough evidence for any reducer, using coverage gates. Q3 asks whether reducer variants improve under a fixed generator, evidence schema, scorer, and report format. Q4 asks whether adjacent frameworks are substrates or whether they supply the missing semantic-reduction contract. Q5 asks whether a live model can be admitted as bounded \textsf{Edit}, rather than free-form \textsf{SemanticReduce}. This evidence ladder prevents the F1 tables from becoming a generic ML benchmark: precision, recall, and F1 check whether evidence objects are preserved, grouped, and reduced into the right incident unit. Unless explicitly labeled real-online, F1 and seed-matrix results in this section are derived artifacts from recorded workload reports; the real-online rows support live reducer-interface, validation, latency, and token-accounting claims only. The experiments are not tuned cluster deployments of Spark, Flink, Ray, LangGraph, LlamaIndex, or AutoGen.
 
-The artifact also includes a separate shared-workload probe from a pinned workload submodule. Across seeds 7, 11, and 13, the probe generates 23 canonical LLM-serving cases per seed and 1,232 supported requests per seed, covering session-affine, RAG, long-context, tool-agent, coding-assistant, dynamic-corpus, memory-reuse, and preemption/resume surfaces. We use this probe to record workload-source provenance and to keep prototype-specific Semantic MapReduce stress cases separate from general LLM-serving scenario catalogs. It is not used as evidence that a reducer improves incident quality.
+The artifact also includes a separate shared-workload probe from a pinned workload submodule. Across seeds 7, 11, and 13, the probe generates 23 canonical LLM-serving cases per seed and 1,232 supported requests per seed, covering session-affine, RAG, long-context, tool-agent, coding-assistant, dynamic-corpus, memory-reuse, and preemption/resume surfaces. We use this probe to record workload-source provenance and to keep prototype-specific \systemname{} stress cases separate from general LLM-serving scenario catalogs. It is not used as evidence that a reducer improves incident quality.
 
 \begin{table}[t]
-\caption{Shared workload-source probe from the pinned workload submodule. This table records scenario coverage and provenance for the artifact boundary; Semantic MapReduce quality is measured only on workloads with injected incident labels and a common scorer.}
+\caption{Shared workload-source probe from the pinned workload submodule. This table records scenario coverage and provenance for the artifact boundary; \systemname{} quality is measured only on workloads with injected incident labels and a common scorer.}
 \label{tab:shared-workload-probe}
 \centering
 \small
@@ -287,7 +293,7 @@ The artifact also includes a separate shared-workload probe from a pinned worklo
 \toprule
 Field & Value \\
 \midrule
-Submodule commit & \texttt{79ed8e3} \\
+Workload revision & pinned anonymous revision \\
 Seeds & 7, 11, 13 \\
 Generated cases / seed & 23 \\
 Skipped boundary cases & 2 \\
@@ -299,7 +305,7 @@ Evidence label & derived artifact \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:shared-workload-probe} gives the shared workload side of the artifact. The corresponding Semantic MapReduce quality experiments remain repo-local because they require injected incident labels, evidence objects, reducer variants, and a common scorer. This separation prevents a common benchmark mistake: using a general workload catalog as if it were already a reducer-quality benchmark.
+Table~\ref{tab:shared-workload-probe} gives the shared workload side of the artifact. The corresponding \systemname{} quality experiments remain repo-local because they require injected incident labels, evidence objects, reducer variants, and a common scorer. This separation prevents a common benchmark mistake: using a general workload catalog as if it were already a reducer-quality benchmark.
 
 \subsection{Reducer Quality}
 
@@ -484,7 +490,7 @@ These lessons define the role of an LLM reducer as a constrained semantic operat
 \section{Open System Challenges}
 \label{sec:open-challenges}
 
-Semantic MapReduce separates the semantic control plane from data and serving planes. Data engines retain scans, joins, windows, and distributed execution; serving engines retain inference. The orchestration layer owns evidence eligibility, reducer policy, hypothesis provenance, validation, recovery metadata, and trace replay. The evaluated mechanism needs no new kernels or scheduler semantics. The public replay reduces, but does not eliminate, the external-validity gap: it covers real labeled metrics at the evidence boundary, not production incident grouping. We additionally replay the bounded commit/reject/replay contract over its detected public windows, but lack of incident-group labels still prevents scoring merge/split quality. Remaining challenges are broader data-plane attachment, public or production incident-group labels, cross-model studies, and serving-level constrained decoding only when a validator needs it. Evaluation should continue to establish coverage before reducer quality and live cost.
+\systemname{} separates the semantic control plane from data and serving planes. Data engines retain scans, joins, windows, and distributed execution; serving engines retain inference. The orchestration layer owns evidence eligibility, reducer policy, hypothesis provenance, validation, recovery metadata, and trace replay. The evaluated mechanism needs no new kernels or scheduler semantics. The public replay reduces, but does not eliminate, the external-validity gap: it covers real labeled metrics at the evidence boundary, not production incident grouping. We additionally replay the bounded commit/reject/replay contract over its detected public windows, but lack of incident-group labels still prevents scoring merge/split quality. Remaining challenges are broader data-plane attachment, public or production incident-group labels, cross-model studies, and serving-level constrained decoding only when a validator needs it. Evaluation should continue to establish coverage before reducer quality and live cost.
 
 \section{Auditability and Trust Boundary}
 
@@ -496,9 +502,9 @@ The common trace also makes negative results diagnostic. A recall loss can be cl
 
 \section{Related Work}
 
-\textbf{Execution substrates.} MapReduce, Spark, and Flink provide the substrate for large-scale batch and stream analytics, and Ray provides a general distributed runtime for AI applications~\cite{dean2004mapreduce,zaharia2012spark,carbone2015flink,moritz2018ray}. Semantic MapReduce borrows the local/global decomposition but changes the reducer contract from fixed aggregation to semantic evidence fusion. These systems can execute or host parts of the pipeline; they do not by themselves define the evidence object, semantic edit, validation, and trace contract studied here.
+\textbf{Execution substrates.} MapReduce, Spark, and Flink provide the substrate for large-scale batch and stream analytics, and Ray provides a general distributed runtime for AI applications~\cite{dean2004mapreduce,zaharia2012spark,carbone2015flink,moritz2018ray}. \systemname{} borrows the local/global decomposition but changes the reducer contract from fixed aggregation to semantic evidence fusion. These systems can execute or host parts of the pipeline; they do not by themselves define the evidence object, semantic edit, validation, and trace contract studied here.
 
-\textbf{LLM data and workflow systems.} LOTUS and Palimpzest expose LLM calls as declarative or optimizable data-processing operators~\cite{patel2024semanticoperators,liu2024palimpzest}. LangGraph, LlamaIndex, and AutoGen provide useful abstractions for agents, retrieval, tool use, and multi-agent workflows~\cite{langchain2026langgraph,llamaindex2026,wu2023autogen}. Semantic MapReduce is complementary: it focuses less on query optimization or agent control flow alone and more on workflow/stream orchestration, incident-level semantic reduction, and evidence-linked audit traces under one scorer.
+\textbf{LLM data and workflow systems.} LOTUS and Palimpzest expose LLM calls as declarative or optimizable data-processing operators~\cite{patel2024semanticoperators,liu2024palimpzest}. LangGraph, LlamaIndex, and AutoGen provide useful abstractions for agents, retrieval, tool use, and multi-agent workflows~\cite{langchain2026langgraph,llamaindex2026,wu2023autogen}. \systemname{} is complementary: it focuses less on query optimization or agent control flow alone and more on workflow/stream orchestration, incident-level semantic reduction, and evidence-linked audit traces under one scorer.
 
 \textbf{Serving and observability.} vLLM shows how memory management and scheduling shape LLM serving performance~\cite{kwon2023vllm}. DeathStarBench, FIRM, the Illinois trace dataset, OpenTelemetry Demo, AIOps Challenge 2020, and LO2 provide service graphs, metrics, logs, traces, and fault labels~\cite{gan2019deathstarbench,qiu2020firm,qiu2020tracedataset,opentelemetry2026demo,netman2020aiopschallenge,bakhtin2025lo2}. Root-cause localization systems such as CloudRanger and MicroRank exploit service dependencies and trace contrasts~\cite{wang2018cloudranger,yu2021microrank}. We replay AIOps 2020 at the evidence boundary, but retain controlled incident-group workloads because its public labels do not directly score our merge/split contract.
 
@@ -510,7 +516,7 @@ The closest intellectual ancestor is MapReduce itself: local processing followed
 
 \section{Conclusion}
 
-Large-scale LLM-augmented analysis needs more than fast scans and more than chat over data. Semantic MapReduce extends map/reduce from fixed aggregation to evidence fusion: partition observations, compress evidence, reduce hypotheses, and preserve executable audit and recovery state. Nine controlled obligation families, a public telemetry replay, and a 27-run recovery matrix distinguish evidence coverage, reducer policy, and runtime integrity. The live experiment exposes the remaining systems requirement: model edits must be constrained to verifiable actions, schema-validated, evidence-linked, and reversible before they become committed state. Model-backed reduction therefore needs an operator boundary that can admit, validate, abstain, recover, and replay.
+Large-scale LLM-augmented analysis needs more than fast scans and more than chat over data. \systemname{} extends map/reduce from fixed aggregation to evidence fusion: partition observations, compress evidence, reduce hypotheses, and preserve executable audit and recovery state. Nine controlled obligation families, a public telemetry replay, and a 27-run recovery matrix distinguish evidence coverage, reducer policy, and runtime integrity. The live experiment exposes the remaining systems requirement: model edits must be constrained to verifiable actions, schema-validated, evidence-linked, and reversible before they become committed state. Model-backed reduction therefore needs an operator boundary that can admit, validate, abstain, recover, and replay.
 
 This reframes the LLM as a bounded semantic decision procedure inside an auditable reducer. The system owns evidence eligibility, candidate construction, validation, fallback, and trace replay; reducer edits change workflow state only through checkable actions.
 

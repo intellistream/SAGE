@@ -34,15 +34,24 @@ Clean three-workload-seed real-online artifact:
 Anonymous submission artifact package:
 
 ```text
-.sage/benchmarks/semantic-mapreduce-eurosys27-9family-5sample-000c513-anonymous.tar.gz
-sha256: 8587d935f204fd44057a63631b93b2b5c064d0287a74cbe0ab06d0e97a8b82bd
+.sage/benchmarks/semantic-reduction-eurosys27-review-evidence.tar.gz
+sha256: c92cb17f5e43a3a5b3699a736fc5bb410af9ffaf397d0773f63b2e41be4705d5
 ```
 
 The `.sage/` tree is ignored by git, so this archive should be attached as a
 separate artifact rather than committed. The raw local evidence remains intact;
 the submission package uses an allowlist, replaces identity-bearing paths,
-hostnames, and private IPs, excludes historical service logs, and records source
-and packaged SHA-256 hashes in `ANONYMIZATION_MANIFEST.json`.
+hostnames, private IPs, Git commits/branches, repository/runtime names, key
+variable names, and SHA-bearing run IDs with internally consistent opaque
+labels, excludes historical service logs, and records source and packaged
+SHA-256 hashes in `ANONYMIZATION_MANIFEST.json`. The verifier accepts opaque
+publication provenance only when endpoint/run revision equality, clean state,
+device/model identity, and the full evidence contract still match.
+
+Do not submit the superseded archive whose filename ends in
+`000c513-anonymous.tar.gz`: its exact public Git provenance is reversible and
+therefore violates the double-blind boundary even though local identity fields
+were removed.
 
 Provenance:
 
@@ -189,7 +198,7 @@ remain explicit rather than being reported as successful model actions.
   content limit. All pages, tables, the operator diagram, and references were
   rendered to PNG and visually checked for clipping, overlap, and legibility.
 - The final focused no-NPU regression selection passes under
-  `esage-vllm-hust-dev`: `55 passed` across semantic-merge, runtime-contract,
+  `esage-vllm-hust-dev`: `68 passed` across semantic-merge, runtime-contract,
   checkpoint/recovery, AIOps replay, summary, and shared-state tests.
 - The full nine-family, three-seed, five-sample NPU3 matrix passes the artifact
   gate at candidate budget 8: F1 0.8645 versus 0.7801 for `hybrid-hint`, zero
@@ -402,11 +411,16 @@ The clean full-coverage rerun, regenerated anonymous package, rebuilt PDF, and
 public policy audit are complete. Author-owned upload checks remain in
 [`NEXT_STEPS.md`](NEXT_STEPS.md).
 
-The 2026-07-18 rebuilt PDF remains 11 letter-size pages. All pages were rendered
-and visually inspected after adding repeated-sampling and budget evidence;
-fonts are embedded and no identity, home-path, email, replacement glyph,
-clipping, overlap, or table/caption drift was found. PDF SHA-256:
-`e6c285540cf916a579f2da73b8659fade44d471efe05eec0982fb32e1dfecd75`.
+The private-title review PDF is built outside the tracked paper tree with
+`tools/benchmark_carrier/build_semantic_mapreduce_submission.py`. Its title
+title/system-name sources and PDF are ignored and verified as untracked, so
+pushing the public technical report does not reveal the submission title or
+system alias. The 2026-07-19 build is
+11 letter-size pages; all pages were rendered, fonts are embedded, and the
+title page, anonymous workload-revision table, online tables, limitations, and
+references have no identity marker, replacement glyph, clipping, overlap, or
+caption drift. Private review PDF SHA-256:
+`6924163cd3fefada557e4ec12234df1b603fc6be7a95623e1344600b25e7049f`.
 
 ## Clean Replay Artifact Gate
 

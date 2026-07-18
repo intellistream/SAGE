@@ -90,13 +90,15 @@ def verify(
     manifest = _load(required["matrix_manifest"])
     rows = _load(required["case_seed_summary"])
     endpoint = _load(endpoint_metadata_path)
+    publication_anonymized = run.get("publication_anonymized") is True
 
     def expect(condition: bool, message: str) -> None:
         if not condition:
             failures.append(message)
 
     expect(run.get("evidence_label") == "real-online", "run is not real-online")
-    expect(run.get("conda_env") == "esage-vllm-hust-dev", "wrong Conda environment")
+    expected_env = "project-specific-env" if publication_anonymized else "esage-vllm-hust-dev"
+    expect(run.get("conda_env") == expected_env, "wrong Conda environment")
     expect(run.get("hardware", {}).get("npu_device") == 3, "run is not bound to NPU3")
     expect(run.get("git", {}).get("dirty") is False, "parent repository was dirty")
     expect(manifest.get("evidence_label") == "real-online", "matrix is not real-online")
@@ -123,6 +125,10 @@ def verify(
 
     run_git = run.get("git", {})
     expect(endpoint.get("evidence_label") == "real-online", "endpoint is not real-online")
+    expect(
+        bool(endpoint.get("publication_anonymized")) is publication_anonymized,
+        "endpoint/run anonymization mode mismatch",
+    )
     expect(endpoint.get("parent_repo_dirty") is False, "endpoint parent was dirty")
     expect(
         endpoint.get("parent_repo_commit") == run_git.get("commit"), "endpoint/run commit mismatch"
@@ -230,6 +236,7 @@ def verify(
         "status": "PASS" if not failures else "FAIL",
         "failures": failures,
         "evidence_label": run.get("evidence_label"),
+        "publication_anonymized": publication_anonymized,
         "parent_commit": run_git.get("commit"),
         "seeds": seeds,
         "scenarios": sorted(expected_scenarios),

@@ -284,8 +284,11 @@ mechanism diagnostic:
 The anonymous archive is generated with
 `tools/benchmark_carrier/package_semantic_merge_artifact.py`. It retains the
 full comparison matrix and an allowlisted endpoint provenance slice, records
-source/package checksums, and rejects username, home-path, host/private-IP, or
-email leakage before packaging.
+source/package checksums, replaces public Git revisions/branches and
+repository-specific runtime labels with consistent opaque revisions, and
+rejects username, home-path, host/private-IP, email, Git remote, branch, commit,
+or repository-name leakage before packaging. Exact provenance remains only in
+the unmodified raw evidence.
 
 Across workload seeds 7/11/13 and the three full-coverage hardcases,
 `llm-pairwise-action-validated` reaches mean F1 0.9301 versus 0.7204 for
@@ -301,7 +304,7 @@ families, seeds 7/11/13, and five samples per case from clean commit `000c513`:
 
 ```text
 .sage/benchmarks/real_online_semantic_merge_stability/20260718T-eurosys27-9family-3seed-5sample-000c513/candidates-8/
-.sage/benchmarks/semantic-mapreduce-eurosys27-9family-5sample-000c513-anonymous.tar.gz
+.sage/benchmarks/semantic-reduction-eurosys27-review-evidence.tar.gz
 ```
 
 Across 135 rows per reducer at candidate budget 8, action validation raises
@@ -310,7 +313,23 @@ deviation is zero and exact action agreement averages 0.9926. The validator
 rejects four proposed actions; invalid schema and fallback remain zero. The
 three-budget curve retains budget 4 as a failed quality point (F1 0.7791), while
 budgets 8 and 12 pass. The anonymous archive SHA-256 is
-`8587d935f204fd44057a63631b93b2b5c064d0287a74cbe0ab06d0e97a8b82bd`.
+`c92cb17f5e43a3a5b3699a736fc5bb410af9ffaf397d0773f63b2e41be4705d5`.
+
+The older `000c513-anonymous` archive is retained only as a failed anonymity
+test case and must not be submitted: its exact public Git revision can identify
+the repository. Build the private-title review PDF without changing the tracked
+public technical report:
+
+```bash
+python tools/benchmark_carrier/build_semantic_mapreduce_submission.py \
+  --title-file .sage/submission/semantic-mapreduce-eurosys27/private-title.txt \
+  --system-name-file .sage/submission/semantic-mapreduce-eurosys27/private-system-name.txt \
+  --output .sage/submission/semantic-mapreduce-eurosys27/submission.pdf
+```
+
+The one-line title/system-name files and output PDF must remain untracked. The
+tracked `main.tex` uses the public technical-report title and system name unless
+the staging directory contains `anonymous-submission-title.tex`.
 
 Full workload-suite documentation:
 

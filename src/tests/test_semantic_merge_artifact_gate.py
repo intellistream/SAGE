@@ -106,3 +106,87 @@ def test_full_artifact_gate_accepts_repeated_contract_evidence(tmp_path: Path) -
 
     assert result["status"] == "PASS", result["failures"]
     assert result["samples"] == 2
+
+
+def test_full_artifact_gate_accepts_consistent_opaque_publication_provenance(
+    tmp_path: Path,
+) -> None:
+    verifier = _load_verifier()
+    artifact = tmp_path / "artifact"
+    matrix = artifact / "matrix"
+    matrix.mkdir(parents=True)
+    reducers = [verifier.TARGET, verifier.BASELINE, verifier.NEGATIVE]
+    manifest = {
+        "evidence_label": "real-online",
+        "publication_anonymized": True,
+        "seeds": [7, 11, 13],
+        "scenarios": sorted(verifier.FULL_SCENARIOS),
+        "reducers": reducers,
+        "samples": 1,
+    }
+    run = {
+        "evidence_label": "real-online",
+        "publication_anonymized": True,
+        "conda_env": "project-specific-env",
+        "hardware": {"npu_device": 3},
+        "git": {"dirty": False, "commit": "REVISION_001"},
+        "endpoint": {"model": "qwen2.5-7b-review-endpoint"},
+        "runtime_submodules": {"runtime-a": {"dirty": False}},
+        "shared_workload_submodule": {"dirty": False},
+    }
+    endpoint = {
+        "evidence_label": "real-online",
+        "publication_anonymized": True,
+        "parent_repo_dirty": False,
+        "parent_repo_commit": "REVISION_001",
+        "npu_device": 3,
+        "conda_env": "project-specific-env",
+        "served_model_name": "qwen2.5-7b-review-endpoint",
+    }
+    rows = []
+    for scenario in sorted(verifier.FULL_SCENARIOS):
+        for seed in (7, 11, 13):
+            for reducer in reducers:
+                row = {
+                    "scenario": scenario,
+                    "seed": seed,
+                    "sample_id": 1,
+                    "reducer": reducer,
+                    "f1": 0.9 if reducer == verifier.TARGET else 0.7,
+                    "support_evidence_recall": 1.0,
+                    "accepted_edit_count": 1,
+                    "fallback_count": 0,
+                    "invalid_action_count": 0,
+                    "invalid_schema_count": 0,
+                    "estimated_total_tokens": 10,
+                    "reduce_duration_ms": 1.0,
+                    "failure_taxonomy": {},
+                }
+                if reducer == verifier.TARGET:
+                    row.update(
+                        validator_owned=True,
+                        commit_outcome="committed",
+                        replay_id=f"{scenario}-{seed}",
+                        raw_response_retained=True,
+                        request_attempt_count=1,
+                        request_failure_count=0,
+                    )
+                rows.append(row)
+    files = {
+        artifact / "run_metadata.json": run,
+        artifact / "comparison_summary.json": {},
+        artifact / "case_seed_summary.json": rows,
+        matrix / "manifest.json": manifest,
+        matrix / "summary.json": {},
+        matrix / "aggregate.json": {},
+    }
+    for path, payload in files.items():
+        path.write_text(json.dumps(payload), encoding="utf-8")
+    (artifact / "case_seed_summary.csv").write_text("header\n", encoding="utf-8")
+    endpoint_path = tmp_path / "endpoint.json"
+    endpoint_path.write_text(json.dumps(endpoint), encoding="utf-8")
+
+    result = verifier.verify(artifact, endpoint_path, profile="full")
+
+    assert result["status"] == "PASS", result["failures"]
+    assert result["publication_anonymized"] is True
