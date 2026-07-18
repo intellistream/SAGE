@@ -50,3 +50,7 @@
   only the clean Semantic-MR handoff file in the dirty umbrella checkout,
   preserving all unrelated user changes, and pushed llm-optimizations commit
   `ac29450` to `main`.
+- 2026-07-18: User confirmed the vLLM-HUST API bearer token is a locally owned
+  test key and authorized direct rotation. Resumed the evidence sprint to
+  rotate it secret-safely, launch the clean NPU3 endpoint, and run the pending
+  real-online stability/budget matrix.

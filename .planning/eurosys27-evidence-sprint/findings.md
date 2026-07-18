@@ -51,3 +51,7 @@
   is 2026-07-05, before the 2026-07-18 terminal exposure. Rotation is therefore
   not proven and the clean real-online gate must remain blocked. The repository
   has no safe rotation command; do not print, hash, or copy the existing value.
+- The user has now explicitly authorized rotating this locally controlled
+  `VLLM_HUST_API_KEY`. Rotation may proceed by generating the value inside a
+  non-echoing process, atomically rewriting only the `.env` entry, preserving
+  mode 0600, and recording a separate secret-free attestation.

@@ -36,6 +36,12 @@ boundary honestly, and prepare a clean, secret-safe submission freeze.
   verifier, and PDF based only on completed evidence.
 - [completed] Commit and push SAGE; update and push the umbrella handoff only after
   the corresponding SAGE work is real and published.
+- [in_progress] Rotate the user-owned local vLLM-HUST bearer key without logging
+  it, attest the rotation, launch a clean NPU3 endpoint, and execute the
+  full-nine-family repeated-sampling/candidate-budget sweep.
+- [pending] Validate and package the resulting real-online evidence, update the
+  paper/readiness/claim ledger and umbrella handoff, rebuild/inspect the PDF,
+  then commit and push all new tracked work.
 
 ## Constraints
 - Use `esage-vllm-hust-dev`; never mutate shared `vllm-hust-dev`.
