@@ -53,6 +53,8 @@ REPOSITORY_PATH_REPLACEMENTS = (
     ("VLLM_HUST_API_KEY", "MODEL_API_KEY"),
     ("qwen25-7b-sage-realonline", "qwen2.5-7b-review-endpoint"),
     ("/data/shared_models/Qwen2.5-7B-Instruct", "<MODEL_PATH>"),
+    ("qwen25-14b-sage-eurosys27", "qwen2.5-14b-review-endpoint"),
+    ("/data/shared_models/Qwen--Qwen2.5-14B-Instruct", "<MODEL_PATH>"),
 )
 
 
@@ -206,6 +208,7 @@ def package(
     output_dir: Path,
     archive_path: Path | None = None,
     supplementary_files: tuple[Path, ...] = (),
+    supplementary_dirs: tuple[tuple[str, Path], ...] = (),
 ) -> dict[str, Any]:
     if output_dir.exists():
         raise FileExistsError(f"refusing to overwrite existing output: {output_dir}")
@@ -217,6 +220,11 @@ def package(
         *sorted(item for item in comparison_dir.rglob("*") if item.is_file()),
         *(endpoint_dir / name for name in ENDPOINT_ALLOWLIST),
         *supplementary_files,
+        *(
+            source
+            for _, directory in supplementary_dirs
+            for source in sorted(item for item in directory.rglob("*") if item.is_file())
+        ),
     ]
     source_texts: list[str] = []
     for source in source_files:
@@ -246,6 +254,18 @@ def package(
         files[str(relative)] = _copy_sanitized(
             source, output_dir / relative, replacements, revision_replacements
         )
+    for label, directory in supplementary_dirs:
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", label):
+            raise ValueError(f"unsafe supplementary directory label: {label!r}")
+        if not directory.is_dir():
+            raise FileNotFoundError(f"supplementary evidence directory is absent: {directory}")
+        for source in sorted(item for item in directory.rglob("*") if item.is_file()):
+            relative = Path("supplementary") / label / source.relative_to(directory)
+            if str(relative) in files:
+                raise ValueError(f"duplicate supplementary path: {relative}")
+            files[str(relative)] = _copy_sanitized(
+                source, output_dir / relative, replacements, revision_replacements
+            )
 
     verification_args = ""
     matrix_manifest = comparison_dir / "matrix" / "manifest.json"
@@ -290,6 +310,7 @@ def package(
         "endpoint_allowlist": list(ENDPOINT_ALLOWLIST),
         "excluded_endpoint_logs": True,
         "supplementary_files": [path.name for path in supplementary_files],
+        "supplementary_dirs": [label for label, _ in supplementary_dirs],
         "files": files,
     }
     manifest_path = output_dir / "ANONYMIZATION_MANIFEST.json"
@@ -321,13 +342,27 @@ def main() -> int:
     parser.add_argument(
         "--supplementary-file", action="append", default=[], type=Path
     )
+    parser.add_argument(
+        "--supplementary-dir",
+        action="append",
+        default=[],
+        metavar="LABEL=PATH",
+        help="Add a recursively packaged evidence directory under a safe opaque label.",
+    )
     args = parser.parse_args()
+    supplementary_dirs: list[tuple[str, Path]] = []
+    for item in args.supplementary_dir:
+        if "=" not in item:
+            parser.error("--supplementary-dir expects LABEL=PATH")
+        label, path = item.split("=", 1)
+        supplementary_dirs.append((label, Path(path).resolve()))
     result = package(
         args.comparison_dir.resolve(),
         args.endpoint_dir.resolve(),
         args.output_dir.resolve(),
         args.archive.resolve() if args.archive else None,
         tuple(path.resolve() for path in args.supplementary_file),
+        tuple(supplementary_dirs),
     )
     print(json.dumps(result, indent=2))
     return 0

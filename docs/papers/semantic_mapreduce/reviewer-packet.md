@@ -40,13 +40,14 @@ Rejections remain visible in the trace rather than being folded into success.
 
 **Are three workload seeds enough?**
 
-They strengthen the controlled mechanism claim but do not establish cross-model
-or production robustness. The submission-facing run repeats all nine families,
-three seeds, and three reducers five times from a clean parent commit with full
-endpoint/submodule manifests. At candidate budget 8, action-validated reaches
-0.8645 mean F1 versus 0.7801 for `hybrid-hint`, with zero within-case F1
-variation and 0.9926 mean exact action agreement. Production incident-group
-labels and a second controlled model remain follow-up evidence.
+They strengthen the controlled mechanism claim but do not establish broad
+cross-model or production robustness. The primary run repeats all nine
+families, three seeds, and three reducers five times from a clean parent commit.
+At candidate budget 8, action-validated reaches 0.8645 mean F1 versus 0.7801
+for `hybrid-hint`; a paired bootstrap over the 27 scenario--seed means gives
+delta `+0.0844`, 95% CI `[0.0328,0.1449]`. A same-family 14B checkpoint with
+three repeats reaches 0.8392 versus 0.7801, delta `+0.0591`, CI
+`[0.0147,0.1149]`. This is a second scale check, not cross-family robustness.
 
 **Is the workload toy?**
 
@@ -61,8 +62,8 @@ schema and coverage gate.
 
 - Existing systems can serve as substrates; the missing abstraction here is the
   evidence-linked semantic reducer contract, not another execution engine.
-- The live result covers five temperature-zero samples of three controlled
-  workload seeds on one model/endpoint; it should not be described as broad
-  stochastic, cross-model, or production generality.
+- The live result covers temperature-zero samples at two checkpoints in one
+  model family; it should not be described as broad stochastic, cross-family,
+  or production generality.
 - The prototype does not replace Spark, Flink, Ray, databases, observability
   tools, LangGraph, LlamaIndex, or data+AI platforms.

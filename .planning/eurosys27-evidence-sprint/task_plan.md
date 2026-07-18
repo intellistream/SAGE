@@ -47,11 +47,13 @@ boundary honestly, and prepare a clean, secret-safe submission freeze.
   consistent revision labels; strengthen reverse-identity tests; remove
   searchable revision pins from the anonymous PDF; regenerate and independently
   audit the package without changing raw evidence.
-- [in_progress] Add the highest-discrimination no-new-endpoint evidence: stronger
-  structured-output baselines/ablations where supported by retained responses,
-  unit-aware confidence intervals, call-conditioned cost reporting, and
-  multi-worker/fault-injection harnesses with explicit evidence labels.
-- [pending] Rebuild and visually inspect the paper, synchronize readiness and
+- [completed] Add the highest-discrimination evidence: a same-family 14B
+  repeated real-online matrix, unit-aware confidence intervals,
+  call-conditioned cost reporting, strict JSON-Schema endpoint smoke, and an
+  external label-conditioned reducer-grouping replay with explicit evidence
+  boundaries.
+- [in_progress] Rebuild and visually inspect the paper, regenerate and audit the
+  multi-evidence anonymous artifact, synchronize readiness and
   umbrella handoff only for completed work, then commit and push the parent
   feature branch and the narrowly scoped umbrella update.
 

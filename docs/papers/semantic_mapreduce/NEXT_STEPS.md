@@ -78,10 +78,17 @@ Retain the earlier diff-hashed run only as development evidence.
 - [x] Implement bounded-action repeated sampling, raw-attempt retention,
   within-case variance/exact-agreement aggregation, and the full artifact gate.
   The clean real-online execution is complete.
-- [ ] Add a second model or endpoint while holding candidate generation,
-  validators, scorer, and workload seeds fixed.
-- [ ] Extend public/production-derived traces from `MapEvidence/Normalize`
-  coverage evidence to reducer-level incident-group labels.
+- [x] Add a second model scale while holding candidate generation, validators,
+  scorer, workload seeds, candidate budget, and endpoint stack fixed. The 14B
+  same-family matrix retains 243 raw reports; action F1 is 0.8392 versus 0.7801
+  hybrid, with paired 27-unit delta `+0.0591` and 95% CI
+  `[0.0147,0.1149]`. This does not establish cross-family robustness.
+- [x] Add reducer-level external incident-unit evidence. The AIOpsArena complex
+  case has 23 injection rows grouped by native timestamp/service/failure/duration
+  labels into eight episodes. The replay is explicitly
+  `reducer-only-label-conditioned` (`replay`), not end-to-end detection or
+  production generality. A production-derived, non-oracle MapEvidence path
+  remains unsupported and must not be claimed.
 - [ ] Add a second execution substrate only if it tests the same operator
   contract; do not turn adapter breadth into an unsupported SOTA comparison.
 

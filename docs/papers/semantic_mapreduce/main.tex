@@ -418,7 +418,7 @@ Trace replay deterministic & 27 / 27 \\
 Table~\ref{tab:runtime-contract} isolates runtime behavior from model quality. For each family/seed, the harness materializes a valid baseline in a checkpointable shared-state service, validates a legal transition, injects an edit with missing candidate evidence, and invokes checkpoint recovery. The runtime records the candidate, evidence, committed-state digests, commit/reject outcome, service revision, and replay identifier. All invalid edits preserve the canonical baseline, and all recovered and replayed states match the committed digest. This is not a claim of distributed exactly-once fault tolerance: it establishes that the implemented operator boundary has an executable recovery contract rather than relying on prompt compliance.
 
 \begin{table}[t]
-\caption{AIOps Challenge 2020 May-29 public replay. Four official fault labels are paired with eight same-object negative windows. Evidence: replay.}
+\caption{External public-data checks. AIOps 2020 tests evidence coverage; AIOpsArena tests reducer grouping with label-conditioned evidence. Evidence: replay.}
 \label{tab:public-replay}
 \centering
 \small
@@ -431,18 +431,25 @@ Detected labeled windows & 2 / 4 \\
 False-positive windows & 0 / 8 \\
 Precision / recall / F1 & 1.000 / 0.500 / 0.667 \\
 Raw rows republished & no \\
+\midrule
+AIOpsArena label rows / episodes & 23 / 8 \\
+Map-only / window F1 & 0.516 / 0.800 \\
+Service-local / semantic F1 & 1.000 / 1.000 \\
+Scope & reducer-only, label-conditioned \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:public-replay} replaces source availability with an actual public-data replay at the evidence boundary. The runner reads the official daily ZIP in place, maps Docker/Oracle metrics to typed evidence using a fixed median/MAD gate, and archives only source references, evidence identifiers, scores, and provenance. Two CPU-fault windows are detected without false positives; a weak CPU shift and a window with insufficient samples are missed. We retain these misses because they expose the intended boundary: \textsf{SemanticReduce} cannot repair absent or weak \textsf{MapEvidence}. This replay broadens telemetry provenance, but it does not carry incident-group labels and therefore is not used to claim model-reducer quality.
+Table~\ref{tab:public-replay} replaces source availability with two scoped public-data replays. The AIOps 2020 runner reads the official daily ZIP in place, maps Docker/Oracle metrics to typed evidence using a fixed median/MAD gate, and archives only source references, evidence identifiers, scores, and provenance. Two CPU-fault windows are detected without false positives; a weak CPU shift and a window with insufficient samples are missed. We retain these misses because they expose the intended boundary: \textsf{SemanticReduce} cannot repair absent or weak \textsf{MapEvidence}.
+
+AIOpsArena~\cite{aiopsarena2024dataset} supplies a different missing label: its complex case records 23 injected component instances that natively collapse, by timestamp, service, failure type, and duration, into eight incident episodes. We convert each public label row to an evidence unit but withhold episode identifiers from reducers. Map-only emits 23 fragments; window aggregation merges two distinct simultaneous episodes and reaches 0.800 F1; service-local and semantic reduction each recover the eight episode units. This is an oracle/label-conditioned reducer-only replay, not end-to-end anomaly detection or evidence that an LLM generalizes to production. Its value is narrower: an external dataset now exercises and scores the output unit of \textsf{SemanticReduce}, while the AIOps 2020 misses continue to bound the upstream evidence claim.
 
 \subsection{Real-Online Readiness}
 
 The real-online runs attach the same reducer contract to a live OpenAI-compatible endpoint. A smoke run served a 7B instruction-tuned model on one accelerator and completed 8/8 measured streaming requests after warmup, with mean TTFT 65.68 ms, mean TPOT 19.79 ms, and 45.71 output tokens/s. These numbers validate endpoint integration and measurement plumbing rather than SOTA serving performance. Earlier same-seed reducer probes exposed two preconditions for meaningful live LLM comparison. First, if map evidence misses incidents, no downstream reducer can recover them: a 2K/4-shard smoke produced F1 0.4000 because three injected incidents had zero overlapping map candidates. Second, asking a model to emit full reducer JSON is the wrong interface: full-evidence prompting returned legal JSON while losing incident units, and free-form candidate editors sometimes produced invalid structure or unsafe edits. The final live probe therefore focuses on the constrained \textsf{Edit}+\textsf{Validate} interface in Table~\ref{tab:pairwise-action-online}. This makes the live path an admission test for a model-backed operator: a model action is useful only if it clears coverage, schema, evidence-reference, and fallback checks under the same scorer.
 
 \begin{table*}[t]
-\caption{One-token pairwise action probe on one NPU endpoint across nine families, three seeds, and five samples (135 runs per reducer; candidate budget 8). The model emits an enum; the system assembles and validates edits. Evidence: real-online; one model/endpoint.}
+\caption{One-token pairwise action probe across nine families and three seeds at candidate budget 8. The primary 7B endpoint uses five samples (135 runs/reducer); the 14B checkpoint uses three (81 runs/reducer). Evidence: real-online.}
 \label{tab:pairwise-action-online}
 \centering
 \small
@@ -452,12 +459,18 @@ Reducer & Precision & Recall & F1 & Support rec. & Reduce ms & Tokens & Edits & 
 \midrule
 Hybrid hint & 0.7692 & 0.8426 & 0.7801 & 0.7810 & 0.23 & 0.0 & 0.0 & 0 & 0 & 0 \\
 Validated pairwise & 0.7881 & 0.8426 & 0.7932 & 0.7948 & 1980.49 & 276.0 & 0.13 & 0 & 39 & 39 \\
-Validated action & 0.8975 & 0.8426 & 0.8645 & 0.8672 & 102.73 & 260.9 & 0.81 & 4 & 0 & 0 \\
+Validated action (7B) & 0.8975 & 0.8426 & 0.8645 & 0.8672 & 102.73 & 260.9 & 0.81 & 4 & 0 & 0 \\
+\midrule
+Hybrid hint (14B) & 0.7692 & 0.8426 & 0.7801 & 0.7810 & 0.24 & 0.0 & 0.0 & 0 & 0 & 0 \\
+Validated pairwise (14B) & 0.7948 & 0.8426 & 0.7977 & 0.7999 & 3056.63 & 308.9 & 0.17 & 0 & 12 & 12 \\
+Validated action (14B) & 0.8549 & 0.8426 & 0.8392 & 0.8365 & 187.02 & 261.1 & 0.56 & 2 & 0 & 0 \\
 \bottomrule
 \end{tabular*}
 \end{table*}
 
-A follow-up pairwise edit probe narrows the interface further. Instead of asking the model to rewrite complete candidates, the reducer proposes short candidate pairs. The free-form version asks for a JSON decision list; the action version restricts each answer to \texttt{KEEP}, \texttt{MERGE}, \texttt{SPLIT}, or \texttt{ABSTAIN}, and the runtime constructs the edit payload. Table~\ref{tab:pairwise-action-online} expands the earlier hardcase probe to all nine families and repeats each case five times. The action path raises pooled F1 from 0.7801 to 0.8645 and support recall from 0.7810 to 0.8672. Its within-case F1 standard deviation is zero and exact action agreement averages 0.9926. The runtime rejects four inadmissible proposed actions; no output violates schema and no run falls back. Free-form validated decisions reach only 0.7932 F1 and trigger 39 schema-preserving fallbacks. This is one model/endpoint at temperature zero, so the result supports repeatability of the bounded contract in this controlled setting, not broad stochastic robustness.
+A follow-up pairwise edit probe narrows the interface further. Instead of asking the model to rewrite complete candidates, the reducer proposes short candidate pairs. The free-form version asks for a JSON decision list; the action version restricts each answer to \texttt{KEEP}, \texttt{MERGE}, \texttt{SPLIT}, or \texttt{ABSTAIN}, and the runtime constructs the edit payload. Table~\ref{tab:pairwise-action-online} expands the earlier hardcase probe to all nine families. On the primary endpoint, the action path raises pooled F1 from 0.7801 to 0.8645 and support recall from 0.7810 to 0.8672. Treating the 27 scenario--seed means, not the 135 repeated rows, as paired units gives a mean F1 difference of $+0.0844$ (paired-bootstrap 95\% CI: $0.0328$--$0.1449$; 10,000 draws). Within-case F1 standard deviation is zero and exact action agreement averages 0.9926. The runtime rejects four inadmissible proposed actions; no output violates schema and no run falls back. Free-form validated decisions reach only 0.7932 F1 and trigger 39 schema-preserving fallbacks.
+
+The second checkpoint holds the workload, candidate generator, validator, scorer, and endpoint stack fixed while increasing model scale within the same family. Its action path reaches 0.8392 F1 versus 0.7801 for the hybrid baseline; the same 27-unit analysis gives $+0.0591$ (95\% CI: $0.0147$--$0.1149$). It has two rejected actions, zero schema failures, and zero fallback. The action path calls the model on 48.15\% of rows at both scales; conditional on a call, median reducer latency is 160.0 ms (7B) and 276.2 ms (14B), with 541.8 and 542.3 provider-reported tokens. Reporting conditional cost avoids diluting model cost with no-pair rows. These are two checkpoints in one model family at temperature zero, not cross-family or production robustness.
 
 \begin{table}[t]
 \caption{Controlled action-reducer budget sweep. Tokens use provider usage when present and an explicit character estimate otherwise. The hybrid baseline remains 0.7801 F1.}
@@ -490,7 +503,7 @@ These lessons define the role of an LLM reducer as a constrained semantic operat
 \section{Open System Challenges}
 \label{sec:open-challenges}
 
-\systemname{} separates the semantic control plane from data and serving planes. Data engines retain scans, joins, windows, and distributed execution; serving engines retain inference. The orchestration layer owns evidence eligibility, reducer policy, hypothesis provenance, validation, recovery metadata, and trace replay. The evaluated mechanism needs no new kernels or scheduler semantics. The public replay reduces, but does not eliminate, the external-validity gap: it covers real labeled metrics at the evidence boundary, not production incident grouping. We additionally replay the bounded commit/reject/replay contract over its detected public windows, but lack of incident-group labels still prevents scoring merge/split quality. Remaining challenges are broader data-plane attachment, public or production incident-group labels, cross-model studies, and serving-level constrained decoding only when a validator needs it. Evaluation should continue to establish coverage before reducer quality and live cost.
+\systemname{} separates the semantic control plane from data and serving planes. Data engines retain scans, joins, windows, and distributed execution; serving engines retain inference. The orchestration layer owns evidence eligibility, reducer policy, hypothesis provenance, validation, recovery metadata, and trace replay. The evaluated mechanism needs no new kernels or scheduler semantics. The public replays reduce, but do not eliminate, the external-validity gap: AIOps 2020 tests evidence coverage, while AIOpsArena scores only eight label-conditioned incident groups. Remaining challenges are non-oracle external MapEvidence, production incident grouping, cross-family studies, and serving-level constrained decoding only when a validator needs it. Evaluation should continue to establish coverage before reducer quality and live cost.
 
 \section{Auditability and Trust Boundary}
 
@@ -506,7 +519,7 @@ The common trace also makes negative results diagnostic. A recall loss can be cl
 
 \textbf{LLM data and workflow systems.} LOTUS and Palimpzest expose LLM calls as declarative or optimizable data-processing operators~\cite{patel2024semanticoperators,liu2024palimpzest}. LangGraph, LlamaIndex, and AutoGen provide useful abstractions for agents, retrieval, tool use, and multi-agent workflows~\cite{langchain2026langgraph,llamaindex2026,wu2023autogen}. \systemname{} is complementary: it focuses less on query optimization or agent control flow alone and more on workflow/stream orchestration, incident-level semantic reduction, and evidence-linked audit traces under one scorer.
 
-\textbf{Serving and observability.} vLLM shows how memory management and scheduling shape LLM serving performance~\cite{kwon2023vllm}. DeathStarBench, FIRM, the Illinois trace dataset, OpenTelemetry Demo, AIOps Challenge 2020, and LO2 provide service graphs, metrics, logs, traces, and fault labels~\cite{gan2019deathstarbench,qiu2020firm,qiu2020tracedataset,opentelemetry2026demo,netman2020aiopschallenge,bakhtin2025lo2}. Root-cause localization systems such as CloudRanger and MicroRank exploit service dependencies and trace contrasts~\cite{wang2018cloudranger,yu2021microrank}. We replay AIOps 2020 at the evidence boundary, but retain controlled incident-group workloads because its public labels do not directly score our merge/split contract.
+\textbf{Serving and observability.} vLLM shows how memory management and scheduling shape LLM serving performance~\cite{kwon2023vllm}. DeathStarBench, FIRM, the Illinois trace dataset, OpenTelemetry Demo, AIOps Challenge 2020, and LO2 provide service graphs, metrics, logs, traces, and fault labels~\cite{gan2019deathstarbench,qiu2020firm,qiu2020tracedataset,opentelemetry2026demo,netman2020aiopschallenge,bakhtin2025lo2}. Root-cause localization systems such as CloudRanger and MicroRank exploit service dependencies and trace contrasts~\cite{wang2018cloudranger,yu2021microrank}. We replay AIOps 2020 at the evidence boundary and AIOpsArena at the label-conditioned incident-unit boundary, but retain controlled workloads for model-backed merge/split mechanisms and broader obligation coverage.
 
 \textbf{Data+AI platforms.} Databricks, Snowflake Cortex, and BigQuery ML integrate analytics engines with machine learning and LLM functionality. They are important reference points, but systematic product comparison is outside this paper. The distinction we claim is narrower: an open workflow/runtime layer can sit above multiple engines and make semantic reducer behavior auditable through standard evidence, validation, and trace operators.
 

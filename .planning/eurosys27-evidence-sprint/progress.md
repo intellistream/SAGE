@@ -112,3 +112,24 @@
 - 2026-07-19: Rebuilt the tracked public-title technical-report PDF separately
   (11 letter-size pages) and ran the broadened no-NPU regression selection:
   `68 passed`, with six pre-existing runtime-client deprecation warnings.
+- 2026-07-19: Found that full `docker top ... args` diagnostics could retain the
+  test API token. Stopped the endpoint, revoked and rotated the token without
+  printing the replacement, sanitized and invalidated the affected preflight,
+  changed diagnostics to non-secret `comm`, and pushed security fix `11e4ec4`.
+- 2026-07-19: Launched a clean 14B same-family endpoint from `11e4ec4`; strict
+  JSON-Schema smoke passed. Completed nine families x three seeds x three
+  samples x three reducers (243 raw reports). Action F1 is 0.8392 versus 0.7801
+  hybrid, with two rejected actions, zero schema invalid/fallback, and zero
+  unsafe credential files. After freezing the derived summaries, the
+  reproducible full-directory digest is
+  `825858b062a73b1d24b7998d2750f12b2ce31ed959c576077f82c34aba7d1990`.
+- 2026-07-19: Added 27-unit paired bootstrap and call-conditioned cost analysis.
+  The 7B/14B paired deltas versus hybrid are +0.0844
+  [0.0328,0.1449] and +0.0591 [0.0147,0.1149]. Model-call rate is 48.15%;
+  conditional median latency is 160.0/276.2 ms with complete provider-token
+  coverage on called action rows.
+- 2026-07-19: Added an AIOpsArena reducer-only replay. Twenty-three public
+  injection rows define eight native episodes; map-only/window/service-local/
+  semantic F1 is 0.5161/0.8000/1.0000/1.0000. Evidence is `replay` and
+  explicitly label-conditioned, not end-to-end detection. Focused regression
+  selection passes: 49 tests.

@@ -47,7 +47,21 @@ def test_package_sanitizes_identity_and_excludes_endpoint_logs(
     archive = tmp_path / "anonymous-package.tar.gz"
     curve = tmp_path / "quality_latency_token_curve.json"
     curve.write_text('{"path":"/home/reviewer/SAGE"}\n', encoding="utf-8")
-    result = package(comparison, endpoint, output, archive, (curve,))
+    second_model = tmp_path / "second-model-source"
+    (second_model / "matrix").mkdir(parents=True)
+    (second_model / "matrix" / "raw.json").write_text(
+        '{"model":"qwen25-14b-sage-eurosys27",'
+        '"path":"/data/shared_models/Qwen--Qwen2.5-14B-Instruct"}\n',
+        encoding="utf-8",
+    )
+    result = package(
+        comparison,
+        endpoint,
+        output,
+        archive,
+        (curve,),
+        (("second-model", second_model),),
+    )
 
     assert result["status"] == "PASS"
     assert archive.is_file()
@@ -65,10 +79,16 @@ def test_package_sanitizes_identity_and_excludes_endpoint_logs(
     assert "MODEL_API_KEY" in packaged_text
     assert json.loads(packaged_text)["publication_anonymized"] is True
     assert (output / "supplementary" / curve.name).is_file()
+    second_text = (
+        output / "supplementary" / "second-model" / "matrix" / "raw.json"
+    ).read_text()
+    assert "qwen25-14b-sage-eurosys27" not in second_text
+    assert "/data/shared_models" not in second_text
     manifest = json.loads((output / "ANONYMIZATION_MANIFEST.json").read_text())
     assert manifest["status"] == "PASS"
     assert manifest["git_provenance_redacted"] is True
     assert manifest["supplementary_files"] == [curve.name]
+    assert manifest["supplementary_dirs"] == ["second-model"]
 
 
 def test_anonymity_audit_rejects_reverse_identity_markers(tmp_path: Path) -> None:

@@ -25,6 +25,41 @@ path, within-case F1 standard deviation is zero, exact action agreement averages
 inadmissible proposed actions. The three-hardcase artifact below remains an
 isolated mechanism diagnostic and is no longer the anonymous package source.
 
+The paired analysis uses the 27 scenario x seed means as independent units;
+the five repeated rows within each unit are not treated as independent. Against
+`hybrid-hint`, action validation has mean paired delta F1 `+0.0844` with a
+deterministic 10,000-draw bootstrap 95% CI `[0.0328, 0.1449]` (8 wins, 19 ties,
+0 losses). The model is called on 65/135 action rows (48.15%). Conditional on a
+call, median reducer latency is 160.0 ms and mean provider-reported tokens are
+541.8; provider token coverage is 65/65. These conditional numbers are the
+submission-facing cost result, while the pooled row means above include cheap
+no-pair rows.
+
+Second-checkpoint, same-family real-online artifact (three samples per unit,
+81 rows per reducer):
+
+```text
+.sage/benchmarks/real_online_semantic_merge_cross_model/20260719T165239Z-qwen25-14b-9family-3seed-3sample/
+directory digest: 825858b062a73b1d24b7998d2750f12b2ce31ed959c576077f82c34aba7d1990
+```
+
+| Reducer | F1 | Mean reduce ms | Tokens | Invalid schema/action | Fallback |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `hybrid-hint` | 0.7801 | 0.24 | 0.0 | 0 | 0 |
+| `llm-pairwise-validated` | 0.7977 | 3056.63 | 308.9 | 12 schema | 12 |
+| `llm-pairwise-action-validated` | 0.8392 | 187.02 | 261.1 | 2 action | 0 |
+
+For the action path, the 27-unit paired delta versus hybrid is `+0.0591`, 95%
+CI `[0.0147, 0.1149]` (7 wins, 20 ties, 0 losses). It calls the model on 39/81
+rows; conditional median latency is 276.2 ms, mean provider tokens are 542.3,
+and provider-token coverage is 39/39. All 243 raw reports are retained, each
+reducer has 81 rows, the matrix is labeled `real-online`, and the credential
+scan reports zero unsafe files. This is a second model scale in the same Qwen
+family, not cross-family robustness. The directory digest is computed as
+`find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum` after the
+derived stability summaries are frozen; it therefore covers both raw reports
+and the cited derived analyses.
+
 Clean three-workload-seed real-online artifact:
 
 ```text
@@ -152,7 +187,8 @@ The validator recorded `schema_valid=true`, `fallback_count=0`,
   safe abstention, but temporal grouping may need multi-pair grouping or
   transitive closure constraints.
 - Model semantic ability: useful bounded merge decisions repeat across three
-  workload seeds and five samples, but cross-model robustness is untested.
+  workload seeds at 7B and 14B scales in one model family. Cross-family and
+  production robustness remain untested.
 - Validator conservatism: four proposed actions are rejected at budget 8 and
   five at budget 12; no action-path schema failure or fallback occurs.
 
@@ -190,6 +226,16 @@ remain explicit rather than being reported as successful model actions.
   zero false positives over eight matched negative windows (precision 1.0,
   recall 0.5, F1 0.6667). The misses are retained as evidence-coverage limits.
   Artifact: `.sage/benchmarks/aiops2020_public_replay/20260718T-may29-map-evidence-replay-v4/`.
+- The AIOpsArena complex-case replay uses 23 public injection rows grouped by
+  the dataset fields `(timestamp, service, failure_type, duration)` into eight
+  native incident episodes. With label-conditioned evidence and episode IDs
+  withheld from reducers, map-only reaches F1 0.5161, window aggregation 0.8000,
+  and service-local/semantic reduction 1.0000. Artifact:
+  `.sage/benchmarks/aiopsarena_reducer_grouping/20260719T-complex-case2-reducer-grouping-v1/`,
+  result SHA-256
+  `111c3489d1c8b49a78a13a636bcfd9c278a2515ba4da9b32cde49b02643d676e`.
+  Evidence label: `replay`; scope: `reducer-only-label-conditioned`. It is not
+  end-to-end detection or production/model generality.
 - A new operator-algebra figure shows the model-facing boundary at `Edit`,
   while `Validate`, trace generation, and fallback remain system-owned.
 - The action reducer is written as an `Edit` + `Validate` instance, not as a
@@ -203,7 +249,12 @@ remain explicit rather than being reported as successful model actions.
 - The full nine-family, three-seed, five-sample NPU3 matrix passes the artifact
   gate at candidate budget 8: F1 0.8645 versus 0.7801 for `hybrid-hint`, zero
   fallback/schema invalid, four rejected actions, and clean parent/submodule
-  provenance. The 0.9301 hardcase result remains diagnostic only.
+  provenance. A later process-diagnostic audit found that full container argv
+  could retain the test token; that token was immediately revoked, the affected
+  preflight was invalidated and sanitized, and commit `11e4ec4` changed process
+  diagnostics from full `args` to non-secret `comm`. The replacement 14B run
+  passes a zero-unsafe-file credential scan. The 0.9301 hardcase result remains
+  diagnostic only.
 - Implementation-layer boundary is explicit: the submitted Semantic MapReduce
   mechanism does not require new Ascend kernel, Triton operator, mask/packing,
   or runtime-operator semantic changes. If future work needs such behavior, it
@@ -211,9 +262,9 @@ remain explicit rather than being reported as successful model actions.
   than as an ad hoc `vllm-ascend-hust` workaround; `vllm-ascend-hust` remains
   thin glue, and `vllm-hust` owns scheduler/KV/request-metadata concerns.
 - The nine-family derived matrix, 27-run runtime fault matrix, clean five-sample
-  real-online sweep, and anonymous full-coverage package are complete.
-  Cross-model and production incident-group claims remain separate evidence
-  upgrades.
+  real-online sweep, second-scale three-sample matrix, and anonymous
+  full-coverage package are complete. Cross-family and production
+  incident-group claims remain separate evidence upgrades.
 
 ## EuroSys Workload-Coverage Gate
 
@@ -242,23 +293,23 @@ regimes:
 2. `llm-pairwise-validated` as the free-form/schema negative control; and
 3. `llm-pairwise-action-validated` as bounded `Edit` + system-owned `Validate`.
 
-The expanded repeated run meets the admission gate at candidate budgets 8 and
+The expanded 7B repeated run meets the admission gate at candidate budgets 8 and
 12: accepted edits do not violate schema or evidence invariants, pooled F1
 improves, and accepted and rejected actions remain visible in the trace. Budget
 4 is intentionally retained as a failed quality point because candidate
-truncation reduces F1 to 0.7791. Cross-model matrices remain an external-
-validity extension.
+truncation reduces F1 to 0.7791. The 14B same-family matrix independently
+passes the action contract but records two rejected actions.
 
 ## Claims Not Yet Supported
 
-- Do not turn three controlled workload seeds and five temperature-zero samples
-  on one model into broad stochastic, cross-model, or production robustness.
+- Do not turn three controlled workload seeds at two same-family model scales
+  into broad stochastic, cross-family, or production robustness.
 - Do not claim a general quality-cost frontier. The three measured budget points
   show an operating boundary: budget 8 reaches the best F1 (0.8645), while
   budget 12 costs more and reaches 0.8571.
-- Do not claim production incident-group generality; the AIOps replay covers
-  public labeled metrics at MapEvidence/Normalize, while reducer quality still
-  uses controlled incident-group labels.
+- Do not claim production incident-group generality. AIOps 2020 covers
+  MapEvidence/Normalize; AIOpsArena adds native episode grouping but uses
+  oracle/label-conditioned evidence and only eight incident episodes.
 - Do not claim that this replaces Spark, Flink, Ray, databases, LangGraph, or
   LlamaIndex.
 - Do not claim that validators prove the LLM is always useful; validators make
@@ -301,8 +352,8 @@ the attestation basename and SHA-256. Literal-key scanning found zero matches in
 the real-online artifacts and tracked files. The clean sweep at commit
 `000c513` completed 1,215 reducer rows across budgets 4/8/12. Budgets 8 and 12
 pass the full artifact gate; budget 4 is preserved with gate `FAIL` because its
-0.7791 F1 does not exceed hybrid 0.7801. A second model remains unavailable and
-no cross-model result is inferred.
+0.7791 F1 does not exceed hybrid 0.7801. A second, same-family 14B checkpoint is
+now measured separately; no cross-family result is inferred.
 
 The derived budget curve is:
 

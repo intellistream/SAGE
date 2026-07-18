@@ -7,6 +7,9 @@ import sys
 from pathlib import Path
 
 from tools.benchmark_carrier.summarize_semantic_merge_budget_sweep import summarize
+from tools.benchmark_carrier.summarize_semantic_merge_stability import (
+    _paired_comparisons,
+)
 
 
 def test_matrix_manifest_infers_conda_environment_from_interpreter(
@@ -102,6 +105,43 @@ def test_matrix_repeated_samples_have_distinct_artifacts(tmp_path: Path) -> None
     assert payload["by_reducer"]["hybrid-hint"]["f1_stdev"] == 0.0
     assert payload["by_reducer"]["hybrid-hint"]["within_case_f1_stdev_max"] == 0.0
     assert payload["by_reducer"]["hybrid-hint"]["action_exact_agreement_min"] == 1.0
+    assert payload["by_reducer"]["hybrid-hint"]["model_call_runs"] == 0
+    assert payload["by_reducer"]["hybrid-hint"]["called_latency_ms_median"] is None
+
+
+def test_paired_bootstrap_uses_case_seed_means_as_units() -> None:
+    records = []
+    for scenario, seed, target, baseline in (
+        ("a", 7, 0.9, 0.7),
+        ("a", 11, 0.8, 0.7),
+        ("b", 7, 0.6, 0.7),
+        ("b", 11, 0.7, 0.7),
+    ):
+        records.extend(
+            [
+                {
+                    "scenario": scenario,
+                    "seed": seed,
+                    "reducer": "llm-pairwise-action-validated",
+                    "f1_mean": target,
+                    "samples": 5,
+                },
+                {
+                    "scenario": scenario,
+                    "seed": seed,
+                    "reducer": "hybrid-hint",
+                    "f1_mean": baseline,
+                    "samples": 5,
+                },
+            ]
+        )
+
+    comparison = _paired_comparisons(records)[0]
+    assert comparison["unit_count"] == 4
+    assert comparison["repeated_rows_are_not_independent_units"] is True
+    assert comparison["f1_delta_mean"] == 0.05
+    assert comparison["wins_ties_losses"] == {"wins": 2, "ties": 1, "losses": 1}
+    assert comparison["by_scenario_f1_delta"] == {"a": 0.15, "b": -0.05}
 
 
 def test_summary_emits_submission_facing_case_seed_rows(tmp_path: Path) -> None:

@@ -70,9 +70,12 @@
 - Free-form validated output remains a useful negative control under repetition:
   at budget 8 it reaches F1 0.7932 with 39 invalid-schema fallbacks and much
   higher p95 reducer latency (7846.07 ms versus 366.39 ms for bounded action).
-- The public AIOps replay still lacks reducer-level incident grouping labels.
-  Repeated online controlled evidence does not change that external-validity
-  boundary, and no second-model result is available.
+- AIOps Challenge 2020 still lacks reducer-level incident grouping labels.
+  A separate AIOpsArena replay now supplies 23 public injection rows grouped by
+  native `(timestamp, service, failure_type, duration)` keys into eight target
+  episodes. It is label-conditioned reducer-only evidence, not end-to-end
+  anomaly detection. A 14B same-family checkpoint adds a second scale, but
+  cross-family robustness remains unsupported.
 - Post-freeze reverse-identity audit found a P0 defect in the submission archive:
   allowlisted manifests preserve the public SAGE commit, feature branch, exact
   submodule revisions/branches, repository-specific environment and key names,

@@ -12,10 +12,16 @@ import argparse
 import csv
 import hashlib
 import json
+import random
 import statistics
 from collections import Counter
 from pathlib import Path
 from typing import Any
+
+
+TARGET_REDUCER = "llm-pairwise-action-validated"
+BOOTSTRAP_SEED = 2027
+BOOTSTRAP_DRAWS = 10_000
 
 
 def _raw_report_path(matrix_dir: Path, row: dict[str, Any]) -> Path:
@@ -93,6 +99,14 @@ def _group_summary(group: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _model_call(item: dict[str, Any]) -> bool:
+    cost = item["report"].get("cost_accounting") or {}
+    return bool(
+        cost.get("provider_total_tokens") is not None
+        or float(cost.get("estimated_total_tokens", 0) or 0) > 0
+    )
+
+
 def _reducer_summary(
     group: list[dict[str, Any]], case_records: list[dict[str, Any]]
 ) -> dict[str, Any]:
@@ -106,7 +120,107 @@ def _reducer_summary(
     base["within_case_f1_stdev_max"] = round(max(within_stdev), 4)
     base["action_exact_agreement_mean"] = round(statistics.fmean(agreements), 4)
     base["action_exact_agreement_min"] = round(min(agreements), 4)
+    called = [item for item in group if _model_call(item)]
+    called_costs = [item["report"].get("cost_accounting") or {} for item in called]
+    called_latency = [float(item["report"]["reduce_duration_ms"]) for item in called]
+    called_tokens = [
+        float(
+            cost["provider_total_tokens"]
+            if cost.get("provider_total_tokens") is not None
+            else cost.get("estimated_total_tokens", 0)
+        )
+        for cost in called_costs
+    ]
+    provider_observed = sum(
+        cost.get("provider_total_tokens") is not None for cost in called_costs
+    )
+    base["model_call_runs"] = len(called)
+    base["model_call_rate"] = round(len(called) / len(group), 4)
+    base["called_latency_ms_median"] = (
+        round(statistics.median(called_latency), 4) if called_latency else None
+    )
+    base["called_latency_ms_p95"] = (
+        round(_percentile(called_latency, 0.95), 4) if called_latency else None
+    )
+    base["called_tokens_mean"] = (
+        round(statistics.fmean(called_tokens), 4) if called_tokens else None
+    )
+    base["called_tokens_p95"] = (
+        round(_percentile(called_tokens, 0.95), 4) if called_tokens else None
+    )
+    base["called_provider_token_runs"] = provider_observed
+    base["called_provider_token_coverage"] = (
+        round(provider_observed / len(called), 4) if called else None
+    )
+    base["request_retry_count_total"] = sum(
+        int(cost.get("retry_count", 0) or 0) for cost in called_costs
+    )
     return base
+
+
+def _bootstrap_mean_ci(
+    deltas: list[float], *, seed: int = BOOTSTRAP_SEED, draws: int = BOOTSTRAP_DRAWS
+) -> tuple[float, float]:
+    rng = random.Random(seed)
+    means = sorted(
+        statistics.fmean(rng.choices(deltas, k=len(deltas))) for _ in range(draws)
+    )
+    return (_percentile(means, 0.025), _percentile(means, 0.975))
+
+
+def _paired_comparisons(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    unit_values: dict[tuple[str, int, str], float] = {
+        (str(row["scenario"]), int(row["seed"]), str(row["reducer"])): float(
+            row["f1_mean"]
+        )
+        for row in records
+    }
+    reducers = sorted({str(row["reducer"]) for row in records})
+    if TARGET_REDUCER not in reducers:
+        return []
+    results = []
+    for baseline in reducers:
+        if baseline == TARGET_REDUCER:
+            continue
+        units = sorted(
+            (scenario, seed)
+            for scenario, seed, reducer in unit_values
+            if reducer == TARGET_REDUCER
+            and (scenario, seed, baseline) in unit_values
+        )
+        deltas = [
+            unit_values[(*unit, TARGET_REDUCER)] - unit_values[(*unit, baseline)]
+            for unit in units
+        ]
+        if not deltas:
+            continue
+        low, high = _bootstrap_mean_ci(deltas)
+        family_deltas: dict[str, list[float]] = {}
+        for (scenario, _), delta in zip(units, deltas, strict=True):
+            family_deltas.setdefault(scenario, []).append(delta)
+        results.append(
+            {
+                "target": TARGET_REDUCER,
+                "baseline": baseline,
+                "independent_unit": "scenario_seed_mean_across_repeated_samples",
+                "unit_count": len(units),
+                "repeated_rows_are_not_independent_units": True,
+                "f1_delta_mean": round(statistics.fmean(deltas), 4),
+                "f1_delta_paired_bootstrap_95ci": [round(low, 4), round(high, 4)],
+                "bootstrap_draws": BOOTSTRAP_DRAWS,
+                "bootstrap_seed": BOOTSTRAP_SEED,
+                "wins_ties_losses": {
+                    "wins": sum(delta > 1e-12 for delta in deltas),
+                    "ties": sum(abs(delta) <= 1e-12 for delta in deltas),
+                    "losses": sum(delta < -1e-12 for delta in deltas),
+                },
+                "by_scenario_f1_delta": {
+                    scenario: round(statistics.fmean(values), 4)
+                    for scenario, values in sorted(family_deltas.items())
+                },
+            }
+        )
+    return results
 
 
 def summarize(matrix_dir: Path) -> dict[str, Any]:
@@ -140,6 +254,7 @@ def summarize(matrix_dir: Path) -> dict[str, Any]:
             )
             for reducer, group in sorted(by_reducer.items())
         },
+        "paired_comparisons": _paired_comparisons(records),
     }
 
 
