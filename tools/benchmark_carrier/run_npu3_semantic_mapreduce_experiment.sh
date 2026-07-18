@@ -273,7 +273,11 @@ collect_diagnostics() {
   if sudo -n docker inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
     sudo -n docker inspect "${CONTAINER_NAME}" \
       > "${OUTPUT_ROOT}/docker-inspect.json" 2>&1 || true
-    sudo -n docker top "${CONTAINER_NAME}" -eo pid,ppid,stat,etime,args \
+    # Never collect full argv here. vLLM receives the API key as a command-line
+    # argument, so `args` would turn an otherwise useful process snapshot into
+    # a credential-bearing artifact. `comm` is sufficient to audit process
+    # identity and lifetime without retaining launch arguments.
+    sudo -n docker top "${CONTAINER_NAME}" -eo pid,ppid,stat,etime,comm \
       > "${OUTPUT_ROOT}/docker-top.txt" 2>&1 || true
     timeout 20s sudo -n docker exec "${CONTAINER_NAME}" sh -lc \
       "test -f '${VLLM_CONTAINER_LOG_FILE}' && cat '${VLLM_CONTAINER_LOG_FILE}'" \
