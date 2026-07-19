@@ -44,6 +44,10 @@ GIT_BRANCH = re.compile(
 PUBLIC_GIT_REMOTE = re.compile(
     r"(?:https?://github\.com/|git@github\.com:)[^\s\"']+", re.IGNORECASE
 )
+GIT_DESCRIBE = re.compile(
+    r"\b[A-Z0-9][A-Z0-9._-]*-\d+-g(?:[0-9a-f]{7,40}|REVISION_\d{3})\b",
+    re.IGNORECASE,
+)
 SAGE_WORD = re.compile(r"\bsage\b", re.IGNORECASE)
 PUBLIC_SYSTEM_NAME = re.compile(r"\bSemantic MapReduce\b", re.IGNORECASE)
 PUBLICATION_ARCHIVE_ROOT = "artifact"
@@ -128,6 +132,9 @@ def _sanitize(
     if remotes:
         text = PUBLIC_GIT_REMOTE.sub("<PUBLIC_GIT_REMOTE_REDACTED>", text)
         counts["<PUBLIC_GIT_REMOTE_REDACTED>"] = len(remotes)
+    text, describe_count = GIT_DESCRIBE.subn("<GIT_DESCRIBE>", text)
+    if describe_count:
+        counts["<GIT_DESCRIBE>"] = describe_count
     project_names = SAGE_WORD.findall(text)
     if project_names:
         text = SAGE_WORD.sub("PROJECT", text)
@@ -252,6 +259,8 @@ def _audit(
             failures.append(f"Git branch remains in {relative}")
         if PUBLIC_GIT_REMOTE.search(text):
             failures.append(f"public Git remote remains in {relative}")
+        if GIT_DESCRIBE.search(text):
+            failures.append(f"Git describe remains in {relative}")
         if SAGE_WORD.search(text):
             failures.append(f"repository name remains in {relative}")
         if PUBLIC_SYSTEM_NAME.search(text):

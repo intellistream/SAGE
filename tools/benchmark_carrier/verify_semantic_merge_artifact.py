@@ -20,6 +20,33 @@ UNIT_CONTAINER_FIELD = re.compile(
 PCI_BUS_ID = re.compile(r"\b[0-9A-Fa-f]{4}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}\.[0-9A-Fa-f]\b")
 NPU_PROCESS_ROW = re.compile(r"(?m)^(\|\s*\d+\s+\d+\s+\|)\s*\d+\s*(\|)")
 NPU_MANAGED_PID_ROW = re.compile(r"(?m)^(\s*\d+\s+)\d+(\s*)$")
+EMAIL = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
+GIT_REMOTE = re.compile(
+    r"(?:git@[^\s\"']+|(?:https?|ssh)://(?:github\.com|gitlab\.com|bitbucket\.org)/[^\s\"']+)",
+    re.IGNORECASE,
+)
+GIT_DESCRIBE = re.compile(
+    r"\b[A-Z0-9][A-Z0-9._-]*-\d+-g(?:[0-9a-f]{7,40}|REVISION_\d{3})\b",
+    re.IGNORECASE,
+)
+GIT_REVISION_FIELD = re.compile(
+    r"(?i)[\"']?(?:commit|revision|git_sha|repo_sha)[\"']?\s*[:=]\s*[\"']?(?!REVISION_)[0-9a-f]{7,40}\b"
+)
+SENSITIVE_ABSOLUTE_PATH = re.compile(
+    r"(?:/home/|/Users/|/(?:workspace|workspaces)/|/data/shared_models/)[^\s\"']+"
+)
+HOST_FIELD = re.compile(
+    r"(?i)[\"']?(?:host|hostname)[\"']?\s*[:=]\s*[\"']?(?!<HOSTNAME>)[A-Z0-9][A-Z0-9._-]+"
+)
+AUTHORIZATION_SECRET = re.compile(
+    r"(?i)(?:authorization\s*[:=]\s*[\"']?(?!REDACTED)|bearer\s+[A-Z0-9._~+/=-]{8,})"
+)
+API_KEY_SECRET = re.compile(
+    r"(?i)[\"']?(?:api[_-]?key|token|secret)[\"']?\s*[:=]\s*[\"']?(?!(?:REDACTED|<[^>]+>|MODEL_API_KEY)\b)[A-Z0-9._~+/=-]{8,}"
+)
+FORBIDDEN_ARTIFACT_PATH = re.compile(
+    r"(?i)(?:^|/)(?:central-)?(?:grant|preflight|cleanup(?:-observation)?|release-request|execution-handoff|final-closure|raw-request|raw-response|provider-response|systemd-journal[^/]*)\.(?:json|txt|log)$"
+)
 
 TARGET = "llm-pairwise-action-validated"
 BASELINE = "hybrid-hint"
@@ -142,6 +169,10 @@ def _verify_publication_manifest(package_root: Path, failures: list[str]) -> Non
         failures.append(
             f"anonymization inventory mismatch: missing={missing[:3]}, extra={extra[:3]}"
         )
+    endpoint_allowlist = manifest.get("endpoint_allowlist")
+    if not isinstance(endpoint_allowlist, list):
+        failures.append("anonymization manifest lacks endpoint allowlist")
+        endpoint_allowlist = []
     for relative, metadata in listed.items():
         path = package_root / relative
         if not path.is_file() or not isinstance(metadata, dict):
@@ -150,6 +181,11 @@ def _verify_publication_manifest(package_root: Path, failures: list[str]) -> Non
         if not isinstance(expected, str) or _sha256(path) != expected:
             failures.append(f"anonymization hash mismatch: {relative}")
         text = path.read_text(encoding="utf-8", errors="replace")
+        relative_path = Path(relative)
+        if relative_path.parts[:1] == ("endpoint",) and relative_path.name not in endpoint_allowlist:
+            failures.append(f"anonymization unallowlisted endpoint artifact: {relative}")
+        if FORBIDDEN_ARTIFACT_PATH.search(relative):
+            failures.append(f"anonymization forbidden raw/control artifact: {relative}")
         if LOOPBACK_ENDPOINT.search(text) or IPV4.search(text) or PORT_FIELD.search(text):
             failures.append(f"anonymization endpoint/port leak: {relative}")
         if PID_FIELD.search(text):
@@ -158,7 +194,16 @@ def _verify_publication_manifest(package_root: Path, failures: list[str]) -> Non
             failures.append(f"anonymization unit/container leak: {relative}")
         if PCI_BUS_ID.search(text):
             failures.append(f"anonymization PCI topology leak: {relative}")
-        relative_path = Path(relative)
+        if SENSITIVE_ABSOLUTE_PATH.search(text):
+            failures.append(f"anonymization sensitive path leak: {relative}")
+        if HOST_FIELD.search(text):
+            failures.append(f"anonymization hostname leak: {relative}")
+        if EMAIL.search(text) or GIT_REMOTE.search(text):
+            failures.append(f"anonymization Git/email identity leak: {relative}")
+        if GIT_DESCRIBE.search(text) or GIT_REVISION_FIELD.search(text):
+            failures.append(f"anonymization Git revision leak: {relative}")
+        if AUTHORIZATION_SECRET.search(text) or API_KEY_SECRET.search(text):
+            failures.append(f"anonymization credential leak: {relative}")
         if relative_path.parts[:1] == ("endpoint",) and relative_path.name.startswith("npu-smi-"):
             if NPU_PROCESS_ROW.search(text) or (
                 relative_path.name == "npu-smi-managed-pids.txt"

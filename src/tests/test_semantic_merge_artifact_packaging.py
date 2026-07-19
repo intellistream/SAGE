@@ -25,6 +25,7 @@ def test_package_sanitizes_identity_and_excludes_endpoint_logs(
         '"branch":"feature/semantic-mapreduce-paper",'
         '"conda_env":"esage-vllm-hust-dev",'
         '"api_key_env":"VLLM_HUST_API_KEY",'
+        '"runtime_version":"faculty-twin-runtime-20260706-fix1-2-g0123456",'
         '"runtime":"external/vllm-hust","system":"Semantic MapReduce"}\n',
         encoding="utf-8",
     )
@@ -90,6 +91,8 @@ def test_package_sanitizes_identity_and_excludes_endpoint_logs(
     assert "feature/semantic-mapreduce-paper" not in packaged_text
     assert "vllm-hust" not in packaged_text
     assert "Semantic MapReduce" not in packaged_text
+    assert "faculty-twin-runtime" not in packaged_text
+    assert "<GIT_DESCRIBE>" in packaged_text
     assert "REVISION_" in packaged_text
     assert "ANONYMOUS_BRANCH" in packaged_text
     assert "project-specific-env" in packaged_text

@@ -47,6 +47,45 @@ def test_publication_manifest_rejects_infrastructure_identifiers(tmp_path: Path)
     assert any("process-ID leak" in item for item in failures)
 
 
+def test_publication_manifest_rejects_all_anonymity_policy_classes(
+    tmp_path: Path,
+) -> None:
+    verifier = _load_verifier()
+    package = tmp_path / "artifact"
+    endpoint = package / "endpoint"
+    endpoint.mkdir(parents=True)
+    leaks = {
+        "endpoint/unallowlisted.log": "private log\n",
+        "grant.json": '{"Authorization":"Bearer abcdefghijklmnop"}\n',
+        "identity.txt": (
+            "path=/home/reviewer/workspace/model host=private-host "
+            "remote=git@github.com:private/repo.git author=user@example.com "
+            "commit=0123456789abcdef0123456789abcdef01234567 "
+            "version=faculty-twin-runtime-20260706-fix1-2-gREVISION_001\n"
+        ),
+    }
+    files = {}
+    for relative, text in leaks.items():
+        path = package / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        files[relative] = {"packaged_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+    manifest = {
+        "status": "PASS", "failures": [], "publication_anonymized": True,
+        "endpoint_allowlist": ["metadata.json"], "files": files,
+    }
+    (package / "ANONYMIZATION_MANIFEST.json").write_text(
+        json.dumps(manifest) + "\n", encoding="utf-8"
+    )
+    failures: list[str] = []
+    verifier._verify_publication_manifest(package, failures)
+    for fragment in (
+        "unallowlisted endpoint", "forbidden raw/control", "sensitive path",
+        "hostname", "Git/email identity", "Git revision", "credential",
+    ):
+        assert any(fragment in item for item in failures), (fragment, failures)
+
+
 def _write_complete_fixture(
     verifier,
     artifact: Path,
@@ -151,6 +190,7 @@ def _write_anonymization_manifest(package_root: Path) -> None:
                 "status": "PASS",
                 "failures": [],
                 "publication_anonymized": True,
+                "endpoint_allowlist": [],
                 "files": files,
             }
         ),
