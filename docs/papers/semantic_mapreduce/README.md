@@ -3,9 +3,31 @@
 This directory contains the systems-conference LaTeX draft for the SAGE
 large-scale analysis workload and Semantic MapReduce framing.
 
+## Current Mechanism Status (2026-07-19)
+
+The active goal is mechanism completeness and auditable offline evidence, not
+the EuroSys deadline. The paper is **not submission-ready**. Runtime v2 now has
+finite proposal IDs, true SPLIT, atomic rollback, exact H0 fallback, and a fair
+shared-catalog policy harness; its new evidence is currently offline
+`simulation/model`. The frozen 0.8645/0.7801 online matrix belongs to the old
+merge-only v1 implementation and must not be presented as online SPLIT.
+
+Run the v2 focused gates with:
+
+```bash
+PYTHONPATH=src /home/shuhao/miniconda3/envs/esage-vllm-hust-dev/bin/python \
+  -m pytest -q \
+  src/tests/test_semantic_reduce_edit_runtime.py \
+  src/tests/test_semantic_reduce_heldout.py \
+  src/tests/test_semantic_reduce_edit_evaluation.py
+```
+
+The final clean offline command is documented in `NEXT_STEPS.md`; do not use
+`--allow-dirty` for claim evidence and do not start an NPU/online sweep.
+
 ## Venue Choice
 
-Target: **EuroSys 2027 fall-cycle full paper**, with the submission story
+Reference format: **EuroSys 2027 fall-cycle full paper**, with the eventual story
 centered on the systems evidence chain: evidence coverage, semantic reducer
 contracts, validated model-backed edits, cost/latency accounting, and
 auditable traces.
@@ -66,10 +88,10 @@ This is a derived visualization of frozen real-online rows, not a new online
 experiment. The script fails closed if any plotted number differs from the
 recorded submission values.
 
-The remaining final-PDF and submission-policy gates are tracked in
-[`NEXT_STEPS.md`](NEXT_STEPS.md). Treat that checklist as the submission-freeze
-source of truth. The clean full-coverage repeated run and anonymous package are
-complete.
+The active mechanism/offline gates are tracked in
+[`NEXT_STEPS.md`](NEXT_STEPS.md). The earlier full-coverage repeated online run
+and anonymous package are historical v1 evidence, not a current submission
+freeze or validation of v2 SPLIT.
 
 ## Claim Discipline
 
@@ -328,8 +350,9 @@ families, seeds 7/11/13, and five samples per case from clean commit `000c513`:
 
 Across 135 rows per reducer at candidate budget 8, action validation raises
 pooled F1 from 0.7801 for `hybrid-hint` to 0.8645. Within-case F1 standard
-deviation is zero and exact action agreement averages 0.9926. The validator
-rejects four proposed actions; invalid schema and fallback remain zero. The
+deviation is zero and exact action agreement averages 0.9926. Four unparsable
+responses map fail-closed to `ABSTAIN`/no-op; validator rejection, invalid
+schema, and fallback remain zero. The
 three-budget curve retains budget 4 as a failed quality point (F1 0.7791), while
 budgets 8 and 12 pass. The anonymous archive SHA-256 is
 `f590fde5a371c2d663ebeddd9b609fe4d6ea74a5f36c794e9fd3fbad2d73d4a0`.

@@ -142,6 +142,12 @@ def test_paired_bootstrap_uses_case_seed_means_as_units() -> None:
     assert comparison["f1_delta_mean"] == 0.05
     assert comparison["wins_ties_losses"] == {"wins": 2, "ties": 1, "losses": 1}
     assert comparison["by_scenario_f1_delta"] == {"a": 0.15, "b": -0.05}
+    assert comparison["family_cluster_count"] == 2
+    assert comparison["family_cluster_definition"] == (
+        "scenario_family_with_seed_rows_preserved"
+    )
+    low, high = comparison["f1_delta_family_clustered_bootstrap_95ci"]
+    assert low <= comparison["f1_delta_mean"] <= high
 
 
 def test_summary_emits_submission_facing_case_seed_rows(tmp_path: Path) -> None:

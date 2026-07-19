@@ -1,5 +1,23 @@
 # Semantic MapReduce Claim Ledger
 
+## 2026-07-19 Active Claim Boundary
+
+This section supersedes the older submission-preparation entries below.
+
+| Claim | Current direct evidence | Allowed wording |
+| --- | --- | --- |
+| Runtime v2 implements finite, typed, executable KEEP/MERGE/SPLIT/ABSTAIN proposals with ID-only selection and atomic validation/commit. | `src/sage/workloads/semantic_reduce_edit_runtime.py`, `bounded-edit-runtime-contract.md`, and adversarial/property/replay tests. | “implements and tests true cataloged SPLIT offline”, “evidence-conserving atomic Edit runtime” |
+| Deterministic and mock model-policy selectors receive byte-identical H0/catalog input. | `semantic_reduce_edit_evaluation.py` and focused tests; the mock selector invokes no endpoint/model. | “shared-catalog policy harness”, “offline policy-emulator mechanism check” |
+| The difficult workload axes are controlled `simulation/model`, with hidden labels restricted to generation/scoring. | Frozen `heldout_v2_config.json` and `semantic_reduce_heldout.py`. | “controlled held-out ambiguity axes”, “proposal-coverage diagnostic” |
+| Historical action online evidence validates accepted merges and bounded rejection only. | Frozen 2026-07-18 artifact; legacy verifier PASS; all historical `split_count` values are zero. | “historical merge-only bounded-action result”, “accepted merge repairs semantic-graph grouping” |
+| Constrained agglomerative is a strong broader-permission reference. | Clean 90-unit controlled matrix: 0.9287; matched 27-unit value: 0.9028. | “full-evidence controlled reference”, “not a shared-H0 edit peer or published SOTA” |
+
+Forbidden until new direct evidence exists: “v2 SPLIT is real-online,” “the
+model beats the strongest deterministic policy,” “hybrid is the action pre-edit
+state,” “0.9287 is external SOTA,” or “submission-ready.” The historical 27-unit
+action-versus-constrained result is 3 wins, 15 ties, and 9 losses; all eight
+units containing accepted legacy merges tie constrained.
+
 This ledger keeps the paper draft aligned with what the repository currently
 implements and measures. It is intentionally conservative for double-blind
 systems submission preparation.
@@ -8,7 +26,7 @@ systems submission preparation.
 
 | Claim | Evidence in repository | Allowed wording |
 | --- | --- | --- |
-| The prototype implements a bounded semantic-reducer operator/runtime contract. | `src/sage/workloads/large_scale_analysis.py` defines `Shard`, `MapEvidence`, `Normalize`, `GroupEvidence`, `SemanticReduce`, and `ReportTrace`; the action reducer lets the model propose one enum while system code assembles evidence-linked edits, validates them, and records commit/fallback state. | "implements a reducer contract", "runtime-owned evidence and state transition", "model proposes a bounded action" |
+| The legacy prototype implements a merge-only bounded semantic-reducer path; runtime v2 implements the complete finite proposal contract offline. | Legacy `semantic_merge_analysis.py` plus v2 `semantic_reduce_edit_runtime.py`; see the active boundary above. | "legacy merge-only online path", "v2 complete offline Edit runtime" |
 | The workload evaluates incident-level evidence reduction over large event streams. | Synthetic NPU-backed LLM serving telemetry generator, injected incidents, common scorer, missed/detected incidents, and workflow trace output. | "evaluates shard-level evidence extraction and incident-level reduction" |
 | Diagnostic baselines isolate reducer behavior. | `map-only`, `window-aggregate`, `deterministic`, and `llm-stub` share the same generator and scorer. | "diagnostic baselines", "isolate the value of grouping and incident reduction" |
 | The current reproducible quality baseline is deterministic. | Matrix artifacts under `.sage/benchmarks/large_scale_analysis/20260702T-map-policy-10seed-thr098-paper-matrix/`. | "deterministic reducer baseline" |
@@ -38,7 +56,7 @@ systems submission preparation.
 | --- | --- | --- |
 | Live LLM-backed reduction improves beyond the strongest hybrid reducer across the controlled workload inventory. | On the clean 7B matrix, action validation reaches F1 0.8645 versus 0.7801; a paired bootstrap over 27 scenario x seed means gives delta `+0.0844`, 95% CI `[0.0328,0.1449]`. On the same-family 14B checkpoint, F1 is 0.8392 versus 0.7801, delta `+0.0591`, CI `[0.0147,0.1149]`. The 14B run retains 243/243 raw reports and zero unsafe credential files. | Keep wording to two checkpoints in one model family, temperature zero, and controlled telemetry; do not claim cross-family or production robustness. |
 | Live LLM-backed reduction provides a quality-cost/latency advantage. | The controlled 7B budgets 4/8/12 reach action F1 0.7791/0.8645/0.8571. At budget 8 the action path calls the model on 65/135 rows; conditional median latency is 160.0 ms and mean provider tokens are 541.8 with 65/65 provider-usage coverage. The 14B action path calls on 39/81 rows, with 276.2 ms and 542.3 provider tokens. | This is a measured operating boundary and call-conditioned reducer cost, not a general frontier, monetary cost, or end-to-end serving speedup. |
-| Repeated-sampling and second-scale stability have been measured. | The 7B budget-8 matrix has 135 action rows, zero within-case F1 standard deviation, and mean exact action agreement 0.9926. The 14B matrix has 81 action rows, zero within-case F1 standard deviation, 0.9877 mean exact action agreement, two rejected actions, zero schema invalid, and zero fallback. Raw responses, provider envelopes, sample IDs, timestamps, request failures, replay IDs, and state digests are retained. | Supports repeatability at temperature zero and a same-family scale check; do not infer cross-family or broad stochastic robustness. |
+| Repeated-sampling and second-scale stability have been measured. | The 7B budget-8 matrix has 135 action rows, zero within-case F1 standard deviation, and mean exact action agreement 0.9926. The 14B matrix has 81 action rows, zero within-case F1 standard deviation, 0.9877 mean exact action agreement, two unparsable responses mapped to `ABSTAIN`/no-op, zero validator rejection, zero schema invalid, and zero fallback. Raw responses, provider envelopes, sample IDs, timestamps, request failures, replay IDs, and state digests are retained. | Supports repeatability at temperature zero and a same-family scale check; do not infer cross-family or broad stochastic robustness. |
 | Token cost is measured rather than estimated. | New action traces retain provider usage and aggregate it when available; older artifacts and endpoints without usage retain the explicit `char-estimate` label. | Say "provider-reported tokens" only for rows whose `token_measurement_source` is `provider-usage`; otherwise say "estimated tokens." |
 | Full-evidence prompting is sufficient for semantic reduction. | Refuted by the current hard cases. `llm-openai` returns legal JSON but emits one incident per case, giving F1 0.4000 and support-evidence recall 0.2500 despite full evidence coverage. | Keep full-evidence prompting as a negative control, not as the target mechanism. |
 | The approach works over production telemetry. | The current main benchmark uses controlled synthetic telemetry grounded in LLM-serving signals; public and shared workload probes establish source/provenance surfaces but not production reducer quality. | Run on real vLLM-HUST/NPU telemetry or a production-derived trace with provenance. |

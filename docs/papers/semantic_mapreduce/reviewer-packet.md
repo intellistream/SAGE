@@ -1,5 +1,14 @@
 # Semantic MapReduce Reviewer Packet
 
+## 2026-07-19 Mechanism-Completion Update
+
+This packet is not a submission-readiness attestation. The frozen real-online
+action result is historical merge-only v1. Its H0 is `semantic-graph`; hybrid is
+a comparison/fallback. Runtime v2 implements true cataloged SPLIT and atomic
+rollback offline, but has no new online model result. The strongest fair v2
+question is proposal coverage and selector quality under identical H0/catalog
+input, not whether the model beats a full-evidence reclustering reference.
+
 This one-page packet records the submission-facing answers that should remain
 consistent across the paper, rebuttal notes, and talks.
 
@@ -15,10 +24,12 @@ auditable, rejectable, and fallback-safe.
 
 **Is this just prompt engineering?**
 
-No. The model-facing API is an operator boundary. The action reducer lets the
-model choose only `KEEP`, `MERGE`, `SPLIT`, or `ABSTAIN` over candidate pairs.
-The system assembles the edit, binds evidence identifiers, checks schema and
-root/affected consistency, records costs, and falls back if validation fails.
+No. In runtime v2 the system builds a finite catalog containing legal KEEP,
+MERGE, and evidence-partitioning SPLIT proposals plus ABSTAIN. A policy returns
+proposal IDs only; the system binds evidence, checks schema/root/affected
+eligibility and unique ownership, and commits the whole batch or preserves the
+exact H0. Historical online v1 exposed the four enum words but executed only
+MERGE as a state change, so it is not evidence for true SPLIT.
 The comparison against free-form pairwise JSON uses the same endpoint, model,
 evidence, candidates, and scorer; the difference is the reducer contract. The
 paper's concrete reducer-lifecycle figure makes this executable boundary
@@ -46,17 +57,21 @@ invalid text into bounded action uncertainty.
 No. The artifact reports accepted edit count, fallback count, invalid action
 count, invalid schema count, support recall, latency, tokens, and per-case F1.
 In the full five-sample probe, the validated action reducer records accepted
-edits, four rejected proposed actions, zero schema failures, and zero fallback.
-Rejections remain visible in the trace rather than being folded into success.
+edits and four unparsable strings mapped fail-closed to `ABSTAIN`/no-op, with
+zero validator rejections, schema failures, or fallback. Parser uncertainty
+remains visible in the trace rather than being folded into success.
 
 **Are three workload seeds enough?**
 
 They strengthen the controlled mechanism claim but do not establish broad
 cross-model or production robustness. The primary run repeats all nine
 families, three seeds, and three reducers five times from a clean parent commit.
-At candidate budget 8, action-validated reaches 0.8645 mean F1 versus 0.7801
-for `hybrid-hint`; a paired bootstrap over the 27 scenario--seed means gives
-delta `+0.0844`, 95% CI `[0.0328,0.1449]`. A same-family 14B checkpoint with
+At candidate budget 8, historical merge-only action reaches 0.8645 mean F1
+versus 0.7801 for the separately evaluated `hybrid-hint`; a paired bootstrap
+over the 27 scenario--seed means gives delta `+0.0844`, 95% CI
+`[0.0328,0.1449]`. This is not its pre-edit baseline and not the strongest
+reference. Matched constrained is 0.9028, and action records 3 wins, 15 ties,
+and 9 losses. A same-family 14B checkpoint with
 three repeats reaches 0.8392 versus 0.7801, delta `+0.0591`, CI
 `[0.0147,0.1149]`. This is a second scale check, not cross-family robustness.
 
@@ -79,7 +94,7 @@ schema and coverage gate.
 - The prototype does not replace Spark, Flink, Ray, databases, observability
   tools, LangGraph, LlamaIndex, or data+AI platforms.
 
-## Frozen Review Evidence
+## Frozen Historical Review Evidence
 
 The anonymous 693-file bundle contains the five-sample primary matrix, 243 raw
 same-family second-scale reports, the label-conditioned external reducer replay,

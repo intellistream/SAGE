@@ -1,4 +1,53 @@
-# Semantic MapReduce Readiness Report
+# Semantic MapReduce Mechanism and Evidence Readiness Report
+
+## 2026-07-19 Current Status: NOT SUBMISSION-READY
+
+The previous submission-freeze conclusion is superseded. The frozen online
+artifacts remain valid evidence for the historical `semantic-reduce/v1`
+pairwise action implementation, but that implementation was merge-only:
+`SPLIT`, `KEEP`, and `ABSTAIN` all preserved state, `split_count` was zero, and
+the model edited a `semantic-graph` H0. `hybrid-hint` was a comparison and the
+configured fallback, not the pre-edit state.
+
+Runtime v2 now implements a finite system-generated proposal catalog, true
+evidence-partitioning SPLIT, ID-only policy selection, unique ownership,
+reason-coded atomic rollback, exact H0 fallback, catalog/state/selection
+digests, checkpoint restore, and independent replay. This mechanism currently
+has unit/property and dirty-development `simulation/model` evidence only. No
+new endpoint, model, credential, NPU, or real-online sweep has been used.
+
+- **COMPLETED:** typed v2 contract, three oracle-free split generators,
+  adversarial conservation/atomicity tests, shared-H0/shared-catalog
+  deterministic and mock policy harness, frozen held-out ambiguity axes.
+- **IN PROGRESS:** clean commit and full development/held-out offline matrix,
+  proposal coverage and negative-case analysis, derived Figure 3 replacement.
+- **BLOCKED:** model-selector increment and real-online v2 validation until all
+  offline gates plus endpoint/model/hardware/credential readiness pass.
+
+### Cross-review adjudication
+
+Three independent read-only reviews (systems/claims, experiments/statistics,
+and artifact/anonymity) all returned **NOT READY**. There was no substantive
+reviewer conflict on the disposition. The apparent H0 conflict was temporal:
+the systems reviewer correctly described executable v1, while the current TeX
+had already begun admitting that mismatch; source and raw traces decide in
+favor of `semantic-graph` H0 plus merge/no-op v1. The artifact root embeds the
+public short revision `a48f1e6`, so archive SHA `f590fde5...d73d4a0` is
+historical evidence only and must not be uploaded.
+
+The current rebuild uses SIGPLAN's 10pt body and explicitly prevents smaller
+caption, table, figure-label, algorithm, and bibliography text. It is 13 PDF
+pages on US Letter: technical content ends on page 12 and page 13 contains only
+references, which is within the official 12-technical-page-plus-references
+limit. Page-by-page review caught and repaired four clipping/overlap defects.
+The public/private final hashes remain pending until the clean evidence/package
+freeze. The expanded no-NPU audit selection currently passes `80 passed`.
+
+All older “submission-facing,” “READY,” and deadline-oriented sections below
+are historical 2026-07-18 records, not the current readiness decision. In
+particular, 0.8645/0.7801 is historical merge-only online evidence;
+0.9301/0.7204 is a three-hardcase diagnostic; 0.9287 is a controlled strong
+reference, not external SOTA; and the matched constrained statistic is 0.9028.
 
 This report summarizes the current EuroSys'27-readiness state for the Semantic
 MapReduce paper draft. It separates supported claims from mechanism probes and
@@ -19,10 +68,11 @@ Submission-facing nine-family, three-seed, five-sample real-online artifact
 | `llm-pairwise-validated` | 0.7881 | 0.8426 | 0.7932 | 0.7948 | 1980.49 | 276.0 | 0.1259 | 39 schema / 39 fallback |
 | `llm-pairwise-action-validated` | 0.8975 | 0.8426 | 0.8645 | 0.8672 | 102.73 | 260.9 | 0.8148 | 4 action / 0 fallback |
 
-This is the main workload-coverage and repeatability result. For the action
-path, within-case F1 standard deviation is zero, exact action agreement averages
-0.9926, schema invalid and fallback are zero, and the validator rejects four
-inadmissible proposed actions. The three-hardcase artifact below remains an
+This is historical v1 workload-coverage and repeatability evidence. For the
+action path, within-case F1 standard deviation is zero, exact action agreement
+averages 0.9926, schema invalid and fallback are zero, and four unparsable
+response strings map fail-closed to `ABSTAIN`/no-op. They are not validator-
+rejected edits. The three-hardcase artifact below remains an
 isolated mechanism diagnostic and is no longer the anonymous package source.
 
 The paired analysis uses the 27 scenario x seed means as independent units;
@@ -253,17 +303,15 @@ remain explicit rather than being reported as successful model actions.
   digests and outcomes. Neither is described as distributed exactly-once.
 - The action reducer is written as an `Edit` + `Validate` instance, not as a
   prompt-engineering trick.
-- The strengthened EuroSys PDF is 12 pages total; technical content ends on
-  page 11 and references continue through page 12. All pages, seven retained
-  tables, three figures, and references were rendered to PNG and visually
-  checked for clipping, overlap, and legibility.
-- The final focused no-NPU regression selection passes under
-  `esage-vllm-hust-dev`: `51 passed` across semantic-merge, runtime-contract,
-  checkpoint/recovery, AIOps replay, summary, shared-state, and deterministic
-  quality--cost figure tests.
+- The historical EuroSys PDF was 12 pages total. It is superseded by the
+  current 10pt-compliant rebuild and cannot be used as a current visual or
+  page-count attestation.
+- The historical focused no-NPU selection reported `51 passed`; the current
+  audit uses an expanded selection and records its result in the status section
+  above.
 - The full nine-family, three-seed, five-sample NPU3 matrix passes the artifact
   gate at candidate budget 8: F1 0.8645 versus 0.7801 for `hybrid-hint`, zero
-  fallback/schema invalid, four rejected actions, and clean parent/submodule
+  fallback/schema invalid, four unparsable responses mapped to no-op, and clean parent/submodule
   provenance. A later process-diagnostic audit found that full container argv
   could retain the test token; that token was immediately revoked, the affected
   preflight was invalidated and sanitized, and commit `11e4ec4` changed process
@@ -313,7 +361,7 @@ The expanded 7B repeated run meets the admission gate at candidate budgets 8 and
 improves, and accepted and rejected actions remain visible in the trace. Budget
 4 is intentionally retained as a failed quality point because candidate
 truncation reduces F1 to 0.7791. The 14B same-family matrix independently
-passes the action contract but records two rejected actions.
+passes the action contract but records two unparsable responses mapped to no-op.
 
 ## Claims Not Yet Supported
 
@@ -466,7 +514,9 @@ latency, token cost, and traceability.
 
 ## Status
 
-READY for the bounded-contract mechanism claim and internal EuroSys review.
+Historical 2026-07-18 assessment: READY for the then-bounded-contract mechanism
+claim and internal EuroSys review. This assessment is superseded by the
+2026-07-19 mechanism-completion status at the top of this report.
 The code, evidence, artifact, paper, and public CFP checks are frozen; only
 author-owned conflicts/identity/HotCRP metadata remain before submission.
 The real-online matrix and machine-executable artifact gates pass. Per-case/seed

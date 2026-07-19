@@ -1,0 +1,110 @@
+{
+  "aggregate_f1": {
+    "constrained-agglomerative": 0.928686,
+    "hybrid-hint": 0.779558,
+    "llm-pairwise-action-validated": 0.864481,
+    "map-only": 0.0705,
+    "matched-constrained": 0.902848,
+    "matched-hybrid": 0.780122,
+    "window-aggregate": 0.491611
+  },
+  "comparison_regime": {
+    "constrained_permission": "full-evidence global reclustering",
+    "fair_shared_catalog_peer_comparison": false,
+    "hybrid_role": "comparison and configured fallback; not action H0",
+    "legacy_action_h0": "semantic-graph",
+    "legacy_action_implementation": "merge-only semantic-reduce/v1"
+  },
+  "evidence_labels": {
+    "figure": "derived-artifact",
+    "offline_matrix": "simulation/model",
+    "online_matrix": "real-online"
+  },
+  "family_f1": {
+    "ambiguous-disconnected-merge": {
+      "constrained-agglomerative": 1.0,
+      "hybrid-hint": 0.7273,
+      "llm-pairwise-action-validated": 1.0
+    },
+    "ambiguous-overmerge": {
+      "constrained-agglomerative": 1.0,
+      "hybrid-hint": 0.8571,
+      "llm-pairwise-action-validated": 0.8571
+    },
+    "ambiguous-temporal-split": {
+      "constrained-agglomerative": 1.0,
+      "hybrid-hint": 0.576933,
+      "llm-pairwise-action-validated": 1.0
+    },
+    "cascade": {
+      "constrained-agglomerative": 0.857133,
+      "hybrid-hint": 0.857133,
+      "llm-pairwise-action-validated": 0.857133
+    },
+    "concurrent": {
+      "constrained-agglomerative": 0.857133,
+      "hybrid-hint": 0.761867,
+      "llm-pairwise-action-validated": 0.761867
+    },
+    "false-correlation": {
+      "constrained-agglomerative": 0.879633,
+      "hybrid-hint": 0.722233,
+      "llm-pairwise-action-validated": 0.722233
+    },
+    "partial-evidence": {
+      "constrained-agglomerative": 0.952367,
+      "hybrid-hint": 0.916667,
+      "llm-pairwise-action-validated": 0.952367
+    },
+    "shared-bottleneck": {
+      "constrained-agglomerative": 0.722233,
+      "hybrid-hint": 0.851867,
+      "llm-pairwise-action-validated": 0.879633
+    },
+    "single-service": {
+      "constrained-agglomerative": 0.857133,
+      "hybrid-hint": 0.75,
+      "llm-pairwise-action-validated": 0.75
+    }
+  },
+  "paired_action_vs_constrained": {
+    "baseline": "constrained-agglomerative",
+    "bootstrap_draws": 10000,
+    "bootstrap_seed": 20260718,
+    "f1_delta_family_clustered_bootstrap_95ci": [
+      -0.0955,
+      0.0247
+    ],
+    "f1_delta_mean": -0.0384,
+    "f1_delta_paired_bootstrap_95ci": [
+      -0.1019,
+      0.0268
+    ],
+    "family_cluster_count": 9,
+    "family_cluster_definition": "scenario_family_with_three_seed_rows_preserved",
+    "independent_unit": "scenario_seed_mean_across_repeated_samples",
+    "target": "llm-pairwise-action-validated",
+    "unit_count": 27,
+    "wins_ties_losses": {
+      "losses": 9,
+      "ties": 15,
+      "wins": 3
+    }
+  },
+  "source_files": {
+    "controlled_matrix_summary_csv": {
+      "evidence_label": "simulation/model",
+      "sha256": "1cdb3c14cda0479b0d998da3294a8a0a2279555fec848ff2aa5d371f60642431"
+    },
+    "historical_online_case_seed_summary_csv": {
+      "evidence_label": "real-online",
+      "sha256": "22c2c6466ed22662d52121fbef5ca087181f07e842f440d5de6d67fc6556d8b0"
+    }
+  },
+  "status": "working-diagnostic-not-final-submission-figure",
+  "units": {
+    "matched_per_reducer": 27,
+    "offline_per_reducer": 90,
+    "online_repeats_per_unit": 5
+  }
+}

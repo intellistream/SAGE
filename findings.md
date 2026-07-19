@@ -1,5 +1,242 @@
 # Findings & Decisions: Semantic MapReduce Submission Readiness
 
+## 2026-07-19 EuroSys'27 Cross-Submission Audit Baseline
+
+- The cross-audit's authoritative handoff is parent branch
+  `feature/semantic-mapreduce-paper` at local/upstream commit
+  `0e64c15c7d501aeccb30ec5ad5d2d1eb554efa35`; ahead/behind
+  is `0/0`, but the parent worktree is not clean.
+- Dirty state comprises eight modified tracked files and four untracked Figure 3
+  assets. These are pre-existing bounded-edit/held-out/paper/planning changes and
+  must be inspected and integrated, not discarded or overwritten.
+- Six relevant initialized submodules are pinned; the recursive LLVM/torch-mlir
+  entries remain intentionally uninitialized. No `third_party` symlink was
+  reported at depth two.
+- Three independent read-only reviewers are active: systems/novelty/contract,
+  experiments/statistics/provenance, and artifact/anonymity/fail-closed.
+- The initial tracked-file inventory found `docs/papers/semantic_mapreduce/main.pdf`;
+  public/private packaging variants and exact 12-page identity still require
+  resolution from ignored artifact/output paths.
+- The two 12-page, US-Letter candidates are now identified. The public tracked
+  PDF is `docs/papers/semantic_mapreduce/main.pdf`, SHA-256
+  `51b68c45944283bf2c2b883dce8c690a986e839d5d005e1fe47ad87ca40eda8a`,
+  titled “Semantic MapReduce: An Auditable Operator Contract for LLM-Backed
+  Reduction.” The untracked private-title review PDF is
+  `.sage/submission/semantic-mapreduce-eurosys27/submission.pdf`, SHA-256
+  `5d2a46f1a011e87b1575cd391bfc7ef5c4070fb1a38a1d75b91800cb4263ebdf`,
+  titled “Auditable Semantic Reduction as a Bounded Runtime Operator.” The
+  private hash exactly matches `NEXT_STEPS.md`.
+- The user confirmed that the old concurrent writer stopped and was archived,
+  and supplied its commit chain and dirty-path handoff. The earlier changing
+  status is therefore attributed to that writer, not unknown external pollution.
+  This thread preserves and integrates those changes as the sole writer.
+- The current dirty paper draft adds a constrained-agglomerative baseline and a
+  two-panel Figure 3. It explicitly admits the action path does not beat that
+  policy, but calls the model baseline “hybrid pre-edit state”; executable-v1
+  audit already found that model-seen H0 and fallback policy can differ, so this
+  wording remains evidence-sensitive.
+- The artifact verifier is fail-closed for missing top-level files, declared
+  evidence label/env/device/dirty status, scenario/seed/reducer/sample shape,
+  required summary-row fields, endpoint/run consistency, target-vs-hybrid mean,
+  and selected contract outcomes. However, its current inspected path computes
+  hashes only after trusting the supplied summary files; it does not yet prove
+  those summaries were derived from the 243 raw reports, validate the CSV or
+  aggregate contents, or validate `ANONYMIZATION_MANIFEST.json` coverage. This is
+  a candidate P1/P0 artifact-integrity gap pending independent reviewer
+  confirmation and adversarial tests.
+- The claim verifier checks a useful fixed set of frozen numbers and archive
+  SHA, but several paper assertions are verified only by literal substring
+  presence. It is not by itself a semantic or raw-evidence derivation check.
+- Two attempts to retrieve the official EuroSys 2027 CFP through the web tool
+  returned no content. Use a different read-only retrieval path and record this
+  as a tooling failure rather than silently relying on memory.
+- Direct retrieval of the official EuroSys 2027 CFP confirms: at most 12 pages
+  of technical content plus unlimited references; A4 or US Letter; 178 x 229 mm
+  text block; two columns separated by at least 8 mm; all text including figures
+  and captions at least 10pt on at least 12pt leading; grayscale readability;
+  page numbers; double-blind good-faith anonymization; AI-tool use disclosure;
+  and the fall full-paper deadline of 2026-09-24 AoE. The current two PDFs are
+  12 total pages on US Letter, so page count itself is compliant; font size,
+  block geometry, grayscale, page numbering, and disclosure still need direct
+  verification.
+- The normative review archive hash in `NEXT_STEPS.md` is correct:
+  `.sage/benchmarks/semantic-reduction-eurosys27-review-evidence.tar.gz` hashes
+  to `f590fde5...d73d4a0`. A safe independent extraction yielded 693 files and
+  nine directories; the full-profile verifier passed at 5 samples, 9 scenarios,
+  3 seeds, and the documented 0.8645 vs 0.7801 F1.
+- Every extracted archive file except `ANONYMIZATION_MANIFEST.json` itself is
+  listed and hash-covered by that manifest; all 692 listed hashes matched. The
+  manifest's self-exclusion is structurally necessary unless a detached/root
+  hash is used and is not by itself a blocker.
+- The ignored unpacked directory with the same review-evidence stem currently
+  contains 2,531 files, including 2,103 unlisted nested prior-finalization
+  directories. The tarball remains clean at 693 files, but handoff language must
+  name the archive (and its hash), not imply that the mutable unpacked directory
+  itself has manifest-complete integrity.
+- Reviewer A's first H0/action-algebra P0 was correct for the initial snapshot
+  and executable v1 evidence. During the audit, external concurrent changes
+  rewrote current `main.tex` to identify semantic-graph as the action H0, hybrid
+  as a separate comparator/fallback, v1 as merge/no-op, and v2 as offline-only.
+  Therefore the finding is adjudicated as “real issue, currently repaired in
+  dirty TeX, must propagate to all docs and rebuilt PDFs,” not dismissed as a
+  stale reviewer error.
+- Reviewer A found a second substantiated claim bug: the four budget-8 events
+  called “validator-rejected inadmissible actions” are actually malformed text
+  responses mapped by `_parse_pair_action` to `ABSTAIN` with `valid=false`.
+  The four summary rows have `invalid_action_count=1`, `fallback_count=0`,
+  `validator_reject_reason=null`, and `commit_outcome=committed`; raw text is
+  “Based on the input JSON-like-object,”. The code maps every non-MERGE v1 token
+  to `keep`. Paper and handoff must say “four malformed/non-enum responses were
+  fail-closed to ABSTAIN/no-op,” not validator rejection.
+- Reviewer C found and the main thread confirmed a concrete private-PDF handoff
+  defect: `.sage/submission/semantic-mapreduce-eurosys27/build-manifest.json`
+  says 11 pages and SHA `6924163...`, while the actual file is 12 pages and SHA
+  `5d2a46...`. The PDF itself and `NEXT_STEPS.md` agree; the build manifest is
+  stale and must be regenerated or corrected by the packaging workflow.
+- Reviewer B found a substantiated runtime-contract evidence flaw. The 27-row
+  runner validates `deepcopy(baseline)` as the “valid output,” so the committed
+  state equals the baseline in every row. `valid_commit_passes` counts only
+  `valid_schema`, not an actual state transition. The recovery call snapshots
+  the still-live service at recovery time before instantiating/restoring a new
+  object, so this demonstrates serialization/reconstruction round-trip, not
+  recovery from an independently persisted pre-failure checkpoint. The current
+  table labels “Valid transition commits” and “Checkpoint digest restored” are
+  therefore materially stronger than the experiment. Repair requires a
+  state-changing legal edit, a pre-recorded checkpoint independent of the live
+  object, and aggregate gates that assert digest change plus exact restoration;
+  otherwise the paper must downgrade the claims.
+- The strongest remaining systems-review conflict is central scope: current TeX
+  honestly says v2 proposal catalogs, true SPLIT, atomic batches, and shared
+  catalogs are offline-only, while the only real-online evidence is historical
+  v1 merge/no-op. This is not a prose-only defect. Either produce clean, fair v2
+  evidence (and online evidence if the contribution headline remains the live
+  action algebra), or explicitly scope the submitted mechanism to offline
+  contract validation plus historical integration evidence. Calling the paper
+  ready while this remains unresolved would be misleading.
+- Reviewer A also identified a plausible closest-work novelty gap: the current
+  related-work section does not discuss DocETL, SagaLLM, or recent transactional
+  agent/runtime systems that overlap declarative LLM operators,
+  independent validation, versioned state, commit/rollback, provenance, or
+  audit. These citations and claimed overlaps require primary-source
+  verification before paper edits, but the paper must isolate novelty to its
+  partitioned-evidence reducer semantics and bounded proposal catalog rather
+  than claiming generic validator-owned transactionality as wholly missing.
+- Reviewer C found a submission-blocking anonymity leak in the nominal final
+  archive. Its sole top-level directory is
+  `20260719T-final-multievidence-a48f1e6`; `a48f1e6` resolves exactly to this
+  public repository's commit `a48f1e6bb387...` (“artifact: document
+  supplementary evidence boundaries”). The packager audits only 40-hex SHA
+  patterns, while tar creation preserves `output_dir.name`, so the current
+  `f590...` archive is not double-blind safe despite all 692 internal file hashes
+  matching. It must be rebuilt under an opaque root, and packaging tests/audit
+  must reject short revision prefixes in archive paths and content.
+- Both existing PDFs predate the current TeX and remain semantically stale: they
+  present the old full-action/hybrid-H0/rejected-action narrative and do not
+  contain the 0.9287 constrained baseline or v1/v2 boundary. All earlier visual
+  checks apply only to superseded bytes. Rebuild, new hashes, claim gate, format
+  checks, and full visual inspection are mandatory after corrections.
+
+## 2026-07-19 Bounded-Edit Goal Reset
+
+- The new objective supersedes the prior submission-readiness conclusion: the
+  goal is mechanism completeness and offline-evidence readiness, not a deadline.
+- Required initial provenance matches exactly: parent branch
+  `feature/semantic-mapreduce-paper`, HEAD
+  `2e709088f77e4cd475a8cf81b02cfb33e5724238`, origin branch contains that
+  commit, and remote is `git@github.com:intellistream/SAGE.git`.
+- Parent dirtiness is limited to the five warned paper/Figure 3 draft paths:
+  modified `main.tex` plus four untracked data/figure/plot/test files. Treat all
+  five as user work; inspect and preserve or revise factually, never overwrite.
+- The frozen historical online directory and the clean strong-baseline directory
+  both exist. The frozen directory remains read-only and cannot be reinterpreted
+  under future SPLIT semantics.
+- Recorded submodule pins: Triton `612d577`, vLLM-Ascend `339b27a`, vLLM
+  `5de748b`, dev-hub `7ab7499`, Ascend runtime manager `c5b0461`, and shared
+  workloads `79ed8e3`. Recursive LLVM/torch-mlir dependencies are uninitialized;
+  do not initialize unless the implementation actually requires them.
+- No symlinks were reported under `third_party` at depth two.
+- The existing planning files describe a completed prior ASPLOS-readiness phase
+  and are therefore reopened/re-scoped for true SPLIT, fair selection, held-out
+  ambiguity, clean offline evidence, and claim/handoff work.
+- All six relevant initialized submodules are clean and on project-specific
+  `feature/...` branches. In particular, `third_party/ascend-runtime-manager` is
+  the required real submodule on `feature/semantic-mapreduce-runtime-integration`.
+- The uncommitted paper draft adds a constrained-agglomerative baseline and a
+  Figure 3 sourced from the clean offline matrix plus frozen online summary. It
+  also introduces the known-false phrase “hybrid pre-edit state”; preserve the
+  draft but revise that statement after the executable H0 audit.
+- The draft's own paired data records action versus constrained as 3 wins, 15
+  ties, and 9 losses with mean delta -0.0384 on 27 matched units. It correctly
+  distinguishes 0.9287 (90-unit controlled aggregate) from 0.9028 (matched
+  constrained), but currently mixes policies with unequal candidate permissions.
+- Current implementation is concentrated in
+  `src/sage/workloads/semantic_merge_analysis.py`; action reducer counters still
+  hard-code `split_count: 0`, while bounded action labels advertise SPLIT.
+- Existing focused tests include true-SPLIT expectations for a different/free-form
+  path, but the action path tests equate accepted edits with merges. This confirms
+  that tests and trace claims must be separated by reducer/version, not inferred
+  from the enum vocabulary.
+- The legacy action reducer builds H0 with `SemanticGraphMergeReducer` but its
+  validated subclass defaults the separately executed fallback reducer to
+  `HybridHintMergeReducer`; request/validation failure can therefore replace the
+  model-seen H0 with a different policy state.
+- In the action loop, only `MERGE` creates a merge decision. KEEP, SPLIT, and
+  ABSTAIN are all converted into pairwise `keep`; the trace preserves the token
+  but the state machine does not distinguish their outcomes.
+- `_validate_hybrid_edits` checks candidate/output evidence as sets and may
+  repair root/affected fields, but does not enforce unique ownership, reject
+  foreign IDs/duplicates, validate proposal existence, detect conflicts, or
+  implement atomic proposal batches.
+- The old runtime benchmark validates complete prebuilt hybrid hypotheses
+  against semantic-graph candidates. It does not construct a proposal catalog,
+  select proposal IDs, test true edits, or replay selection/catalog digests.
+- The v2 executable contract is now frozen in
+  `docs/papers/semantic_mapreduce/bounded-edit-runtime-contract.md` before code
+  changes: explicit H0, finite typed catalog, ID-only selection, atomic rollback,
+  real SPLIT, distinct outcomes, deterministic digests/replay, and legacy labels.
+- Existing legal hypotheses represent `root_service` separately from
+  `affected_services`; semantic-graph H0 does not always repeat the root in the
+  affected list. V2 therefore validates both fields against evidence-observable
+  services/hints without inventing a new root-membership schema requirement.
+- The first v2 core suite now passes 12/12 in `esage-vllm-hust-dev`, covering
+  real SPLIT output partitions, duplicate/missing/foreign/single-part rejection,
+  merge union, atomic conflicts, distinct no-op outcomes, request/selection
+  failures, source/order/renaming invariance, catalog truncation, checkpoint
+  digests, and action/trace agreement.
+- Frozen held-out workload configuration now defines four development seeds,
+  four disjoint held-out seeds, ten ambiguity axes, exact hint corruption,
+  overlapping score distributions, topology missing/stale, unseen service,
+  mixed split+merge, budget truncation, and fragmentation/shard variation.
+- The fair harness evaluates H0, proposal oracle, deterministic selector,
+  mock ID-only model-policy emulator, and constrained full-evidence reference.
+  H0/deterministic/mock share an exact catalog digest; the oracle is explicitly
+  diagnostic and constrained is explicitly a broader-permission reference.
+- Per-unit output includes all five F1 values, selected/proposed/accepted/rejected
+  actions, evidence conservation, catalog truncation, source-label diagnostic
+  merge/split proposal recall, selector/oracle overlap, conditioned deltas,
+  separability, and failure taxonomy. No endpoint/model/NPU is invoked.
+- The existing full-profile artifact verifier reads the frozen five-sample,
+  nine-family, three-seed online directory without modification and still PASSes
+  at historical action F1 0.8645 versus hybrid 0.7801. A whole-tree content-hash
+  baseline is `ce66fbe00b7896bd8fdca5e104c6103de6dac3bdac1cb1503167339a5b9d873c`.
+- Dirty development seed-7 diagnostic (not claim evidence) produced 10 units:
+  oracle repaired 8/9 erroneous H0 units; improving merge proposals appeared in
+  6 units and improving splits in 4; shared catalogs matched. The score proxy
+  remained 0.9404 and failed its frozen gate, while the hint proxy was 0.63.
+- Development negatives are retained: hint-error deterministic/mock selection
+  regressed H0 F1 0.2857 to 0.2; shared-hint remained 0.2857; budget=2 truncated
+  22 merge and 2 split proposals. Constrained full-evidence reached 1.0 on the
+  mixed and truncation units, exposing the bounded catalog/permission gap.
+- The first oracle implementation searched at most two edits, so deterministic
+  multi-edit selection exceeded it on mixed/fragmented units. The oracle is now
+  defined as the upper envelope of bounded search plus both evaluated policy
+  selections; this preserves its diagnostic-upper-bound meaning.
+- The revised development-only seed-7 diagnostic passes every frozen offline
+  gate: score proxy 0.6210, hint proxy 0.63, repairable H0 10/10, improving
+  merge units 9, improving split units 4, and identical shared catalogs. Oracle
+  is now >= both selectors on all ten units. This authorizes broader offline
+  evaluation only; it is not online readiness or paper evidence.
+
 ## Requirements
 
 - Persistent `/goal`; do not finish after a single audit, TODO list, plan, or
@@ -225,6 +462,34 @@
    quality/cost metrics, schema/action failures, and substrate comparisons.
 7. Takeaway: must be a scoped knowledge claim about when bounded semantic
    reduction is effective—not “running the SAGE workflow is a contribution.”
+
+## 2026-07-19 Seven-Step Mechanism Reframe
+
+1. **Problem:** A model-backed reducer currently has no executable contract
+   tying advertised actions to finite legal state transitions; legacy SPLIT was
+   a no-op and rejection could switch to a different baseline state.
+2. **Importance:** Without state/evidence conservation, atomic rollback, and
+   replayable proposal identity, semantic aggregation cannot be audited like a
+   data operator and quality comparisons conflate policy with permissions.
+3. **Existing-work/evaluation gap:** Adjacent AIOps/root-cause systems and the
+   full-evidence constrained reducer do not expose the same H0-edit permission.
+   The old controlled generator also made score/hint close to label proxies.
+4. **Key idea:** The system owns H0 and a finite MERGE/SPLIT/KEEP/ABSTAIN
+   proposal catalog; any policy chooses IDs only, and a system validator commits
+   the batch atomically or preserves the exact H0.
+5. **Feasibility/scope:** V2 is a repo-local, model-free runtime/harness slice
+   using observable evidence and a project-specific Conda environment. It can
+   be mechanism-complete offline without NPU or credentials; new online model
+   evidence remains a separate gated step.
+6. **Evaluation:** Shared H0/catalog deterministic and mock-ID selectors,
+   proposal oracle diagnostic, permission-labeled constrained reference,
+   adversarial/property/replay tests, and frozen dev/held-out ambiguity axes.
+   Success and failure gates were fixed before viewing held-out seeds.
+7. **Takeaway:** If supported by clean evidence, others should cite the work as
+   showing that model-backed semantic reduction can be expressed as a finite,
+   evidence-conserving, replayable transaction whose policy quality is separable
+   from proposal coverage and reducer permission—not that models necessarily
+   beat strong deterministic grouping.
 
 ## Issues Encountered
 

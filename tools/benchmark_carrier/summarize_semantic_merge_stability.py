@@ -18,7 +18,6 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-
 TARGET_REDUCER = "llm-pairwise-action-validated"
 BOOTSTRAP_SEED = 2027
 BOOTSTRAP_DRAWS = 10_000
@@ -131,9 +130,7 @@ def _reducer_summary(
         )
         for cost in called_costs
     ]
-    provider_observed = sum(
-        cost.get("provider_total_tokens") is not None for cost in called_costs
-    )
+    provider_observed = sum(cost.get("provider_total_tokens") is not None for cost in called_costs)
     base["model_call_runs"] = len(called)
     base["model_call_rate"] = round(len(called) / len(group), 4)
     base["called_latency_ms_median"] = (
@@ -162,17 +159,33 @@ def _bootstrap_mean_ci(
     deltas: list[float], *, seed: int = BOOTSTRAP_SEED, draws: int = BOOTSTRAP_DRAWS
 ) -> tuple[float, float]:
     rng = random.Random(seed)
+    means = sorted(statistics.fmean(rng.choices(deltas, k=len(deltas))) for _ in range(draws))
+    return (_percentile(means, 0.025), _percentile(means, 0.975))
+
+
+def _clustered_bootstrap_mean_ci(
+    family_deltas: dict[str, list[float]],
+    *,
+    seed: int = BOOTSTRAP_SEED,
+    draws: int = BOOTSTRAP_DRAWS,
+) -> tuple[float, float]:
+    """Resample workload families, preserving their within-family seed rows.
+
+    Scenario/seed rows share a generator family and are not plausibly iid.
+    Resampling equal-weighted family means exposes that dependence without
+    pretending that the three seeds create three independent workload designs.
+    """
+    family_means = [statistics.fmean(values) for values in family_deltas.values()]
+    rng = random.Random(seed)
     means = sorted(
-        statistics.fmean(rng.choices(deltas, k=len(deltas))) for _ in range(draws)
+        statistics.fmean(rng.choices(family_means, k=len(family_means))) for _ in range(draws)
     )
     return (_percentile(means, 0.025), _percentile(means, 0.975))
 
 
 def _paired_comparisons(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     unit_values: dict[tuple[str, int, str], float] = {
-        (str(row["scenario"]), int(row["seed"]), str(row["reducer"])): float(
-            row["f1_mean"]
-        )
+        (str(row["scenario"]), int(row["seed"]), str(row["reducer"])): float(row["f1_mean"])
         for row in records
     }
     reducers = sorted({str(row["reducer"]) for row in records})
@@ -185,12 +198,10 @@ def _paired_comparisons(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         units = sorted(
             (scenario, seed)
             for scenario, seed, reducer in unit_values
-            if reducer == TARGET_REDUCER
-            and (scenario, seed, baseline) in unit_values
+            if reducer == TARGET_REDUCER and (scenario, seed, baseline) in unit_values
         )
         deltas = [
-            unit_values[(*unit, TARGET_REDUCER)] - unit_values[(*unit, baseline)]
-            for unit in units
+            unit_values[(*unit, TARGET_REDUCER)] - unit_values[(*unit, baseline)] for unit in units
         ]
         if not deltas:
             continue
@@ -198,6 +209,7 @@ def _paired_comparisons(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         family_deltas: dict[str, list[float]] = {}
         for (scenario, _), delta in zip(units, deltas, strict=True):
             family_deltas.setdefault(scenario, []).append(delta)
+        cluster_low, cluster_high = _clustered_bootstrap_mean_ci(family_deltas)
         results.append(
             {
                 "target": TARGET_REDUCER,
@@ -207,6 +219,12 @@ def _paired_comparisons(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "repeated_rows_are_not_independent_units": True,
                 "f1_delta_mean": round(statistics.fmean(deltas), 4),
                 "f1_delta_paired_bootstrap_95ci": [round(low, 4), round(high, 4)],
+                "f1_delta_family_clustered_bootstrap_95ci": [
+                    round(cluster_low, 4),
+                    round(cluster_high, 4),
+                ],
+                "family_cluster_count": len(family_deltas),
+                "family_cluster_definition": "scenario_family_with_seed_rows_preserved",
                 "bootstrap_draws": BOOTSTRAP_DRAWS,
                 "bootstrap_seed": BOOTSTRAP_SEED,
                 "wins_ties_losses": {

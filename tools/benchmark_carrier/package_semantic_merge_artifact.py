@@ -25,6 +25,9 @@ PRIVATE_IPV4 = re.compile(
 )
 EMAIL = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 GIT_SHA40 = re.compile(r"(?<![0-9a-f])[0-9a-f]{40}(?![0-9a-f])", re.IGNORECASE)
+GIT_REVISION_TOKEN = re.compile(
+    r"(?<![0-9a-f])[0-9a-f]{7,40}(?![0-9a-f])", re.IGNORECASE
+)
 GIT_BRANCH = re.compile(
     r"(?:(?:refs/)?heads/)?(?:feature|codex)/[A-Z0-9._/-]+", re.IGNORECASE
 )
@@ -33,6 +36,7 @@ PUBLIC_GIT_REMOTE = re.compile(
 )
 SAGE_WORD = re.compile(r"\bsage\b", re.IGNORECASE)
 PUBLIC_SYSTEM_NAME = re.compile(r"\bSemantic MapReduce\b", re.IGNORECASE)
+PUBLICATION_ARCHIVE_ROOT = "artifact"
 IDENTITY_MARKERS = (
     "intellistream",
     "vllm-hust",
@@ -158,12 +162,16 @@ def _copy_sanitized(
     }
 
 
-def _audit(package_dir: Path, replacements: list[tuple[str, str]]) -> list[str]:
+def _audit(
+    package_dir: Path,
+    replacements: list[tuple[str, str]],
+    revision_replacements: list[tuple[str, str]] = (),
+) -> list[str]:
     failures: list[str] = []
     for path in sorted(item for item in package_dir.rglob("*") if item.is_file()):
         relative = path.relative_to(package_dir)
         relative_text = str(relative)
-        if GIT_SHA40.search(relative_text) or GIT_BRANCH.search(relative_text):
+        if GIT_REVISION_TOKEN.search(relative_text) or GIT_BRANCH.search(relative_text):
             failures.append(f"Git provenance remains in packaged path {relative}")
         if SAGE_WORD.search(relative_text):
             failures.append(f"repository name remains in packaged path {relative}")
@@ -182,7 +190,13 @@ def _audit(package_dir: Path, replacements: list[tuple[str, str]]) -> list[str]:
             failures.append(f"private IP remains in {relative}")
         if EMAIL.search(text):
             failures.append(f"email address remains in {relative}")
-        if GIT_SHA40.search(text):
+        # Arbitrary 7--40 character hexadecimal strings in report content can
+        # legitimately be timestamps, request IDs, or state digests.  Content
+        # auditing therefore checks only revisions (and their unambiguous
+        # prefixes) discovered from the source package.  Paths remain stricter:
+        # caller-controlled archive/output names must never expose a short SHA.
+        lowered_text = text.lower()
+        if any(source.lower() in lowered_text for source, _ in revision_replacements):
             failures.append(f"Git revision remains in {relative}")
         if GIT_BRANCH.search(text):
             failures.append(f"Git branch remains in {relative}")
@@ -338,7 +352,7 @@ def package(
     }
     manifest_path = output_dir / "ANONYMIZATION_MANIFEST.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    failures = _audit(output_dir, replacements)
+    failures = _audit(output_dir, replacements, revision_replacements)
     manifest["status"] = "PASS" if not failures else "FAIL"
     manifest["failures"] = failures
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
@@ -348,7 +362,10 @@ def package(
     if archive_path is not None:
         archive_path.parent.mkdir(parents=True, exist_ok=True)
         with tarfile.open(archive_path, "w:gz") as archive:
-            archive.add(output_dir, arcname=output_dir.name)
+            # The local output directory may contain a timestamp or private Git
+            # revision. Never preserve that caller-controlled name in the
+            # double-blind archive.
+            archive.add(output_dir, arcname=PUBLICATION_ARCHIVE_ROOT)
         manifest["archive"] = str(archive_path)
         manifest["archive_sha256"] = _sha256(archive_path)
     return manifest

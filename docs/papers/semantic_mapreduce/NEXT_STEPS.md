@@ -1,11 +1,58 @@
-# EuroSys'27 Submission Freeze Checklist
+# Semantic MapReduce Mechanism-Completion Checklist
 
-This file is the authoritative post-remediation task list for the Semantic
-MapReduce submission. The current paper and development evidence are suitable
-for internal review; the items below distinguish final submission gates from
-optional evidence upgrades.
+This is the active post-v1 task list. The goal is mechanism-complete and
+offline-evidence-ready, not deadline closure. The paper is not submission-ready.
 
-## Required Before Submission Freeze
+## Active Offline Gates
+
+- [x] Define the executable H0 → finite catalog → ID selection → Validate →
+  atomic Commit → Trace contract and distinct KEEP/ABSTAIN/no-proposal/failure
+  outcomes.
+- [x] Implement true system-generated SPLIT plans for conflicting hints,
+  temporal gaps, and disconnected topology; implement bounded MERGE proposals.
+- [x] Test conservation, duplicate/missing/foreign evidence, conflicts, atomic
+  rollback, permutation/source-label/renaming invariance, checkpoint, and
+  independent-process replay.
+- [x] Freeze development/held-out seeds, ambiguity axes, proposal budgets, and
+  success gates before viewing held-out results.
+- [x] Establish shared-H0/shared-catalog H0, proposal-oracle, deterministic,
+  mock ID-only policy, and permission-labeled constrained-reference layers.
+- [ ] Commit all current mechanism/docs work and reach a clean parent tree
+  without discarding the existing Figure 3 drafts.
+- [ ] Run full development and held-out `simulation/model` matrices from that
+  clean commit into new non-overwriting directories and quantify coverage,
+  truncation, selector quality, conditioned deltas, conservation, separability,
+  and failure taxonomy.
+- [ ] Regenerate only `derived-artifact` tables/figures from the clean matrix,
+  update claims, and verify the frozen online tree content hash is unchanged.
+- [ ] Push the final clean parent commit and synchronize the umbrella handoff.
+
+Clean matrix command (after the tree is clean):
+
+```bash
+PYTHONPATH=src /home/shuhao/miniconda3/envs/esage-vllm-hust-dev/bin/python \
+  tools/benchmark_carrier/run_semantic_reduce_edit_offline_matrix.py \
+  --split development --run-id <clean-commit>-development
+PYTHONPATH=src /home/shuhao/miniconda3/envs/esage-vllm-hust-dev/bin/python \
+  tools/benchmark_carrier/run_semantic_reduce_edit_offline_matrix.py \
+  --split heldout --run-id <clean-commit>-heldout
+```
+
+## Online v2 Status: BLOCKED
+
+Do not use NPU or start a new online sweep in this phase. A runbook may be
+written only if true-SPLIT, conservation/atomicity/replay, merge+split proposal
+coverage, shared selector input, reduced score/hint proxy, and a falsifiable
+model increment all pass. Endpoint/model/hardware/credentials readiness and
+secret-safe logging must then be checked independently. Replay or old responses
+cannot substitute for a v2 real-online run.
+
+## Historical 2026-07-18 Submission Checklist (Superseded)
+
+The checked items below record the prior merge-only v1 evidence sprint. They do
+not determine current readiness and must not be read as v2 SPLIT validation.
+
+### Previously Required Before Submission Freeze
 
 - [x] Rotate the local dev-hub test API key that appeared in one local terminal
   diagnostic. Confirm that no key, bearer header, `.env` content, home path,

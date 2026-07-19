@@ -1,9 +1,13 @@
-# Task Plan: Semantic MapReduce ASPLOS 2027 Submission Readiness
+# Task Plan: Semantic MapReduce Bounded Edit Runtime and Fair Offline Evidence
 
 ## Goal
-Advance Semantic MapReduce from single-seed mechanism-ready evidence to a strong,
-auditable ASPLOS 2027 systems-paper package without overstating controlled or
-non-online evidence.
+Make the bounded semantic-reduce operator/runtime contract mechanism-complete,
+fairly comparable, and auditable: true SPLIT plus MERGE/KEEP/ABSTAIN over a
+finite system-generated proposal catalog; unified H0/fallback/digests; atomic
+validation, commit, checkpoint, and replay; shared-catalog deterministic/model
+selection; difficult held-out controlled workloads; and a clean reproducible
+`simulation/model` matrix. Preserve frozen online evidence and correct claims
+without running NPU or a new online sweep.
 
 ## Completion Rule
 Keep this plan active until either (A) every acceptance item below is backed by
@@ -13,78 +17,99 @@ and the impossibility evidence is recorded. An audit, TODO list, plan, or first
 failure is not completion.
 
 ## Current Phase
-Complete — all submission-readiness gates below have reviewable assets
+Cross-submission audit Phase X1 — independent reviewer and provenance audit
+
+## EuroSys'27 Cross-Submission Audit (2026-07-19)
+
+### Phase X1: Independent Read-Only Review and Provenance
+- [x] Delegate three independent read-only reviewers for systems claims,
+      experiments/statistics, and artifact/anonymity/fail-closed behavior.
+- [x] Verify local HEAD/clean/upstream, all submodule pins/branches, public and
+      private 12-page PDFs, artifact, verifier, and umbrella handoff.
+- [x] Map the paper through the seven-step research framework before editing.
+- **Status:** completed
+
+### Phase X2: Evidence Adjudication and Remediation
+- [x] Record reviewer agreements and conflicts with exact evidence; resolve
+      disagreements by inspected source, raw reports, manifests, and PDF pages.
+- [ ] Repair every substantiated submission blocker without weakening or hiding
+      negative evidence.
+- **Status:** in_progress
+
+### Phase X3: Full Safe Validation and Publication State
+- [ ] Run the complete applicable tests, claim verifier, independent artifact
+      unpack/verification, anonymity scan, TeX/PDF build, page/format checks,
+      and page-by-page visual inspection.
+- [ ] Commit only the audited parent-repository paths, push the current branch,
+      and verify local HEAD equals upstream with a clean worktree.
+- **Status:** pending
 
 ## Acceptance Matrix
 
-- [x] Multi-seed hardcase evidence, or three-round evidence of infeasibility.
-- [x] Per case/seed: F1, support recall, accepted edits, fallback, invalid
-      action/schema, tokens, latency, and failure taxonomy.
-- [x] Controlled-workload mechanism evidence is explicitly separated from
-      production generality and real-online claims.
-- [x] Hybrid-hint strong baseline and negative controls are retained.
-- [x] Operator algebra remains centered on MapEvidence / SemanticReduce / Edit /
-      Validate / ReportTrace and the bounded one-token action contract.
-- [x] Implementation and focused/full tests are reproducible.
-- [x] Claim ledger, paper tables/figures, artifact package, and reviewer packet
-      agree with manifest-backed evidence.
-- [x] Anonymous ASPLOS 11-page counted-content packaging, citations, and final-PDF visual checks pass.
-- [x] Artifact gate, reproduction commands, clean provenance, parent/submodule
-      pins, dedicated environment, device binding, and evidence labels pass.
+- [ ] SPLIT is a real, validated state transition; MERGE/KEEP/ABSTAIN and trace
+      outcomes exactly match executable behavior.
+- [ ] H0 reducer, fallback, candidate-state digest, catalog digest, H1 digest,
+      checkpoint, and independent replay semantics are unified and tested.
+- [ ] Evidence conservation, unique ownership, conflict detection, and atomic
+      rollback pass adversarial and permutation/renaming invariance tests.
+- [ ] Deterministic and model selectors receive the identical H0 and proposal
+      catalog; constrained full-evidence remains a clearly privileged reference.
+- [ ] Proposal-oracle coverage, merge/split recall, truncation, selector quality,
+      validation outcomes, and edit/no-edit conditioned deltas are quantified.
+- [ ] Held-out controlled axes reduce score/hint label-proxy separability and
+      freeze development/test seeds, parameters, and success criteria in advance.
+- [ ] A clean-commit `simulation/model` matrix and `derived-artifact` outputs are
+      reproducible from a complete manifest in `esage-vllm-hust-dev`.
+- [ ] Frozen historical online artifacts are byte-preserved and described only
+      as the old merge-only implementation; no new online run is performed.
+- [ ] Paper/readiness/ledger/reviewer/README/NEXT_STEPS/planning claims agree,
+      parent branch is clean and pushed, and umbrella handoff is factual.
 
 ## Phases
 
-### Phase 1: Repository and Evidence Recovery
-- [x] Confirm `/home/shuhao/SAGE`, parent branch/HEAD, and clean parent worktree.
-- [x] Read repository governance and required workflow/provenance skills.
-- [x] Inventory submodule dirty state, dedicated environment, NPU3 occupancy,
-      existing results/manifests, paper sources, tests, and artifact gates.
-- [x] Reconstruct the seven-step research argument and reviewer attack matrix.
-- **Status:** completed
+### Phase 1: Provenance and Design Audit
+- [x] Confirm parent branch/HEAD/remote, dirty paths, pushed implementation
+      commit, submodule pins, and existence of frozen/clean artifacts.
+- [ ] Audit all submodule branches/dirty state and preserve the five known draft
+      paths as user work.
+- [ ] Map current reducer/action/trace/harness/workload/test code and record the
+      executable H0→catalog→select→validate→commit→trace contract.
+- **Status:** in_progress
 
-### Phase 2: Evidence Schema and Low-Cost Closure Plan
-- [x] Establish a machine-checkable per-case/per-seed result schema.
-- [x] Select three full-coverage hardcases and workload seeds 7/11/13.
-- [x] Verify hybrid-hint baseline, negative controls, invalid-action/schema,
-      fallback, token, latency, and failure-taxonomy instrumentation.
-- [x] Confirm offline 10-seed hardness, then close the live gap with a minimal
-      three-seed controlled real-online matrix.
-- **Status:** completed
+### Phase 2: Typed Catalog, True SPLIT, and Atomic Runtime
+- [ ] Implement deterministic bounded MERGE and three oracle-free SPLIT proposal
+      generators with stable ordering, budgets, provenance, and byte-equivalence.
+- [ ] Implement typed proposal-ID edits, real SPLIT, evidence/root/affected/schema
+      validation, conflict checks, atomic rollback, unified H0/fallback/digests,
+      checkpoint, trace, and deterministic replay.
+- [ ] Add adversarial unit/property/runtime tests before producing new results.
+- **Status:** pending
 
-### Phase 3: Implementation and Controlled Multi-Seed Evidence
-- [x] Implement the missing per-case/seed evidence reporter and focused test.
-- [x] Run focused unit/integration tests in an allowed existing environment.
-- [x] Run controlled multi-seed hardcases and preserve raw + derived provenance.
-- [x] Analyze workload-seed variance and failure modes without production or
-      stochastic-robustness overclaiming.
-- **Status:** completed
+### Phase 3: Fair Harness and Held-Out Workloads
+- [ ] Implement shared-H0/shared-catalog H0, oracle, deterministic, model, and
+      constrained-reference evaluation layers with permission labels.
+- [ ] Add proposal coverage and per-scenario×seed failure/accounting outputs.
+- [ ] Freeze and implement development/held-out ambiguity axes and separability
+      diagnostics without reducer access to `source_incident_id`.
+- **Status:** pending
 
-### Phase 4: Conditional Real-Online Evaluation
-- [x] Pass NPU3 endpoint, fixed-device, dedicated Conda, repo-owned runtime,
-      port/model/workload, evidence-label, and fresh-manifest preflight.
-- [x] Harden existing-endpoint comparison preflight to fail closed and support
-      a no-request preflight-only mode.
-- [x] Verify the reserved device is free before and after the run; no occupied-device
-      stop or unrelated-process intervention was required.
-- [x] Run the manifest-backed minimal three-seed real-online comparison after
-      every gate passed, then stop and clean only the managed NPU3 service.
-      improve only controlled/replay/derived assets with correct labels.
-- **Status:** completed
+### Phase 4: Clean Offline Evidence
+- [ ] Commit and push clean implementation/test/workload slices with explicit
+      staging, diff checks, secret scan, and remote verification.
+- [ ] From a clean commit, run a new non-overwriting full offline matrix and
+      generate manifest-backed `simulation/model` plus `derived-artifact` data.
+- [ ] Analyze negative cases and online-readiness gates; write a runbook only if
+      every offline gate passes, without using NPU.
+- **Status:** pending
 
-### Phase 5: Paper, Figures, Artifact, and Reviewer Packet
-- [x] Align the seven-step argument, systems novelty, substrate comparison, and
-      quality-cost framing with the evidence boundary.
-- [x] Regenerate tables/figures from checked-in or manifest-backed inputs.
-- [x] Complete claim ledger, artifact instructions, reviewer packet, anonymity,
-      citations, 11-page packaging, and visual PDF inspection.
-- **Status:** completed
-
-### Phase 6: Submission-Readiness Gate
-- [x] Run focused and full applicable tests plus artifact/reproduction gates.
-- [x] Audit every numerical and generality claim against evidence provenance.
-- [x] Verify repository and submodule provenance without disturbing user work.
-- [x] Close every acceptance-matrix item with a path/command/result.
-- **Status:** completed
+### Phase 5: Claims, Figures, and Handoff
+- [ ] Audit/preserve/revise the five existing Figure 3 draft paths against new
+      evidence; do not freeze them prematurely.
+- [ ] Correct paper and readiness/claim/reviewer/README/NEXT_STEPS/planning docs,
+      including historical merge-only H0 and matched-statistic distinctions.
+- [ ] Push final parent state, verify clean/local=remote, and update the umbrella
+      handoff with exact commit, pins, evidence path/label, blocker, and command.
+- **Status:** pending
 
 ## Decisions Made
 
@@ -112,3 +137,10 @@ Complete — all submission-readiness gates below have reviewable assets
 | ImageMagick `montage` was unavailable for a PDF contact sheet | 1 | Used direct per-page rendering and visual inspection instead. |
 | Two broad documentation `apply_patch` attempts missed changed context | 2 | Split them into narrow, context-accurate patches; no existing work was overwritten. |
 | New packaging script had one unused import | 1 | Removed it; Ruff and the complete focused suite pass. |
+| Initial bounded-edit v2 focused suite: two malicious split fixtures triggered duplicate checks before their intended reason, and the first merge proposal rolled back validation | 1 | Corrected fixture precedence; preserved existing schema semantics where root and affected are separate evidence-eligible fields. Rerun: 12 passed. |
+| Held-out hint-error test realized only 12.5% errors from a 50% Bernoulli setting on a small unit | 1 | Replace Bernoulli corruption with stable hash-ranked exact-count selection so configured and realized rates agree. |
+| First focused Ruff pass found modern-import placement plus three unused imports | 1 | Apply narrow import cleanup and rerun Ruff with tests. |
+| Generator-specific test expected a temporal SPLIT in a workload whose H0 had already separated the gap | 1 | Use a single-candidate overmerge fixture to test the temporal generator precondition; retain workload-level no-proposal behavior as evidence. |
+| Development smoke failed score-proxy gate (0.9404) and two-edit oracle scored below longer deterministic selections | 1 | Cross frozen score overlap into all families; make oracle an upper envelope including both shared-catalog policy selections before held-out runs. |
+| Figure 3 draft script Ruff check found `Any` import placement | 1 | Move `Any` to `collections.abc`, rerun Ruff/test/regeneration. |
+| First secret-scan shell expression had mismatched quoting around a quote-class regex | 1 | Replace with multiple simple `rg -e` patterns; do not repeat the fragile compound quoting. |

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -13,6 +15,117 @@ def _load_verifier():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _write_complete_fixture(
+    verifier,
+    artifact: Path,
+    manifest: dict,
+    run: dict,
+    endpoint_path: Path,
+    endpoint: dict,
+    rows: list[dict],
+) -> None:
+    matrix = artifact / "matrix"
+    matrix.mkdir(parents=True, exist_ok=True)
+    matrix_rows = []
+    for row in rows:
+        row.setdefault("precision", row["f1"])
+        row.setdefault("recall", row["f1"])
+        row.setdefault("invalid_json_count", 0)
+        row["failure_taxonomy"] = {"missed": {}, "false_positive": {}}
+        summary = {
+            "scenario": row["scenario"],
+            "seed": row["seed"],
+            "sample_id": row["sample_id"],
+            "reducer": row["reducer"],
+            "precision": row["precision"],
+            "recall": row["recall"],
+            "f1": row["f1"],
+            "support_evidence_recall": row["support_evidence_recall"],
+        }
+        matrix_rows.append(summary)
+        cost = {
+            "accepted_edit_count": row["accepted_edit_count"],
+            "fallback_count": row["fallback_count"],
+            "invalid_action_count": row["invalid_action_count"],
+            "json_valid": row.get("json_valid"),
+            "schema_valid": row.get("schema_valid"),
+            "estimated_total_tokens": row["estimated_total_tokens"],
+            "validator_reject_reason": row.get("validator_reject_reason"),
+        }
+        metadata = {}
+        if row["reducer"] == verifier.TARGET:
+            metadata = {
+                "raw_response_retained": row["raw_response_retained"],
+                "request_trace": [
+                    {"status": "ok"} for _ in range(row["request_attempt_count"])
+                ],
+                "contract_trace": {
+                    "validator_owned": row["validator_owned"],
+                    "commit_outcome": row["commit_outcome"],
+                    "replay_id": row["replay_id"],
+                },
+            }
+        report = {
+            **summary,
+            "reducer_name": row["reducer"],
+            "reduce_duration_ms": row["reduce_duration_ms"],
+            "cost_accounting": cost,
+            "reducer_trace": {"metadata": metadata},
+            "missed_incidents": [],
+            "false_positive_incidents": [],
+        }
+        stem = (
+            f"{row['scenario']}_seed{row['seed']}_"
+            f"{row['reducer'].replace('-', '_')}_sample{row['sample_id']}.json"
+        )
+        (matrix / stem).write_text(json.dumps(report), encoding="utf-8")
+
+    by_reducer = {}
+    comparison = []
+    for reducer in (verifier.TARGET, verifier.BASELINE, verifier.NEGATIVE):
+        group = [row for row in rows if row["reducer"] == reducer]
+        mean = sum(row["f1"] for row in group) / len(group)
+        by_reducer[reducer] = {"f1": {"mean": mean}}
+        comparison.append({"reducer": reducer, "f1_mean": mean})
+    files = {
+        artifact / "run_metadata.json": run,
+        artifact / "comparison_summary.json": comparison,
+        artifact / "case_seed_summary.json": rows,
+        matrix / "manifest.json": manifest,
+        matrix / "summary.json": matrix_rows,
+        matrix / "aggregate.json": {"row_count": len(rows), "by_reducer": by_reducer},
+    }
+    for path, payload in files.items():
+        path.write_text(json.dumps(payload), encoding="utf-8")
+    with (artifact / "case_seed_summary.csv").open(
+        "w", newline="", encoding="utf-8"
+    ) as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    endpoint_path.write_text(json.dumps(endpoint), encoding="utf-8")
+
+
+def _write_anonymization_manifest(package_root: Path) -> None:
+    files = {}
+    for path in package_root.rglob("*"):
+        if path.is_file() and path.name != "ANONYMIZATION_MANIFEST.json":
+            files[str(path.relative_to(package_root))] = {
+                "packaged_sha256": hashlib.sha256(path.read_bytes()).hexdigest()
+            }
+    (package_root / "ANONYMIZATION_MANIFEST.json").write_text(
+        json.dumps(
+            {
+                "status": "PASS",
+                "failures": [],
+                "publication_anonymized": True,
+                "files": files,
+            }
+        ),
+        encoding="utf-8",
+    )
 
 
 def test_artifact_gate_rejects_missing_evidence(tmp_path: Path) -> None:
@@ -86,19 +199,10 @@ def test_full_artifact_gate_accepts_repeated_contract_evidence(tmp_path: Path) -
                             request_failure_count=0,
                         )
                     rows.append(row)
-    files = {
-        artifact / "run_metadata.json": run,
-        artifact / "comparison_summary.json": {},
-        artifact / "case_seed_summary.json": rows,
-        matrix / "manifest.json": manifest,
-        matrix / "summary.json": {},
-        matrix / "aggregate.json": {},
-    }
-    for path, payload in files.items():
-        path.write_text(json.dumps(payload), encoding="utf-8")
-    (artifact / "case_seed_summary.csv").write_text("header\n", encoding="utf-8")
     endpoint_path = tmp_path / "endpoint.json"
-    endpoint_path.write_text(json.dumps(endpoint), encoding="utf-8")
+    _write_complete_fixture(
+        verifier, artifact, manifest, run, endpoint_path, endpoint, rows
+    )
 
     result = verifier.verify(
         artifact, endpoint_path, profile="full", min_samples=2
@@ -106,6 +210,28 @@ def test_full_artifact_gate_accepts_repeated_contract_evidence(tmp_path: Path) -
 
     assert result["status"] == "PASS", result["failures"]
     assert result["samples"] == 2
+
+    case_path = artifact / "case_seed_summary.json"
+    original_cases = json.loads(case_path.read_text(encoding="utf-8"))
+    case_path.write_text(
+        json.dumps([*original_cases, original_cases[0]]), encoding="utf-8"
+    )
+    duplicate = verifier.verify(
+        artifact, endpoint_path, profile="full", min_samples=2
+    )
+    assert duplicate["status"] == "FAIL"
+    assert any("duplicate keys" in item for item in duplicate["failures"])
+    case_path.write_text(json.dumps(original_cases), encoding="utf-8")
+
+    raw_path = next((artifact / "matrix").glob("*_sample1.json"))
+    raw = json.loads(raw_path.read_text(encoding="utf-8"))
+    raw["f1"] = 0.123
+    raw_path.write_text(json.dumps(raw), encoding="utf-8")
+    tampered = verifier.verify(
+        artifact, endpoint_path, profile="full", min_samples=2
+    )
+    assert tampered["status"] == "FAIL"
+    assert any("raw/summary f1 mismatch" in item for item in tampered["failures"])
 
 
 def test_full_artifact_gate_accepts_consistent_opaque_publication_provenance(
@@ -172,19 +298,11 @@ def test_full_artifact_gate_accepts_consistent_opaque_publication_provenance(
                         request_failure_count=0,
                     )
                 rows.append(row)
-    files = {
-        artifact / "run_metadata.json": run,
-        artifact / "comparison_summary.json": {},
-        artifact / "case_seed_summary.json": rows,
-        matrix / "manifest.json": manifest,
-        matrix / "summary.json": {},
-        matrix / "aggregate.json": {},
-    }
-    for path, payload in files.items():
-        path.write_text(json.dumps(payload), encoding="utf-8")
-    (artifact / "case_seed_summary.csv").write_text("header\n", encoding="utf-8")
     endpoint_path = tmp_path / "endpoint.json"
-    endpoint_path.write_text(json.dumps(endpoint), encoding="utf-8")
+    _write_complete_fixture(
+        verifier, artifact, manifest, run, endpoint_path, endpoint, rows
+    )
+    _write_anonymization_manifest(tmp_path)
 
     result = verifier.verify(artifact, endpoint_path, profile="full")
 

@@ -336,6 +336,57 @@ def test_shared_state_checkpoint_restore_preserves_state(runtime_client_pair) ->
     assert recovered.recovery_summary.last_action == "checkpoint_restore"
 
 
+def test_registry_can_restore_a_pre_failure_checkpoint_snapshot() -> None:
+    from sage.runtime.flownet.contracts.shared_state_contract import (
+        SharedStateServiceDescriptor,
+    )
+    from sage.runtime.flownet.runtime.shared_state_registry import SharedStateServiceRegistry
+
+    class PlainCheckpointCounter:
+        def __init__(self) -> None:
+            self.value = 0
+
+        def increment(self, delta: int = 1) -> int:
+            self.value += int(delta)
+            return self.value
+
+        def read(self) -> int:
+            return self.value
+
+        def snapshot_state(self) -> dict[str, int]:
+            return {"value": self.value}
+
+        def restore_state(self, snapshot: dict[str, int]) -> None:
+            self.value = int(snapshot["value"])
+
+    descriptor = SharedStateServiceDescriptor(
+        service_name="external-checkpoint-counter",
+        namespace="team.alpha",
+        owner="alice",
+        visibility="private",
+        reuse_policy="flow",
+        recovery_policy="checkpoint_restore",
+    )
+    registry = SharedStateServiceRegistry()
+    record = registry.register_service(
+        descriptor=descriptor,
+        service_object=PlainCheckpointCounter(),
+        factory=PlainCheckpointCounter,
+    )
+    record.service_object.increment(5)
+    checkpoint = record.service_object.snapshot_state()
+    record.service_object.increment(7)
+
+    recovered = registry.recover_service(
+        descriptor,
+        reason="test-pre-failure-checkpoint",
+        checkpoint_snapshot=checkpoint,
+    )
+
+    assert recovered.service_object.read() == 5
+    assert recovered.recovery_summary.metadata["checkpoint_source"] == "supplied-snapshot"
+
+
 def test_shared_state_restart_recreates_service_without_restoring_state(
     runtime_client_pair,
 ) -> None:

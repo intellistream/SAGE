@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import tarfile
 from pathlib import Path
 
 from tools.benchmark_carrier.package_semantic_merge_artifact import (
     ENDPOINT_ALLOWLIST,
+    PUBLICATION_ARCHIVE_ROOT,
     _audit,
     package,
 )
@@ -43,7 +45,7 @@ def test_package_sanitizes_identity_and_excludes_endpoint_logs(
             ("reviewer", "<USER>"),
         ],
     )
-    output = tmp_path / "anonymous-package"
+    output = tmp_path / "anonymous-package-a48f1e6"
     archive = tmp_path / "anonymous-package.tar.gz"
     curve = tmp_path / "quality_latency_token_curve.json"
     curve.write_text('{"path":"/home/reviewer/SAGE"}\n', encoding="utf-8")
@@ -65,6 +67,9 @@ def test_package_sanitizes_identity_and_excludes_endpoint_logs(
 
     assert result["status"] == "PASS"
     assert archive.is_file()
+    with tarfile.open(archive, "r:gz") as stream:
+        roots = {item.name.split("/", 1)[0] for item in stream.getmembers()}
+    assert roots == {PUBLICATION_ARCHIVE_ROOT}
     assert not (output / "endpoint" / "systemd-journal-tail.txt").exists()
     packaged_text = (output / "comparison" / "run_metadata.json").read_text()
     assert "reviewer" not in packaged_text
@@ -102,7 +107,8 @@ def test_anonymity_audit_rejects_reverse_identity_markers(tmp_path: Path) -> Non
     )
     (package_dir / "SAGE-result.txt").write_text("otherwise clean\n", encoding="utf-8")
 
-    failures = _audit(package_dir, [])
+    full_revision = "0123456789abcdef0123456789abcdef01234567"
+    failures = _audit(package_dir, [], [(full_revision, "REVISION_001")])
 
     assert any("Git revision remains" in failure for failure in failures)
     assert any("Git branch remains" in failure for failure in failures)
@@ -110,3 +116,19 @@ def test_anonymity_audit_rejects_reverse_identity_markers(tmp_path: Path) -> Non
     assert any("repository name remains" in failure for failure in failures)
     assert any("public system name remains" in failure for failure in failures)
     assert any("packaged path" in failure for failure in failures)
+
+
+def test_anonymity_audit_rejects_short_git_revision_in_path_and_content(
+    tmp_path: Path,
+) -> None:
+    package_dir = tmp_path / "package"
+    package_dir.mkdir()
+    (package_dir / "run-a48f1e6.json").write_text(
+        '{"revision":"a48f1e6"}\n', encoding="utf-8"
+    )
+
+    short_revision = "a48f1e6"
+    failures = _audit(package_dir, [], [(short_revision, "REVISION_001")])
+
+    assert any("Git provenance remains in packaged path" in item for item in failures)
+    assert any("Git revision remains" in item for item in failures)

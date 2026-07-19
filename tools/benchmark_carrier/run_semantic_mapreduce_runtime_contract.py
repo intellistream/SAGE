@@ -26,13 +26,11 @@ from sage.runtime.flownet.contracts.shared_state_contract import SharedStateServ
 from sage.runtime.flownet.runtime.shared_state_registry import SharedStateServiceRegistry
 from sage.workloads.semantic_merge_analysis import (
     SCENARIOS,
-    HybridHintMergeReducer,
-    SemanticGraphMergeReducer,
-    _evidence_index_by_id,
+    MapOnlyMergeReducer,
     _stable_payload_digest,
-    _validate_hybrid_edits,
     generate_semantic_merge_dataset,
 )
+from sage.workloads.semantic_reduce_edit_runtime import BoundedEditRuntime
 
 DEFAULT_SEEDS = (7, 11, 13)
 
@@ -88,22 +86,44 @@ def run_contract_matrix(
     for scenario in scenarios:
         for seed in seeds:
             dataset = generate_semantic_merge_dataset(seed=seed, scenario=scenario)
-            evidence_by_id = _evidence_index_by_id(dataset.evidence)
-            candidates = SemanticGraphMergeReducer().reduce(dataset.evidence)
-            baseline = HybridHintMergeReducer().reduce(dataset.evidence)
-
-            valid_output, valid_trace = _validate_hybrid_edits(
-                deepcopy(baseline),
-                candidates=candidates,
-                evidence_by_id=evidence_by_id,
-                fallback_hypotheses=baseline,
+            runtime = BoundedEditRuntime(base_reducer=MapOnlyMergeReducer())
+            h0 = runtime.build_h0(dataset.evidence)
+            catalog = runtime.build_catalog(h0, dataset.evidence)
+            state_changing = [
+                proposal
+                for proposal in catalog.proposals
+                if proposal.action in {"MERGE", "SPLIT"}
+            ]
+            if not state_changing:
+                raise RuntimeError(
+                    f"runtime contract fixture has no state-changing proposal: "
+                    f"scenario={scenario}, seed={seed}"
+                )
+            selected = next(
+                (
+                    proposal
+                    for proposal in state_changing
+                    if proposal.action == "SPLIT"
+                ),
+                state_changing[0],
             )
-            invalid_output, invalid_trace = _validate_hybrid_edits(
-                [],
-                candidates=candidates,
-                evidence_by_id=evidence_by_id,
-                fallback_hypotheses=baseline,
+            valid_result = runtime.commit_selection(
+                evidence=dataset.evidence,
+                h0=h0,
+                catalog=catalog,
+                raw_selection=[selected.proposal_id],
+                selector_name="runtime-contract-state-change",
             )
+            invalid_result = runtime.commit_selection(
+                evidence=dataset.evidence,
+                h0=h0,
+                catalog=catalog,
+                raw_selection=["UNKNOWN-PROPOSAL"],
+                selector_name="runtime-contract-invalid-selection",
+            )
+            baseline = [deepcopy(candidate.hypothesis) for candidate in h0.candidates]
+            valid_output = valid_result.hypotheses
+            invalid_output = invalid_result.hypotheses
 
             registry = SharedStateServiceRegistry()
             descriptor = SharedStateServiceDescriptor(
@@ -129,12 +149,21 @@ def run_contract_matrix(
                     "outcome": "committed",
                     "scenario": scenario,
                     "seed": seed,
-                    "validation": valid_trace,
+                    "validation": valid_result.trace,
                 },
             )
             committed_digest = _hypothesis_state_digest(state.hypotheses)
+            checkpoint = deepcopy(state.snapshot_state())
+            # Simulate loss/corruption of the live object after the durable
+            # checkpoint was captured. Recovery must use the supplied snapshot,
+            # not snapshot the still-live service at recovery time.
+            state.hypotheses = []
+            state.trace = []
+            failed_live_digest = _hypothesis_state_digest(state.hypotheses)
             recovered = registry.recover_service(
-                descriptor, reason="semantic-reduce-checkpoint-injection"
+                descriptor,
+                reason="semantic-reduce-checkpoint-injection",
+                checkpoint_snapshot=checkpoint,
             )
             recovered_digest = _hypothesis_state_digest(recovered.service_object.hypotheses)
 
@@ -153,11 +182,24 @@ def run_contract_matrix(
                     "recovered_digest": recovered_digest,
                     "replay_digest": replay_digest,
                     "rejected_fallback_digest": rejected_digest,
-                    "valid_schema": bool(valid_trace["schema_valid"]),
-                    "invalid_schema_rejected": not bool(invalid_trace["schema_valid"]),
-                    "invalid_fallback_count": int(invalid_trace["fallback_count"]),
+                    "valid_schema": valid_result.trace["validator_outcome"] == "accepted",
+                    "valid_state_changed": committed_digest != baseline_digest,
+                    "valid_action": selected.action,
+                    "selected_proposal_ids": list(valid_result.selected_proposal_ids),
+                    "invalid_schema_rejected": (
+                        invalid_result.trace["commit_outcome"]
+                        == "rolled-back-invalid-selection"
+                    ),
+                    "invalid_fallback_count": int(
+                        invalid_result.trace["accepted_edit_count"] == 0
+                    ),
                     "invalid_preserved_baseline": rejected_digest == baseline_digest,
+                    "failed_live_digest": failed_live_digest,
+                    "checkpoint_independent_of_failed_live_state": (
+                        failed_live_digest != committed_digest
+                    ),
                     "checkpoint_preserved_commit": recovered_digest == committed_digest,
+                    "checkpoint_source": "supplied-snapshot",
                     "replay_deterministic": replay_digest == committed_digest,
                     "recovery_status": recovered.recovery_summary.status,
                     "recovery_action": recovered.recovery_summary.last_action,
@@ -225,10 +267,18 @@ def main() -> int:
         "row_count": len(rows),
         "scenario_count": len(set(row["scenario"] for row in rows)),
         "seed_count": len(set(row["seed"] for row in rows)),
-        "valid_commit_passes": sum(bool(row["valid_schema"]) for row in rows),
+        "valid_commit_passes": sum(
+            bool(row["valid_schema"] and row["valid_state_changed"]) for row in rows
+        ),
+        "state_changing_commit_passes": sum(
+            bool(row["valid_state_changed"]) for row in rows
+        ),
         "invalid_edit_rejections": sum(bool(row["invalid_schema_rejected"]) for row in rows),
         "baseline_preservation_passes": sum(bool(row["invalid_preserved_baseline"]) for row in rows),
         "checkpoint_restore_passes": sum(bool(row["checkpoint_preserved_commit"]) for row in rows),
+        "independent_checkpoint_passes": sum(
+            bool(row["checkpoint_independent_of_failed_live_state"]) for row in rows
+        ),
         "deterministic_replay_passes": sum(bool(row["replay_deterministic"]) for row in rows),
     }
     (outdir / "aggregate.json").write_text(
