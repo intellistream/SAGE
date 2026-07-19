@@ -5,9 +5,21 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 import statistics
 from pathlib import Path
 from typing import Any
+
+LOOPBACK_ENDPOINT = re.compile(r"\b(?:https?://)?127\.0\.0\.1:\d{2,5}\b")
+IPV4 = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+PORT_FIELD = re.compile(r"(?i)([\"']?\bport\b[\"']?\s*[:=]\s*[\"']?)\d{2,5}")
+PID_FIELD = re.compile(r"(?i)([\"']?\b(?:pid|process_id|main_pid)\b[\"']?\s*[:=]\s*[\"']?)\d+")
+UNIT_CONTAINER_FIELD = re.compile(
+    r"(?i)((?:[\"']?(?:systemd_unit|managed_unit|container)[\"']?)\s*[:=]\s*[\"']?)([^\s,\"']+)"
+)
+PCI_BUS_ID = re.compile(r"\b[0-9A-Fa-f]{4}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}\.[0-9A-Fa-f]\b")
+NPU_PROCESS_ROW = re.compile(r"(?m)^(\|\s*\d+\s+\d+\s+\|)\s*\d+\s*(\|)")
+NPU_MANAGED_PID_ROW = re.compile(r"(?m)^(\s*\d+\s+)\d+(\s*)$")
 
 TARGET = "llm-pairwise-action-validated"
 BASELINE = "hybrid-hint"
@@ -137,6 +149,22 @@ def _verify_publication_manifest(package_root: Path, failures: list[str]) -> Non
         expected = metadata.get("packaged_sha256")
         if not isinstance(expected, str) or _sha256(path) != expected:
             failures.append(f"anonymization hash mismatch: {relative}")
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if LOOPBACK_ENDPOINT.search(text) or IPV4.search(text) or PORT_FIELD.search(text):
+            failures.append(f"anonymization endpoint/port leak: {relative}")
+        if PID_FIELD.search(text):
+            failures.append(f"anonymization process-ID leak: {relative}")
+        if any(match.group(2) != "<SCOPED_SERVICE>" for match in UNIT_CONTAINER_FIELD.finditer(text)):
+            failures.append(f"anonymization unit/container leak: {relative}")
+        if PCI_BUS_ID.search(text):
+            failures.append(f"anonymization PCI topology leak: {relative}")
+        relative_path = Path(relative)
+        if relative_path.parts[:1] == ("endpoint",) and relative_path.name.startswith("npu-smi-"):
+            if NPU_PROCESS_ROW.search(text) or (
+                relative_path.name == "npu-smi-managed-pids.txt"
+                and NPU_MANAGED_PID_ROW.search(text)
+            ):
+                failures.append(f"anonymization process-ID leak: {relative}")
 
 
 def verify(

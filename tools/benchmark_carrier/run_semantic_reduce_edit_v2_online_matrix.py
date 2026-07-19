@@ -23,6 +23,7 @@ from sage.workloads.semantic_reduce_edit_evaluation import (
     evaluate_workload,
 )
 from sage.workloads.semantic_reduce_heldout import generate_heldout_workload
+from semantic_reduce_v2_request_contract import validate_request
 
 ROOT = Path(__file__).resolve().parents[2]
 RAW_PARENT = ROOT / ".sage/benchmarks/semantic_reduce_edit_v2_real_online"
@@ -247,9 +248,17 @@ def _validate_authorization(
                 > _utc((development_closure or {}).get("completed_utc")),
             }
         )
+    request_failures = validate_request(
+        protocol,
+        protocol_sha,
+        reservation_request,
+        grant_issued_at_utc=grant.get("issued_at_utc"),
+    )
+    conditions["reservation-request-contract"] = not request_failures
     failures = [name for name, passed in conditions.items() if not passed]
     if failures:
-        raise ValueError("authorization/preflight rejected: " + ", ".join(failures))
+        detail = f"; request failures={','.join(request_failures)}" if request_failures else ""
+        raise ValueError("authorization/preflight rejected: " + ", ".join(failures) + detail)
 
 
 def _clustered_ci(rows: list[dict[str, Any]], *, draws: int, seed: int) -> list[float]:

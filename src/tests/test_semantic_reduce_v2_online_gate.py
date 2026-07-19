@@ -27,6 +27,10 @@ from run_semantic_reduce_edit_v2_online_matrix import (  # noqa: E402
     _secret_hits,
     _validate_authorization,
 )
+from semantic_reduce_v2_request_contract import (  # noqa: E402
+    CLEANUP_RELEASE_CHAIN,
+    validate_request,
+)
 
 
 def _envelopes() -> tuple[dict, dict, dict, dict]:
@@ -45,24 +49,91 @@ def _envelopes() -> tuple[dict, dict, dict, dict]:
         "generation_config_sha256": "b" * 64,
     }
     protocol = {
-        "repository": {"execution_commit": "c" * 40},
+        "status": "FROZEN_PENDING_AUTHORIZED_EXECUTION",
+        "repository": {
+            "execution_commit": "c" * 40,
+            "branch": "feature/semantic-mapreduce-paper",
+        },
         "service": service,
         "reservation_shape": {
             "requested_duration_minutes": 210,
             "minimum_remaining_at_admission_minutes": 180,
+            "requested_npu_count": 1,
+            "requested_physical_npu": 3,
+            "topology": "single-device-tp1",
+            "request_ttl_minutes": 120,
+            "no_queue_write_by_protocol_owner": True,
         },
         "experiment": {
             "families": ["one", "two"],
             "development_seeds": [1, 2],
             "development_repeats": 2,
         },
+        "physical_preflight_logic": {
+            "must_pass_after_central_grant_before_launch": ["exact-static-gate"]
+        },
+        "queue_base_observation": {
+            "repository": "/queue", "commit": "q" * 40,
+            "source_path": "queue.md", "source_sha256": "s" * 64,
+            "source_tracked_at_base_commit": False,
+        },
+        "raw_evidence": {"development_root": ".raw/development"},
+        "non_substitution": {"rule": "no simulation substitution"},
     }
+    request_time = datetime.now(UTC) - timedelta(hours=5)
+    review_envelopes = []
+    for role in (
+        "systems-novelty", "experiment-statistics-provenance", "artifact-fail-closed"
+    ):
+        review_envelopes.append(
+            {
+                "sha256": "f" * 64,
+                "envelope": {
+                    "role": role, "reviewer_id": role,
+                    "reviewed_at_utc": request_time.isoformat(),
+                    "protocol_sha256": "d" * 64,
+                    "execution_commit": "c" * 40,
+                    "reviewed_frozen_sources": True,
+                    "decision": "SIGN", "blocking_findings": [],
+                },
+            }
+        )
     request = {
+        "schema_version": "semantic-reduce-v2-reservation-request/1",
         "status": "REQUEST_ONLY_NOT_AUTHORIZED",
-        "request_id": "request-1",
-        "protocol": {"sha256": "d" * 64},
-        "repository": {"execution_commit": "c" * 40},
-        "request_expires_utc": (datetime.now(UTC) + timedelta(hours=1)).isoformat(),
+        "request_id": "semantic-reduce-v2-" + ("d" * 12),
+        "requested_at_utc": request_time.isoformat(),
+        "request_expires_utc": (request_time + timedelta(minutes=120)).isoformat(),
+        "authorization": {
+            "central_grant_present": False, "may_modify_queue": False,
+            "may_reserve_or_occupy_npu": False, "may_start_service": False,
+        },
+        "resources": {
+            "npu_count": 1, "preferred_physical_npu": 3,
+            "topology": "single-device-tp1", "duration_minutes": 210,
+            "port": 18383, "model_path": "/models/qwen",
+            "served_model_name": "qwen25-7b-semantic-reduce-v2",
+        },
+        "repository": {
+            "request_commit": "f" * 40, "execution_commit": "c" * 40,
+            "branch": "feature/semantic-mapreduce-paper", "clean": True,
+            "upstream_equal": True,
+        },
+        "protocol": {
+            "path": "/tmp/v2_real_online_protocol.json", "sha256": "d" * 64,
+            "status": "FROZEN_PENDING_AUTHORIZED_EXECUTION",
+        },
+        "review_envelopes": review_envelopes,
+        "physical_preflight_logic_gate": {
+            "status": "PASS_STATIC_LOGIC_ONLY", "hardware_observed": False,
+            "post_grant_checks_required_before_launch": ["exact-static-gate"],
+        },
+        "queue_base": {
+            **protocol["queue_base_observation"], "mutation_performed": False,
+        },
+        "raw_roots": protocol["raw_evidence"],
+        "cleanup_release_chain": CLEANUP_RELEASE_CHAIN,
+        "non_substitution": protocol["non_substitution"],
     }
     grant = {
         "status": "GRANTED",
@@ -70,7 +141,7 @@ def _envelopes() -> tuple[dict, dict, dict, dict]:
         "repository_commit": "c" * 40,
         "authorized_splits": ["development"],
         "run_ids": {"development": "run-1"},
-        "reservation_request_id": "request-1",
+        "reservation_request_id": "semantic-reduce-v2-" + ("d" * 12),
         "reservation_request_sha256": "r" * 64,
         "issued_at_utc": (
             datetime.now(UTC) - timedelta(hours=4)
@@ -218,6 +289,41 @@ def test_future_dated_grant_fails_closed() -> None:
             reservation_request_sha="r" * 64,
             split="development", run_id="run-1",
         )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda request: request["review_envelopes"].pop(),
+        lambda request: request["resources"].__setitem__("npu_count", 2),
+        lambda request: request["resources"].__setitem__("duration_minutes", 30),
+        lambda request: request["queue_base"].__setitem__("commit", "0" * 40),
+    ],
+)
+def test_full_reservation_request_contract_rejects_mutations(mutation) -> None:
+    protocol, request, grant, _ = _envelopes()
+    changed = deepcopy(request)
+    mutation(changed)
+    assert validate_request(
+        protocol, "d" * 64, changed,
+        grant_issued_at_utc=grant["issued_at_utc"],
+    )
+
+
+def test_request_must_predate_bound_grant() -> None:
+    protocol, request, grant, _ = _envelopes()
+    changed = deepcopy(request)
+    changed["requested_at_utc"] = (
+        datetime.fromisoformat(grant["issued_at_utc"]) + timedelta(seconds=1)
+    ).isoformat()
+    changed["request_expires_utc"] = (
+        datetime.fromisoformat(changed["requested_at_utc"]) + timedelta(minutes=120)
+    ).isoformat()
+    failures = validate_request(
+        protocol, "d" * 64, changed,
+        grant_issued_at_utc=grant["issued_at_utc"],
+    )
+    assert "request-grant-chronology" in failures
 
 
 def test_heldout_closure_is_rejected_before_launch_when_grant_is_early(

@@ -17,6 +17,36 @@ def _load_verifier():
     return module
 
 
+def test_publication_manifest_rejects_infrastructure_identifiers(tmp_path: Path) -> None:
+    verifier = _load_verifier()
+    package = tmp_path / "artifact"
+    endpoint = package / "endpoint"
+    endpoint.mkdir(parents=True)
+    leak = endpoint / "npu-smi-before.txt"
+    leak.write_text(
+        "base_url=http://127.0.0.1:18383\ncontainer=PROJECT-smr-npu3\n"
+        "| 0 | 0000:C1:00.0 |\n| 0 0 | 1067293 | engine | 28347 |\n",
+        encoding="utf-8",
+    )
+    manifest = {
+        "status": "PASS", "failures": [], "publication_anonymized": True,
+        "files": {
+            "endpoint/npu-smi-before.txt": {
+                "packaged_sha256": hashlib.sha256(leak.read_bytes()).hexdigest()
+            }
+        },
+    }
+    (package / "ANONYMIZATION_MANIFEST.json").write_text(
+        json.dumps(manifest) + "\n", encoding="utf-8"
+    )
+    failures: list[str] = []
+    verifier._verify_publication_manifest(package, failures)
+    assert any("endpoint/port leak" in item for item in failures)
+    assert any("unit/container leak" in item for item in failures)
+    assert any("PCI topology leak" in item for item in failures)
+    assert any("process-ID leak" in item for item in failures)
+
+
 def _write_complete_fixture(
     verifier,
     artifact: Path,

@@ -33,6 +33,18 @@ def test_package_sanitizes_identity_and_excludes_endpoint_logs(
             "user=reviewer path=/home/reviewer/SAGE ip=192.168.1.9\n",
             encoding="utf-8",
         )
+    (endpoint / "metadata.json").write_text(
+        '{"base_url":"http://127.0.0.1:18383","port":18383}\n', encoding="utf-8"
+    )
+    (endpoint / "run-command.env").write_text(
+        "container=PROJECT-smr-npu3\nsystemd_unit=PROJECT-smr-npu3.service\nport=18383\n",
+        encoding="utf-8",
+    )
+    (endpoint / "npu-smi-before.txt").write_text(
+        "| 0 | 0000:C1:00.0 |\n| 0 0 | 1067293 | engine | 28347 |\n",
+        encoding="utf-8",
+    )
+    (endpoint / "npu-smi-managed-pids.txt").write_text("3 1089765\n", encoding="utf-8")
     (endpoint / "systemd-journal-tail.txt").write_text(
         "private historical log\n", encoding="utf-8"
     )
@@ -99,6 +111,12 @@ def test_package_sanitizes_identity_and_excludes_endpoint_logs(
     assert manifest["supplementary_files"] == [curve.name]
     assert manifest["supplementary_dirs"] == ["second-model"]
     assert {"verify.py", "environment.json"} <= set(manifest["files"])
+    all_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in output.rglob("*") if path.is_file() and path.suffix != ".gz"
+    )
+    for leak in ("127.0.0.1", "18383", "PROJECT-smr-npu3", "1067293", "1089765", "0000:C1:00.0"):
+        assert leak not in all_text
 
 
 def test_anonymity_audit_rejects_reverse_identity_markers(tmp_path: Path) -> None:

@@ -23,6 +23,16 @@ PRIVATE_IPV4 = re.compile(
     r"\b(?:10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|"
     r"172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})\b"
 )
+LOOPBACK_ENDPOINT = re.compile(r"\b(?:https?://)?127\.0\.0\.1:\d{2,5}\b")
+IPV4 = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+PORT_FIELD = re.compile(r"(?i)([\"']?\bport\b[\"']?\s*[:=]\s*[\"']?)\d{2,5}")
+PID_FIELD = re.compile(r"(?i)([\"']?\b(?:pid|process_id|main_pid)\b[\"']?\s*[:=]\s*[\"']?)\d+")
+UNIT_CONTAINER_FIELD = re.compile(
+    r"(?i)((?:[\"']?(?:systemd_unit|managed_unit|container)[\"']?)\s*[:=]\s*[\"']?)([^\s,\"']+)"
+)
+PCI_BUS_ID = re.compile(r"\b[0-9A-Fa-f]{4}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}\.[0-9A-Fa-f]\b")
+NPU_PROCESS_ROW = re.compile(r"(?m)^(\|\s*\d+\s+\d+\s+\|)\s*\d+\s*(\|)")
+NPU_MANAGED_PID_ROW = re.compile(r"(?m)^(\s*\d+\s+)\d+(\s*)$")
 EMAIL = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 GIT_SHA40 = re.compile(r"(?<![0-9a-f])[0-9a-f]{40}(?![0-9a-f])", re.IGNORECASE)
 GIT_REVISION_TOKEN = re.compile(
@@ -130,6 +140,22 @@ def _sanitize(
     if private_count:
         text = PRIVATE_IPV4.sub("<PRIVATE_IP>", text)
         counts["<PRIVATE_IP>"] = private_count
+    loopback_count = len(LOOPBACK_ENDPOINT.findall(text))
+    if loopback_count:
+        text = LOOPBACK_ENDPOINT.sub("<LOCAL_ENDPOINT>", text)
+        counts["<LOCAL_ENDPOINT>"] = loopback_count
+    text, ip_count = IPV4.subn("<IP_ADDRESS>", text)
+    if ip_count:
+        counts["<IP_ADDRESS>"] = ip_count
+    text, port_count = PORT_FIELD.subn(r"\1<PORT>", text)
+    if port_count:
+        counts["<PORT>"] = port_count
+    text, pid_count = PID_FIELD.subn(r"\1<PID>", text)
+    if pid_count:
+        counts["<PID>"] = pid_count
+    text, service_count = UNIT_CONTAINER_FIELD.subn(r"\1<SCOPED_SERVICE>", text)
+    if service_count:
+        counts["<SCOPED_SERVICE>"] = service_count
     return text, counts
 
 
@@ -145,6 +171,16 @@ def _copy_sanitized(
     except UnicodeDecodeError as error:
         raise ValueError(f"submission package only accepts UTF-8 evidence: {source}") from error
     sanitized, counts = _sanitize(text, replacements, revision_replacements)
+    if destination.name.startswith("npu-smi-"):
+        sanitized, pci_count = PCI_BUS_ID.subn("<PCI_BUS_ID>", sanitized)
+        sanitized, process_count = NPU_PROCESS_ROW.subn(r"\1 <PID> \2", sanitized)
+        if destination.name == "npu-smi-managed-pids.txt":
+            sanitized, managed_count = NPU_MANAGED_PID_ROW.subn(r"\1<PID>\2", sanitized)
+            process_count += managed_count
+        if pci_count:
+            counts["<PCI_BUS_ID>"] = pci_count
+        if process_count:
+            counts["<PID>"] = process_count
     if destination.suffix == ".json":
         try:
             payload = json.loads(sanitized)
@@ -188,6 +224,20 @@ def _audit(
                 failures.append(f"identity value remains in {relative}")
         if PRIVATE_IPV4.search(text):
             failures.append(f"private IP remains in {relative}")
+        if LOOPBACK_ENDPOINT.search(text) or IPV4.search(text) or PORT_FIELD.search(text):
+            failures.append(f"endpoint or port remains in {relative}")
+        if PID_FIELD.search(text):
+            failures.append(f"process ID remains in {relative}")
+        if any(match.group(2) != "<SCOPED_SERVICE>" for match in UNIT_CONTAINER_FIELD.finditer(text)):
+            failures.append(f"unit or container remains in {relative}")
+        if PCI_BUS_ID.search(text):
+            failures.append(f"PCI bus identifier remains in {relative}")
+        if relative.parts[:1] == ("endpoint",) and relative.name.startswith("npu-smi-"):
+            if NPU_PROCESS_ROW.search(text) or (
+                relative.name == "npu-smi-managed-pids.txt"
+                and NPU_MANAGED_PID_ROW.search(text)
+            ):
+                failures.append(f"process ID remains in {relative}")
         if EMAIL.search(text):
             failures.append(f"email address remains in {relative}")
         # Arbitrary 7--40 character hexadecimal strings in report content can

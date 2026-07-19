@@ -16,6 +16,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from semantic_reduce_v2_request_contract import validate_request
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -166,7 +168,7 @@ def _validate_static(
         "request-commit": request.get("repository", {}).get("execution_commit") == commit,
         "request-id": grant.get("reservation_request_id") == request.get("request_id"),
         "request-sha": grant.get("reservation_request_sha256") == request_sha,
-        "request-unexpired-at-grant": _utc(request.get("request_expires_utc")) >= issued,
+        "request-unexpired-at-grant": _utc(request.get("request_expires_utc")) > issued,
         "request-no-authorization": request.get("authorization") == {
             "central_grant_present": False,
             "may_modify_queue": False,
@@ -211,9 +213,14 @@ def _validate_static(
         == service["generation_config_sha256"],
         "grant-sha": bool(grant_sha),
     }
+    request_failures = validate_request(
+        protocol, protocol_sha, request, grant_issued_at_utc=grant.get("issued_at_utc")
+    )
+    checks["request-envelope-contract"] = not request_failures
     failed = [name for name, passed in checks.items() if not passed]
     if failed:
-        raise RuntimeError("grant binding failed: " + ", ".join(failed))
+        detail = f"; request failures={','.join(request_failures)}" if request_failures else ""
+        raise RuntimeError("grant binding failed: " + ", ".join(failed) + detail)
     return checks
 
 

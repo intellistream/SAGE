@@ -11,6 +11,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from semantic_reduce_v2_request_contract import CLEANUP_RELEASE_CHAIN, validate_request
+
 REQUIRED_REVIEW_ROLES = {
     "systems-novelty",
     "experiment-statistics-provenance",
@@ -179,18 +181,11 @@ def main() -> int:
             "mutation_performed": False,
         },
         "raw_roots": protocol["raw_evidence"],
-        "cleanup_release_chain": [
-            "arm scoped cleanup trap before service launch",
-            "stop only the grant-named repo-owned unit/container/service",
-            "verify granted NPU process table and port clear",
-            "retain failure/cleanup observations in raw root",
-            "send release request to the central single writer",
-            "wait for central queue release acknowledgement",
-            "run the SHA-bound final closure verifier over raw verification, secret scans, cleanup, release request, and central acknowledgement",
-            "admit heldout only from a heldout-only grant issued after and bound to the final development closure SHA",
-        ],
+        "cleanup_release_chain": CLEANUP_RELEASE_CHAIN,
         "non_substitution": protocol["non_substitution"],
     }
+    if failures := validate_request(protocol, protocol_sha, request):
+        raise SystemExit("generated reservation request violates its contract: " + ",".join(failures))
     if args.output.exists():
         raise SystemExit("refusing to overwrite reservation request")
     args.output.parent.mkdir(parents=True, exist_ok=True)
