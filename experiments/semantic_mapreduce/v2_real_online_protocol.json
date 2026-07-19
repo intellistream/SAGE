@@ -116,9 +116,9 @@
     "queue_repository": "/home/shuhao/llm-optimizations",
     "queue_origin_url": "git@github.com:Qixin-Gaoke/llm-optimizations.git",
     "queue_branch": "main",
-    "queue_base_commit": "e006bb295f54f8957c77eb0813500588a39524b6",
+    "queue_base_commit": "89799d825dbc8fb57df26dd6463ebaf138cbb8be",
     "queue_authority_source_path": "docs/admin/current_optimization_queue_2026-07-18.md",
-    "queue_base_source_sha256": "49bdbb844cdcbb7c201e774d428faec32c312012178395653dff54305cd5092b",
+    "queue_base_source_sha256": "fe24bb30470e3f1309775dcde94c44bed101347b1205bace7ba4e9ad5afcfe59",
     "ack_path_template": "docs/admin/semantic-reduce-v2-release-acks/$PROTOCOL_SHA256/$SPLIT-$RUN_ID.json",
     "allowed_central_writer_ids": [
       "optimization-queue-central-writer"
@@ -300,10 +300,10 @@
   },
   "queue_base_observation": {
     "repository": "/home/shuhao/llm-optimizations",
-    "commit": "e006bb295f54f8957c77eb0813500588a39524b6",
+    "commit": "89799d825dbc8fb57df26dd6463ebaf138cbb8be",
     "source_path": "docs/admin/current_optimization_queue_2026-07-18.md",
-    "source_sha256": "49bdbb844cdcbb7c201e774d428faec32c312012178395653dff54305cd5092b",
-    "source_tracked_at_base_commit": false
+    "source_sha256": "fe24bb30470e3f1309775dcde94c44bed101347b1205bace7ba4e9ad5afcfe59",
+    "source_tracked_at_base_commit": true
   },
   "non_substitution": {
     "old_v1_online": "cannot substitute: different H0, merge/no-op action semantics, and no shared proposal catalog",
