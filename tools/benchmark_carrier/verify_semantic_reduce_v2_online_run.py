@@ -6,10 +6,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from run_semantic_reduce_edit_v2_online_matrix import _secret_hits, _summarize
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def _sha256(path: Path) -> str:
@@ -65,18 +69,110 @@ def verify_run(
             _fail(f"file digest mismatch: {name}")
 
     protocol = _load(raw_root / "protocol.json")
+    if _sha256(raw_root / "protocol.json") != expected_protocol_sha256:
+        _fail("protocol snapshot does not match expected protocol SHA")
     if _sha256(raw_root / "protocol.json") != inventory["protocol.json"]:
         _fail("protocol snapshot inventory mismatch")
     if protocol["repository"]["execution_commit"] != expected_repository_commit:
         _fail("protocol snapshot commit mismatch")
-    _load(raw_root / "grant.json")
-    _load(raw_root / "preflight.json")
+    grant = _load(raw_root / "grant.json")
+    preflight = _load(raw_root / "preflight.json")
     if manifest.get("grant_sha256") != _sha256(raw_root / "grant.json"):
         _fail("grant digest binding mismatch")
     if manifest.get("preflight_sha256") != _sha256(raw_root / "preflight.json"):
         _fail("preflight digest binding mismatch")
 
+    observed_sources: dict[str, str] = {}
+    for name, item in protocol["repository"]["frozen_sources"].items():
+        data = subprocess.check_output(
+            [
+                "git",
+                "-C",
+                str(ROOT),
+                "show",
+                f"{expected_repository_commit}:{item['path']}",
+            ]
+        )
+        observed_sources[name] = hashlib.sha256(data).hexdigest()
+        if observed_sources[name] != item["sha256"]:
+            _fail(f"frozen source drift: {name}")
+    if manifest.get("frozen_source_hashes") != observed_sources:
+        _fail("manifest frozen-source inventory mismatch")
+    for path, expected in protocol["repository"]["frozen_submodules"].items():
+        actual = subprocess.check_output(
+            ["git", "-C", str(ROOT / path), "rev-parse", "HEAD"], text=True
+        ).strip()
+        dirty = subprocess.check_output(
+            ["git", "-C", str(ROOT / path), "status", "--porcelain"], text=True
+        ).strip()
+        if actual != expected or dirty:
+            _fail(f"submodule provenance drift: {path}")
+
+    service = protocol["service"]
     split = manifest["split"]
+    run_id = manifest["run_id"]
+    grant_checks = {
+        "status": grant.get("status") == "GRANTED",
+        "protocol": grant.get("protocol_sha256") == expected_protocol_sha256,
+        "commit": grant.get("repository_commit") == expected_repository_commit,
+        "split": split in grant.get("authorized_splits", []),
+        "run-id": grant.get("run_ids", {}).get(split) == run_id,
+        "expiry": datetime.fromisoformat(
+            str(grant.get("expires_utc")).replace("Z", "+00:00")
+        )
+        > datetime.now(timezone.utc),
+        "resources": grant.get("resources", {}).get("physical_npus")
+        == [service["physical_npu"]]
+        and grant.get("resources", {}).get("npu_count") == service["npu_count"]
+        and grant.get("resources", {}).get("topology") == service["topology"],
+        "service": grant.get("service")
+        == {
+            "base_url": service["base_url"],
+            "port": service["port"],
+            "managed_unit": service["managed_unit"],
+            "container": service["container"],
+            "manager": service["manager"],
+        },
+        "model": grant.get("model")
+        == {
+            "served_model_name": service["served_model_name"],
+            "path": service["model_path"],
+            "config_sha256": service["model_config_sha256"],
+            "generation_config_sha256": service["generation_config_sha256"],
+        },
+    }
+    if failed := [name for name, passed in grant_checks.items() if not passed]:
+        _fail("grant provenance mismatch: " + ",".join(failed))
+    preflight_checks = {
+        "status": preflight.get("status") == "PASS",
+        "protocol": preflight.get("protocol_sha256") == expected_protocol_sha256,
+        "commit": preflight.get("repository_commit") == expected_repository_commit,
+        "grant": preflight.get("grant_sha256") == manifest.get("grant_sha256"),
+        "split": preflight.get("split") == split,
+        "run-id": preflight.get("run_id") == run_id,
+        "service": preflight.get("service")
+        == {
+            "base_url": service["base_url"],
+            "port": service["port"],
+            "managed_unit": service["managed_unit"],
+            "container": service["container"],
+        },
+        "device-owner": preflight.get("checks", {}).get("device_owner")
+        == "exact-grant-container",
+        "port-owner": preflight.get("checks", {}).get("port_owner")
+        == "exact-grant-service",
+        "model": preflight.get("checks", {}).get("models_endpoint")
+        == "frozen-served-name-present",
+        "smoke": preflight.get("checks", {}).get("structured_output_smoke")
+        == "strict-proposal-ids-pass",
+        "secret-scan": preflight.get("checks", {}).get("raw_secret_scan") == "PASS",
+    }
+    if failed := [name for name, passed in preflight_checks.items() if not passed]:
+        _fail("preflight provenance mismatch: " + ",".join(failed))
+    for name in ("protocol.json", "grant.json", "preflight.json", "service-models.json"):
+        if _secret_hits(_load(raw_root / name), api_key="__UNMATCHABLE_SECRET_SENTINEL__"):
+            _fail(f"generic secret scanner failed: {name}")
+
     seeds = {int(value) for value in protocol["experiment"][f"{split}_seeds"]}
     repeats = set(range(protocol["experiment"][f"{split}_repeats"]))
     expected_keys = {
