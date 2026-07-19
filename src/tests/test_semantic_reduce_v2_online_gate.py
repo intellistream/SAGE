@@ -29,6 +29,7 @@ from run_semantic_reduce_edit_v2_online_matrix import (  # noqa: E402
 )
 from semantic_reduce_v2_request_contract import (  # noqa: E402
     CLEANUP_RELEASE_CHAIN,
+    review_envelope_sha256,
     validate_request,
 )
 
@@ -85,18 +86,16 @@ def _envelopes() -> tuple[dict, dict, dict, dict]:
     for role in (
         "systems-novelty", "experiment-statistics-provenance", "artifact-fail-closed"
     ):
-        review_envelopes.append(
-            {
-                "sha256": "f" * 64,
-                "envelope": {
+        envelope = {
                     "role": role, "reviewer_id": role,
                     "reviewed_at_utc": request_time.isoformat(),
                     "protocol_sha256": "d" * 64,
                     "execution_commit": "c" * 40,
                     "reviewed_frozen_sources": True,
                     "decision": "SIGN", "blocking_findings": [],
-                },
-            }
+                }
+        review_envelopes.append(
+            {"sha256": review_envelope_sha256(envelope), "envelope": envelope}
         )
     request = {
         "schema_version": "semantic-reduce-v2-reservation-request/1",
@@ -298,6 +297,10 @@ def test_future_dated_grant_fails_closed() -> None:
         lambda request: request["resources"].__setitem__("npu_count", 2),
         lambda request: request["resources"].__setitem__("duration_minutes", 30),
         lambda request: request["queue_base"].__setitem__("commit", "0" * 40),
+        lambda request: request["review_envelopes"][0].__setitem__("sha256", "0" * 64),
+        lambda request: request["review_envelopes"][1]["envelope"].__setitem__(
+            "reviewer_id", request["review_envelopes"][0]["envelope"]["reviewer_id"]
+        ),
     ],
 )
 def test_full_reservation_request_contract_rejects_mutations(mutation) -> None:
@@ -324,6 +327,35 @@ def test_request_must_predate_bound_grant() -> None:
         grant_issued_at_utc=grant["issued_at_utc"],
     )
     assert "request-grant-chronology" in failures
+
+
+def test_review_envelopes_are_content_bound_independent_and_pre_request() -> None:
+    protocol, request, grant, _ = _envelopes()
+    assert not validate_request(
+        protocol, "d" * 64, request,
+        grant_issued_at_utc=grant["issued_at_utc"],
+    )
+    changed = deepcopy(request)
+    changed["review_envelopes"][0]["envelope"]["decision"] = "REJECT"
+    assert "review-sha" in validate_request(protocol, "d" * 64, changed)
+    changed = deepcopy(request)
+    changed["review_envelopes"][1]["sha256"] = changed["review_envelopes"][0]["sha256"]
+    assert "review-digest-independence" in validate_request(
+        protocol, "d" * 64, changed
+    )
+    changed = deepcopy(request)
+    changed["review_envelopes"][0]["envelope"]["reviewed_at_utc"] = (
+        datetime.fromisoformat(changed["requested_at_utc"]) + timedelta(seconds=1)
+    ).isoformat()
+    changed["review_envelopes"][0]["sha256"] = review_envelope_sha256(
+        changed["review_envelopes"][0]["envelope"]
+    )
+    assert "review-request-chronology" in validate_request(
+        protocol, "d" * 64, changed
+    )
+    assert "review-chronology" in online_verifier._independent_request_failures(
+        protocol, "d" * 64, changed, grant
+    )
 
 
 def test_heldout_closure_is_rejected_before_launch_when_grant_is_early(

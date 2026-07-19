@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -40,6 +42,17 @@ def _timestamp(value: object) -> datetime:
     return parsed
 
 
+def canonical_review_envelope_bytes(envelope: dict[str, Any]) -> bytes:
+    """Return the one serialization whose digest is carried by a request."""
+    return json.dumps(
+        envelope, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+    ).encode("utf-8")
+
+
+def review_envelope_sha256(envelope: dict[str, Any]) -> str:
+    return hashlib.sha256(canonical_review_envelope_bytes(envelope)).hexdigest()
+
+
 def validate_request(
     protocol: dict[str, Any],
     protocol_sha256: str,
@@ -57,6 +70,7 @@ def validate_request(
     expect(request.get("schema_version") == "semantic-reduce-v2-reservation-request/1", "schema-version")
     expect(request.get("request_id") == f"semantic-reduce-v2-{protocol_sha256[:12]}", "request-id")
     expect(request.get("status") == "REQUEST_ONLY_NOT_AUTHORIZED", "status")
+    requested: datetime | None = None
     try:
         requested = _timestamp(request.get("requested_at_utc"))
         expires = _timestamp(request.get("request_expires_utc"))
@@ -104,24 +118,41 @@ def validate_request(
     reviews = request.get("review_envelopes")
     expect(isinstance(reviews, list) and len(reviews) == 3, "review-count")
     roles: set[object] = set()
+    reviewer_ids: set[object] = set()
+    review_digests: set[object] = set()
     if isinstance(reviews, list):
         for item in reviews:
             if not isinstance(item, dict) or set(item) != {"sha256", "envelope"}:
                 failures.append("review-entry-schema")
                 continue
-            expect(bool(re.fullmatch(r"[0-9a-f]{64}", str(item.get("sha256", "")))), "review-sha")
             envelope = item.get("envelope")
             if not isinstance(envelope, dict):
                 failures.append("review-envelope")
                 continue
+            declared_digest = item.get("sha256")
+            review_digests.add(declared_digest)
+            expect(
+                bool(re.fullmatch(r"[0-9a-f]{64}", str(declared_digest or "")))
+                and declared_digest == review_envelope_sha256(envelope),
+                "review-sha",
+            )
             roles.add(envelope.get("role"))
+            reviewer_id = envelope.get("reviewer_id")
+            reviewer_ids.add(reviewer_id)
             expect(envelope.get("decision") == "SIGN", "review-decision")
             expect(envelope.get("protocol_sha256") == protocol_sha256, "review-protocol")
             expect(envelope.get("execution_commit") == protocol["repository"]["execution_commit"], "review-commit")
             expect(envelope.get("reviewed_frozen_sources") is True, "review-frozen-sources")
             expect(envelope.get("blocking_findings") == [], "review-blockers")
-            expect(bool(envelope.get("reviewer_id")) and bool(envelope.get("reviewed_at_utc")), "review-identity-time")
+            expect(isinstance(reviewer_id, str) and bool(reviewer_id.strip()), "review-identity")
+            try:
+                reviewed = _timestamp(envelope.get("reviewed_at_utc"))
+                expect(requested is not None and reviewed <= requested, "review-request-chronology")
+            except (TypeError, ValueError, OverflowError):
+                failures.append("review-timestamp")
     expect(roles == REQUIRED_REVIEW_ROLES, "review-roles")
+    expect(len(reviewer_ids) == 3, "reviewer-independence")
+    expect(len(review_digests) == 3, "review-digest-independence")
     expect(
         request.get("physical_preflight_logic_gate") == {
             "status": "PASS_STATIC_LOGIC_ONLY",

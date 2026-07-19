@@ -11,7 +11,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from semantic_reduce_v2_request_contract import CLEANUP_RELEASE_CHAIN, validate_request
+from semantic_reduce_v2_request_contract import (
+    CLEANUP_RELEASE_CHAIN,
+    review_envelope_sha256,
+    validate_request,
+)
 
 REQUIRED_REVIEW_ROLES = {
     "systems-novelty",
@@ -19,13 +23,13 @@ REQUIRED_REVIEW_ROLES = {
     "artifact-fail-closed",
 }
 REQUIRED_PHYSICAL_LOGIC = (
-    "reservation request and grant bind request ID protocol SHA execution commit NPU3 model service and unexpired TTL",
+    "reservation request passes the exact frozen schema, three distinct content-digest-bound SIGN envelopes with independent reviewer identities and review timestamps no later than the request, resources, clean upstream repository state, queue base, static physical gate, raw roots, cleanup chain, and non-substitution contract; grant binds its request ID and SHA, protocol SHA, execution commit, NPU3, model, service, and requested_at_utc <= issued_at_utc < request_expires_utc",
     "NPU3 has no foreign process and no conflicting container/device owner",
     "port 18383 is free before launch and owned by the exact managed service after launch",
     "repo and required submodules are clean at frozen commits and esage-vllm-hust-dev is active",
     "model config hashes match and /v1/models returns the frozen served name",
     "structured-output smoke returns strict proposal_ids JSON without a benchmark unit",
-    "development and heldout output roots do not exist",
+    "the exact grant-authorized split and run target root does not exist; heldout additionally requires the bound canonical development raw root and final development closure to exist and match",
     "at least 5 GiB free space and raw-log secret scanner enabled",
     "cleanup trap and central release path are armed",
     "heldout grant binds a final development closure issued before any service launch",
@@ -126,8 +130,8 @@ def main() -> int:
         minutes=int(protocol["reservation_shape"]["request_ttl_minutes"])
     )
     review_envelopes = [
-        {"sha256": _sha256(path), "envelope": review}
-        for path, review in zip(args.review_envelope, reviews, strict=True)
+        {"sha256": review_envelope_sha256(review), "envelope": review}
+        for review in reviews
     ]
     request = {
         "schema_version": "semantic-reduce-v2-reservation-request/1",
