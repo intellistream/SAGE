@@ -251,7 +251,7 @@
       "run independent full verifier outside the raw manifest inventory",
       "on every success error or signal stop only the grant-named unit/container",
       "verify granted NPU and port clear and retain cleanup observations",
-      "scan every raw and control artifact; immediately redact and fail closed on exact API-key or Authorization/Bearer material; retain a checksum-bearing scan report",
+      "scan every raw and control artifact; immediately redact and fail closed on exact API-key or credential-header/token material; retain a checksum-bearing scan report",
       "emit REQUEST_ONLY_CENTRAL_ACK_REQUIRED release request",
       "central single writer records queue release; protocol owner never edits the queue"
     ],
