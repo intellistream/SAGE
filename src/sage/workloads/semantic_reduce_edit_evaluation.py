@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 import itertools
+import json
+import time
+import urllib.error
+import urllib.request
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -21,6 +25,7 @@ from sage.workloads.semantic_reduce_edit_runtime import (
     EditRuntimeResult,
     ProposalCatalog,
     ProposalSelector,
+    observable_evidence_dict,
 )
 from sage.workloads.semantic_reduce_heldout import HeldoutWorkload, field_separability
 
@@ -104,6 +109,132 @@ class MockModelProposalSelector:
                 continue
             selected.append(proposal.proposal_id)
             consumed.update(proposal.candidate_ids)
+        return selected
+
+
+class OpenAIProposalSelector:
+    """Fail-closed real-online selector over system-owned proposal IDs only."""
+
+    name = "openai-proposal-id-selector"
+
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        model: str,
+        api_key: str,
+        sampling_seed: int,
+        temperature: float = 0.0,
+        max_tokens: int = 256,
+        timeout_sec: int = 180,
+    ) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+        self.api_key = api_key
+        self.sampling_seed = sampling_seed
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.timeout_sec = timeout_sec
+        self.last_trace: dict[str, Any] = {}
+
+    @staticmethod
+    def _prompt(
+        *,
+        h0: CandidateState,
+        catalog: ProposalCatalog,
+        evidence: Sequence[Any],
+    ) -> str:
+        payload = {
+            "contract_version": "semantic-reduce/v2",
+            "h0_digest": h0.digest,
+            "catalog_digest": catalog.digest,
+            "h0": h0.to_dict(),
+            "catalog": catalog.to_dict(),
+            "observable_evidence": [observable_evidence_dict(item) for item in evidence],
+        }
+        return (
+            "Select zero or more nonconflicting proposal IDs from the supplied "
+            "system-owned catalog. Never invent an ID or edit payload. Prefer "
+            "repairs justified by observable evidence; choose an empty list when "
+            "uncertain. Return JSON only as {\"proposal_ids\":[\"A0001\"]}.\n"
+            + json.dumps(payload, ensure_ascii=False, sort_keys=True)
+        )
+
+    def select(
+        self,
+        *,
+        h0: CandidateState,
+        catalog: ProposalCatalog,
+        evidence: Sequence[Any],
+    ) -> Sequence[str]:
+        prompt = self._prompt(h0=h0, catalog=catalog, evidence=evidence)
+        request_payload: dict[str, Any] = {
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a bounded semantic-reduction proposal selector.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": self.temperature,
+            "seed": self.sampling_seed,
+            "max_tokens": self.max_tokens,
+            "response_format": {"type": "json_object"},
+        }
+        request = urllib.request.Request(
+            f"{self.base_url}/v1/chat/completions",
+            data=json.dumps(request_payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.api_key}",
+            },
+            method="POST",
+        )
+        started = time.perf_counter()
+        body = ""
+        response_payload: dict[str, Any] = {}
+        selected: list[str] = []
+        outcome = "request-failed"
+        error_type: str | None = None
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout_sec) as response:
+                body = response.read().decode("utf-8")
+            response_payload = json.loads(body)
+            choices = response_payload.get("choices") or []
+            content = str((choices[0].get("message") or {}).get("content") or "")
+            parsed = json.loads(content)
+            raw_ids = parsed.get("proposal_ids")
+            if not isinstance(raw_ids, list) or not all(
+                isinstance(value, str) for value in raw_ids
+            ):
+                raise ValueError("proposal_ids must be a list of strings")
+            selected = list(raw_ids)
+            outcome = "parsed"
+        except (OSError, ValueError, KeyError, IndexError, json.JSONDecodeError) as exc:
+            error_type = type(exc).__name__
+            selected = []
+            outcome = "fail-closed-empty-selection"
+            if isinstance(exc, urllib.error.HTTPError):
+                body = exc.read().decode("utf-8", errors="replace")
+        self.last_trace = {
+            "evidence_label": "real-online",
+            "selector": self.name,
+            "model": self.model,
+            "base_url": self.base_url,
+            "sampling_seed": self.sampling_seed,
+            "temperature": self.temperature,
+            "latency_ms": round((time.perf_counter() - started) * 1000, 3),
+            "outcome": outcome,
+            "error_type": error_type,
+            "h0_digest": h0.digest,
+            "catalog_digest": catalog.digest,
+            "request_payload": request_payload,
+            "raw_response_body": body,
+            "provider_usage": response_payload.get("usage"),
+            "selected_proposal_ids": selected,
+            "credentials_retained": False,
+        }
         return selected
 
 
@@ -286,6 +417,7 @@ def evaluate_workload(
     oracle_max_edits: int = 2,
     deterministic_selector: ProposalSelector | None = None,
     model_selector: ProposalSelector | None = None,
+    evidence_label: str = "simulation/model",
 ) -> dict[str, Any]:
     runtime = BoundedEditRuntime(
         base_reducer=SemanticGraphMergeReducer(),
@@ -367,11 +499,43 @@ def evaluate_workload(
             "f1_delta_from_h0": round(score.f1 - scores["h0"].f1, 6),
         }
 
+    model_policy_key = (
+        "mock_model_selector"
+        if isinstance(model_selector, MockModelProposalSelector)
+        else "online_model_selector"
+    )
+    model_permission = (
+        "offline ID-only policy emulator; no endpoint/model invocation"
+        if model_policy_key == "mock_model_selector"
+        else "real-online ID-only selector over the shared system-owned catalog"
+    )
+    policies = {
+        "h0": policy_record(h0_result, scores["h0"]),
+        "proposal_oracle": {
+            **policy_record(oracle_result, scores["oracle"]),
+            "permission": "ground-truth diagnostic selection over prebuilt catalog",
+        },
+        "deterministic_selector": policy_record(
+            deterministic_result, scores["deterministic"]
+        ),
+        model_policy_key: {
+            **policy_record(model_result, scores["mock_model"]),
+            "selector_name": model_selector.name,
+            "permission": model_permission,
+        },
+        "constrained_reference": {
+            **scores["constrained_reference"].to_dict(),
+            "permission": "full-evidence global reclustering; not an H0 edit peer",
+            "f1_delta_from_h0": round(
+                scores["constrained_reference"].f1 - scores["h0"].f1, 6
+            ),
+        },
+    }
     return {
         "family": workload.family,
         "seed": workload.seed,
         "split": workload.split,
-        "evidence_label": "simulation/model",
+        "evidence_label": evidence_label,
         "workload_source": "repo-local:src/sage/workloads/semantic_reduce_heldout.py",
         "axis_metadata": workload.axis_metadata,
         "base_reducer": h0.base_reducer,
@@ -395,25 +559,5 @@ def evaluate_workload(
             "oracle_improves_h0": scores["oracle"].f1 > scores["h0"].f1 + 1e-12,
         },
         "field_separability": field_separability(workload),
-        "policies": {
-            "h0": policy_record(h0_result, scores["h0"]),
-            "proposal_oracle": {
-                **policy_record(oracle_result, scores["oracle"]),
-                "permission": "ground-truth diagnostic selection over prebuilt catalog",
-            },
-            "deterministic_selector": policy_record(
-                deterministic_result, scores["deterministic"]
-            ),
-            "mock_model_selector": {
-                **policy_record(model_result, scores["mock_model"]),
-                "permission": "offline ID-only policy emulator; no endpoint/model invocation",
-            },
-            "constrained_reference": {
-                **scores["constrained_reference"].to_dict(),
-                "permission": "full-evidence global reclustering; not an H0 edit peer",
-                "f1_delta_from_h0": round(
-                    scores["constrained_reference"].f1 - scores["h0"].f1, 6
-                ),
-            },
-        },
+        "policies": policies,
     }

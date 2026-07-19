@@ -153,7 +153,8 @@ explicit vLLM-HUST endpoint and should use the scripts documented under
 
 The mechanism-complete bounded Edit v2 path is currently offline-only. Its
 finite proposal catalog, true SPLIT, atomic validation/replay tests, frozen
-held-out axes, and clean-matrix command are documented in
+40-unit held-out matrix (36 oracle repairs; improving merge/split proposals in
+29/14 units), and clean-matrix command are documented in
 `docs/papers/semantic_mapreduce/NEXT_STEPS.md`. Historical real-online action
 artifacts are merge-only v1 and must not be reinterpreted as v2 results.
 

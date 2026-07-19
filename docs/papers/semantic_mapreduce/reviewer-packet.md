@@ -5,7 +5,9 @@
 This packet is not a submission-readiness attestation. The frozen real-online
 action result is historical merge-only v1. Its H0 is `semantic-graph`; hybrid is
 a comparison/fallback. Runtime v2 implements true cataloged SPLIT and atomic
-rollback offline, but has no new online model result. The strongest fair v2
+rollback offline. Its clean held-out matrix has 40 units, 36 oracle repairs,
+and improving merge/split proposals in 29/14 units, but has no online model
+result. The strongest fair v2
 question is proposal coverage and selector quality under identical H0/catalog
 input, not whether the model beats a full-evidence reclustering reference.
 
@@ -94,11 +96,14 @@ schema and coverage gate.
 - The prototype does not replace Spark, Flink, Ray, databases, observability
   tools, LangGraph, LlamaIndex, or data+AI platforms.
 
-## Frozen Historical Review Evidence
+## Frozen Review Evidence
 
-The anonymous 693-file bundle contains the five-sample primary matrix, 243 raw
+The replacement anonymous 1,329-file bundle contains the five-sample primary matrix, 243 raw
 same-family second-scale reports, the label-conditioned external reducer replay,
-and the 27-row derived runtime-contract matrix. Its archive checksum and every
+the 27-row supplied-checkpoint runtime-contract matrix, the 40-unit v2
+development/held-out matrices, and the 540-row controlled baseline matrix. It
+bundles a standard-library verifier and passes a safe fresh extraction. Its
+archive checksum and every
 submission-facing number/scope literal pass the artifact and submission-claim
 verifiers. This supports the bounded runtime-operator claim only; it does not
 remove the cross-family, non-oracle external MapEvidence, or production gap.

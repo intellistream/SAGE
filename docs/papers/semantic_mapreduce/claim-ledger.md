@@ -7,8 +7,9 @@ This section supersedes the older submission-preparation entries below.
 | Claim | Current direct evidence | Allowed wording |
 | --- | --- | --- |
 | Runtime v2 implements finite, typed, executable KEEP/MERGE/SPLIT/ABSTAIN proposals with ID-only selection and atomic validation/commit. | `src/sage/workloads/semantic_reduce_edit_runtime.py`, `bounded-edit-runtime-contract.md`, and adversarial/property/replay tests. | “implements and tests true cataloged SPLIT offline”, “evidence-conserving atomic Edit runtime” |
-| Deterministic and mock model-policy selectors receive byte-identical H0/catalog input. | `semantic_reduce_edit_evaluation.py` and focused tests; the mock selector invokes no endpoint/model. | “shared-catalog policy harness”, “offline policy-emulator mechanism check” |
-| The difficult workload axes are controlled `simulation/model`, with hidden labels restricted to generation/scoring. | Frozen `heldout_v2_config.json` and `semantic_reduce_heldout.py`. | “controlled held-out ambiguity axes”, “proposal-coverage diagnostic” |
+| Deterministic and mock model-policy selectors receive byte-identical H0/catalog input. | Clean development and held-out matrices plus focused tests; the mock selector invokes no endpoint/model. | “shared-catalog policy harness”, “offline policy-emulator mechanism check” |
+| The difficult workload axes are controlled `simulation/model`, with hidden labels restricted to generation/scoring. | Frozen held-out matrix: 40 units, 36 oracle repairs, improving merge/split proposals in 29/14 units, and all offline gates pass. | “controlled held-out ambiguity axes”, “proposal-coverage diagnostic”; never “model gain” |
+| Runtime recovery uses an independently supplied pre-failure checkpoint rather than current live state. | Clean 27-row runtime matrix: 27 state-changing commits, invalid-edit rejections, baseline preservations, checkpoint restores, independent-checkpoint checks, and deterministic replays. | “model-free supplied-checkpoint recovery”; not distributed exactly-once |
 | Historical action online evidence validates accepted merges and bounded rejection only. | Frozen 2026-07-18 artifact; legacy verifier PASS; all historical `split_count` values are zero. | “historical merge-only bounded-action result”, “accepted merge repairs semantic-graph grouping” |
 | Constrained agglomerative is a strong broader-permission reference. | Clean 90-unit controlled matrix: 0.9287; matched 27-unit value: 0.9028. | “full-evidence controlled reference”, “not a shared-H0 edit peer or published SOTA” |
 
@@ -17,6 +18,13 @@ model beats the strongest deterministic policy,” “hybrid is the action pre-e
 state,” “0.9287 is external SOTA,” or “submission-ready.” The historical 27-unit
 action-versus-constrained result is 3 wins, 15 ties, and 9 losses; all eight
 units containing accepted legacy merges tie constrained.
+
+Clean audit evidence is frozen under ignored `.sage/benchmarks` paths. The
+held-out aggregate SHA-256 is
+`b0e46955e43616e31714a55ba8a6d22257c234a363623893e3a24a25c97b8d46`.
+The independently extractable anonymous archive has 1,329 manifest-covered
+files and SHA-256
+`882e1b0a952e7fed7ab0964462bf42efeadb2a14eea81bc438bf14b690696fb7`.
 
 This ledger keeps the paper draft aligned with what the repository currently
 implements and measures. It is intentionally conservative for double-blind

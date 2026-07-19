@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from sage.workloads.semantic_reduce_edit_evaluation import evaluate_workload
+import json
+
+from sage.workloads.semantic_reduce_edit_evaluation import (
+    OpenAIProposalSelector,
+    evaluate_workload,
+)
 from sage.workloads.semantic_reduce_heldout import generate_heldout_workload
 
 
@@ -44,3 +49,72 @@ def test_policy_rows_keep_actions_validation_conservation_and_conditioned_delta(
         assert "f1_delta_from_h0" in policy
     assert row["proposal_coverage"]["merge_proposal_recall"] >= 0
     assert row["proposal_coverage"]["split_proposal_recall"] >= 0
+
+
+class _Response:
+    def __init__(self, payload: dict[str, object]) -> None:
+        self.payload = payload
+
+    def __enter__(self) -> _Response:
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        return None
+
+    def read(self) -> bytes:
+        return json.dumps(self.payload).encode()
+
+
+def test_real_online_selector_returns_ids_and_retains_secret_free_raw_trace(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "urllib.request.urlopen",
+        lambda request, timeout: _Response(
+            {
+                "choices": [{"message": {"content": '{"proposal_ids":[]}'}}],
+                "usage": {"prompt_tokens": 12, "completion_tokens": 4},
+            }
+        ),
+    )
+    selector = OpenAIProposalSelector(
+        base_url="http://127.0.0.1:18383",
+        model="review-model",
+        api_key="do-not-retain",
+        sampling_seed=101,
+    )
+    row = evaluate_workload(
+        generate_heldout_workload("hint-missing", seed=7, split="development"),
+        model_selector=selector,
+        evidence_label="real-online",
+    )
+
+    assert row["evidence_label"] == "real-online"
+    assert "online_model_selector" in row["policies"]
+    assert selector.last_trace["outcome"] == "parsed"
+    assert selector.last_trace["credentials_retained"] is False
+    assert "do-not-retain" not in json.dumps(selector.last_trace)
+
+
+def test_real_online_selector_fails_closed_on_malformed_response(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "urllib.request.urlopen",
+        lambda request, timeout: _Response(
+            {"choices": [{"message": {"content": "not-json"}}]}
+        ),
+    )
+    selector = OpenAIProposalSelector(
+        base_url="http://127.0.0.1:18383",
+        model="review-model",
+        api_key="secret",
+        sampling_seed=103,
+    )
+    row = evaluate_workload(
+        generate_heldout_workload("hint-missing", seed=7, split="development"),
+        model_selector=selector,
+        evidence_label="real-online",
+    )
+
+    assert selector.last_trace["outcome"] == "fail-closed-empty-selection"
+    assert row["policies"]["online_model_selector"]["selected_proposal_ids"] == []
+    assert row["policies"]["online_model_selector"]["f1_delta_from_h0"] == 0

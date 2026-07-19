@@ -110,6 +110,11 @@ def main() -> int:
     parser.add_argument("--title-file", required=True, type=Path)
     parser.add_argument("--system-name-file", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument(
+        "--manifest",
+        type=Path,
+        help="Write the build result as JSON (must remain outside Git tracking).",
+    )
     args = parser.parse_args()
     result = build(
         args.repo_root.resolve(),
@@ -117,7 +122,13 @@ def main() -> int:
         args.system_name_file.resolve(),
         args.output.resolve(),
     )
-    print(json.dumps(result, indent=2))
+    rendered = json.dumps(result, indent=2) + "\n"
+    if args.manifest:
+        manifest = args.manifest.resolve()
+        _require_untracked(args.repo_root.resolve(), manifest, "build manifest")
+        manifest.parent.mkdir(parents=True, exist_ok=True)
+        manifest.write_text(rendered, encoding="utf-8")
+    print(rendered, end="")
     return 0
 
 

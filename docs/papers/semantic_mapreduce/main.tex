@@ -20,6 +20,15 @@
 % table, algorithm, and bibliography reductions do not satisfy that rule.
 \captionsetup{font=normalsize}
 \AtBeginDocument{\renewcommand{\bibfont}{\normalsize}}
+\makeatletter
+\def\ps@plain{%
+  \let\@mkboth\@gobbletwo
+  \let\@oddhead\@empty
+  \let\@evenhead\@empty
+  \def\@oddfoot{\hfil\normalfont\normalsize\thepage\hfil}%
+  \let\@evenfoot\@oddfoot
+}
+\makeatother
 
 \acmConference[EuroSys '27]{Twenty-Second European Conference on Computer Systems}{April 19--23, 2027}{Rabat, Morocco}
 \acmYear{2027}
@@ -308,6 +317,8 @@ The artifact also includes a separate shared-workload probe from a pinned worklo
 
 The corresponding \systemname{} quality experiments remain repo-local because they require injected incident labels, evidence objects, reducer variants, and a common scorer. This separation prevents a common benchmark mistake: using a general workload catalog as if it were already a reducer-quality benchmark.
 
+The clean v2 held-out matrix contains 40 units across ten frozen ambiguity axes and four unseen seeds. Starting from the shared $H_0$, mean F1 is 0.333; the catalog oracle reaches 0.562 and repairs 36/40 units, the deterministic shared-catalog selector reaches 0.495, and an offline mock-ID policy reaches 0.498. An improving merge proposal exists in 29 units and an improving split in 14; catalog score balance is 0.506 and hint coverage--correctness is 0.623. The run records a byte-identical catalog digest across selectors. The mock invokes no endpoint or model, so these results establish proposal coverage and mechanism parity, not an LLM quality gain. All offline gates pass; v2 real-online evidence remains absent.
+
 \subsection{Reducer Quality}
 
 An initial 20-run sanity matrix shows why incident-level reduction is the relevant operation. Map-only reaches 0.3075 F1, window aggregation 0.7129, and the incident reducer 0.9579 while reducing average detections from 7.05 to 4.15 at 0.9750 recall. F1 is therefore a contract-level metric here: it is high only when the workflow preserves enough evidence and emits the correct incident unit with traceable matches. The nine-family suite below is the harder and submission-facing derived matrix.
@@ -450,12 +461,12 @@ The second checkpoint holds the workload, candidate generator, validator, scorer
 \begin{figure*}[t]
 \centering
 \input{figures/fig3-quality-cost.tex}
-\caption{Measured action-reducer operating points over the frozen five-sample, nine-family matrix (135 rows per budget). (a) F1 and support-evidence recall; the dotted line is the 0.7801 hybrid F1. (b) all-row mean and p95 reducer latency. (c) all-row mean and p95 tokens, using provider usage when present and the recorded estimate otherwise. Four candidates truncate relations; eight maximize F1; twelve cost more without improving F1. Evidence: derived summaries of real-online rows.}
+\caption{Measured action-reducer operating points over the frozen five-sample, nine-family matrix (135 rows per budget). (a) F1 and support-evidence recall; the dotted line is the 0.7801 hybrid F1. (b) all-row mean and p95 reducer latency. (c) all-row mean and p95 tokens, using provider usage when present and the recorded estimate otherwise. Four candidates truncate relations; eight maximize F1; twelve cost more without improving F1. Budget 8 was selected on this same historical matrix, so this is exploratory operating-point evidence rather than held-out tuning evidence. Evidence: derived summaries of real-online rows.}
 \Description{Three line charts over candidate budgets 4, 8, and 12. Quality peaks at budget 8, while reducer latency and token use continue increasing through budget 12.}
 \label{fig:quality-cost}
 \end{figure*}
 
-Figure~\ref{fig:quality-cost} separates quality from cost rather than claiming a serving speedup. Four candidates truncate temporal relations and do not beat the baseline. Eight candidates give the highest F1; twelve add support recall but consume more tokens and tail latency without improving F1. The three points establish a measured operating boundary, not a general quality--cost frontier.
+Figure~\ref{fig:quality-cost} separates quality from cost rather than claiming a serving speedup. Four candidates truncate temporal relations and do not beat the baseline. Eight candidates give the highest F1; twelve add support recall but consume more tokens and tail latency without improving F1. Because budget 8 is selected on the same matrix, the three points establish only an exploratory measured operating boundary, not held-out model selection or a general quality--cost frontier.
 
 The benchmark records more than a summary score: configuration, reducer name, injected and detected incidents, matched and missed incident IDs, evidence support, latency, token estimates, and failure classes. In the 2K live smoke, for example, three injected incidents had zero overlapping map candidates; the low F1 therefore diagnoses a coverage failure, not a reducer-quality result.
 

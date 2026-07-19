@@ -12,15 +12,17 @@ configured fallback, not the pre-edit state.
 Runtime v2 now implements a finite system-generated proposal catalog, true
 evidence-partitioning SPLIT, ID-only policy selection, unique ownership,
 reason-coded atomic rollback, exact H0 fallback, catalog/state/selection
-digests, checkpoint restore, and independent replay. This mechanism currently
-has unit/property and dirty-development `simulation/model` evidence only. No
-new endpoint, model, credential, NPU, or real-online sweep has been used.
+digests, checkpoint restore, and independent replay. This mechanism now has
+unit/property plus clean development and frozen held-out `simulation/model`
+evidence. No new endpoint, model, credential, NPU, or real-online sweep has
+been used.
 
 - **COMPLETED:** typed v2 contract, three oracle-free split generators,
   adversarial conservation/atomicity tests, shared-H0/shared-catalog
   deterministic and mock policy harness, frozen held-out ambiguity axes.
-- **IN PROGRESS:** clean commit and full development/held-out offline matrix,
-  proposal coverage and negative-case analysis, derived Figure 3 replacement.
+- **COMPLETED:** clean development/held-out offline matrices, proposal coverage
+  and negative-case analysis, clustered sensitivity interval, Figure 3 rebuild,
+  supplied-checkpoint runtime matrix, and independently runnable artifact.
 - **BLOCKED:** model-selector increment and real-online v2 validation until all
   offline gates plus endpoint/model/hardware/credential readiness pass.
 
@@ -31,17 +33,37 @@ and artifact/anonymity) all returned **NOT READY**. There was no substantive
 reviewer conflict on the disposition. The apparent H0 conflict was temporal:
 the systems reviewer correctly described executable v1, while the current TeX
 had already begun admitting that mismatch; source and raw traces decide in
-favor of `semantic-graph` H0 plus merge/no-op v1. The artifact root embeds the
-public short revision `a48f1e6`, so archive SHA `f590fde5...d73d4a0` is
-historical evidence only and must not be uploaded.
+favor of `semantic-graph` H0 plus merge/no-op v1. The superseded artifact root
+embedded the public short revision `a48f1e6`, so archive SHA
+`f590fde5...d73d4a0` is historical evidence only and must not be uploaded. The
+replacement uses the constant root `artifact`, bundles its verifier, and passes
+a fresh independent extraction.
 
 The current rebuild uses SIGPLAN's 10pt body and explicitly prevents smaller
-caption, table, figure-label, algorithm, and bibliography text. It is 13 PDF
-pages on US Letter: technical content ends on page 12 and page 13 contains only
-references, which is within the official 12-technical-page-plus-references
-limit. Page-by-page review caught and repaired four clipping/overlap defects.
-The public/private final hashes remain pending until the clean evidence/package
-freeze. The expanded no-NPU audit selection currently passes `80 passed`.
+caption, table, figure-label, algorithm, and bibliography text. The latest
+public rebuild is 14 physical pages on US Letter: technical content ends on
+page 12 and pages 13--14 contain only references, within the official
+12-technical-page-plus-unlimited-references limit. Page-by-page review caught
+and repaired four clipping/overlap defects. The expanded no-NPU audit selection
+passes `82 passed` after adding the fail-closed real-online selector and
+SHA/grant-gated runner; no endpoint was invoked. Public PDF SHA-256 is
+`4371be8909bece40988b3f035133f9143b5d0bddd0ca5f205fc2827193d7dcd1`;
+the untracked private PDF SHA-256 is
+`7a976e1f0e055fe2e02251193f1fea5165cd9379b6fec280a586ed33071d3cc2`.
+
+The clean v2 held-out matrix has 40 units: H0 mean F1 0.333, proposal-oracle
+F1 0.562 with 36 repairs, deterministic shared-catalog F1 0.495, and offline
+mock-ID F1 0.498. Improving merge/split proposals exist in 29/14 units; score
+balance is 0.506 and hint coverage--correctness is 0.623. The mock invokes no
+model or endpoint, so the scientific disposition remains **NOT
+SUBMISSION-READY** until a genuine v2 model selector is evaluated real-online.
+
+Replacement anonymous archive:
+`.sage/benchmarks/semantic-reduction-eurosys27-review-evidence-cross-audit-20260719.tar.gz`,
+965,240 bytes, 1,329 manifest-covered files, SHA-256
+`882e1b0a952e7fed7ab0964462bf42efeadb2a14eea81bc438bf14b690696fb7`.
+Its bundled standard-library verifier passes after safe extraction under the
+single opaque root `artifact`.
 
 All older “submission-facing,” “READY,” and deadline-oriented sections below
 are historical 2026-07-18 records, not the current readiness decision. In

@@ -6,15 +6,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
-
 
 ACTION = "llm-pairwise-action-validated"
 HYBRID = "hybrid-hint"
 
 
-def _load(path: Path) -> Any:
+def _load(path: Path) -> Mapping[str, object] | list[object]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -26,11 +25,11 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _row(rows: list[dict[str, Any]], reducer: str) -> dict[str, Any]:
+def _row(rows: list[dict[str, object]], reducer: str) -> dict[str, object]:
     return next(row for row in rows if row["reducer"] == reducer)
 
 
-def _paired(stability: dict[str, Any]) -> dict[str, Any]:
+def _paired(stability: dict[str, object]) -> dict[str, object]:
     return next(
         row
         for row in stability["paired_comparisons"]
@@ -51,6 +50,7 @@ def main() -> int:
     parser.add_argument("--second-stability", required=True, type=Path)
     parser.add_argument("--external-replay", required=True, type=Path)
     parser.add_argument("--runtime-contract", required=True, type=Path)
+    parser.add_argument("--v2-heldout", required=True, type=Path)
     parser.add_argument("--archive", required=True, type=Path)
     parser.add_argument("--expected-archive-sha256", required=True)
     parser.add_argument("--output", type=Path)
@@ -63,6 +63,7 @@ def main() -> int:
     second_stability = _load(args.second_stability)
     external = _load(args.external_replay)
     runtime = _load(args.runtime_contract)
+    heldout = _load(args.v2_heldout)
     p_action, p_hybrid = _row(primary, ACTION), _row(primary, HYBRID)
     s_action, s_hybrid = _row(second, ACTION), _row(second, HYBRID)
     p_pair, s_pair = _paired(primary_stability), _paired(second_stability)
@@ -79,9 +80,20 @@ def main() -> int:
     _require(checks, "second_ci", s_pair["f1_delta_paired_bootstrap_95ci"] == [0.0147, 0.1149])
     _require(checks, "second_cost", s_cost["model_call_runs"] == 39 and s_cost["called_latency_ms_median"] == 276.2)
     _require(checks, "external_boundary", external["evidence_label"] == "replay" and external["validation_scope"] == "reducer-only-label-conditioned" and external["end_to_end_detection_claim"] is False)
-    _require(checks, "runtime_rows", runtime["row_count"] == 27 and all(runtime[key] == 27 for key in ("valid_commit_passes", "invalid_edit_rejections", "baseline_preservation_passes", "checkpoint_restore_passes", "deterministic_replay_passes")))
+    _require(checks, "runtime_rows", runtime["row_count"] == 27 and all(runtime[key] == 27 for key in ("valid_commit_passes", "state_changing_commit_passes", "invalid_edit_rejections", "baseline_preservation_passes", "checkpoint_restore_passes", "independent_checkpoint_passes", "deterministic_replay_passes")))
+    _require(
+        checks,
+        "v2_heldout_scope",
+        heldout["unit_count"] == 40
+        and heldout["oracle_repairable_unit_count"] == 36
+        and heldout["improving_merge_unit_count"] == 29
+        and heldout["improving_split_unit_count"] == 14
+        and heldout["shared_catalog_digest_match"] is True
+        and heldout["online_readiness"] == "OFFLINE_GATES_ONLY"
+        and heldout["online_execution_performed"] is False,
+    )
     _require(checks, "archive_sha256", _sha256(args.archive) == args.expected_archive_sha256)
-    for literal in ("0.8645", "0.7801", "0.8392", "+0.0844", "+0.0591", "label-conditioned", "not cross-family or production robustness"):
+    for literal in ("0.8645", "0.7801", "0.8392", "+0.0591", "40 units", "29 units", "no endpoint or model", "label-conditioned", "not cross-family or production robustness"):
         _require(checks, f"paper_literal:{literal}", literal in paper)
 
     failures = [name for name, passed in checks.items() if not passed]

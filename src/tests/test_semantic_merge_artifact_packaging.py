@@ -84,6 +84,10 @@ def test_package_sanitizes_identity_and_excludes_endpoint_logs(
     assert "MODEL_API_KEY" in packaged_text
     assert json.loads(packaged_text)["publication_anonymized"] is True
     assert (output / "supplementary" / curve.name).is_file()
+    assert (output / "verify.py").is_file()
+    environment = json.loads((output / "environment.json").read_text())
+    assert environment["dependencies"] == "Python standard library only"
+    assert "python verify.py comparison" in (output / "README.md").read_text()
     second_text = (
         output / "supplementary" / "second-model" / "matrix" / "raw.json"
     ).read_text()
@@ -94,6 +98,7 @@ def test_package_sanitizes_identity_and_excludes_endpoint_logs(
     assert manifest["git_provenance_redacted"] is True
     assert manifest["supplementary_files"] == [curve.name]
     assert manifest["supplementary_dirs"] == ["second-model"]
+    assert {"verify.py", "environment.json"} <= set(manifest["files"])
 
 
 def test_anonymity_audit_rejects_reverse_identity_markers(tmp_path: Path) -> None:

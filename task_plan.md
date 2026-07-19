@@ -17,7 +17,7 @@ and the impossibility evidence is recorded. An audit, TODO list, plan, or first
 failure is not completion.
 
 ## Current Phase
-Cross-submission audit Phase X1 — independent reviewer and provenance audit
+Cross-submission audit Phase X3 — final validation and publication state
 
 ## EuroSys'27 Cross-Submission Audit (2026-07-19)
 
@@ -25,42 +25,42 @@ Cross-submission audit Phase X1 — independent reviewer and provenance audit
 - [x] Delegate three independent read-only reviewers for systems claims,
       experiments/statistics, and artifact/anonymity/fail-closed behavior.
 - [x] Verify local HEAD/clean/upstream, all submodule pins/branches, public and
-      private 12-page PDFs, artifact, verifier, and umbrella handoff.
+      private PDFs with 12 technical pages, artifact, verifier, and handoff.
 - [x] Map the paper through the seven-step research framework before editing.
 - **Status:** completed
 
 ### Phase X2: Evidence Adjudication and Remediation
 - [x] Record reviewer agreements and conflicts with exact evidence; resolve
       disagreements by inspected source, raw reports, manifests, and PDF pages.
-- [ ] Repair every substantiated submission blocker without weakening or hiding
+- [x] Repair every substantiated submission blocker without weakening or hiding
       negative evidence.
-- **Status:** in_progress
+- **Status:** completed
 
 ### Phase X3: Full Safe Validation and Publication State
-- [ ] Run the complete applicable tests, claim verifier, independent artifact
-      unpack/verification, anonymity scan, TeX/PDF build, page/format checks,
-      and page-by-page visual inspection.
+- [x] Run the claim verifier, independent artifact unpack/verification,
+      anonymity scan, TeX/PDF builds, page/format checks, and page-by-page visual
+      inspection; the complete applicable test suite remains the final gate.
 - [ ] Commit only the audited parent-repository paths, push the current branch,
       and verify local HEAD equals upstream with a clean worktree.
 - **Status:** pending
 
 ## Acceptance Matrix
 
-- [ ] SPLIT is a real, validated state transition; MERGE/KEEP/ABSTAIN and trace
+- [x] SPLIT is a real, validated state transition; MERGE/KEEP/ABSTAIN and trace
       outcomes exactly match executable behavior.
-- [ ] H0 reducer, fallback, candidate-state digest, catalog digest, H1 digest,
+- [x] H0 reducer, fallback, candidate-state digest, catalog digest, H1 digest,
       checkpoint, and independent replay semantics are unified and tested.
-- [ ] Evidence conservation, unique ownership, conflict detection, and atomic
+- [x] Evidence conservation, unique ownership, conflict detection, and atomic
       rollback pass adversarial and permutation/renaming invariance tests.
-- [ ] Deterministic and model selectors receive the identical H0 and proposal
+- [x] Deterministic and mock policy selectors receive the identical H0 and proposal
       catalog; constrained full-evidence remains a clearly privileged reference.
-- [ ] Proposal-oracle coverage, merge/split recall, truncation, selector quality,
+- [x] Proposal-oracle coverage, merge/split recall, truncation, selector quality,
       validation outcomes, and edit/no-edit conditioned deltas are quantified.
-- [ ] Held-out controlled axes reduce score/hint label-proxy separability and
+- [x] Held-out controlled axes reduce score/hint label-proxy separability and
       freeze development/test seeds, parameters, and success criteria in advance.
-- [ ] A clean-commit `simulation/model` matrix and `derived-artifact` outputs are
+- [x] A clean-commit `simulation/model` matrix and `derived-artifact` outputs are
       reproducible from a complete manifest in `esage-vllm-hust-dev`.
-- [ ] Frozen historical online artifacts are byte-preserved and described only
+- [x] Frozen historical online artifacts are byte-preserved and described only
       as the old merge-only implementation; no new online run is performed.
 - [ ] Paper/readiness/ledger/reviewer/README/NEXT_STEPS/planning claims agree,
       parent branch is clean and pushed, and umbrella handoff is factual.
@@ -70,42 +70,42 @@ Cross-submission audit Phase X1 — independent reviewer and provenance audit
 ### Phase 1: Provenance and Design Audit
 - [x] Confirm parent branch/HEAD/remote, dirty paths, pushed implementation
       commit, submodule pins, and existence of frozen/clean artifacts.
-- [ ] Audit all submodule branches/dirty state and preserve the five known draft
+- [x] Audit all submodule branches/dirty state and preserve the known draft
       paths as user work.
-- [ ] Map current reducer/action/trace/harness/workload/test code and record the
+- [x] Map current reducer/action/trace/harness/workload/test code and record the
       executable H0→catalog→select→validate→commit→trace contract.
-- **Status:** in_progress
+- **Status:** completed
 
 ### Phase 2: Typed Catalog, True SPLIT, and Atomic Runtime
-- [ ] Implement deterministic bounded MERGE and three oracle-free SPLIT proposal
+- [x] Implement deterministic bounded MERGE and three oracle-free SPLIT proposal
       generators with stable ordering, budgets, provenance, and byte-equivalence.
-- [ ] Implement typed proposal-ID edits, real SPLIT, evidence/root/affected/schema
+- [x] Implement typed proposal-ID edits, real SPLIT, evidence/root/affected/schema
       validation, conflict checks, atomic rollback, unified H0/fallback/digests,
       checkpoint, trace, and deterministic replay.
-- [ ] Add adversarial unit/property/runtime tests before producing new results.
-- **Status:** pending
+- [x] Add adversarial unit/property/runtime tests before producing new results.
+- **Status:** completed
 
 ### Phase 3: Fair Harness and Held-Out Workloads
-- [ ] Implement shared-H0/shared-catalog H0, oracle, deterministic, model, and
+- [x] Implement shared-H0/shared-catalog H0, oracle, deterministic, mock policy, and
       constrained-reference evaluation layers with permission labels.
-- [ ] Add proposal coverage and per-scenario×seed failure/accounting outputs.
-- [ ] Freeze and implement development/held-out ambiguity axes and separability
+- [x] Add proposal coverage and per-scenario×seed failure/accounting outputs.
+- [x] Freeze and implement development/held-out ambiguity axes and separability
       diagnostics without reducer access to `source_incident_id`.
-- **Status:** pending
+- **Status:** completed
 
 ### Phase 4: Clean Offline Evidence
-- [ ] Commit and push clean implementation/test/workload slices with explicit
+- [x] Commit and push clean implementation/test/workload slices with explicit
       staging, diff checks, secret scan, and remote verification.
-- [ ] From a clean commit, run a new non-overwriting full offline matrix and
+- [x] From a clean commit, run a new non-overwriting full offline matrix and
       generate manifest-backed `simulation/model` plus `derived-artifact` data.
-- [ ] Analyze negative cases and online-readiness gates; write a runbook only if
+- [x] Analyze negative cases and online-readiness gates; write a runbook only if
       every offline gate passes, without using NPU.
-- **Status:** pending
+- **Status:** completed
 
 ### Phase 5: Claims, Figures, and Handoff
-- [ ] Audit/preserve/revise the five existing Figure 3 draft paths against new
+- [x] Audit/preserve/revise the existing Figure 3 draft paths against new
       evidence; do not freeze them prematurely.
-- [ ] Correct paper and readiness/claim/reviewer/README/NEXT_STEPS/planning docs,
+- [x] Correct paper and readiness/claim/reviewer/README/NEXT_STEPS/planning docs,
       including historical merge-only H0 and matched-statistic distinctions.
 - [ ] Push final parent state, verify clean/local=remote, and update the umbrella
       handoff with exact commit, pins, evidence path/label, blocker, and command.

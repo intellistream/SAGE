@@ -230,6 +230,9 @@ def package(
         raise FileNotFoundError("comparison and endpoint inputs must be directories")
 
     replacements = _replacements()
+    bundled_verifier = Path(__file__).with_name("verify_semantic_merge_artifact.py")
+    if not bundled_verifier.is_file():
+        raise FileNotFoundError(f"bundled verifier is absent: {bundled_verifier}")
     source_files = [
         *sorted(item for item in comparison_dir.rglob("*") if item.is_file()),
         *(endpoint_dir / name for name in ENDPOINT_ALLOWLIST),
@@ -246,6 +249,31 @@ def package(
             source_texts.append(source.read_text(encoding="utf-8"))
     revision_replacements = _discover_revision_replacements(source_texts)
     files: dict[str, Any] = {}
+    files["verify.py"] = _copy_sanitized(
+        bundled_verifier,
+        output_dir / "verify.py",
+        replacements,
+        revision_replacements,
+    )
+    environment = output_dir / "environment.json"
+    environment.write_text(
+        json.dumps(
+            {
+                "publication_anonymized": True,
+                "python": ">=3.11",
+                "dependencies": "Python standard library only",
+                "entrypoint": "verify.py",
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    files["environment.json"] = {
+        "source_sha256": None,
+        "packaged_sha256": _sha256(environment),
+        "replacements": {},
+    }
     for source in sorted(item for item in comparison_dir.rglob("*") if item.is_file()):
         relative = Path("comparison") / source.relative_to(comparison_dir)
         files[str(relative)] = _copy_sanitized(
@@ -317,9 +345,10 @@ def package(
         "Clean/dirty state and cross-file revision equality remain verifiable. The "
         "manifest preserves source and packaged SHA-256 hashes; exact private provenance "
         "is retained outside this review package.\n\n"
-        "Verify from the repository root:\n\n"
+        "Verify from the extracted package root with Python 3.11 or newer; the "
+        "verifier uses only the Python standard library:\n\n"
         "```bash\n"
-        "python tools/benchmark_carrier/verify_semantic_merge_artifact.py "
+        "python verify.py "
         "comparison --endpoint-metadata endpoint/metadata.json"
         f"{verification_args}\n"
         "```\n\n"

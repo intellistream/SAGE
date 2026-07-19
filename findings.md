@@ -497,6 +497,29 @@
 |---|---|
 | Broad governance search traversed unreadable sibling paths | Re-ran a checkout-local `rg` search; no project data was modified. |
 
+## 2026-07-19 Cross-Submission Adjudication
+
+- Three independent read-only reviews all returned NOT READY. Systems review
+  attacked the v1/v2 semantic mismatch and closest work; experiment review
+  found parser/validator mislabeling, family dependence, same-matrix budget
+  selection, and mock-vs-online ambiguity; artifact review found a short-SHA
+  archive root, stale PDFs, and a non-portable verifier.
+- The apparent H0 disagreement was temporal, not factual: frozen real-online
+  rows are valid merge/no-op v1 over semantic-graph H0; clean held-out evidence
+  covers v2 proposal/runtime mechanisms only. They cannot be rescored together.
+- Clean v2 held-out evidence has 40 units, 36 proposal-oracle repairs, improving
+  merge/split proposals in 29/14 units, shared-catalog digest equality, and all
+  offline gates passing. The mock selector invokes no model or endpoint.
+- The replacement anonymous artifact has one opaque root, 1,329
+  manifest-covered files, a bundled standard-library verifier, and archive
+  SHA-256 `882e1b0a952e7fed7ab0964462bf42efeadb2a14eea81bc438bf14b690696fb7`.
+- EuroSys'27 permits 12 technical pages plus unlimited references. The current
+  14-page Letter PDF ends technical content on page 12; pages 13--14 contain
+  references only. Public and private contact sheets show no clipping or table
+  overlap after the final reflow.
+- Scientific readiness remains blocked on a genuine v2 real-online model
+  selector result; this is deliberately not converted into a READY claim.
+
 ## Resources
 
 - `/home/shuhao/SAGE/AGENTS.md`

@@ -326,6 +326,29 @@
 | 2026-07-18 | Two combined doc/planning patches missed current context | 2 | Reapplied as narrow patches with exact context. |
 | 2026-07-18 | Ruff found an unused `shutil` import in the packager | 1 | Removed it; all checks pass. |
 
+## 2026-07-19 Cross-Submission Audit Update
+
+- Collected three independent read-only reviews and recorded a single NOT READY
+  disposition with evidence-based v1/v2 scope adjudication.
+- Committed and pushed mechanism/runtime/statistics/related-work repairs as
+  `bb140c0`, then ran clean development, held-out, and 27-row runtime matrices
+  without NPU, endpoint, model, or credentials.
+- Rebuilt the anonymous package with constant `artifact/` root, exact raw and
+  inventory closure, controlled baselines, v2 matrices, supplied-checkpoint
+  runtime evidence, bundled verifier, and standard-library environment record.
+- Independently inspected 1,342 safe tar members, extracted into a fresh
+  temporary directory, and ran the bundled full-profile verifier successfully.
+- Rebuilt public/private PDFs at 14 physical pages on Letter; technical content
+  ends on page 12 and pages 13--14 are references. Both 14-page contact sheets
+  were visually inspected after table/figure/layout repairs.
+- Preserved the remaining scientific blocker: no v2 real-online model-selector
+  increment has been measured.
+- Added a real OpenAI-compatible v2 proposal-ID selector and a grant/SHA-bound
+  online matrix runner. Malformed responses fail closed to exact H0, raw
+  provider envelopes are retained without credentials, and held-out execution
+  requires a matching development gate. The expanded no-NPU suite passes 82
+  tests; no service or hardware was touched.
+
 ## 5-Question Reboot Check
 
 | Question | Answer |
