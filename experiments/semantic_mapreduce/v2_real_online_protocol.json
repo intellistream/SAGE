@@ -6,7 +6,7 @@
   "repository": {
     "path": "/home/shuhao/SAGE",
     "branch": "feature/semantic-mapreduce-paper",
-    "execution_commit": "bb668b0cf8de025697ce813a01b28432fbd333ca",
+    "execution_commit": "fc0978d704630d5d298cff6aa573957eb15dbe3f",
     "execution_commit_must_be_clean_and_pushed": true,
     "protocol_execution_copy": "copy this byte-identical protocol outside the checkout or into an ignored .sage control root before checking out the execution commit",
     "frozen_sources": {
@@ -48,7 +48,7 @@
       },
       "anonymous_artifact_verifier": {
         "path": "tools/benchmark_carrier/verify_semantic_merge_artifact.py",
-        "sha256": "9a4db5dc1ba7b7c37c4a5f3ad40311a400fad2cd991aff04969a579cc82d3e4e"
+        "sha256": "e793c583f1a82844f5099b86905c269e7d48e87b527c4540db58e75b41aeb1ce"
       },
       "managed_service_launcher": {
         "path": "tools/benchmark_carrier/run_npu3_semantic_mapreduce_experiment.sh",
@@ -256,7 +256,7 @@
         "API keys Authorization/Bearer values and environment secrets",
         "unallowlisted raw requests responses logs grants preflight cleanup or release files"
       ],
-      "publication_label": "derived-artifact until the independently implemented anonymous artifact verifier recomputes manifest inventory/hashes and rejects sensitive paths, host/network/service/process/topology identifiers, Git descriptors/revisions/remotes/emails, credentials, and unallowlisted raw/control artifacts; only the exact hash-covered verify.py policy source is self-excluded from matching its own reject-regex literals; never silently relabel raw evidence"
+      "publication_label": "derived-artifact until the independently implemented anonymous artifact verifier recomputes manifest inventory/hashes, content-scans the manifest itself, and rejects sensitive paths, host/network/service/process/topology identifiers, Git descriptors/revisions/remotes/emails, credentials, and unallowlisted raw/control artifacts; only the exact hash-covered verify.py policy source is self-excluded from matching its own reject-regex literals; never silently relabel raw evidence"
     }
   },
   "physical_preflight_logic": {
