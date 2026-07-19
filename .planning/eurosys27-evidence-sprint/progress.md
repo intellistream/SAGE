@@ -133,3 +133,24 @@
   semantic F1 is 0.5161/0.8000/1.0000/1.0000. Evidence is `replay` and
   explicitly label-conditioned, not end-to-end detection. Focused regression
   selection passes: 49 tests.
+- 2026-07-19: From clean pushed commit `d5ba73d`, regenerated the nine-family x
+  three-seed model-free runtime-contract matrix. All 27 rows pass commit,
+  invalid-edit rejection, baseline preservation, checkpoint restore, and
+  deterministic replay; its reproducible directory digest is
+  `7330905cb605a32b63e0b01acec0305c3e6b8b0407a29c240cc51eff4161d060`.
+- 2026-07-19: Froze the final 693-file anonymous review archive with the primary
+  five-sample real-online matrix, 243 raw same-family 14B reports, external
+  label-conditioned reducer replay, and runtime-contract matrix. Full-profile
+  verification passes; independent extraction finds zero identity/repository,
+  email, exact Git revision, or private-IP markers. Archive SHA-256 is
+  `f590fde5a371c2d663ebeddd9b609fe4d6ea74a5f36c794e9fd3fbad2d73d4a0`.
+- 2026-07-19: Rebuilt the final private-title and public-title PDFs. Both are 12
+  letter-size pages with embedded fonts. The private PDF has zero identity,
+  email, or replacement-glyph matches and SHA-256
+  `d6ec9658b82481e771c9b0af0459278566c60c0b09d32299f74dcdcb47794fbf`;
+  the public technical-report PDF SHA-256 is
+  `570d8dc37f524f36eda187a62b9ce37cc9b371f8e6c754ac24050e3fe8529c11`.
+- 2026-07-19: Added and ran a fail-closed submission-claim verifier. It passes
+  the two-scale F1/paired-CI/call-conditioned-cost checks, external replay
+  scope, 27-row runtime matrix, archive checksum, and paper claim literals.
+  The final relevant regression selection remains `49 passed`.

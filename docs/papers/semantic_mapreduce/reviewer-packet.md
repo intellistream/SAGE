@@ -67,3 +67,12 @@ schema and coverage gate.
   or production generality.
 - The prototype does not replace Spark, Flink, Ray, databases, observability
   tools, LangGraph, LlamaIndex, or data+AI platforms.
+
+## Frozen Review Evidence
+
+The anonymous 693-file bundle contains the five-sample primary matrix, 243 raw
+same-family second-scale reports, the label-conditioned external reducer replay,
+and the 27-row derived runtime-contract matrix. Its archive checksum and every
+submission-facing number/scope literal pass the artifact and submission-claim
+verifiers. This supports the bounded runtime-operator claim only; it does not
+remove the cross-family, non-oracle external MapEvidence, or production gap.

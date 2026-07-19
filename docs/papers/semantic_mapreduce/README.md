@@ -313,7 +313,15 @@ deviation is zero and exact action agreement averages 0.9926. The validator
 rejects four proposed actions; invalid schema and fallback remain zero. The
 three-budget curve retains budget 4 as a failed quality point (F1 0.7791), while
 budgets 8 and 12 pass. The anonymous archive SHA-256 is
-`c92cb17f5e43a3a5b3699a736fc5bb410af9ffaf397d0773f63b2e41be4705d5`.
+`f590fde5a371c2d663ebeddd9b609fe4d6ea74a5f36c794e9fd3fbad2d73d4a0`.
+It contains 693 files: the five-sample primary matrix, the three-sample 14B
+same-family matrix (243 raw reports), the AIOpsArena label-conditioned
+reducer-only replay, the 27-row model-free runtime-contract matrix, and
+allowlisted endpoint/cost provenance. These evidence classes retain their
+distinct `real-online`, `replay`, and `derived-artifact` labels.
+Run `tools/benchmark_carrier/verify_semantic_mapreduce_submission_claims.py`
+with the frozen primary/second-scale summaries, external replay, runtime
+aggregate, archive, and paper paths to fail closed on numeric or scope drift.
 
 The older `000c513-anonymous` archive is retained only as a failed anonymity
 test case and must not be submitted: its exact public Git revision can identify
@@ -697,7 +705,7 @@ Clean replay artifact at commit `e0ffdff`:
 The corresponding clean nine-family runtime-contract matrix is:
 
 ```text
-.sage/benchmarks/semantic_mapreduce_runtime_contract/20260718T-eurosys27-9family-3seed-e0ffdff-clean/
+.sage/benchmarks/semantic_mapreduce_runtime_contract/20260719T-eurosys27-final-d5ba73d-clean/
 ```
 
 Current NPU3 semantic-merge matrix artifact:

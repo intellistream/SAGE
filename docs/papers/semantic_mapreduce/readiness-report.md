@@ -70,10 +70,14 @@ Anonymous submission artifact package:
 
 ```text
 .sage/benchmarks/semantic-reduction-eurosys27-review-evidence.tar.gz
-sha256: c92cb17f5e43a3a5b3699a736fc5bb410af9ffaf397d0773f63b2e41be4705d5
+sha256: f590fde5a371c2d663ebeddd9b609fe4d6ea74a5f36c794e9fd3fbad2d73d4a0
 ```
 
-The `.sage/` tree is ignored by git, so this archive should be attached as a
+The final archive contains 693 files. Its supplementary evidence includes all
+243 raw 14B reports, the AIOpsArena label-conditioned reducer-only replay, and
+the clean 27-row model-free runtime-contract matrix. An independent extraction
+found zero identity/repository markers, emails, exact 40-hex Git revisions, or
+private IPs. The `.sage/` tree is ignored by git, so this archive should be attached as a
 separate artifact rather than committed. The raw local evidence remains intact;
 the submission package uses an allowlist, replaces identity-bearing paths,
 hostnames, private IPs, Git commits/branches, repository/runtime names, key
@@ -220,7 +224,7 @@ remain explicit rather than being reported as successful model actions.
 - The runtime-contract matrix covers nine families x seeds 7/11/13. All 27
   runs pass valid commit, invalid-edit rejection, baseline preservation,
   checkpoint-digest restoration, and deterministic replay. Artifact:
-  `.sage/benchmarks/semantic_mapreduce_runtime_contract/20260718T-eurosys27-9family-3seed/`.
+  `.sage/benchmarks/semantic_mapreduce_runtime_contract/20260719T-eurosys27-final-d5ba73d-clean/`.
 - The AIOps Challenge 2020 May-29 public replay consumes the official daily ZIP
   without republishing raw rows. It detects 2/4 official fault windows with
   zero false positives over eight matched negative windows (precision 1.0,
@@ -367,7 +371,7 @@ Clean no-credential evidence at parent commit
 `e0ffdffeef7a059ee3059064eb5c86a25307738a`:
 
 ```text
-.sage/benchmarks/semantic_mapreduce_runtime_contract/20260718T-eurosys27-9family-3seed-e0ffdff-clean/
+.sage/benchmarks/semantic_mapreduce_runtime_contract/20260719T-eurosys27-final-d5ba73d-clean/
 .sage/benchmarks/aiops2020_semantic_reduce_contract/20260718T-eurosys27-public-contract-e0ffdff-clean/
 ```
 
@@ -456,7 +460,7 @@ The code, evidence, artifact, paper, and public CFP checks are frozen; only
 author-owned conflicts/identity/HotCRP metadata remain before submission.
 The real-online matrix and machine-executable artifact gates pass. Per-case/seed
 JSON and CSV report F1, support recall, accepted edits, fallback, invalid
-action/schema, tokens, latency, and failure taxonomy. The current PDF has 11
+action/schema, tokens, latency, and failure taxonomy. The current PDF has 12
 total pages and has passed a complete visual inspection. Final submission
 The clean full-coverage rerun, regenerated anonymous package, rebuilt PDF, and
 public policy audit are complete. Author-owned upload checks remain in
@@ -467,11 +471,17 @@ The private-title review PDF is built outside the tracked paper tree with
 title/system-name sources and PDF are ignored and verified as untracked, so
 pushing the public technical report does not reveal the submission title or
 system alias. The 2026-07-19 build is
-11 letter-size pages; all pages were rendered, fonts are embedded, and the
+12 letter-size pages; all pages were rendered, fonts are embedded, and the
 title page, anonymous workload-revision table, online tables, limitations, and
 references have no identity marker, replacement glyph, clipping, overlap, or
 caption drift. Private review PDF SHA-256:
-`6924163cd3fefada557e4ec12234df1b603fc6be7a95623e1344600b25e7049f`.
+`d6ec9658b82481e771c9b0af0459278566c60c0b09d32299f74dcdcb47794fbf`.
+The separately tracked public technical-report PDF SHA-256 is
+`570d8dc37f524f36eda187a62b9ce37cc9b371f8e6c754ac24050e3fe8529c11`.
+The machine-executable submission-claim cross-check
+`tools/benchmark_carrier/verify_semantic_mapreduce_submission_claims.py`
+passes all primary/second-scale F1, paired-unit CI, conditional-cost, external
+scope, 27-row runtime-contract, archive-checksum, and paper-literal checks.
 
 ## Clean Replay Artifact Gate
 

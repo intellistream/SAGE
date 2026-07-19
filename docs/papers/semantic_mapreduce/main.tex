@@ -492,7 +492,7 @@ Table~\ref{tab:action-budget} separates quality from cost rather than claiming a
 
 The benchmark records more than a summary score: configuration, reducer name, injected and detected incidents, matched and missed incident IDs, evidence support, latency, token estimates, and failure classes. In the 2K live smoke, for example, three injected incidents had zero overlapping map candidates; the low F1 therefore diagnoses a coverage failure, not a reducer-quality result.
 
-The online artifact retains each bounded-action response and provider usage envelope, timestamps, request failures, replay IDs, and state digests. The stability and budget summaries are derived from those real-online rows and remain tied to the clean endpoint commit. A second controlled model or endpoint would strengthen external validity but is not part of the supported claim.
+The online artifact retains each bounded-action response and provider usage envelope, timestamps, request failures, replay IDs, and state digests. The stability and budget summaries are derived from those real-online rows and remain tied to their clean endpoint commits. The same-family second scale is part of the supported claim; a cross-family model or independent endpoint would further strengthen external validity but remains untested.
 
 \subsection{Lessons}
 

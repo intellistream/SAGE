@@ -52,7 +52,7 @@ boundary honestly, and prepare a clean, secret-safe submission freeze.
   call-conditioned cost reporting, strict JSON-Schema endpoint smoke, and an
   external label-conditioned reducer-grouping replay with explicit evidence
   boundaries.
-- [in_progress] Rebuild and visually inspect the paper, regenerate and audit the
+- [completed] Rebuild and visually inspect the paper, regenerate and audit the
   multi-evidence anonymous artifact, synchronize readiness and
   umbrella handoff only for completed work, then commit and push the parent
   feature branch and the narrowly scoped umbrella update.

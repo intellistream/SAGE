@@ -29,13 +29,16 @@ optional evidence upgrades.
   `package_semantic_merge_artifact.py`, run its anonymity audit and
   `verify_semantic_merge_artifact.py`, and record the archive SHA-256 here and
   in `readiness-report.md`:
-  `c92cb17f5e43a3a5b3699a736fc5bb410af9ffaf397d0773f63b2e41be4705d5`.
+  `f590fde5a371c2d663ebeddd9b609fe4d6ea74a5f36c794e9fd3fbad2d73d4a0`.
+  The independently extracted package contains 693 files, including 243 raw
+  second-scale reports and the final 27-row runtime-contract matrix; identity,
+  email, exact Git-SHA, and private-IP scans each report zero matches.
   The superseded SHA-bearing archive is explicitly non-submittable.
 - [x] Build the private-title review PDF outside the tracked paper tree, rerun
   focused tests, inspect all rendered pages, and cross-check every paper number
-  against the frozen result manifests and `claim-ledger.md`. The 11-page private
+  against the frozen result manifests and `claim-ledger.md`. The 12-page private
   review PDF SHA-256 is
-  `6924163cd3fefada557e4ec12234df1b603fc6be7a95623e1344600b25e7049f`;
+  `d6ec9658b82481e771c9b0af0459278566c60c0b09d32299f74dcdcb47794fbf`;
   neither its title/system-name sources nor PDF is Git-tracked.
 - [x] Verify the paper against the live EuroSys 2027 CFP: at most 12 technical
   pages plus references, letter/A4 two-column layout, page numbers, double-blind
