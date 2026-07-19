@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import sys
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
@@ -10,6 +12,9 @@ import pytest
 TOOLS = Path(__file__).resolve().parents[2] / "tools/benchmark_carrier"
 sys.path.insert(0, str(TOOLS))
 
+import finalize_semantic_reduce_v2_execution_closure as closure_finalizer  # noqa: E402
+import run_semantic_reduce_edit_v2_online_matrix as online_runner  # noqa: E402
+import verify_semantic_reduce_v2_online_run as online_verifier  # noqa: E402
 from orchestrate_semantic_reduce_v2_authorized_run import (  # noqa: E402
     _scan_and_redact_log,
 )
@@ -38,6 +43,7 @@ def _envelopes() -> tuple[dict, dict, dict]:
     protocol = {
         "repository": {"execution_commit": "c" * 40},
         "service": service,
+        "reservation_shape": {"requested_duration_minutes": 180},
         "experiment": {
             "families": ["one", "two"],
             "development_seeds": [1, 2],
@@ -52,6 +58,9 @@ def _envelopes() -> tuple[dict, dict, dict]:
         "run_ids": {"development": "run-1"},
         "expires_utc": (
             datetime.now(UTC) + timedelta(hours=1)
+        ).isoformat(),
+        "allocation_start_utc": (
+            datetime.now(UTC) - timedelta(hours=3)
         ).isoformat(),
         "resources": {
             "physical_npus": [3],
@@ -86,6 +95,7 @@ def _envelopes() -> tuple[dict, dict, dict]:
         },
         "checks": {
             "port_owner": "exact-grant-service",
+            "port_owner_process_lineage": True,
             "device_owner": "exact-grant-container",
             "models_endpoint": "frozen-served-name-present",
             "structured_output_smoke": "strict-proposal-ids-pass",
@@ -99,6 +109,7 @@ def _envelopes() -> tuple[dict, dict, dict]:
             "free_space_gib": 5,
             "cleanup_armed": True,
         },
+        "prelaunch_sha256": "f" * 64,
     }
     return protocol, grant, preflight
 
@@ -177,3 +188,167 @@ def test_control_log_secret_scanner_records_clean_checksum(tmp_path: Path) -> No
     _scan_and_redact_log(log, api_key="not-present", results=results)
     assert results[0]["status"] == "PASS"
     assert len(results[0]["sha256"]) == 64
+
+
+def test_verifier_statistics_do_not_reuse_runner_implementation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    protocol = {
+        "experiment": {"heldout_repeats": 1},
+        "statistics": {"bootstrap_draws": 100, "bootstrap_seed": 9},
+        "stopping_rules": {"development_max_failure_rate": 0.05},
+    }
+    rows = []
+    for index, (family, model_f1, baseline_f1) in enumerate(
+        (("family-a", 0.8, 0.5), ("family-b", 0.4, 0.6))
+    ):
+        model = {
+            "f1": model_f1,
+            "accepted_edit_count": 1,
+            "merge_count": 1,
+            "split_count": 1,
+            "validator_outcome": "committed",
+            "evidence_conserved": True,
+        }
+        rows.append(
+            {
+                "family": family,
+                "seed": index,
+                "selector_trace": {"outcome": "parsed"},
+                "evaluation": {
+                    "shared_catalog_digest_match": True,
+                    "policies": {
+                        "online_model_selector": model,
+                        "deterministic_selector": {"f1": baseline_f1},
+                    },
+                },
+            }
+        )
+    independent = online_verifier._independent_summary(rows, protocol, "heldout")
+    assert independent == online_runner._summarize(rows, protocol, "heldout")
+    monkeypatch.setattr(online_runner, "_clustered_ci", lambda *args, **kwargs: [9, 9])
+    assert online_runner._summarize(rows, protocol, "heldout") != independent
+    assert online_verifier._independent_summary(rows, protocol, "heldout") == independent
+
+
+def test_final_closure_requires_and_binds_central_release_ack(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def write(path: Path, payload: dict) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+    def digest(path: Path) -> str:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    protocol_path = tmp_path / "protocol.json"
+    protocol = {
+        "repository": {"execution_commit": "c" * 40},
+        "service": {
+            "physical_npu": 3,
+            "port": 18383,
+            "managed_unit": "unit.service",
+            "container": "container",
+        },
+    }
+    write(protocol_path, protocol)
+    protocol_sha = digest(protocol_path)
+    raw = tmp_path / "raw"
+    for name in ("manifest.json", "row-ledger.json", "summary.json"):
+        write(raw / name, {"name": name})
+    control = tmp_path / "control"
+    release = {
+        "status": "REQUEST_ONLY_CENTRAL_ACK_REQUIRED",
+        "queue_mutation_performed": False,
+        "release_requested_utc": "2026-07-19T12:00:00Z",
+    }
+    write(control / "release-request.json", release)
+    write(control / "verification.json", {"status": "PASS"})
+    write(control / "raw-secret-scan.json", {"status": "PASS"})
+    write(control / "control-secret-scan.json", {"status": "PASS"})
+    write(control / "cleanup-observation.json", {"status": "PASS"})
+    write(
+        control / "prelaunch.json",
+        {
+            "protocol_sha256": protocol_sha,
+            "repository_commit": "c" * 40,
+            "grant_sha256": "g" * 64,
+            "split": "heldout",
+            "run_id": "run",
+        },
+    )
+    write(
+        control / "postlaunch.json",
+        {
+            **json.loads((control / "prelaunch.json").read_text()),
+            "prelaunch_sha256": digest(control / "prelaunch.json"),
+            "checks": {"port_owner_process_lineage": True},
+        },
+    )
+    inventory = {
+        str(path.relative_to(control)): digest(path)
+        for path in sorted(control.iterdir())
+    }
+    handoff_path = control / "execution-handoff.json"
+    handoff = {
+        "status": "LOCAL_GATES_PASS_PENDING_CENTRAL_RELEASE_ACK",
+        "paper_admissible": False,
+        "protocol_sha256": protocol_sha,
+        "repository_commit": "c" * 40,
+        "grant_sha256": "g" * 64,
+        "split": "heldout",
+        "run_id": "run",
+        "raw_root": str(raw),
+        "raw_manifest_sha256": digest(raw / "manifest.json"),
+        "raw_ledger_sha256": digest(raw / "row-ledger.json"),
+        "raw_summary_sha256": digest(raw / "summary.json"),
+        "verified_row_count": 200,
+        "control_inventory": inventory,
+        "release_request_sha256": digest(control / "release-request.json"),
+    }
+    write(handoff_path, handoff)
+    ack_path = tmp_path / "ack.json"
+    ack = {
+        "status": "RELEASE_ACKNOWLEDGED",
+        "protocol_sha256": protocol_sha,
+        "repository_commit": "c" * 40,
+        "grant_sha256": "g" * 64,
+        "release_request_sha256": digest(control / "release-request.json"),
+        "split": "heldout",
+        "run_id": "run",
+        "released_resources": {
+            "physical_npus": [3],
+            "port": 18383,
+            "managed_unit": "unit.service",
+            "container": "container",
+        },
+        "acknowledged_utc": "2026-07-19T12:01:00Z",
+        "central_writer_id": "queue-writer",
+    }
+    write(ack_path, ack)
+    output = tmp_path / "closure.json"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "finalize",
+            "--protocol",
+            str(protocol_path),
+            "--expected-protocol-sha256",
+            protocol_sha,
+            "--execution-handoff",
+            str(handoff_path),
+            "--central-release-ack",
+            str(ack_path),
+            "--output",
+            str(output),
+        ],
+    )
+    assert closure_finalizer.main() == 0
+    assert json.loads(output.read_text())["paper_admissible"] is True
+
+
+def test_verifier_rejects_timezone_naive_timestamps() -> None:
+    with pytest.raises(SystemExit, match="timezone-aware"):
+        online_verifier._timestamp("2026-07-19T12:00:00")
+    assert online_verifier._timestamp("2026-07-19T12:00:00Z").utcoffset() is not None

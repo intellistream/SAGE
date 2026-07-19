@@ -6,12 +6,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import random
+import re
+import statistics
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
-
-from run_semantic_reduce_edit_v2_online_matrix import _secret_hits, _summarize
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -31,6 +32,105 @@ def _fail(message: str) -> None:
     raise SystemExit(f"FAIL: {message}")
 
 
+def _timestamp(value: object) -> datetime:
+    parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        _fail("timestamp is not timezone-aware")
+    return parsed
+
+
+def _generic_secret_hits(payload: object) -> list[str]:
+    text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    patterns = {
+        "authorization-field": r'(?i)"authorization"\s*:\s*"(?!REDACTED)[^"]+"',
+        "api-key-field": r'(?i)"api[_-]?key"\s*:\s*"(?!REDACTED)[^"]+"',
+        "bearer-token": r"(?i)bearer\s+[A-Za-z0-9._~+/=-]{8,}",
+    }
+    return [name for name, pattern in patterns.items() if re.search(pattern, text)]
+
+
+def _independent_summary(
+    rows: list[dict[str, Any]], protocol: dict[str, Any], split: str
+) -> dict[str, Any]:
+    grouped: dict[tuple[str, int], list[float]] = {}
+    model_f1: list[float] = []
+    deterministic_f1: list[float] = []
+    failures = safety_failures = edits = merges = splits = rejections = 0
+    for row in rows:
+        policies = row["evaluation"]["policies"]
+        model = policies["online_model_selector"]
+        baseline = policies["deterministic_selector"]
+        model_f1.append(float(model["f1"]))
+        deterministic_f1.append(float(baseline["f1"]))
+        grouped.setdefault((row["family"], int(row["seed"])), []).append(
+            float(model["f1"]) - float(baseline["f1"])
+        )
+        failures += row["selector_trace"]["outcome"] != "parsed"
+        safety_failures += (
+            row["evaluation"]["shared_catalog_digest_match"] is not True
+            or model["evidence_conserved"] is not True
+        )
+        edits += int(model["accepted_edit_count"])
+        merges += int(model["merge_count"])
+        splits += int(model["split_count"])
+        rejections += model["validator_outcome"] == "rejected"
+    unit_means = {
+        key: statistics.fmean(values) for key, values in grouped.items()
+    }
+    family_units: dict[str, list[float]] = {}
+    for (family, _seed), value in unit_means.items():
+        family_units.setdefault(family, []).append(value)
+    families = sorted(family_units)
+    rng = random.Random(protocol["statistics"]["bootstrap_seed"])
+    boot: list[float] = []
+    for _ in range(protocol["statistics"]["bootstrap_draws"]):
+        sample = [rng.choice(families) for _ in range(len(families))]
+        boot.append(
+            statistics.fmean(
+                value for family in sample for value in family_units[family]
+            )
+        )
+    boot.sort()
+    draws = len(boot)
+    result: dict[str, Any] = {
+        "evidence_label": "real-online",
+        "split": split,
+        "row_count": len(rows),
+        "unit_count": len(unit_means),
+        "repeats_per_unit": protocol["experiment"][f"{split}_repeats"],
+        "model_mean_f1": round(statistics.fmean(model_f1), 6),
+        "deterministic_mean_f1": round(statistics.fmean(deterministic_f1), 6),
+        "paired_unit_delta_mean": round(statistics.fmean(unit_means.values()), 6),
+        "family_clustered_bootstrap_95ci": [
+            round(boot[int(0.025 * (draws - 1))], 6),
+            round(boot[int(0.975 * (draws - 1))], 6),
+        ],
+        "unit_wins_ties_losses": {
+            "wins": sum(value > 1e-12 for value in unit_means.values()),
+            "ties": sum(abs(value) <= 1e-12 for value in unit_means.values()),
+            "losses": sum(value < -1e-12 for value in unit_means.values()),
+        },
+        "request_or_parser_failure_count": int(failures),
+        "request_or_parser_failure_rate": round(failures / len(rows), 6),
+        "safety_failure_count": int(safety_failures),
+        "accepted_edit_count": edits,
+        "accepted_merge_count": merges,
+        "accepted_split_count": splits,
+        "validator_rejection_count": int(rejections),
+        "online_execution_performed": True,
+    }
+    if split == "development":
+        result["development_gate"] = (
+            "PASS"
+            if safety_failures == 0
+            and result["request_or_parser_failure_rate"]
+            <= protocol["stopping_rules"]["development_max_failure_rate"]
+            and min(edits, merges, splits) > 0
+            else "FAIL"
+        )
+    return result
+
+
 def verify_run(
     raw_root: Path,
     *,
@@ -39,8 +139,8 @@ def verify_run(
 ) -> dict[str, Any]:
     raw_root = raw_root.resolve()
     manifest = _load(raw_root / "manifest.json")
-    if manifest.get("status") != "PASS":
-        _fail("manifest is not PASS")
+    if manifest.get("status") != "PROVISIONAL_COMPLETE":
+        _fail("raw manifest is not provisionally complete")
     if manifest.get("evidence_label") != "real-online":
         _fail("wrong evidence label")
     if manifest.get("visibility") != "private-nonanonymous":
@@ -60,7 +160,8 @@ def verify_run(
     actual = {
         path.name
         for path in raw_root.iterdir()
-        if path.is_file() and path.name not in {"manifest.json", "development-gate.json"}
+        if path.is_file()
+        and path.name not in {"manifest.json", "development-candidate.json"}
     }
     if set(inventory) != actual:
         _fail("manifest inventory is not exact")
@@ -115,12 +216,11 @@ def verify_run(
         "status": grant.get("status") == "GRANTED",
         "protocol": grant.get("protocol_sha256") == expected_protocol_sha256,
         "commit": grant.get("repository_commit") == expected_repository_commit,
-        "split": split in grant.get("authorized_splits", []),
+        "split": grant.get("authorized_splits") == [split],
         "run-id": grant.get("run_ids", {}).get(split) == run_id,
-        "expiry": datetime.fromisoformat(
-            str(grant.get("expires_utc")).replace("Z", "+00:00")
-        )
-        > datetime.now(timezone.utc),
+        "allocation-window": _timestamp(grant.get("expires_utc"))
+        - _timestamp(grant.get("allocation_start_utc"))
+        >= timedelta(minutes=protocol["reservation_shape"]["requested_duration_minutes"]),
         "resources": grant.get("resources", {}).get("physical_npus")
         == [service["physical_npu"]]
         and grant.get("resources", {}).get("npu_count") == service["npu_count"]
@@ -143,6 +243,21 @@ def verify_run(
     }
     if failed := [name for name, passed in grant_checks.items() if not passed]:
         _fail("grant provenance mismatch: " + ",".join(failed))
+    if split == "heldout":
+        development = _load(raw_root / "development-closure.json")
+        heldout_checks = {
+            "closure-pass": development.get("status") == "PASS"
+            and development.get("paper_admissible") is True
+            and development.get("split") == "development",
+            "closure-sha": grant.get("development_closure_sha256")
+            == _sha256(raw_root / "development-closure.json"),
+            "raw-root": grant.get("development_raw_root")
+            == development.get("raw_root"),
+            "temporal": _timestamp(grant.get("issued_at_utc"))
+            > _timestamp(development.get("completed_utc")),
+        }
+        if failed := [name for name, passed in heldout_checks.items() if not passed]:
+            _fail("heldout development-closure binding failed: " + ",".join(failed))
     preflight_checks = {
         "status": preflight.get("status") == "PASS",
         "protocol": preflight.get("protocol_sha256") == expected_protocol_sha256,
@@ -166,11 +281,31 @@ def verify_run(
         "smoke": preflight.get("checks", {}).get("structured_output_smoke")
         == "strict-proposal-ids-pass",
         "secret-scan": preflight.get("checks", {}).get("raw_secret_scan") == "PASS",
+        "prelaunch-binding": isinstance(preflight.get("prelaunch_sha256"), str)
+        and len(preflight["prelaunch_sha256"]) == 64,
+        "port-lineage": preflight.get("checks", {}).get(
+            "port_owner_process_lineage"
+        )
+        is True,
     }
     if failed := [name for name, passed in preflight_checks.items() if not passed]:
         _fail("preflight provenance mismatch: " + ",".join(failed))
-    for name in ("protocol.json", "grant.json", "preflight.json", "service-models.json"):
-        if _secret_hits(_load(raw_root / name), api_key="__UNMATCHABLE_SECRET_SENTINEL__"):
+    if not (
+        _timestamp(grant.get("allocation_start_utc"))
+        <= _timestamp(preflight.get("captured_utc"))
+        <= _timestamp(grant.get("expires_utc"))
+    ):
+        _fail("preflight timestamp is outside the immutable grant window")
+    provenance_names = [
+        "protocol.json",
+        "grant.json",
+        "preflight.json",
+        "service-models.json",
+    ]
+    if split == "heldout":
+        provenance_names.append("development-closure.json")
+    for name in provenance_names:
+        if _generic_secret_hits(_load(raw_root / name)):
             _fail(f"generic secret scanner failed: {name}")
 
     seeds = {int(value) for value in protocol["experiment"][f"{split}_seeds"]}
@@ -202,9 +337,17 @@ def verify_run(
             _fail("sequence index drift")
         if row.get("row_key") != entry["row_key"]:
             _fail("row key/ledger mismatch")
-        if not row.get("started_utc") or not row.get("completed_utc"):
-            _fail("row timestamps missing")
-        if _secret_hits(row, api_key="__UNMATCHABLE_SECRET_SENTINEL__"):
+        started, completed = _timestamp(row.get("started_utc")), _timestamp(
+            row.get("completed_utc")
+        )
+        if not (
+            _timestamp(grant.get("allocation_start_utc"))
+            <= started
+            <= completed
+            <= _timestamp(grant.get("expires_utc"))
+        ):
+            _fail("row timestamp is outside grant window or negatively ordered")
+        if _generic_secret_hits(row):
             _fail(f"generic secret scanner failed: {row_path.name}")
         evaluation = row.get("evaluation", {})
         if evaluation.get("shared_catalog_digest_match") is not True:
@@ -215,7 +358,7 @@ def verify_run(
         rows.append(row)
 
     observed_summary = _load(raw_root / "summary.json")
-    recomputed = _summarize(rows, protocol, split)
+    recomputed = _independent_summary(rows, protocol, split)
     for key, value in recomputed.items():
         if observed_summary.get(key) != value:
             _fail(f"summary mismatch: {key}")
@@ -225,15 +368,26 @@ def verify_run(
         _fail("summary repository commit mismatch")
     if observed_summary.get("grant_sha256") != manifest.get("grant_sha256"):
         _fail("summary grant digest mismatch")
+    if not (
+        _timestamp(grant.get("allocation_start_utc"))
+        <= _timestamp(observed_summary.get("completed_utc"))
+        <= _timestamp(grant.get("expires_utc"))
+    ):
+        _fail("summary completion timestamp is outside the grant window")
     if manifest.get("completed_row_count") != len(expected_keys):
         _fail("manifest completed-row count mismatch")
     if manifest.get("secret_scan") != "PASS":
         _fail("runner exact-value secret scan did not pass")
 
     if split == "development":
-        gate_path = raw_root / "development-gate.json"
+        gate_path = raw_root / "development-candidate.json"
         gate = _load(gate_path)
-        if gate.get("status") != recomputed.get("development_gate"):
+        expected_candidate_status = (
+            "PROVISIONAL_AWAITING_FINAL_CLOSURE"
+            if recomputed.get("development_gate") == "PASS"
+            else "FAILED_ADMISSION"
+        )
+        if gate.get("status") != expected_candidate_status:
             _fail("development predicate mismatch")
         if gate.get("manifest_sha256") != _sha256(raw_root / "manifest.json"):
             _fail("development gate manifest digest mismatch")

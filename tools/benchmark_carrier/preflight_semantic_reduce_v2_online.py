@@ -7,11 +7,12 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +49,13 @@ def _port_open(port: int) -> bool:
     with socket.socket() as sock:
         sock.settimeout(0.5)
         return sock.connect_ex(("127.0.0.1", port)) == 0
+
+
+def _listener_pids(port: int) -> set[int]:
+    output = _run(
+        "sudo", "-n", "ss", "-H", "-ltnp", "sport", "=", f":{port}"
+    )
+    return {int(value) for value in re.findall(r"pid=(\d+)", output)}
 
 
 def _secret_free(payload: object, api_key: str) -> bool:
@@ -142,8 +150,13 @@ def _validate_static(
         "protocol": grant.get("protocol_sha256") == protocol_sha,
         "commit": grant.get("repository_commit") == commit,
         "status": grant.get("status") == "GRANTED",
+        "allocation-started": _utc(grant.get("allocation_start_utc"))
+        <= datetime.now(timezone.utc),
         "expiry": _utc(grant.get("expires_utc")) > datetime.now(timezone.utc),
-        "split": split in grant.get("authorized_splits", []),
+        "allocation-duration": _utc(grant.get("expires_utc"))
+        - _utc(grant.get("allocation_start_utc"))
+        >= timedelta(minutes=protocol["reservation_shape"]["requested_duration_minutes"]),
+        "split": grant.get("authorized_splits") == [split],
         "run-id": grant.get("run_ids", {}).get(split) == run_id,
         "npu": grant.get("resources", {}).get("physical_npus")
         == [service["physical_npu"]],
@@ -269,10 +282,51 @@ def main() -> int:
             raise SystemExit("granted NPU is not idle before launch")
         if _port_open(port):
             raise SystemExit("granted port is not free before launch")
-        checks.update({"device_idle": True, "port_free": True})
+        unit_state = _run(
+            "systemctl", "--user", "show", "-p", "LoadState", "--value",
+            service["managed_unit"], check=False
+        ).strip()
+        container_inspect = subprocess.run(
+            ["sudo", "-n", "docker", "inspect", service["container"]],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        if unit_state not in {"", "not-found"}:
+            raise SystemExit("grant-named managed unit already exists before launch")
+        if container_inspect.returncode == 0:
+            raise SystemExit("grant-named container already exists before launch")
+        checks.update(
+            {
+                "device_idle": True,
+                "port_free": True,
+                "managed_unit_absent": True,
+                "container_absent": True,
+            }
+        )
     else:
-        if not args.prelaunch or _load(args.prelaunch).get("status") != "PASS_PRELAUNCH":
+        if not args.prelaunch:
             raise SystemExit("postlaunch requires the matching passing prelaunch record")
+        prelaunch = _load(args.prelaunch)
+        expected_prelaunch = {
+            "status": "PASS_PRELAUNCH",
+            "protocol_sha256": args.protocol_sha256,
+            "repository_commit": commit,
+            "grant_sha256": grant_sha,
+            "split": args.split,
+            "run_id": args.run_id,
+        }
+        if any(prelaunch.get(key) != value for key, value in expected_prelaunch.items()):
+            raise SystemExit("prelaunch record provenance mismatch")
+        if not all(
+            prelaunch.get("checks", {}).get(key) is True
+            for key in (
+                "device_idle",
+                "port_free",
+                "managed_unit_absent",
+                "container_absent",
+            )
+        ):
+            raise SystemExit("prelaunch ownership/idle predicates are incomplete")
         container = service["container"]
         unit = service["managed_unit"]
         running = _run(
@@ -288,6 +342,9 @@ def main() -> int:
             raise SystemExit("managed unit/container does not exactly own granted NPU")
         if not _port_open(port):
             raise SystemExit("granted port is not listening")
+        listener_pids = _listener_pids(port)
+        if not listener_pids or not listener_pids <= container_pids:
+            raise SystemExit("listening socket is not owned by the grant container")
         api_key = os.environ.get(service["api_key_env"])
         if not api_key:
             raise SystemExit("API key missing for model identity probe")
@@ -307,6 +364,7 @@ def main() -> int:
             {
                 "device_owner": "exact-grant-container",
                 "port_owner": "exact-grant-service",
+                "port_owner_process_lineage": True,
                 "models_endpoint": "frozen-served-name-present",
                 "structured_output_smoke": "strict-proposal-ids-pass",
                 "raw_secret_scan": "PASS",
@@ -316,6 +374,7 @@ def main() -> int:
             {
                 "container_pids": sorted(container_pids),
                 "granted_device_pids": sorted(device_pids),
+                "listener_pids": sorted(listener_pids),
                 "model_ids": model_ids,
                 "models_endpoint_response": models,
                 "structured_output_smoke": smoke,
@@ -341,6 +400,8 @@ def main() -> int:
         "observations": observations,
         "captured_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
+    if args.phase == "postlaunch":
+        result["prelaunch_sha256"] = _sha256(args.prelaunch)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(result, separators=(",", ":"), sort_keys=True))

@@ -14,7 +14,7 @@ import statistics
 import subprocess
 import sys
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -117,6 +117,8 @@ def _validate_authorization(
     grant_sha: str,
     split: str,
     run_id: str,
+    development_closure: dict[str, Any] | None = None,
+    development_closure_sha: str | None = None,
 ) -> None:
     service = protocol["service"]
     expected = protocol["repository"]["execution_commit"]
@@ -126,7 +128,7 @@ def _validate_authorization(
         "grant-status": grant.get("status") == "GRANTED",
         "protocol-sha": grant.get("protocol_sha256") == protocol_sha,
         "execution-commit": grant.get("repository_commit") == expected,
-        "authorized-split": split in grant.get("authorized_splits", []),
+        "authorized-split": grant.get("authorized_splits") == [split],
         "run-id": grant.get("run_ids", {}).get(split) == run_id,
         "physical-npu": grant.get("resources", {}).get("physical_npus")
         == [service["physical_npu"]],
@@ -147,7 +149,12 @@ def _validate_authorization(
         == service["model_config_sha256"],
         "generation-config": grant_model.get("generation_config_sha256")
         == service["generation_config_sha256"],
+        "allocation-started": _utc(grant.get("allocation_start_utc"))
+        <= datetime.now(timezone.utc),
         "unexpired": _utc(grant.get("expires_utc")) > datetime.now(timezone.utc),
+        "allocation-duration": _utc(grant.get("expires_utc"))
+        - _utc(grant.get("allocation_start_utc"))
+        >= timedelta(minutes=protocol["reservation_shape"]["requested_duration_minutes"]),
         "preflight-pass": preflight.get("status") == "PASS",
         "preflight-protocol": preflight.get("protocol_sha256") == protocol_sha,
         "preflight-commit": preflight.get("repository_commit") == expected,
@@ -162,6 +169,10 @@ def _validate_authorization(
         == service["container"],
         "preflight-port-owner": preflight.get("checks", {}).get("port_owner")
         == "exact-grant-service",
+        "preflight-port-lineage": preflight.get("checks", {}).get(
+            "port_owner_process_lineage"
+        )
+        is True,
         "preflight-device-owner": preflight.get("checks", {}).get("device_owner")
         == "exact-grant-container",
         "preflight-models": preflight.get("checks", {}).get("models_endpoint")
@@ -190,7 +201,25 @@ def _validate_authorization(
         "preflight-disk": preflight.get("checks", {}).get("free_space_gib", 0) >= 5,
         "preflight-cleanup": preflight.get("checks", {}).get("cleanup_armed")
         is True,
+        "preflight-prelaunch-binding": isinstance(
+            preflight.get("prelaunch_sha256"), str
+        )
+        and len(preflight["prelaunch_sha256"]) == 64,
     }
+    if split == "heldout":
+        conditions.update(
+            {
+                "development-closure-present": development_closure is not None,
+                "development-closure-sha": grant.get(
+                    "development_closure_sha256"
+                )
+                == development_closure_sha,
+                "development-raw-root": grant.get("development_raw_root")
+                == (development_closure or {}).get("raw_root"),
+                "grant-issued-after-development": _utc(grant.get("issued_at_utc"))
+                > _utc((development_closure or {}).get("completed_utc")),
+            }
+        )
     failures = [name for name, passed in conditions.items() if not passed]
     if failures:
         raise ValueError("authorization/preflight rejected: " + ", ".join(failures))
@@ -379,6 +408,19 @@ def _live_authority_check(
         sock.settimeout(0.5)
         if sock.connect_ex(("127.0.0.1", int(service["port"]))) != 0:
             raise RuntimeError("grant-named port is no longer listening")
+    listeners = subprocess.run(
+        [
+            "sudo", "-n", "ss", "-H", "-ltnp", "sport", "=",
+            f":{service['port']}",
+        ],
+        text=True,
+        capture_output=True,
+    )
+    listener_pids = {
+        int(value) for value in re.findall(r"pid=(\d+)", listeners.stdout)
+    }
+    if listeners.returncode or not listener_pids or not listener_pids <= container_pids:
+        raise RuntimeError("grant-named port lost exact container process ownership")
 
 
 def _expected_rows(protocol: dict[str, Any], split: str) -> int:
@@ -389,18 +431,27 @@ def _expected_rows(protocol: dict[str, Any], split: str) -> int:
     )
 
 
-def _validate_development_gate(
-    gate_path: Path, *, protocol_sha: str, execution_commit: str
+def _validate_development_closure(
+    closure_path: Path,
+    *,
+    protocol: dict[str, Any],
+    protocol_sha: str,
+    execution_commit: str,
 ) -> None:
-    gate = _load(gate_path)
+    gate = _load(closure_path)
     if (
         gate.get("status") != "PASS"
+        or gate.get("paper_admissible") is not True
+        or gate.get("split") != "development"
         or gate.get("protocol_sha256") != protocol_sha
         or gate.get("repository_commit") != execution_commit
         or gate.get("verified_row_count") != 80
-        or gate.get("secret_scan") != "PASS"
+        or gate.get("raw_secret_scan") != "PASS"
+        or gate.get("control_secret_scan") != "PASS"
+        or gate.get("cleanup") != "PASS"
+        or gate.get("central_release_acknowledgement") != "PASS"
     ):
-        raise ValueError("development gate is failed or provenance-mismatched")
+        raise ValueError("development closure is failed or provenance-mismatched")
     raw_root = Path(gate["raw_root"])
     manifest = raw_root / "manifest.json"
     ledger = raw_root / "row-ledger.json"
@@ -413,7 +464,7 @@ def _validate_development_gate(
         raise ValueError("development summary digest mismatch")
     manifest_payload = _load(manifest)
     if (
-        manifest_payload.get("status") != "PASS"
+        manifest_payload.get("status") != "PROVISIONAL_COMPLETE"
         or manifest_payload.get("protocol_sha256") != protocol_sha
         or manifest_payload.get("repository_commit") != execution_commit
         or manifest_payload.get("grant_sha256") != gate.get("grant_sha256")
@@ -425,7 +476,17 @@ def _validate_development_gate(
         if _sha256(raw_root / name) != digest:
             raise ValueError("development manifest inventory digest mismatch")
     entries = _load(ledger).get("rows", [])
-    if len(entries) != 80 or len({item["row_key"] for item in entries}) != 80:
+    expected_keys = {
+        f"{family}|{seed}|{repeat}"
+        for family in protocol["experiment"]["families"]
+        for seed in protocol["experiment"]["development_seeds"]
+        for repeat in range(protocol["experiment"]["development_repeats"])
+    }
+    if (
+        _load(ledger).get("status") != "COMPLETE"
+        or len(entries) != 80
+        or {item["row_key"] for item in entries} != expected_keys
+    ):
         raise ValueError("development row inventory is incomplete or duplicated")
     for entry in entries:
         row_path = raw_root / entry["path"]
@@ -466,7 +527,7 @@ def main() -> int:
     parser.add_argument("--preflight", required=True, type=Path)
     parser.add_argument("--split", choices=("development", "heldout"), required=True)
     parser.add_argument("--run-id", required=True)
-    parser.add_argument("--development-gate", type=Path)
+    parser.add_argument("--development-closure", type=Path)
     args = parser.parse_args()
 
     if not RUN_ID_RE.fullmatch(args.run_id):
@@ -478,6 +539,12 @@ def main() -> int:
         raise SystemExit("protocol SHA mismatch")
     protocol, grant, preflight = _load(args.protocol), _load(args.grant), _load(
         args.preflight
+    )
+    development_closure = (
+        _load(args.development_closure) if args.development_closure else None
+    )
+    development_closure_sha = (
+        _sha256(args.development_closure) if args.development_closure else None
     )
     output_dir = RAW_PARENT / args.protocol_sha256 / f"{args.split}-{args.run_id}"
     if output_dir.exists():
@@ -503,12 +570,15 @@ def main() -> int:
         grant_sha=grant_sha,
         split=args.split,
         run_id=args.run_id,
+        development_closure=development_closure,
+        development_closure_sha=development_closure_sha,
     )
     if args.split == "heldout":
-        if not args.development_gate:
-            raise SystemExit("heldout requires the frozen development gate")
-        _validate_development_gate(
-            args.development_gate,
+        if not args.development_closure:
+            raise SystemExit("heldout requires the final development closure")
+        _validate_development_closure(
+            args.development_closure,
+            protocol=protocol,
             protocol_sha=args.protocol_sha256,
             execution_commit=execution_commit,
         )
@@ -517,6 +587,15 @@ def main() -> int:
     api_key = os.environ.get(api_env)
     if not api_key:
         raise SystemExit(f"missing API key in {api_env}")
+    for name, payload in (
+        ("protocol", protocol),
+        ("grant", grant),
+        ("preflight", preflight),
+        ("development-closure", development_closure or {}),
+    ):
+        hits = _secret_hits(payload, api_key=api_key)
+        if hits:
+            raise SystemExit(f"secret scan failed before raw copy for {name}: {hits}")
     output_dir.mkdir(parents=True)
     state: dict[str, Any] = {
         "schema_version": "semantic-reduce-v2-online-run/2",
@@ -541,6 +620,11 @@ def main() -> int:
     _atomic_bytes(output_dir / "grant.json", args.grant.read_bytes())
     _atomic_bytes(output_dir / "preflight.json", args.preflight.read_bytes())
     _atomic_bytes(output_dir / "protocol.json", args.protocol.read_bytes())
+    if args.development_closure:
+        _atomic_bytes(
+            output_dir / "development-closure.json",
+            args.development_closure.read_bytes(),
+        )
     rows: list[dict[str, Any]] = []
     ledger: dict[str, Any] = {"status": "RUNNING", "rows": []}
     _atomic_json(output_dir / "row-ledger.json", ledger)
@@ -650,11 +734,12 @@ def main() -> int:
             "service-models.json",
             "row-ledger.json",
             "summary.json",
+            *(["development-closure.json"] if args.development_closure else []),
             *[entry["path"] for entry in ledger["rows"]],
         ]
         state.update(
             {
-                "status": "PASS",
+                "status": "PROVISIONAL_COMPLETE",
                 "completed_utc": _now(),
                 "secret_scan": "PASS",
                 "files": {
@@ -666,8 +751,12 @@ def main() -> int:
         manifest_sha = _sha256(output_dir / "manifest.json")
         if args.split == "development":
             gate = {
-                "schema_version": "semantic-reduce-v2-development-gate/1",
-                "status": summary["development_gate"],
+                "schema_version": "semantic-reduce-v2-development-candidate/1",
+                "status": (
+                    "PROVISIONAL_AWAITING_FINAL_CLOSURE"
+                    if summary["development_gate"] == "PASS"
+                    else "FAILED_ADMISSION"
+                ),
                 "protocol_sha256": args.protocol_sha256,
                 "repository_commit": execution_commit,
                 "grant_sha256": grant_sha,
@@ -686,7 +775,7 @@ def main() -> int:
                     "accepted_split_count": summary["accepted_split_count"],
                 },
             }
-            _atomic_json(output_dir / "development-gate.json", gate)
+            _atomic_json(output_dir / "development-candidate.json", gate)
         exit_code = 0 if summary.get("development_gate", "PASS") == "PASS" else 2
         if exit_code:
             failure_reason = "development admission gate failed"

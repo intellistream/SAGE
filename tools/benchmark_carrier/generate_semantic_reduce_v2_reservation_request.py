@@ -185,6 +185,8 @@ def main() -> int:
             "retain failure/cleanup observations in raw root",
             "send release request to the central single writer",
             "wait for central queue release acknowledgement",
+            "run the SHA-bound final closure verifier over raw verification, secret scans, cleanup, release request, and central acknowledgement",
+            "admit heldout only from a heldout-only grant issued after and bound to the final development closure SHA",
         ],
         "non_substitution": protocol["non_substitution"],
     }
