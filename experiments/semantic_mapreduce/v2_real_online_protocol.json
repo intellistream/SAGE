@@ -6,7 +6,7 @@
   "repository": {
     "path": "/home/shuhao/SAGE",
     "branch": "feature/semantic-mapreduce-paper",
-    "execution_commit": "cad0bd081b739c50a8e1b55f2ce0b8a92aae369f",
+    "execution_commit": "bb668b0cf8de025697ce813a01b28432fbd333ca",
     "execution_commit_must_be_clean_and_pushed": true,
     "protocol_execution_copy": "copy this byte-identical protocol outside the checkout or into an ignored .sage control root before checking out the execution commit",
     "frozen_sources": {
@@ -44,11 +44,11 @@
       },
       "anonymous_artifact_packager": {
         "path": "tools/benchmark_carrier/package_semantic_merge_artifact.py",
-        "sha256": "cc0d2819f85492477660c7b3a43b60ae26482fda8a1158a3d4542f349974920b"
+        "sha256": "0b4fb60a1f0ec32b3db5ee3d577447e0c3a121b08e588658cd8ccbe647e730b9"
       },
       "anonymous_artifact_verifier": {
         "path": "tools/benchmark_carrier/verify_semantic_merge_artifact.py",
-        "sha256": "a5866d9606e6838f79d0bae49089a853b91a8468591bbe2c55e46755ebf3cc77"
+        "sha256": "9a4db5dc1ba7b7c37c4a5f3ad40311a400fad2cd991aff04969a579cc82d3e4e"
       },
       "managed_service_launcher": {
         "path": "tools/benchmark_carrier/run_npu3_semantic_mapreduce_experiment.sh",
@@ -256,7 +256,7 @@
         "API keys Authorization/Bearer values and environment secrets",
         "unallowlisted raw requests responses logs grants preflight cleanup or release files"
       ],
-      "publication_label": "derived-artifact until the independently implemented anonymous artifact verifier recomputes manifest inventory/hashes and rejects sensitive paths, host/network/service/process/topology identifiers, Git descriptors/revisions/remotes/emails, credentials, and unallowlisted raw/control artifacts; never silently relabel raw evidence"
+      "publication_label": "derived-artifact until the independently implemented anonymous artifact verifier recomputes manifest inventory/hashes and rejects sensitive paths, host/network/service/process/topology identifiers, Git descriptors/revisions/remotes/emails, credentials, and unallowlisted raw/control artifacts; only the exact hash-covered verify.py policy source is self-excluded from matching its own reject-regex literals; never silently relabel raw evidence"
     }
   },
   "physical_preflight_logic": {
