@@ -165,6 +165,12 @@ def _validate_authorization(
         == "exact-grant-container",
         "preflight-models": preflight.get("checks", {}).get("models_endpoint")
         == "frozen-served-name-present",
+        "preflight-smoke": preflight.get("checks", {}).get(
+            "structured_output_smoke"
+        )
+        == "strict-proposal-ids-pass",
+        "preflight-secret-scan": preflight.get("checks", {}).get("raw_secret_scan")
+        == "PASS",
         "preflight-repo": preflight.get("checks", {}).get("repository_clean") is True,
         "preflight-submodules": preflight.get("checks", {}).get("submodules_clean")
         is True,

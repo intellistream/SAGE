@@ -85,6 +85,8 @@ def _envelopes() -> tuple[dict, dict, dict]:
             "port_owner": "exact-grant-service",
             "device_owner": "exact-grant-container",
             "models_endpoint": "frozen-served-name-present",
+            "structured_output_smoke": "strict-proposal-ids-pass",
+            "raw_secret_scan": "PASS",
             "repository_clean": True,
             "submodules_clean": True,
             "conda_environment": "esage-vllm-hust-dev",

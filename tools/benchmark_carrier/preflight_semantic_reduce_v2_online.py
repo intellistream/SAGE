@@ -50,6 +50,75 @@ def _port_open(port: int) -> bool:
         return sock.connect_ex(("127.0.0.1", port)) == 0
 
 
+def _secret_free(payload: object, api_key: str) -> bool:
+    text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    lowered = text.lower()
+    return (
+        api_key not in text
+        and '"authorization": "bearer ' not in lowered
+        and '"api_key":' not in lowered
+        and '"api-key":' not in lowered
+    )
+
+
+def _structured_smoke(
+    *, service: dict[str, Any], api_key: str
+) -> dict[str, Any]:
+    request_payload = {
+        "model": service["served_model_name"],
+        "messages": [
+            {
+                "role": "system",
+                "content": "Return only a strict JSON proposal_ids object.",
+            },
+            {
+                "role": "user",
+                "content": (
+                    "This is a non-benchmark parser smoke. The only allowed ID is "
+                    "A0001. Return {\"proposal_ids\":[]} or "
+                    "{\"proposal_ids\":[\"A0001\"]}."
+                ),
+            },
+        ],
+        "temperature": 0.0,
+        "seed": 99173,
+        "max_tokens": 64,
+        "response_format": {"type": "json_object"},
+    }
+    request = urllib.request.Request(
+        f"{service['base_url']}/v1/chat/completions",
+        data=json.dumps(request_payload).encode(),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=service["request_timeout_sec"]) as response:
+        body = response.read().decode("utf-8")
+    response_payload = json.loads(body)
+    choices = response_payload.get("choices") or []
+    content = str((choices[0].get("message") or {}).get("content") or "")
+    parsed = json.loads(content)
+    proposal_ids = parsed.get("proposal_ids")
+    if (
+        not isinstance(proposal_ids, list)
+        or not all(isinstance(value, str) for value in proposal_ids)
+        or not set(proposal_ids) <= {"A0001"}
+        or len(proposal_ids) != len(set(proposal_ids))
+    ):
+        raise RuntimeError("structured-output smoke violated strict proposal ID schema")
+    snapshot = {
+        "request_payload": request_payload,
+        "raw_response_body": body,
+        "provider_usage": response_payload.get("usage"),
+        "parsed_proposal_ids": proposal_ids,
+    }
+    if not _secret_free(snapshot, api_key):
+        raise RuntimeError("structured-output smoke retained a credential")
+    return snapshot
+
+
 def _npu_pairs(text: str) -> set[tuple[int, int]]:
     pairs: set[tuple[int, int]] = set()
     for line in text.splitlines():
@@ -231,11 +300,16 @@ def main() -> int:
         model_ids = sorted(str(item.get("id")) for item in models.get("data", []))
         if service["served_model_name"] not in model_ids:
             raise SystemExit("frozen served model absent from /v1/models")
+        smoke = _structured_smoke(service=service, api_key=api_key)
+        if not _secret_free(models, api_key):
+            raise SystemExit("/v1/models snapshot retained a credential")
         checks.update(
             {
                 "device_owner": "exact-grant-container",
                 "port_owner": "exact-grant-service",
                 "models_endpoint": "frozen-served-name-present",
+                "structured_output_smoke": "strict-proposal-ids-pass",
+                "raw_secret_scan": "PASS",
             }
         )
         observations.update(
@@ -243,6 +317,8 @@ def main() -> int:
                 "container_pids": sorted(container_pids),
                 "granted_device_pids": sorted(device_pids),
                 "model_ids": model_ids,
+                "models_endpoint_response": models,
+                "structured_output_smoke": smoke,
             }
         )
     result = {
