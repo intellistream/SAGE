@@ -6,7 +6,7 @@
   "repository": {
     "path": "/home/shuhao/SAGE",
     "branch": "feature/semantic-mapreduce-paper",
-    "execution_commit": "e6488fe56df0b83ce197a5eccedf3a3f64d20626",
+    "execution_commit": "6d0801af1bb6b1ffbb8cb879f5f871eb34b601a1",
     "execution_commit_must_be_clean_and_pushed": true,
     "protocol_execution_copy": "copy this byte-identical protocol outside the checkout or into an ignored .sage control root before checking out the execution commit",
     "frozen_sources": {
@@ -16,27 +16,27 @@
       },
       "runner": {
         "path": "tools/benchmark_carrier/run_semantic_reduce_edit_v2_online_matrix.py",
-        "sha256": "91d26cb8b6d8f6abbd68b8b420cf2fb1dc793ba4338952a2fbc1c89244635236"
+        "sha256": "de657a9ff96188b0b837e2f755f84b468580f759ce8f6e568a2a4099c635abfe"
       },
       "verifier": {
         "path": "tools/benchmark_carrier/verify_semantic_reduce_v2_online_run.py",
-        "sha256": "497fb94cbc3a5dc55be44c97ca52fe0a8b7815b49130a06b82ff46113506f720"
+        "sha256": "1674fb15852f1537571e4621429dd503511403877c741185164af10b9d8a7a5d"
       },
       "physical_preflight": {
         "path": "tools/benchmark_carrier/preflight_semantic_reduce_v2_online.py",
-        "sha256": "4b0c16578cb4413e6c9b57f33519f23c8ce9ddde1d6eba980dc49537e276cb3c"
+        "sha256": "112efb64fa5fbda198779582d8426cc65fec4a734ce5634508dc746da824793e"
       },
       "authorized_orchestrator": {
         "path": "tools/benchmark_carrier/orchestrate_semantic_reduce_v2_authorized_run.py",
-        "sha256": "30581cdbb18e6efeda27585cc8563897f51d352b888fefcc8f5eed3bbe490dcd"
+        "sha256": "4b746a7db4db0c4f7be0fe5ada2b98a7ea2c06243133eeb1437ef9b1c2df5826"
       },
       "final_closure_verifier": {
         "path": "tools/benchmark_carrier/finalize_semantic_reduce_v2_execution_closure.py",
-        "sha256": "fabaf34005dd878f8e3e61ad48712c02b0d1a26843ffb31b84bb26af772f3080"
+        "sha256": "4a05cebe7d6dd403d396cd558f908347bff31d300171488a654a0c645096c5ba"
       },
       "reservation_request_generator": {
         "path": "tools/benchmark_carrier/generate_semantic_reduce_v2_reservation_request.py",
-        "sha256": "11da2e6712e999c4150fa2d35eeaeabf0450dbc75bfbc8c659f7b7f286188281"
+        "sha256": "25cdbc6ac4dbfc7b6a34338201dccefecde9c3f1c79d487410edcbfb38b2b2a7"
       },
       "managed_service_launcher": {
         "path": "tools/benchmark_carrier/run_npu3_semantic_mapreduce_experiment.sh",
@@ -89,7 +89,7 @@
       "protocol_sha256",
       "repository_commit",
       "exactly one authorized split and its exact run_id",
-      "issued_at_utc allocation_start_utc and expires_utc spanning the requested 210-minute allocation, with at least 180 minutes remaining at runner admission",
+      "timezone-aware issued_at_utc <= allocation_start_utc <= admission time < expires_utc, spanning the requested 210-minute allocation with at least 180 minutes remaining at runner admission",
       "one physical NPU with ID 3 and the frozen topology",
       "base_url port managed_unit container and manager",
       "served_model_name model path config SHA256 and generation-config SHA256"
@@ -98,6 +98,19 @@
     "heldout_authorization": "separate heldout-only grant issued strictly after final development closure; grant binds development closure SHA256 and canonical development raw root",
     "heldout_rerun": "forbidden unless a fresh central grant carries a nonempty heldout_rerun_authorization_id",
     "credentials": "API key is supplied only through VLLM_HUST_API_KEY and is never part of request, grant, preflight, row, manifest, or log artifacts"
+  },
+  "central_release_ack_contract": {
+    "queue_repository": "/home/shuhao/llm-optimizations",
+    "queue_origin_url": "git@github.com:Qixin-Gaoke/llm-optimizations.git",
+    "queue_branch": "main",
+    "queue_base_commit": "e006bb295f54f8957c77eb0813500588a39524b6",
+    "queue_authority_source_path": "docs/admin/current_optimization_queue_2026-07-18.md",
+    "queue_authority_source_sha256": "49bdbb844cdcbb7c201e774d428faec32c312012178395653dff54305cd5092b",
+    "ack_path_template": "docs/admin/semantic-reduce-v2-release-acks/$PROTOCOL_SHA256/$SPLIT-$RUN_ID.json",
+    "allowed_central_writer_ids": [
+      "optimization-queue-central-writer"
+    ],
+    "authority_rule": "ACK bytes must be committed on the exact origin/main upstream HEAD descended from queue_base_commit, at the canonical path, with the allowlisted central_writer_id and exact queue-base/source digests; a local JSON is never sufficient"
   },
   "experiment": {
     "families": [
@@ -243,7 +256,8 @@
       "structured-output smoke returns strict proposal_ids JSON without a benchmark unit",
       "development and heldout output roots do not exist",
       "at least 5 GiB free space and raw-log secret scanner enabled",
-      "cleanup trap and central release path are armed"
+      "cleanup trap and central release path are armed",
+      "heldout grant binds a final development closure issued before any service launch"
     ],
     "read_only_pre_request_gate": "protocol validator, three SHA-bound review envelopes, frozen queue-base observation, model metadata hashes, source-code hashes, and fresh namespace template only; this is a static-logic PASS and implies no hardware observation or authorization",
     "authorized_execution_gate": "after a central grant only: PASS_PRELAUNCH proves NPU/port idle and the grant-named unit/container absent; PASS postlaunch binds the exact prelaunch file SHA and proves unit/container/NPU plus listening-socket PID lineage, model identity, and a non-benchmark strict proposal_ids smoke; runner rechecks grant expiry, clean commit, unit/container/NPU and socket-owner lineage before every row"
@@ -251,7 +265,7 @@
   "execution_and_release_chain": {
     "entrypoint": "tools/benchmark_carrier/orchestrate_semantic_reduce_v2_authorized_run.py",
     "steps": [
-      "validate exact protocol and central grant before any service action",
+      "validate exact protocol and central grant, including heldout final-development-closure binding, before any service action",
       "arm cleanup before PASS_PRELAUNCH collection",
       "launch only the grant-named repo-owned managed unit/container on NPU3 and port 18383",
       "collect PASS postlaunch physical/service/model/smoke evidence",
@@ -259,12 +273,13 @@
       "leave a complete raw run PROVISIONAL_COMPLETE rather than PASS",
       "on every success error or signal use exact systemctl stop and exact dedicated-container stop/removal; never invoke broad manage.sh stop",
       "verify granted NPU, port, unit and container clear and retain cleanup observations",
-      "scan every raw and control artifact recursively; scan before copying grant/preflight/protocol; immediately redact and fail closed on exact API-key or credential-header/token material; retain checksum-bearing reports",
-      "after cleanup and scans run the independently implemented raw summary/CI/provenance verifier",
+      "scan every raw artifact recursively and bind exact path/digest coverage; scan grant/preflight/protocol before raw copying; immediately redact and fail closed on exact API-key or credential-header/token material",
+      "after cleanup and raw scan run the independently implemented raw summary/CI/provenance verifier and bind its grant/raw identity and digests",
       "emit REQUEST_ONLY_CENTRAL_ACK_REQUIRED release request",
       "emit a local handoff that is explicitly not paper-admissible",
-      "central single writer records queue release and emits a SHA-bound acknowledgement; protocol owner never edits the queue",
-      "run the final closure verifier; only its PASS is paper-admissible",
+      "scan every final control artifact including release request and handoff with exact path/digest coverage, excluding only the self-referential scan report",
+      "central single writer records queue release and emits a SHA-bound acknowledgement committed and pushed at the frozen queue origin/branch; protocol owner never edits the queue",
+      "run the final closure verifier at the canonical non-overwriting path; only its exact raw/control/ACK-chain PASS is paper-admissible",
       "obtain a separate heldout-only grant issued after and bound to final development closure"
     ],
     "legacy_bypass": "forbidden: no skip-server-management, skip-NPU-check, arbitrary output-dir, arbitrary base-url, or keep-server exit is exposed by the orchestrator",
