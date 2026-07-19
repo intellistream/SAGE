@@ -143,10 +143,23 @@ def verify_run(
             _fail("development gate manifest digest mismatch")
         if gate.get("ledger_sha256") != _sha256(raw_root / "row-ledger.json"):
             _fail("development gate ledger digest mismatch")
+        if gate.get("summary_sha256") != _sha256(raw_root / "summary.json"):
+            _fail("development gate summary digest mismatch")
+        if gate.get("grant_sha256") != manifest.get("grant_sha256"):
+            _fail("development gate grant digest mismatch")
         if gate.get("verified_row_count") != len(expected_keys):
             _fail("development gate row count mismatch")
         if gate.get("unique_row_keys") != len(expected_keys):
             _fail("development gate uniqueness mismatch")
+        expected_predicates = {
+            "safety_failure_count": recomputed["safety_failure_count"],
+            "failure_rate": recomputed["request_or_parser_failure_rate"],
+            "accepted_edit_count": recomputed["accepted_edit_count"],
+            "accepted_merge_count": recomputed["accepted_merge_count"],
+            "accepted_split_count": recomputed["accepted_split_count"],
+        }
+        if gate.get("predicate_evidence") != expected_predicates:
+            _fail("development gate predicate evidence mismatch")
 
     return {
         "status": "PASS",

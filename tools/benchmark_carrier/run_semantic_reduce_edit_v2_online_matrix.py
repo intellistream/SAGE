@@ -404,10 +404,26 @@ def _validate_development_gate(
     raw_root = Path(gate["raw_root"])
     manifest = raw_root / "manifest.json"
     ledger = raw_root / "row-ledger.json"
+    summary_path = raw_root / "summary.json"
     if _sha256(manifest) != gate.get("manifest_sha256"):
         raise ValueError("development manifest digest mismatch")
     if _sha256(ledger) != gate.get("ledger_sha256"):
         raise ValueError("development ledger digest mismatch")
+    if _sha256(summary_path) != gate.get("summary_sha256"):
+        raise ValueError("development summary digest mismatch")
+    manifest_payload = _load(manifest)
+    if (
+        manifest_payload.get("status") != "PASS"
+        or manifest_payload.get("protocol_sha256") != protocol_sha
+        or manifest_payload.get("repository_commit") != execution_commit
+        or manifest_payload.get("grant_sha256") != gate.get("grant_sha256")
+        or manifest_payload.get("completed_row_count") != 80
+        or manifest_payload.get("secret_scan") != "PASS"
+    ):
+        raise ValueError("development manifest provenance is not closed")
+    for name, digest in manifest_payload.get("files", {}).items():
+        if _sha256(raw_root / name) != digest:
+            raise ValueError("development manifest inventory digest mismatch")
     entries = _load(ledger).get("rows", [])
     if len(entries) != 80 or len({item["row_key"] for item in entries}) != 80:
         raise ValueError("development row inventory is incomplete or duplicated")
@@ -415,6 +431,31 @@ def _validate_development_gate(
         row_path = raw_root / entry["path"]
         if _sha256(row_path) != entry["sha256"]:
             raise ValueError("development row digest mismatch")
+    summary = _load(summary_path)
+    predicates = gate.get("predicate_evidence", {})
+    expected_predicates = {
+        "safety_failure_count": summary.get("safety_failure_count"),
+        "failure_rate": summary.get("request_or_parser_failure_rate"),
+        "accepted_edit_count": summary.get("accepted_edit_count"),
+        "accepted_merge_count": summary.get("accepted_merge_count"),
+        "accepted_split_count": summary.get("accepted_split_count"),
+    }
+    if (
+        summary.get("development_gate") != "PASS"
+        or summary.get("protocol_sha256") != protocol_sha
+        or summary.get("repository_commit") != execution_commit
+        or summary.get("grant_sha256") != gate.get("grant_sha256")
+        or predicates != expected_predicates
+        or predicates["safety_failure_count"] != 0
+        or predicates["failure_rate"] > 0.05
+        or min(
+            predicates["accepted_edit_count"],
+            predicates["accepted_merge_count"],
+            predicates["accepted_split_count"],
+        )
+        <= 0
+    ):
+        raise ValueError("development admission predicates are not closed")
 
 
 def main() -> int:
@@ -633,6 +674,7 @@ def main() -> int:
                 "raw_root": str(output_dir.resolve()),
                 "manifest_sha256": manifest_sha,
                 "ledger_sha256": _sha256(output_dir / "row-ledger.json"),
+                "summary_sha256": _sha256(output_dir / "summary.json"),
                 "verified_row_count": len(rows),
                 "unique_row_keys": len({row["row_key"] for row in rows}),
                 "secret_scan": "PASS",
