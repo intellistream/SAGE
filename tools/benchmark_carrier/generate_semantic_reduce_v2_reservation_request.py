@@ -26,6 +26,7 @@ REQUIRED_PHYSICAL_LOGIC = (
     "development and heldout output roots do not exist",
     "at least 5 GiB free space and raw-log secret scanner enabled",
     "cleanup trap and central release path are armed",
+    "heldout grant binds a final development closure issued before any service launch",
 )
 
 
