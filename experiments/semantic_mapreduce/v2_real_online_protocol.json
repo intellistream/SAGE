@@ -6,7 +6,7 @@
   "repository": {
     "path": "/home/shuhao/SAGE",
     "branch": "feature/semantic-mapreduce-paper",
-    "execution_commit": "27411de4f99b099b6b518afeac83f7d1715d310a",
+    "execution_commit": "e79342ec74d35fdca1e71f6d01eee5be7ac4cddf",
     "execution_commit_must_be_clean_and_pushed": true,
     "protocol_execution_copy": "copy this byte-identical protocol outside the checkout or into an ignored .sage control root before checking out the execution commit",
     "frozen_sources": {
@@ -16,23 +16,27 @@
       },
       "runner": {
         "path": "tools/benchmark_carrier/run_semantic_reduce_edit_v2_online_matrix.py",
-        "sha256": "67858e04552939895c5bb5de83c77242040dceb1ae5f687fd17bac92e2eb1a3f"
+        "sha256": "ad8e2244f32231b60afc640c8e38804de21aa75825a5e31d68ce3ace22d84319"
       },
       "verifier": {
         "path": "tools/benchmark_carrier/verify_semantic_reduce_v2_online_run.py",
-        "sha256": "cac787648f1df2f3068867616b6043e4505cb3e7d2570761929def92b6317a00"
+        "sha256": "497fb94cbc3a5dc55be44c97ca52fe0a8b7815b49130a06b82ff46113506f720"
       },
       "physical_preflight": {
         "path": "tools/benchmark_carrier/preflight_semantic_reduce_v2_online.py",
-        "sha256": "f90905b146f1144e58ed7fbf06b6f11983d8b3accabefd03e7ef056bb0226299"
+        "sha256": "e9044881c832e2072208e257081a730e78ebcd77fd0cfda771357b23f84abf44"
       },
       "authorized_orchestrator": {
         "path": "tools/benchmark_carrier/orchestrate_semantic_reduce_v2_authorized_run.py",
-        "sha256": "259743875bbef6acf9e4a90fc9f439362cb381557f023e3d8190a497a3084b7f"
+        "sha256": "f71617c9803dbab98b288e4cb3bca64a9f1a53b3e8d99a1595ed61b0438db6c0"
+      },
+      "final_closure_verifier": {
+        "path": "tools/benchmark_carrier/finalize_semantic_reduce_v2_execution_closure.py",
+        "sha256": "aff525d535910e9664b409f5eb406bb7f2050c6d52d595c6df0e2f29f3acde18"
       },
       "reservation_request_generator": {
         "path": "tools/benchmark_carrier/generate_semantic_reduce_v2_reservation_request.py",
-        "sha256": "f579f45530903858900e96d9fb9033cab04a86566dc3c7db8aff37069d9f3ad7"
+        "sha256": "11da2e6712e999c4150fa2d35eeaeabf0450dbc75bfbc8c659f7b7f286188281"
       },
       "managed_service_launcher": {
         "path": "tools/benchmark_carrier/run_npu3_semantic_mapreduce_experiment.sh",
@@ -84,14 +88,14 @@
     "must_bind": [
       "protocol_sha256",
       "repository_commit",
-      "authorized_splits and exact per-split run_ids",
-      "expiry timestamp covering service launch plus the full requested 180-minute allocation",
+      "exactly one authorized split and its exact run_id",
+      "issued_at_utc allocation_start_utc and expires_utc spanning at least the full requested 180-minute allocation",
       "one physical NPU with ID 3 and the frozen topology",
       "base_url port managed_unit container and manager",
       "served_model_name model path config SHA256 and generation-config SHA256"
     ],
-    "development_authorization": "one exact fresh run ID",
-    "heldout_authorization": "one exact fresh run ID after cryptographically closed development PASS",
+    "development_authorization": "development-only grant with one exact fresh run ID",
+    "heldout_authorization": "separate heldout-only grant issued strictly after final development closure; grant binds development closure SHA256 and canonical development raw root",
     "heldout_rerun": "forbidden unless a fresh central grant carries a nonempty heldout_rerun_authorization_id",
     "credentials": "API key is supplied only through VLLM_HUST_API_KEY and is never part of request, grant, preflight, row, manifest, or log artifacts"
   },
@@ -120,7 +124,7 @@
       "development_may_be_examined_first": true,
       "heldout_raw_namespace_must_not_exist_before_development_gate": true,
       "heldout_requires_matching_protocol_sha_and_development_gate_PASS": true,
-      "development_gate_binds": "exact protocol SHA, execution commit, central grant SHA, PASS manifest SHA, COMPLETE ledger SHA, summary SHA, 80 unique row keys, exact per-file/per-row SHA256 inventory, zero safety failures, secret-scan PASS, <=5% request/parser failure, and positive edit/MERGE/SPLIT counts",
+      "development_gate_binds": "final development closure is created only after runner candidate admission, independent raw verification, recursive raw/control secret scans, scoped cleanup, release request, and central release acknowledgement; it binds all artifact SHA256 values, exact 80-key coverage, protocol/execution/grant, and admission predicates",
       "prompt_model_baselines_endpoints_and_statistics_freeze_before_development": true,
       "no_parameter_or_prompt_change_after_any_development_response": true,
       "any_change_requires_new_protocol_sha_and_three_fresh_signoffs": true
@@ -178,12 +182,14 @@
     "unknown_duplicate_or_conflicting_ids": "runtime validator rejects whole batch atomically; preserve exact H0 with reason code",
     "request_failure": "record exception class and any response body; select empty list; count as request/parser failure",
     "partial_heldout": "inadmissible as paper evidence; retain as failed real-online provenance only",
-    "partial_any_split": "write RUNNING before the first request; atomically update the row ledger after each row; on exception, signal, safety stop, failed development gate, or verifier failure retain FAILED_PARTIAL manifest and every completed row",
-    "cleanup_on_any_exit": "stop only the exact repo-owned managed service/container/unit named by the grant; verify NPU3 process table and port 18383 clear; emit release request through the central single writer"
+    "partial_any_split": "write RUNNING before the first request; atomically update the row ledger after each row; a complete runner output is only PROVISIONAL_COMPLETE; exceptions retain FAILED_PARTIAL. Verifier/cleanup/scan/release failures prevent final closure PASS and therefore can never be paper-admissible",
+    "cleanup_on_any_exit": "prelaunch requires the fixed unit and container names to be absent; cleanup uses only exact systemctl stop plus exact dedicated-container stop/removal, never broad manage.sh cleanup; verify NPU3, port, unit, and container clear; emit release request through the central single writer"
   },
   "raw_evidence": {
     "development_root": ".sage/benchmarks/semantic_reduce_edit_v2_real_online/$PROTOCOL_SHA256/development-$RUN_ID",
     "heldout_root": ".sage/benchmarks/semantic_reduce_edit_v2_real_online/$PROTOCOL_SHA256/heldout-$RUN_ID",
+    "control_root": ".sage/control/semantic_reduce_edit_v2_real_online/$PROTOCOL_SHA256/$SPLIT-$RUN_ID",
+    "final_closure_root": ".sage/closures/semantic_reduce_edit_v2_real_online/$PROTOCOL_SHA256/$SPLIT-$RUN_ID/final-closure.json",
     "fresh_non_overwriting_namespaces": true,
     "visibility": "private-nonanonymous",
     "publication_eligible": false,
@@ -209,9 +215,11 @@
       "development gate for heldout",
       "all raw rows manifest and fail-closed summary",
       "before/after device process container and port observations",
-      "cleanup and release chain"
+      "cleanup and release chain",
+      "central release acknowledgement stored outside the frozen control inventory",
+      "final closure verifier output"
     ],
-    "final_verifier": "independently requires an exact per-file inventory; validates 80/200 unique family|seed|repeat rows and row hashes; recomputes all summaries and family-clustered CI; checks catalog/evidence invariants, provenance hashes, secret scan, manifest/ledger closure, and development admission predicates",
+    "final_verifier": "the raw verifier independently implements and recomputes summaries and family-clustered CI, validates exact 80/200 key sets, timestamps inside the immutable grant window, file/row hashes, catalog/evidence invariants, and provenance. A separate final closure verifier then binds raw-verifier digest, exact control inventory, raw/control scans, cleanup observations, release request, and central release acknowledgement; only its PASS sets paper_admissible=true",
     "anonymized_publication_gate": {
       "separate_from_raw_verification": true,
       "default": "REJECT until an explicit allowlist-only export is produced after the run",
@@ -238,7 +246,7 @@
       "cleanup trap and central release path are armed"
     ],
     "read_only_pre_request_gate": "protocol validator, three SHA-bound review envelopes, frozen queue-base observation, model metadata hashes, source-code hashes, and fresh namespace template only; this is a static-logic PASS and implies no hardware observation or authorization",
-    "authorized_execution_gate": "after a central grant only: the frozen preflight tool records PASS_PRELAUNCH before service launch and PASS after exact unit/container/NPU/port/model ownership plus a non-benchmark strict proposal_ids smoke; runner rejects any mismatch"
+    "authorized_execution_gate": "after a central grant only: PASS_PRELAUNCH proves NPU/port idle and the grant-named unit/container absent; PASS postlaunch binds the exact prelaunch file SHA and proves unit/container/NPU plus listening-socket PID lineage, model identity, and a non-benchmark strict proposal_ids smoke; runner rechecks grant expiry, clean commit, unit/container/NPU and socket-owner lineage before every row"
   },
   "execution_and_release_chain": {
     "entrypoint": "tools/benchmark_carrier/orchestrate_semantic_reduce_v2_authorized_run.py",
@@ -248,15 +256,19 @@
       "launch only the grant-named repo-owned managed unit/container on NPU3 and port 18383",
       "collect PASS postlaunch physical/service/model/smoke evidence",
       "run exactly one authorized split into its canonical fresh raw root",
-      "run independent full verifier outside the raw manifest inventory",
-      "on every success error or signal stop only the grant-named unit/container",
-      "verify granted NPU and port clear and retain cleanup observations",
-      "scan every raw and control artifact; immediately redact and fail closed on exact API-key or credential-header/token material; retain a checksum-bearing scan report",
+      "leave a complete raw run PROVISIONAL_COMPLETE rather than PASS",
+      "on every success error or signal use exact systemctl stop and exact dedicated-container stop/removal; never invoke broad manage.sh stop",
+      "verify granted NPU, port, unit and container clear and retain cleanup observations",
+      "scan every raw and control artifact recursively; scan before copying grant/preflight/protocol; immediately redact and fail closed on exact API-key or credential-header/token material; retain checksum-bearing reports",
+      "after cleanup and scans run the independently implemented raw summary/CI/provenance verifier",
       "emit REQUEST_ONLY_CENTRAL_ACK_REQUIRED release request",
-      "central single writer records queue release; protocol owner never edits the queue"
+      "emit a local handoff that is explicitly not paper-admissible",
+      "central single writer records queue release and emits a SHA-bound acknowledgement; protocol owner never edits the queue",
+      "run the final closure verifier; only its PASS is paper-admissible",
+      "obtain a separate heldout-only grant issued after and bound to final development closure"
     ],
     "legacy_bypass": "forbidden: no skip-server-management, skip-NPU-check, arbitrary output-dir, arbitrary base-url, or keep-server exit is exposed by the orchestrator",
-    "failure_semantics": "a cleanup or control-secret-scan failure forces nonzero exit and is retained in the release request; central release acknowledgement remains mandatory"
+    "failure_semantics": "runner failure, independent verifier failure, cleanup failure, any raw/control secret finding, release mismatch, missing/invalid central acknowledgement, or control/raw drift prevents final closure PASS. Historical artifact verification compares recorded request/preflight/row timestamps to the immutable allocation window and does not require the expired grant to remain live"
   },
   "queue_base_observation": {
     "repository": "/home/shuhao/llm-optimizations",
