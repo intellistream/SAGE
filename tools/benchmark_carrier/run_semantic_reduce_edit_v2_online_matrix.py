@@ -102,6 +102,12 @@ def _summarize(
         unit_delta.setdefault((row["family"], row["seed"]), []).append(delta)
     unit_means = [statistics.fmean(values) for values in unit_delta.values()]
     failures = sum(row["selector_trace"]["outcome"] != "parsed" for row in rows)
+    accepted_edits = sum(item["accepted_edit_count"] for item in model)
+    accepted_merges = sum(item["merge_count"] for item in model)
+    accepted_splits = sum(item["split_count"] for item in model)
+    validator_rejections = sum(
+        item["validator_outcome"] == "rejected" for item in model
+    )
     safety_failures = sum(
         not row["evaluation"]["shared_catalog_digest_match"]
         or not row["evaluation"]["policies"]["online_model_selector"][
@@ -133,6 +139,10 @@ def _summarize(
         "request_or_parser_failure_count": failures,
         "request_or_parser_failure_rate": round(failures / max(1, len(rows)), 6),
         "safety_failure_count": safety_failures,
+        "accepted_edit_count": accepted_edits,
+        "accepted_merge_count": accepted_merges,
+        "accepted_split_count": accepted_splits,
+        "validator_rejection_count": validator_rejections,
         "online_execution_performed": True,
     }
     if split == "development":
@@ -141,6 +151,9 @@ def _summarize(
             if safety_failures == 0
             and summary["request_or_parser_failure_rate"]
             <= protocol["stopping_rules"]["development_max_failure_rate"]
+            and accepted_edits > 0
+            and accepted_merges > 0
+            and accepted_splits > 0
             else "FAIL"
         )
     return summary
