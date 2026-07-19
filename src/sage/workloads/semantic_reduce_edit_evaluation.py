@@ -123,6 +123,7 @@ def proposal_oracle(
     h0: CandidateState,
     catalog: ProposalCatalog,
     max_edits: int,
+    candidate_selections: Sequence[Sequence[str]] = (),
 ) -> tuple[EditRuntimeResult, ScoredState, dict[str, bool]]:
     """Diagnostic oracle over catalog IDs; ground truth never builds proposals."""
 
@@ -149,11 +150,29 @@ def proposal_oracle(
         if score.f1 > best_score.f1 + 1e-12:
             improving[proposal.action] = True
 
+    selections: list[tuple[str, ...]] = []
     for size in range(1, max(1, max_edits) + 1):
-        for combination in itertools.combinations(edits, size):
-            if not _selection_is_nonconflicting(combination):
+        selections.extend(
+            tuple(proposal.proposal_id for proposal in combination)
+            for combination in itertools.combinations(edits, size)
+            if _selection_is_nonconflicting(combination)
+        )
+    selections.extend(tuple(values) for values in candidate_selections)
+    seen: set[tuple[str, ...]] = set()
+    for selected in selections:
+            selected = tuple(selected)
+            if selected in seen:
                 continue
-            selected = tuple(proposal.proposal_id for proposal in combination)
+            seen.add(selected)
+            selected_proposals = [
+                catalog.by_id()[value]
+                for value in selected
+                if value in catalog.by_id()
+            ]
+            if len(selected_proposals) != len(selected) or not _selection_is_nonconflicting(
+                selected_proposals
+            ):
+                continue
             result = runtime.commit_selection(
                 evidence=workload.dataset.evidence,
                 h0=h0,
@@ -282,13 +301,6 @@ def evaluate_workload(
         raw_selection=[],
         selector_name="h0-no-edit",
     )
-    oracle_result, oracle_score, improving = proposal_oracle(
-        runtime=runtime,
-        workload=workload,
-        h0=h0,
-        catalog=catalog,
-        max_edits=oracle_max_edits,
-    )
     deterministic_selector = deterministic_selector or DeterministicProposalSelector()
     model_selector = model_selector or MockModelProposalSelector()
     deterministic_ids = deterministic_selector.select(
@@ -296,6 +308,14 @@ def evaluate_workload(
     )
     model_ids = model_selector.select(
         h0=h0, catalog=catalog, evidence=workload.dataset.evidence
+    )
+    oracle_result, oracle_score, improving = proposal_oracle(
+        runtime=runtime,
+        workload=workload,
+        h0=h0,
+        catalog=catalog,
+        max_edits=oracle_max_edits,
+        candidate_selections=(tuple(deterministic_ids), tuple(model_ids)),
     )
     deterministic_result = runtime.commit_selection(
         evidence=workload.dataset.evidence,

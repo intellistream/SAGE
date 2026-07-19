@@ -29,6 +29,10 @@
     "oracle_max_edits": 2,
     "score_probe_threshold": 0.5
   },
+  "crossed_axes": {
+    "score_overlap_applied_to_every_family": true,
+    "reason": "development seed-7 showed the dedicated score family alone did not remove the aggregate score-label proxy"
+  },
   "success_gates_frozen_before_heldout_matrix": {
     "all_contract_tests_pass": true,
     "merge_and_split_proposals_both_observed": true,

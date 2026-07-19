@@ -317,6 +317,12 @@ def generate_heldout_workload(
         dataset = _fragment(dataset, shard_count=shard_count * 2)
         metadata.update({"shard_count": shard_count * 2, "fragments_per_evidence": 2})
 
+    # Cross the overlapping score distribution into every held-out family.
+    # This adjustment was frozen after the development-only seed-7 smoke run
+    # and before any held-out seed was evaluated. Hidden labels are used only
+    # here in workload generation, never by H0, catalog, or selectors.
+    dataset = _score_overlap(dataset, seed=seed)
+    metadata["crossed_score_overlap"] = True
     dataset = replace(dataset, scenario=family)
     return HeldoutWorkload(
         family=family,

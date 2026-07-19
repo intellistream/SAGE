@@ -17,6 +17,12 @@ def test_fair_harness_shares_h0_and_catalog_and_reports_all_policy_layers() -> N
         "constrained_reference",
     }
     assert row["policies"]["proposal_oracle"]["f1"] >= row["policies"]["h0"]["f1"]
+    assert row["policies"]["proposal_oracle"]["f1"] >= row["policies"][
+        "deterministic_selector"
+    ]["f1"]
+    assert row["policies"]["proposal_oracle"]["f1"] >= row["policies"][
+        "mock_model_selector"
+    ]["f1"]
     assert row["policies"]["constrained_reference"]["permission"].startswith(
         "full-evidence"
     )
