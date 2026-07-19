@@ -479,6 +479,11 @@ def main() -> int:
                 "raw_manifest_sha256": _sha256(raw_root / "manifest.json"),
                 "raw_ledger_sha256": _sha256(raw_root / "row-ledger.json"),
                 "raw_summary_sha256": _sha256(raw_root / "summary.json"),
+                "raw_inventory": {
+                    str(path.relative_to(raw_root)): _sha256(path)
+                    for path in sorted(raw_root.rglob("*"))
+                    if path.is_file()
+                },
                 "verified_row_count": _load(control / "verification.json")[
                     "verified_row_count"
                 ],

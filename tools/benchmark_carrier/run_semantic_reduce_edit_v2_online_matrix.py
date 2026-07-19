@@ -155,6 +155,13 @@ def _validate_authorization(
         "allocation-duration": _utc(grant.get("expires_utc"))
         - _utc(grant.get("allocation_start_utc"))
         >= timedelta(minutes=protocol["reservation_shape"]["requested_duration_minutes"]),
+        "remaining-experiment-window": _utc(grant.get("expires_utc"))
+        - datetime.now(timezone.utc)
+        >= timedelta(
+            minutes=protocol["reservation_shape"][
+                "minimum_remaining_at_admission_minutes"
+            ]
+        ),
         "preflight-pass": preflight.get("status") == "PASS",
         "preflight-protocol": preflight.get("protocol_sha256") == protocol_sha,
         "preflight-commit": preflight.get("repository_commit") == expected,
@@ -616,18 +623,30 @@ def main() -> int:
         "frozen_source_hashes": source_hashes,
         "files": {},
     }
-    _atomic_json(output_dir / "manifest.json", state)
-    _atomic_bytes(output_dir / "grant.json", args.grant.read_bytes())
-    _atomic_bytes(output_dir / "preflight.json", args.preflight.read_bytes())
-    _atomic_bytes(output_dir / "protocol.json", args.protocol.read_bytes())
-    if args.development_closure:
-        _atomic_bytes(
-            output_dir / "development-closure.json",
-            args.development_closure.read_bytes(),
-        )
     rows: list[dict[str, Any]] = []
     ledger: dict[str, Any] = {"status": "RUNNING", "rows": []}
-    _atomic_json(output_dir / "row-ledger.json", ledger)
+    try:
+        _atomic_json(output_dir / "manifest.json", state)
+        _atomic_bytes(output_dir / "grant.json", args.grant.read_bytes())
+        _atomic_bytes(output_dir / "preflight.json", args.preflight.read_bytes())
+        _atomic_bytes(output_dir / "protocol.json", args.protocol.read_bytes())
+        if args.development_closure:
+            _atomic_bytes(
+                output_dir / "development-closure.json",
+                args.development_closure.read_bytes(),
+            )
+        _atomic_json(output_dir / "row-ledger.json", ledger)
+    except BaseException as exc:
+        state.update(
+            {
+                "status": "FAILED_PARTIAL",
+                "failed_utc": _now(),
+                "failure_reason": f"initialization: {type(exc).__name__}: {exc}",
+            }
+        )
+        _atomic_json(output_dir / "manifest.json", state)
+        print(json.dumps(state, separators=(",", ":"), sort_keys=True))
+        return 1
 
     exit_code = 1
     failure_reason: str | None = None

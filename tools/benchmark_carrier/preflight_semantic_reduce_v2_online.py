@@ -156,6 +156,13 @@ def _validate_static(
         "allocation-duration": _utc(grant.get("expires_utc"))
         - _utc(grant.get("allocation_start_utc"))
         >= timedelta(minutes=protocol["reservation_shape"]["requested_duration_minutes"]),
+        "remaining-experiment-window": _utc(grant.get("expires_utc"))
+        - datetime.now(timezone.utc)
+        >= timedelta(
+            minutes=protocol["reservation_shape"][
+                "minimum_remaining_at_admission_minutes"
+            ]
+        ),
         "split": grant.get("authorized_splits") == [split],
         "run-id": grant.get("run_ids", {}).get(split) == run_id,
         "npu": grant.get("resources", {}).get("physical_npus")

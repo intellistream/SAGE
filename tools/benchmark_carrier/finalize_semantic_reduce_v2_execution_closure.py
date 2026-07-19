@@ -96,6 +96,8 @@ def main() -> int:
         is True,
         "release-request-only": release.get("status")
         == "REQUEST_ONLY_CENTRAL_ACK_REQUIRED",
+        "release-local-status": release.get("cleanup", {}).get("status") == "PASS"
+        and release.get("control_secret_scan", {}).get("status") == "PASS",
         "no-queue-mutation": release.get("queue_mutation_performed") is False,
     }
     if failed := [name for name, passed in local_checks.items() if not passed]:
@@ -127,10 +129,16 @@ def main() -> int:
     raw_manifest = raw_root / "manifest.json"
     raw_ledger = raw_root / "row-ledger.json"
     raw_summary = raw_root / "summary.json"
+    raw_inventory = {
+        str(path.relative_to(raw_root)): _sha256(path)
+        for path in sorted(raw_root.rglob("*"))
+        if path.is_file()
+    }
     if (
         _sha256(raw_manifest) != handoff["raw_manifest_sha256"]
         or _sha256(raw_ledger) != handoff["raw_ledger_sha256"]
         or _sha256(raw_summary) != handoff["raw_summary_sha256"]
+        or raw_inventory != handoff.get("raw_inventory")
     ):
         raise SystemExit("raw evidence drift after local verification")
     row_count = 80 if handoff["split"] == "development" else 200

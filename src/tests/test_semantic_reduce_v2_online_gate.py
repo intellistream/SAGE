@@ -43,7 +43,10 @@ def _envelopes() -> tuple[dict, dict, dict]:
     protocol = {
         "repository": {"execution_commit": "c" * 40},
         "service": service,
-        "reservation_shape": {"requested_duration_minutes": 180},
+        "reservation_shape": {
+            "requested_duration_minutes": 210,
+            "minimum_remaining_at_admission_minutes": 180,
+        },
         "experiment": {
             "families": ["one", "two"],
             "development_seeds": [1, 2],
@@ -57,7 +60,7 @@ def _envelopes() -> tuple[dict, dict, dict]:
         "authorized_splits": ["development"],
         "run_ids": {"development": "run-1"},
         "expires_utc": (
-            datetime.now(UTC) + timedelta(hours=1)
+            datetime.now(UTC) + timedelta(hours=4)
         ).isoformat(),
         "allocation_start_utc": (
             datetime.now(UTC) - timedelta(hours=3)
@@ -260,6 +263,8 @@ def test_final_closure_requires_and_binds_central_release_ack(
     release = {
         "status": "REQUEST_ONLY_CENTRAL_ACK_REQUIRED",
         "queue_mutation_performed": False,
+        "cleanup": {"status": "PASS"},
+        "control_secret_scan": {"status": "PASS"},
         "release_requested_utc": "2026-07-19T12:00:00Z",
     }
     write(control / "release-request.json", release)
@@ -302,6 +307,9 @@ def test_final_closure_requires_and_binds_central_release_ack(
         "raw_manifest_sha256": digest(raw / "manifest.json"),
         "raw_ledger_sha256": digest(raw / "row-ledger.json"),
         "raw_summary_sha256": digest(raw / "summary.json"),
+        "raw_inventory": {
+            path.name: digest(path) for path in sorted(raw.iterdir())
+        },
         "verified_row_count": 200,
         "control_inventory": inventory,
         "release_request_sha256": digest(control / "release-request.json"),
