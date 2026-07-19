@@ -92,7 +92,6 @@ def test_real_online_selector_returns_ids_and_retains_secret_free_raw_trace(
     assert row["evidence_label"] == "real-online"
     assert "online_model_selector" in row["policies"]
     assert selector.last_trace["outcome"] == "parsed"
-    assert selector.last_trace["credentials_retained"] is False
     assert "do-not-retain" not in json.dumps(selector.last_trace)
 
 

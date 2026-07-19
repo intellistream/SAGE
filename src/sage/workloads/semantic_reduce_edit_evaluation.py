@@ -233,7 +233,6 @@ class OpenAIProposalSelector:
             "raw_response_body": body,
             "provider_usage": response_payload.get("usage"),
             "selected_proposal_ids": selected,
-            "credentials_retained": False,
         }
         return selected
 
