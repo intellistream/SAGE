@@ -218,6 +218,8 @@ def verify_run(
         "commit": grant.get("repository_commit") == expected_repository_commit,
         "split": grant.get("authorized_splits") == [split],
         "run-id": grant.get("run_ids", {}).get(split) == run_id,
+        "grant-issued-before-allocation": _timestamp(grant.get("issued_at_utc"))
+        <= _timestamp(grant.get("allocation_start_utc")),
         "allocation-window": _timestamp(grant.get("expires_utc"))
         - _timestamp(grant.get("allocation_start_utc"))
         >= timedelta(minutes=protocol["reservation_shape"]["requested_duration_minutes"]),
@@ -416,6 +418,7 @@ def verify_run(
         "raw_root": str(raw_root),
         "protocol_sha256": expected_protocol_sha256,
         "repository_commit": expected_repository_commit,
+        "grant_sha256": manifest["grant_sha256"],
         "split": split,
         "verified_row_count": len(rows),
         "manifest_sha256": _sha256(raw_root / "manifest.json"),

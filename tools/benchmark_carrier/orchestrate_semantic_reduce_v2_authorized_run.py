@@ -33,6 +33,11 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _require_unchanged(path: Path, expected_sha256: str) -> None:
+    if _sha256(path) != expected_sha256:
+        raise RuntimeError(f"immutable input drift: {path.name}")
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace(
         "+00:00", "Z"
@@ -105,6 +110,8 @@ def _granted_npu_has_process(npu: int) -> bool:
     result = subprocess.run(
         ["npu-smi", "info"], text=True, capture_output=True
     )
+    if result.returncode:
+        raise RuntimeError("npu-smi observation failed")
     for line in result.stdout.splitlines():
         fields = [field.strip() for field in line.split("|")]
         if len(fields) >= 4:
@@ -113,6 +120,30 @@ def _granted_npu_has_process(npu: int) -> bool:
                 if fields[2].isdigit():
                     return True
     return False
+
+
+def _unit_active_fail_closed(unit: str) -> bool:
+    result = subprocess.run(
+        ["systemctl", "--user", "show", "-p", "ActiveState", "--value", unit],
+        text=True, capture_output=True,
+    )
+    if result.returncode:
+        raise RuntimeError("systemd cleanup observation failed")
+    state = result.stdout.strip()
+    if state not in {"inactive", "failed"}:
+        return True
+    return False
+
+
+def _container_present_fail_closed(container: str) -> bool:
+    result = subprocess.run(
+        ["sudo", "-n", "docker", "inspect", container], text=True, capture_output=True
+    )
+    if result.returncode == 0:
+        return True
+    if "No such object" in result.stderr:
+        return False
+    raise RuntimeError("docker cleanup observation failed")
 
 
 def _write_json(path: Path, payload: object) -> None:
@@ -153,6 +184,7 @@ def main() -> int:
         raise SystemExit("protocol SHA mismatch")
     protocol = _load(args.protocol)
     _load(args.grant)
+    initial_grant_sha = _sha256(args.grant)
     service = protocol["service"]
     if args.split == "heldout" and not args.development_closure:
         raise SystemExit("heldout requires --development-closure")
@@ -185,6 +217,8 @@ def main() -> int:
         "--split", args.split,
         "--run-id", args.run_id,
     ]
+    if args.development_closure:
+        common.extend(["--development-closure", str(args.development_closure.resolve())])
     prelaunch_fresh_names = False
     service_launch_attempted = False
     service_ownership_verified = False
@@ -235,7 +269,6 @@ def main() -> int:
             log=control / "service-launch.log",
             scan_results=scan_results,
         )
-        service_ownership_verified = True
         _run(
             [
                 sys.executable,
@@ -249,16 +282,13 @@ def main() -> int:
             log=control / "postlaunch.log",
             scan_results=scan_results,
         )
+        service_ownership_verified = True
         runner_command = [
             sys.executable,
             str(TOOLS / "run_semantic_reduce_edit_v2_online_matrix.py"),
             *common,
             "--preflight", str(postlaunch),
         ]
-        if args.development_closure:
-            runner_command.extend(
-                ["--development-closure", str(args.development_closure)]
-            )
         _run(
             runner_command,
             env=env,
@@ -315,41 +345,50 @@ def main() -> int:
             except RuntimeError as exc:
                 cleanup_errors.append(str(exc))
             for _ in range(30):
-                if not _port_open(int(service["port"])) and not _granted_npu_has_process(
-                    int(service["physical_npu"])
-                ):
+                try:
+                    if not _port_open(int(service["port"])) and not _granted_npu_has_process(
+                        int(service["physical_npu"])
+                    ):
+                        break
+                except RuntimeError as exc:
+                    cleanup_errors.append(str(exc))
                     break
                 time.sleep(1)
             else:
                 cleanup_errors.append("device-or-port-still-occupied")
-        unit_active = subprocess.run(
-            ["systemctl", "--user", "is-active", service["managed_unit"]],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        ).returncode == 0
-        container_present = subprocess.run(
-            ["sudo", "-n", "docker", "inspect", service["container"]],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        ).returncode == 0
+        try:
+            unit_active = _unit_active_fail_closed(service["managed_unit"])
+            container_present = _container_present_fail_closed(service["container"])
+            npu_clear = not _granted_npu_has_process(int(service["physical_npu"]))
+            port_clear = not _port_open(int(service["port"]))
+        except RuntimeError as exc:
+            cleanup_errors.append(str(exc))
+            unit_active = True
+            container_present = True
+            npu_clear = False
+            port_clear = False
         if unit_active or container_present:
             cleanup_errors.append("grant-named-unit-or-container-still-present")
+        try:
+            _require_unchanged(args.grant, initial_grant_sha)
+        except RuntimeError:
+            cleanup_errors.append("external-grant-drift-after-admission")
         cleanup_observation = {
             "schema_version": "semantic-reduce-v2-cleanup-observation/1",
             "status": "PASS" if not cleanup_errors else "FAIL",
             "protocol_sha256": args.protocol_sha256,
-            "grant_sha256": _sha256(args.grant),
+            "grant_sha256": initial_grant_sha,
             "split": args.split,
             "run_id": args.run_id,
             "ownership_basis": {
                 "unit_and_container_absent_prelaunch": prelaunch_fresh_names,
                 "postlaunch_process_lineage_verified": service_ownership_verified,
-                "cleanup_used_only_exact_systemd_unit_and_container": True,
+            "cleanup_used_only_exact_systemd_unit_and_container": True,
                 "manage_sh_stop_used": False,
             },
             "observed_clear": {
-                "npu": not _granted_npu_has_process(int(service["physical_npu"])),
-                "port": not _port_open(int(service["port"])),
+                "npu": npu_clear,
+                "port": port_clear,
                 "managed_unit_active": unit_active,
                 "container_present": container_present,
             },
@@ -400,37 +439,12 @@ def main() -> int:
             except BaseException as exc:
                 cleanup_errors.append(f"raw-verifier: {type(exc).__name__}: {exc}")
 
-        scanned_paths = {Path(item["path"]).resolve() for item in scan_results}
-        cleanup_errors.extend(
-            _scan_tree(
-                control,
-                api_key=env.get("VLLM_HUST_API_KEY", ""),
-                results=scan_results,
-                already_scanned=scanned_paths,
-            )
-        )
-        secret_scan = {
-            "schema_version": "semantic-reduce-v2-control-secret-scan/1",
-            "status": (
-                "PASS"
-                if scan_results
-                and all(item["status"] == "PASS" for item in scan_results)
-                else "FAIL"
-            ),
-            "scanned_files": scan_results,
-            "completed_utc": _now(),
-        }
-        (control / "control-secret-scan.json").write_text(
-            json.dumps(secret_scan, indent=2) + "\n", encoding="utf-8"
-        )
-        if secret_scan["status"] != "PASS":
-            cleanup_errors.append("control-secret-scan-failed")
         release_payload = {
             "schema_version": "semantic-reduce-v2-release-request/1",
             "status": "REQUEST_ONLY_CENTRAL_ACK_REQUIRED",
             "protocol_sha256": args.protocol_sha256,
             "repository_commit": protocol["repository"]["execution_commit"],
-            "grant_sha256": _sha256(args.grant),
+            "grant_sha256": initial_grant_sha,
             "split": args.split,
             "run_id": args.run_id,
             "experiment_outcome": outcome,
@@ -444,10 +458,7 @@ def main() -> int:
                 "status": "PASS" if not cleanup_errors else "FAIL",
                 "errors": cleanup_errors,
             },
-            "control_secret_scan": {
-                "status": secret_scan["status"],
-                "report_sha256": _sha256(control / "control-secret-scan.json"),
-            },
+            "control_secret_scan": {"status": "PENDING_FINAL_COVERAGE"},
             "queue_mutation_performed": False,
             "release_requested_utc": _now(),
         }
@@ -458,13 +469,12 @@ def main() -> int:
             and not cleanup_errors
             and cleanup_observation["status"] == "PASS"
             and raw_secret_scan["status"] == "PASS"
-            and secret_scan["status"] == "PASS"
         )
         if local_pass:
-            inventory = {
+            stable_inventory = {
                 str(path.relative_to(control)): _sha256(path)
                 for path in sorted(control.rglob("*"))
-                if path.is_file()
+                if path.is_file() and path.name != "control-secret-scan.json"
             }
             handoff = {
                 "schema_version": "semantic-reduce-v2-execution-handoff/1",
@@ -472,7 +482,7 @@ def main() -> int:
                 "paper_admissible": False,
                 "protocol_sha256": args.protocol_sha256,
                 "repository_commit": protocol["repository"]["execution_commit"],
-                "grant_sha256": _sha256(args.grant),
+                "grant_sha256": initial_grant_sha,
                 "split": args.split,
                 "run_id": args.run_id,
                 "raw_root": str(raw_root.resolve()),
@@ -487,18 +497,49 @@ def main() -> int:
                 "verified_row_count": _load(control / "verification.json")[
                     "verified_row_count"
                 ],
-                "control_inventory": inventory,
+                "control_inventory": stable_inventory,
                 "release_request_sha256": _sha256(release),
                 "completed_utc": _now(),
             }
             _write_json(control / "execution-handoff.json", handoff)
-            outcome, exit_code = "LOCAL_GATES_PASS_PENDING_CENTRAL_ACK", 0
+            scanned_paths = {Path(item["path"]).resolve() for item in scan_results}
+            scan_errors = _scan_tree(
+                control,
+                api_key=env.get("VLLM_HUST_API_KEY", ""),
+                results=scan_results,
+                already_scanned=scanned_paths,
+            )
+            covered = {
+                str(Path(item["path"]).resolve().relative_to(control.resolve())): item["sha256"]
+                for item in scan_results
+                if Path(item["path"]).resolve().is_relative_to(control.resolve())
+            }
+            expected_coverage = {
+                str(path.relative_to(control)): _sha256(path)
+                for path in sorted(control.rglob("*"))
+                if path.is_file() and path.name != "control-secret-scan.json"
+            }
+            secret_scan = {
+                "schema_version": "semantic-reduce-v2-control-secret-scan/2",
+                "status": "PASS" if not scan_errors and covered == expected_coverage else "FAIL",
+                "scanned_files": scan_results,
+                "coverage": covered,
+                "expected_coverage": expected_coverage,
+                "self_exclusion": "control-secret-scan.json",
+                "errors": scan_errors,
+                "completed_utc": _now(),
+            }
+            _write_json(control / "control-secret-scan.json", secret_scan)
+            if secret_scan["status"] == "PASS":
+                outcome, exit_code = "LOCAL_GATES_PASS_PENDING_CENTRAL_ACK", 0
+            else:
+                outcome, exit_code = "FAILED_CONTROL_SCAN_CLOSURE", 1
         else:
             disposition = {
                 "status": "FAILED_LOCAL_CLOSURE",
                 "paper_admissible": False,
                 "protocol_sha256": args.protocol_sha256,
-                "grant_sha256": _sha256(args.grant),
+                "grant_sha256": initial_grant_sha,
                 "split": args.split,
                 "run_id": args.run_id,
                 "runner_complete": runner_complete,

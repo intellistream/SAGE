@@ -146,13 +146,17 @@ def _validate_static(
 ) -> dict[str, Any]:
     service = protocol["service"]
     commit = protocol["repository"]["execution_commit"]
+    now = datetime.now(timezone.utc)
+    issued = _utc(grant.get("issued_at_utc"))
+    allocation_start = _utc(grant.get("allocation_start_utc"))
     checks = {
         "protocol": grant.get("protocol_sha256") == protocol_sha,
         "commit": grant.get("repository_commit") == commit,
         "status": grant.get("status") == "GRANTED",
-        "allocation-started": _utc(grant.get("allocation_start_utc"))
-        <= datetime.now(timezone.utc),
-        "expiry": _utc(grant.get("expires_utc")) > datetime.now(timezone.utc),
+        "grant-issued-before-allocation": issued <= allocation_start,
+        "grant-issued-not-in-future": issued <= now,
+        "allocation-started": allocation_start <= now,
+        "expiry": _utc(grant.get("expires_utc")) > now,
         "allocation-duration": _utc(grant.get("expires_utc"))
         - _utc(grant.get("allocation_start_utc"))
         >= timedelta(minutes=protocol["reservation_shape"]["requested_duration_minutes"]),
@@ -193,6 +197,46 @@ def _validate_static(
     return checks
 
 
+def _validate_heldout_development_closure(
+    path: Path, *, protocol_sha: str, commit: str, grant: dict[str, Any]
+) -> dict[str, Any]:
+    closure = _load(path)
+    closure_sha = _sha256(path)
+    completed = _utc(closure.get("completed_utc"))
+    issued = _utc(grant.get("issued_at_utc"))
+    raw_root = Path(str(closure.get("raw_root", ""))).resolve()
+    expected_root = (
+        ROOT / ".sage/benchmarks/semantic_reduce_edit_v2_real_online"
+        / protocol_sha / f"development-{closure.get('run_id')}"
+    ).resolve()
+    checks = {
+        "closure-status": closure.get("status") == "PASS",
+        "closure-paper-admissible": closure.get("paper_admissible") is True,
+        "closure-split": closure.get("split") == "development",
+        "closure-protocol": closure.get("protocol_sha256") == protocol_sha,
+        "closure-commit": closure.get("repository_commit") == commit,
+        "closure-row-count": closure.get("verified_row_count") == 80,
+        "closure-raw-root-canonical": raw_root == expected_root,
+        "grant-closure-sha": grant.get("development_closure_sha256") == closure_sha,
+        "grant-development-raw-root": Path(
+            str(grant.get("development_raw_root", ""))
+        ).resolve() == raw_root,
+        "grant-issued-after-development": issued > completed,
+    }
+    for filename, field in (
+        ("manifest.json", "manifest_sha256"),
+        ("row-ledger.json", "ledger_sha256"),
+        ("summary.json", "summary_sha256"),
+    ):
+        candidate = raw_root / filename
+        checks[f"closure-{filename}-digest"] = (
+            candidate.is_file() and _sha256(candidate) == closure.get(field)
+        )
+    if failed := [name for name, passed in checks.items() if not passed]:
+        raise RuntimeError("heldout development closure rejected before launch: " + ", ".join(failed))
+    return {"sha256": closure_sha, "raw_root": str(raw_root), "completed_utc": closure["completed_utc"]}
+
+
 def _source_hashes(protocol: dict[str, Any]) -> dict[str, str]:
     commit = protocol["repository"]["execution_commit"]
     result: dict[str, str] = {}
@@ -216,6 +260,7 @@ def main() -> int:
     parser.add_argument("--split", choices=("development", "heldout"), required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--prelaunch", type=Path)
+    parser.add_argument("--development-closure", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if args.output.exists():
@@ -228,6 +273,16 @@ def main() -> int:
         protocol, args.protocol_sha256, grant, grant_sha,
         split=args.split, run_id=args.run_id
     )
+    development_binding = None
+    if args.split == "heldout":
+        if not args.development_closure:
+            raise SystemExit("heldout preflight requires --development-closure")
+        development_binding = _validate_heldout_development_closure(
+            args.development_closure,
+            protocol_sha=args.protocol_sha256,
+            commit=protocol["repository"]["execution_commit"],
+            grant=grant,
+        )
     service = protocol["service"]
     commit = protocol["repository"]["execution_commit"]
     if _git(ROOT, "rev-parse", "HEAD") != commit or _git(ROOT, "status", "--porcelain"):
@@ -291,17 +346,18 @@ def main() -> int:
             raise SystemExit("granted port is not free before launch")
         unit_state = _run(
             "systemctl", "--user", "show", "-p", "LoadState", "--value",
-            service["managed_unit"], check=False
+            service["managed_unit"]
         ).strip()
         container_inspect = subprocess.run(
             ["sudo", "-n", "docker", "inspect", service["container"]],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            text=True, capture_output=True,
         )
-        if unit_state not in {"", "not-found"}:
+        if unit_state != "not-found":
             raise SystemExit("grant-named managed unit already exists before launch")
         if container_inspect.returncode == 0:
             raise SystemExit("grant-named container already exists before launch")
+        if "No such object" not in container_inspect.stderr:
+            raise SystemExit("docker absence probe failed closed")
         checks.update(
             {
                 "device_idle": True,
@@ -403,6 +459,7 @@ def main() -> int:
             "container": service["container"],
         },
         "static_grant_checks": static,
+        "development_closure_binding": development_binding,
         "checks": checks,
         "observations": observations,
         "captured_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),

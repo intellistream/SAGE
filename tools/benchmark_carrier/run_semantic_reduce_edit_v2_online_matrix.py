@@ -124,6 +124,9 @@ def _validate_authorization(
     expected = protocol["repository"]["execution_commit"]
     grant_service = grant.get("service", {})
     grant_model = grant.get("model", {})
+    now = datetime.now(timezone.utc)
+    issued = _utc(grant.get("issued_at_utc"))
+    allocation_start = _utc(grant.get("allocation_start_utc"))
     conditions = {
         "grant-status": grant.get("status") == "GRANTED",
         "protocol-sha": grant.get("protocol_sha256") == protocol_sha,
@@ -149,9 +152,10 @@ def _validate_authorization(
         == service["model_config_sha256"],
         "generation-config": grant_model.get("generation_config_sha256")
         == service["generation_config_sha256"],
-        "allocation-started": _utc(grant.get("allocation_start_utc"))
-        <= datetime.now(timezone.utc),
-        "unexpired": _utc(grant.get("expires_utc")) > datetime.now(timezone.utc),
+        "grant-issued-before-allocation": issued <= allocation_start,
+        "grant-issued-not-in-future": issued <= now,
+        "allocation-started": allocation_start <= now,
+        "unexpired": _utc(grant.get("expires_utc")) > now,
         "allocation-duration": _utc(grant.get("expires_utc"))
         - _utc(grant.get("allocation_start_utc"))
         >= timedelta(minutes=protocol["reservation_shape"]["requested_duration_minutes"]),
