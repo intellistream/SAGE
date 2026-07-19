@@ -1,6 +1,36 @@
 # Semantic MapReduce Mechanism and Evidence Readiness Report
 
-## 2026-07-19 Current Status: NOT SUBMISSION-READY
+## 2026-07-19 Current Status: OFFLINE PACKAGE AND RESERVATION REQUEST READY; ONLINE EVIDENCE PENDING
+
+This supersedes earlier status paragraphs below. The audited offline package,
+12-technical-page PDF, anonymous artifact, and fail-closed v2 reservation
+protocol are ready. The paper is still **not submission-ready as an evidence
+claim** until an authorized v2 real-online run completes its frozen development
+and held-out protocol, independent verification, cleanup/release ACK, and final
+closure. No online run, queue edit, reservation, or service launch occurred.
+
+Final frozen identities:
+
+- Protocol commit `b951629d260f9d981d4d725adeff6a5bd2bce4fa`, SHA-256
+  `33b48e86f7c48e635cc009bb4af551d7336cc00bbc097bb26edf37920a6ba83d`.
+- Execution commit `fc0978d704630d5d298cff6aa573957eb15dbe3f`; 12 frozen
+  source hashes and six submodule gitlinks.
+- Anonymous v6 artifact SHA-256
+  `0470ea7a43fb2b33cb4344b9097fb67d433b2f380830f296d8280340dd86e937`;
+  1,342 safe members and 1,329/1,329 manifest hashes.
+- Public PDF SHA-256 `d30cd3ac017f5e5e4958b3bbbca3684208d5bd92978c630c4f2b61832c816ce5`;
+  private PDF SHA-256 `9ca659f1680415f0a2f8ff1900c450102de757215e6bed4d3db5251e4d50cb86`.
+  Both are 14 physical Letter pages with 12 technical pages and references on
+  pages 13--14; all fonts are embedded and all pages passed visual inspection.
+- Final test gate: 229 passed, one explicit CI-only skip, seven warnings.
+
+The final systems, experiment/statistics/provenance, and artifact/fail-closed
+review envelopes all SIGN the same protocol and execution SHA. Earlier signs
+were deliberately voided whenever another reviewer found a real defect. The
+repairs cover complete request semantics and chronology, canonical review
+digests and independent identities, split-specific held-out namespaces,
+complete anonymity reject classes, git-describe redaction, and manifest-content
+scanning. This conflict history is evidence that readiness was not assumed.
 
 The previous submission-freeze conclusion is superseded. The frozen online
 artifacts remain valid evidence for the historical `semantic-reduce/v1`
@@ -45,23 +75,23 @@ public rebuild is 14 physical pages on US Letter: technical content ends on
 page 12 and pages 13--14 contain only references, within the official
 12-technical-page-plus-unlimited-references limit. Page-by-page review caught
 and repaired four clipping/overlap defects. The expanded no-NPU audit selection
-passes `82 passed` after adding the fail-closed real-online selector and
-SHA/grant-gated runner; no endpoint was invoked. Public PDF SHA-256 is
-`4371be8909bece40988b3f035133f9143b5d0bddd0ca5f205fc2827193d7dcd1`;
+passes `229 passed, 1 skipped` after adding the fail-closed request, online,
+and anonymous-artifact gates; no endpoint was invoked. Public PDF SHA-256 is
+`d30cd3ac017f5e5e4958b3bbbca3684208d5bd92978c630c4f2b61832c816ce5`;
 the untracked private PDF SHA-256 is
-`7a976e1f0e055fe2e02251193f1fea5165cd9379b6fec280a586ed33071d3cc2`.
+`9ca659f1680415f0a2f8ff1900c450102de757215e6bed4d3db5251e4d50cb86`.
 
 The clean v2 held-out matrix has 40 units: H0 mean F1 0.333, proposal-oracle
 F1 0.562 with 36 repairs, deterministic shared-catalog F1 0.495, and offline
 mock-ID F1 0.498. Improving merge/split proposals exist in 29/14 units; score
 balance is 0.506 and hint coverage--correctness is 0.623. The mock invokes no
-model or endpoint, so the scientific disposition remains **NOT
-SUBMISSION-READY** until a genuine v2 model selector is evaluated real-online.
+model or endpoint, so submission evidence remains pending a genuine authorized
+v2 model-selector run and canonical final closure.
 
 Replacement anonymous archive:
-`.sage/benchmarks/semantic-reduction-eurosys27-review-evidence-cross-audit-20260719.tar.gz`,
-965,240 bytes, 1,329 manifest-covered files, SHA-256
-`882e1b0a952e7fed7ab0964462bf42efeadb2a14eea81bc438bf14b690696fb7`.
+`.sage/benchmarks/semantic-reduction-eurosys27-review-evidence-cross-audit-v6-20260719.tar.gz`,
+1,329 manifest-covered files, SHA-256
+`0470ea7a43fb2b33cb4344b9097fb67d433b2f380830f296d8280340dd86e937`.
 Its bundled standard-library verifier passes after safe extraction under the
 single opaque root `artifact`.
 

@@ -1,7 +1,19 @@
 # Semantic MapReduce Mechanism-Completion Checklist
 
-This is the active post-v1 task list. The goal is mechanism-complete and
-offline-evidence-ready, not deadline closure. The paper is not submission-ready.
+This is the active post-v1 task list. Offline evidence, PDF, anonymous artifact,
+and the request-only v2 protocol are ready. The paper still lacks authorized,
+final-closure v2 real-online evidence and is therefore not submission-ready.
+
+## Frozen Request-Only Handoff
+
+- Protocol SHA-256: `33b48e86f7c48e635cc009bb4af551d7336cc00bbc097bb26edf37920a6ba83d`.
+- Execution commit: `fc0978d704630d5d298cff6aa573957eb15dbe3f`.
+- Three fresh reviewer decisions: SIGN on the same SHA.
+- Artifact v6 SHA-256:
+  `0470ea7a43fb2b33cb4344b9097fb67d433b2f380830f296d8280340dd86e937`.
+- Next action: emit a request-only reservation envelope after clean/upstream and
+  queue-base revalidation. Do not edit the queue, reserve a card, inspect/use
+  hardware, or launch a service. Central grant remains mandatory.
 
 ## Active Offline Gates
 
@@ -33,7 +45,7 @@ Clean runs are frozen as `bb140c0-development`, `bb140c0-heldout`, and
 catalog digest equality, and no online execution. The replacement anonymous
 archive bundles its verifier and passes a safe independent extraction; its
 SHA-256 is
-`882e1b0a952e7fed7ab0964462bf42efeadb2a14eea81bc438bf14b690696fb7`.
+`0470ea7a43fb2b33cb4344b9097fb67d433b2f380830f296d8280340dd86e937`.
 
 Clean matrix command (after the tree is clean):
 
@@ -91,9 +103,9 @@ not determine current readiness and must not be read as v2 SPLIT validation.
   The superseded SHA-bearing archive is explicitly non-submittable.
 - [x] Build the private-title review PDF outside the tracked paper tree, rerun
   focused tests, inspect all rendered pages, and cross-check every paper number
-  against the frozen result manifests and `claim-ledger.md`. The 12-page private
-  review PDF SHA-256 is
-  `5d2a46f1a011e87b1575cd391bfc7ef5c4070fb1a38a1d75b91800cb4263ebdf`;
+  against the frozen result manifests and `claim-ledger.md`. The 14-physical-page
+  (12 technical pages) private review PDF SHA-256 is
+  `9ca659f1680415f0a2f8ff1900c450102de757215e6bed4d3db5251e4d50cb86`;
   neither its title/system-name sources nor PDF is Git-tracked.
 - [x] Strengthen the paper's runtime/operator framing with a concrete
   admit--reduce--select--propose--assemble--validate--publish--recover
@@ -132,7 +144,7 @@ tools/benchmark_carrier/run_npu3_semantic_merge_llm_comparison.sh
 ```
 
 The clean, double-blind replacement is
-`.sage/benchmarks/semantic-reduction-eurosys27-review-evidence-cross-audit-20260719.tar.gz`.
+`.sage/benchmarks/semantic-reduction-eurosys27-review-evidence-cross-audit-v6-20260719.tar.gz`.
 The older SHA-bearing package must not be uploaded.
 Retain the earlier diff-hashed run only as development evidence.
 

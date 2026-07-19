@@ -5,12 +5,20 @@ large-scale analysis workload and Semantic MapReduce framing.
 
 ## Current Mechanism Status (2026-07-19)
 
-The active goal is mechanism completeness and auditable offline evidence, not
-the EuroSys deadline. The paper is **not submission-ready**. Runtime v2 now has
+The active goal is final evidence closure. The paper is **not yet
+submission-ready** because v2 real-online evidence has not been authorized or
+executed. Runtime v2 now has
 finite proposal IDs, true SPLIT, atomic rollback, exact H0 fallback, and a fair
 shared-catalog policy harness; its new evidence is currently offline
 `simulation/model`. The frozen 0.8645/0.7801 online matrix belongs to the old
 merge-only v1 implementation and must not be presented as online SPLIT.
+
+The frozen request protocol is SHA
+`33b48e86f7c48e635cc009bb4af551d7336cc00bbc097bb26edf37920a6ba83d`
+over execution commit `fc0978d704630d5d298cff6aa573957eb15dbe3f`; all three
+independent reviewers SIGN it. This is request readiness, not execution
+authority. The anonymous v6 artifact SHA is
+`0470ea7a43fb2b33cb4344b9097fb67d433b2f380830f296d8280340dd86e937`.
 
 Run the v2 focused gates with:
 
@@ -22,8 +30,9 @@ PYTHONPATH=src /home/shuhao/miniconda3/envs/esage-vllm-hust-dev/bin/python \
   src/tests/test_semantic_reduce_edit_evaluation.py
 ```
 
-The final clean offline command is documented in `NEXT_STEPS.md`; do not use
-`--allow-dirty` for claim evidence and do not start an NPU/online sweep.
+The final clean offline command and request-only handoff are documented in
+`NEXT_STEPS.md`; do not use `--allow-dirty` for claim evidence or start an
+NPU/online sweep without the exact central grant.
 
 ## Venue Choice
 

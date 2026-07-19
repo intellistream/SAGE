@@ -151,7 +151,9 @@ artifact/reproducibility gates; real online reducer runs still require an
 explicit vLLM-HUST endpoint and should use the scripts documented under
 `docs/papers/semantic_mapreduce/`.
 
-The mechanism-complete bounded Edit v2 path is currently offline-only. Its
+The mechanism-complete bounded Edit v2 implementation currently has offline
+evidence only. A three-reviewer-signed real-online protocol is request-ready but
+has not been centrally granted or executed. Its
 finite proposal catalog, true SPLIT, atomic validation/replay tests, frozen
 40-unit held-out matrix (36 oracle repairs; improving merge/split proposals in
 29/14 units), and clean-matrix command are documented in

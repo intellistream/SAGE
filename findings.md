@@ -1,5 +1,37 @@
 # Findings & Decisions: Semantic MapReduce Submission Readiness
 
+## 2026-07-19 Final Cross-Audit Adjudication
+
+- The sole remaining scientific closure is an authorized v2 real-online model
+  selector run; no NPU, endpoint, credential, queue mutation, reservation, or
+  service launch occurred in this audit.
+- The frozen protocol is commit `b951629d260f9d981d4d725adeff6a5bd2bce4fa`,
+  SHA-256 `33b48e86f7c48e635cc009bb4af551d7336cc00bbc097bb26edf37920a6ba83d`,
+  with execution commit `fc0978d704630d5d298cff6aa573957eb15dbe3f`,
+  12 frozen source hashes, and six frozen submodule gitlinks.
+- Reviewer conflict was resolved by evidence, not disposition pressure. An
+  early systems SIGN was voided when experiment/artifact reviews found an
+  incomplete request contract; later SIGNs were voided after systems found
+  unbound review digests and a namespace contradiction; later artifact reviews
+  found git-describe leakage, incomplete reject classes, and an unscanned
+  manifest. Each defect was repaired and every reviewer re-reviewed the new
+  exact SHA. The final three decisions are all SIGN with no blockers.
+- The final anonymous derived artifact is
+  `.sage/benchmarks/semantic-reduction-eurosys27-review-evidence-cross-audit-v6-20260719.tar.gz`,
+  SHA-256 `0470ea7a43fb2b33cb4344b9097fb67d433b2f380830f296d8280340dd86e937`.
+  It has 1,342 safe members and 1,329/1,329 manifest-covered files; its full
+  verifier is read-only, scans the manifest itself, and self-excludes only the
+  hash-covered `verify.py` regex corpus from content matching.
+- The final test gate is 229 passed, one explicit CI-only skip, seven warnings.
+  The public/private PDFs are both 14 physical US-Letter pages with 12 pages of
+  technical content and references only on pages 13--14. Public SHA-256 is
+  `d30cd3ac...c816ce5`; private SHA-256 is `9ca659f1...0cb86`.
+- Current status is not “submission-ready”: the offline package and frozen
+  request protocol are ready, while paper-admissible v2 online evidence still
+  requires central authorization, complete execution, cleanup/release ACK, and
+  final closure. Old v1, replay, simulation, projected, or derived artifacts
+  cannot substitute.
+
 ## 2026-07-19 EuroSys'27 Cross-Submission Audit Baseline
 
 - The cross-audit's authoritative handoff is parent branch
@@ -512,7 +544,7 @@
   offline gates passing. The mock selector invokes no model or endpoint.
 - The replacement anonymous artifact has one opaque root, 1,329
   manifest-covered files, a bundled standard-library verifier, and archive
-  SHA-256 `882e1b0a952e7fed7ab0964462bf42efeadb2a14eea81bc438bf14b690696fb7`.
+  SHA-256 `0470ea7a43fb2b33cb4344b9097fb67d433b2f380830f296d8280340dd86e937`.
 - EuroSys'27 permits 12 technical pages plus unlimited references. The current
   14-page Letter PDF ends technical content on page 12; pages 13--14 contain
   references only. Public and private contact sheets show no clipping or table

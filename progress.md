@@ -1,5 +1,25 @@
 # Progress Log: Semantic MapReduce ASPLOS 2027
 
+## 2026-07-19 — Cross-Audit Closure and Reservation-Only Handoff
+
+- Three independent read-only reviewers finally SIGN the identical protocol
+  SHA `33b48e86f7c48e635cc009bb4af551d7336cc00bbc097bb26edf37920a6ba83d`
+  and execution commit `fc0978d704630d5d298cff6aa573957eb15dbe3f`.
+- Closed successive request chronology/schema, canonical review digest and
+  reviewer independence, held-out namespace, archive infrastructure leakage,
+  git-describe, complete reject-policy, exact self-exclusion, and manifest
+  content-scan gaps. Every repair forced a new SHA and all three fresh reviews.
+- Generated and independently extracted v6 anonymous artifact SHA
+  `0470ea7a43fb2b33cb4344b9097fb67d433b2f380830f296d8280340dd86e937`:
+  1,342 safe members, 1,329/1,329 hashes, full-profile PASS, and unchanged tree
+  hash after verifier execution.
+- Final static suite: 229 passed, one CI-only skip. Public/private 14-page
+  Letter PDFs (12 technical pages) passed page-by-page visual, font, identity,
+  and format checks with SHAs `d30cd3ac...c816ce5` and `9ca659f1...0cb86`.
+- No hardware, service, online model, credential, or central-queue action was
+  taken. The next output is a machine-readable request-only reservation
+  envelope; it confers no execution authority.
+
 ## Session: 2026-07-19 — EuroSys'27 Cross-Submission Readiness Audit
 
 ### Phase X1: Independent Review and Provenance

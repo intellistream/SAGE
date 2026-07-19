@@ -11,6 +11,12 @@ result. The strongest fair v2
 question is proposal coverage and selector quality under identical H0/catalog
 input, not whether the model beats a full-evidence reclustering reference.
 
+The exact v2 real-online protocol is now frozen and request-ready at SHA
+`33b48e86f7c48e635cc009bb4af551d7336cc00bbc097bb26edf37920a6ba83d`
+with three independent SIGN envelopes. It has not been granted or executed;
+old v1, offline, replay, simulation, projected, and derived evidence cannot
+substitute. Any future claim must come from its canonical final closure.
+
 This one-page packet records the submission-facing answers that should remain
 consistent across the paper, rebuttal notes, and talks.
 

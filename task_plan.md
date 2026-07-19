@@ -1,4 +1,4 @@
-# Task Plan: Semantic MapReduce Bounded Edit Runtime and Fair Offline Evidence
+# Task Plan: Semantic MapReduce EuroSys'27 Submission Readiness
 
 ## Goal
 Make the bounded semantic-reduce operator/runtime contract mechanism-complete,
@@ -6,8 +6,8 @@ fairly comparable, and auditable: true SPLIT plus MERGE/KEEP/ABSTAIN over a
 finite system-generated proposal catalog; unified H0/fallback/digests; atomic
 validation, commit, checkpoint, and replay; shared-catalog deterministic/model
 selection; difficult held-out controlled workloads; and a clean reproducible
-`simulation/model` matrix. Preserve frozen online evidence and correct claims
-without running NPU or a new online sweep.
+`simulation/model` matrix, and a three-reviewer-signed, fail-closed reservation
+protocol for the still-unexecuted v2 real-online selector experiment.
 
 ## Completion Rule
 Keep this plan active until either (A) every acceptance item below is backed by
@@ -17,7 +17,21 @@ and the impossibility evidence is recorded. An audit, TODO list, plan, or first
 failure is not completion.
 
 ## Current Phase
-Cross-submission audit Phase X3 — final validation and publication state
+Cross-submission audit Phase X4 — request-only reservation handoff
+
+### Phase X4: Frozen Real-Online Reservation Protocol
+- [x] Freeze Qwen2.5-7B/NPU3 TP1 service identity, 80-row development and
+      200-row held-out matrices, paired endpoint and clustered CI, stopping,
+      cleanup/release, canonical raw roots, and non-substitution rules.
+- [x] Close request-envelope digest/identity/time, split-specific namespace,
+      and complete anonymous-artifact fail-closed gaps with regression tests.
+- [x] Obtain fresh SIGN envelopes from systems/novelty,
+      experiments/statistics/provenance, and artifact/fail-closed reviewers on
+      protocol SHA `33b48e86...a6ba83d` and execution commit `fc0978d`.
+- [ ] Emit the request-only reservation JSON after final clean commit/upstream
+      equality and read-only queue-base revalidation; do not reserve hardware,
+      edit the queue, or start a service.
+- **Status:** in progress
 
 ## EuroSys'27 Cross-Submission Audit (2026-07-19)
 
@@ -40,9 +54,9 @@ Cross-submission audit Phase X3 — final validation and publication state
 - [x] Run the claim verifier, independent artifact unpack/verification,
       anonymity scan, TeX/PDF builds, page/format checks, and page-by-page visual
       inspection; the complete applicable test suite remains the final gate.
-- [ ] Commit only the audited parent-repository paths, push the current branch,
+- [x] Commit only the audited parent-repository paths, push the current branch,
       and verify local HEAD equals upstream with a clean worktree.
-- **Status:** pending
+- **Status:** completed
 
 ## Acceptance Matrix
 
@@ -62,7 +76,7 @@ Cross-submission audit Phase X3 — final validation and publication state
       reproducible from a complete manifest in `esage-vllm-hust-dev`.
 - [x] Frozen historical online artifacts are byte-preserved and described only
       as the old merge-only implementation; no new online run is performed.
-- [ ] Paper/readiness/ledger/reviewer/README/NEXT_STEPS/planning claims agree,
+- [x] Paper/readiness/ledger/reviewer/README/NEXT_STEPS/planning claims agree,
       parent branch is clean and pushed, and umbrella handoff is factual.
 
 ## Phases
@@ -107,9 +121,9 @@ Cross-submission audit Phase X3 — final validation and publication state
       evidence; do not freeze them prematurely.
 - [x] Correct paper and readiness/claim/reviewer/README/NEXT_STEPS/planning docs,
       including historical merge-only H0 and matched-statistic distinctions.
-- [ ] Push final parent state, verify clean/local=remote, and update the umbrella
+- [x] Push final parent state, verify clean/local=remote, and update the umbrella
       handoff with exact commit, pins, evidence path/label, blocker, and command.
-- **Status:** pending
+- **Status:** completed
 
 ## Decisions Made
 
