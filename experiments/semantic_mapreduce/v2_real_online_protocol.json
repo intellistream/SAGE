@@ -6,7 +6,7 @@
   "repository": {
     "path": "/home/shuhao/SAGE",
     "branch": "feature/semantic-mapreduce-paper",
-    "execution_commit": "bdb4fa2c1ef0acd99bb0d92732c1e58128fcfb9d",
+    "execution_commit": "77d6493fd24eebb38e6446d24612357a6ee49bf3",
     "execution_commit_must_be_clean_and_pushed": true,
     "protocol_execution_copy": "copy this byte-identical protocol outside the checkout or into an ignored .sage control root before checking out the execution commit",
     "frozen_sources": {
@@ -20,7 +20,7 @@
       },
       "verifier": {
         "path": "tools/benchmark_carrier/verify_semantic_reduce_v2_online_run.py",
-        "sha256": "a55f77dcde4d8c6795c0c952bc49257f0ae6c8ff1343d7343b664df59da2a6c3"
+        "sha256": "cac787648f1df2f3068867616b6043e4505cb3e7d2570761929def92b6317a00"
       },
       "physical_preflight": {
         "path": "tools/benchmark_carrier/preflight_semantic_reduce_v2_online.py",
