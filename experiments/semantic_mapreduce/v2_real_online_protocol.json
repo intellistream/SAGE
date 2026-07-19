@@ -6,7 +6,7 @@
   "repository": {
     "path": "/home/shuhao/SAGE",
     "branch": "feature/semantic-mapreduce-paper",
-    "execution_commit": "77d6493fd24eebb38e6446d24612357a6ee49bf3",
+    "execution_commit": "27411de4f99b099b6b518afeac83f7d1715d310a",
     "execution_commit_must_be_clean_and_pushed": true,
     "protocol_execution_copy": "copy this byte-identical protocol outside the checkout or into an ignored .sage control root before checking out the execution commit",
     "frozen_sources": {
@@ -28,7 +28,7 @@
       },
       "authorized_orchestrator": {
         "path": "tools/benchmark_carrier/orchestrate_semantic_reduce_v2_authorized_run.py",
-        "sha256": "1660be3f661da86dd3010ab86f954bc38fd68378a71c78204a76291ec605bb2e"
+        "sha256": "259743875bbef6acf9e4a90fc9f439362cb381557f023e3d8190a497a3084b7f"
       },
       "reservation_request_generator": {
         "path": "tools/benchmark_carrier/generate_semantic_reduce_v2_reservation_request.py",
@@ -251,11 +251,12 @@
       "run independent full verifier outside the raw manifest inventory",
       "on every success error or signal stop only the grant-named unit/container",
       "verify granted NPU and port clear and retain cleanup observations",
+      "scan every raw and control artifact; immediately redact and fail closed on exact API-key or Authorization/Bearer material; retain a checksum-bearing scan report",
       "emit REQUEST_ONLY_CENTRAL_ACK_REQUIRED release request",
       "central single writer records queue release; protocol owner never edits the queue"
     ],
     "legacy_bypass": "forbidden: no skip-server-management, skip-NPU-check, arbitrary output-dir, arbitrary base-url, or keep-server exit is exposed by the orchestrator",
-    "failure_semantics": "a cleanup failure forces nonzero exit and is retained in the release request; central release acknowledgement remains mandatory"
+    "failure_semantics": "a cleanup or control-secret-scan failure forces nonzero exit and is retained in the release request; central release acknowledgement remains mandatory"
   },
   "queue_base_observation": {
     "repository": "/home/shuhao/llm-optimizations",
