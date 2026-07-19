@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import signal
 import socket
 import subprocess
@@ -38,7 +39,45 @@ def _now() -> str:
     )
 
 
-def _run(command: list[str], *, env: dict[str, str], log: Path) -> None:
+def _scan_and_redact_log(
+    path: Path, *, api_key: str, results: list[dict[str, Any]]
+) -> None:
+    original = path.read_text(encoding="utf-8", errors="replace")
+    redacted = original
+    findings: list[str] = []
+    if api_key and api_key in redacted:
+        findings.append("exact-api-key")
+        redacted = redacted.replace(api_key, "<REDACTED-EXACT-API-KEY>")
+    patterns = {
+        "authorization-bearer": r"(?i)(authorization[^\n]{0,16}bearer\s+)[A-Za-z0-9._~+/=-]{8,}",
+        "bearer-token": r"(?i)(bearer\s+)[A-Za-z0-9._~+/=-]{8,}",
+        "api-key-value": r'(?i)(["\']?api[_-]?key["\']?\s*[:=]\s*["\']?)[^\s"\']{8,}',
+    }
+    for name, pattern in patterns.items():
+        if re.search(pattern, redacted):
+            findings.append(name)
+            redacted = re.sub(pattern, r"\1<REDACTED>", redacted)
+    if redacted != original:
+        path.write_text(redacted, encoding="utf-8")
+    results.append(
+        {
+            "path": str(path),
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "status": "FAIL_REDACTED" if findings else "PASS",
+            "findings": sorted(set(findings)),
+        }
+    )
+    if findings:
+        raise RuntimeError(f"credential material detected and redacted in {path.name}")
+
+
+def _run(
+    command: list[str],
+    *,
+    env: dict[str, str],
+    log: Path,
+    scan_results: list[dict[str, Any]],
+) -> None:
     with log.open("xb") as stream:
         result = subprocess.run(
             command,
@@ -47,6 +86,11 @@ def _run(command: list[str], *, env: dict[str, str], log: Path) -> None:
             stdout=stream,
             stderr=subprocess.STDOUT,
         )
+    _scan_and_redact_log(
+        log,
+        api_key=env.get("VLLM_HUST_API_KEY", ""),
+        results=scan_results,
+    )
     if result.returncode:
         raise RuntimeError(f"command failed ({result.returncode}): {command[0]}")
 
@@ -118,6 +162,7 @@ def main() -> int:
     ]
     service_launch_attempted = False
     termination_signal: int | None = None
+    scan_results: list[dict[str, Any]] = []
 
     def _mark_signal(signum: int, _frame: object) -> None:
         nonlocal termination_signal
@@ -140,6 +185,7 @@ def main() -> int:
             ],
             env=env,
             log=control / "prelaunch.log",
+            scan_results=scan_results,
         )
         service_launch_attempted = True
         _run(
@@ -158,6 +204,7 @@ def main() -> int:
             ],
             env=env,
             log=control / "service-launch.log",
+            scan_results=scan_results,
         )
         _run(
             [
@@ -170,6 +217,7 @@ def main() -> int:
             ],
             env=env,
             log=control / "postlaunch.log",
+            scan_results=scan_results,
         )
         runner_command = [
             sys.executable,
@@ -183,6 +231,7 @@ def main() -> int:
             runner_command,
             env=env,
             log=control / "runner.log",
+            scan_results=scan_results,
         )
         raw_root = (
             ROOT / ".sage/benchmarks/semantic_reduce_edit_v2_real_online"
@@ -200,6 +249,7 @@ def main() -> int:
             ],
             env=env,
             log=control / "verification.log",
+            scan_results=scan_results,
         )
         outcome, exit_code = "PASS", 0
     except BaseException as exc:
@@ -244,6 +294,14 @@ def main() -> int:
                         cleanup_errors.append(
                             f"docker-stop-exit-{docker_stop.returncode}"
                         )
+            try:
+                _scan_and_redact_log(
+                    control / "cleanup.log",
+                    api_key=env.get("VLLM_HUST_API_KEY", ""),
+                    results=scan_results,
+                )
+            except RuntimeError as exc:
+                cleanup_errors.append(str(exc))
             for _ in range(30):
                 if not _port_open(int(service["port"])) and not _granted_npu_has_process(
                     int(service["physical_npu"])
@@ -252,6 +310,34 @@ def main() -> int:
                 time.sleep(1)
             else:
                 cleanup_errors.append("device-or-port-still-occupied")
+        scanned_paths = {Path(item["path"]).resolve() for item in scan_results}
+        for artifact in sorted(control.rglob("*")):
+            if not artifact.is_file() or artifact.resolve() in scanned_paths:
+                continue
+            try:
+                _scan_and_redact_log(
+                    artifact,
+                    api_key=env.get("VLLM_HUST_API_KEY", ""),
+                    results=scan_results,
+                )
+            except RuntimeError as exc:
+                cleanup_errors.append(str(exc))
+        secret_scan = {
+            "schema_version": "semantic-reduce-v2-control-secret-scan/1",
+            "status": (
+                "PASS"
+                if scan_results
+                and all(item["status"] == "PASS" for item in scan_results)
+                else "FAIL"
+            ),
+            "scanned_files": scan_results,
+            "completed_utc": _now(),
+        }
+        (control / "control-secret-scan.json").write_text(
+            json.dumps(secret_scan, indent=2) + "\n", encoding="utf-8"
+        )
+        if secret_scan["status"] != "PASS":
+            cleanup_errors.append("control-secret-scan-failed")
         release_payload = {
             "schema_version": "semantic-reduce-v2-release-request/1",
             "status": "REQUEST_ONLY_CENTRAL_ACK_REQUIRED",
@@ -270,6 +356,10 @@ def main() -> int:
                 "grant_named_port": service["port"],
                 "status": "PASS" if not cleanup_errors else "FAIL",
                 "errors": cleanup_errors,
+            },
+            "control_secret_scan": {
+                "status": secret_scan["status"],
+                "report_sha256": _sha256(control / "control-secret-scan.json"),
             },
             "queue_mutation_performed": False,
             "release_requested_utc": _now(),

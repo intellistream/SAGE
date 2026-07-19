@@ -10,6 +10,9 @@ import pytest
 TOOLS = Path(__file__).resolve().parents[2] / "tools/benchmark_carrier"
 sys.path.insert(0, str(TOOLS))
 
+from orchestrate_semantic_reduce_v2_authorized_run import (  # noqa: E402
+    _scan_and_redact_log,
+)
 from run_semantic_reduce_edit_v2_online_matrix import (  # noqa: E402
     _expected_rows,
     _secret_hits,
@@ -153,3 +156,24 @@ def test_raw_secret_scanner_detects_exact_and_generic_credentials() -> None:
 def test_expected_row_count_is_frozen_cartesian_product() -> None:
     protocol, _, _ = _envelopes()
     assert _expected_rows(protocol, "development") == 8
+
+
+def test_control_log_secret_scanner_redacts_and_fails_closed(tmp_path: Path) -> None:
+    log = tmp_path / "service.log"
+    log.write_text(
+        "header Authorization: Bearer live-secret-value footer\n", encoding="utf-8"
+    )
+    results: list[dict] = []
+    with pytest.raises(RuntimeError, match="detected and redacted"):
+        _scan_and_redact_log(log, api_key="live-secret-value", results=results)
+    assert "live-secret-value" not in log.read_text(encoding="utf-8")
+    assert results[0]["status"] == "FAIL_REDACTED"
+
+
+def test_control_log_secret_scanner_records_clean_checksum(tmp_path: Path) -> None:
+    log = tmp_path / "clean.log"
+    log.write_text("service ready\n", encoding="utf-8")
+    results: list[dict] = []
+    _scan_and_redact_log(log, api_key="not-present", results=results)
+    assert results[0]["status"] == "PASS"
+    assert len(results[0]["sha256"]) == 64
