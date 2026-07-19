@@ -276,6 +276,24 @@ def package(
                 " --profile full --min-samples "
                 f"{int(manifest_payload.get('samples', 1))}"
             )
+    supplementary_inventory = ""
+    if supplementary_dirs or supplementary_files:
+        directory_lines = "".join(
+            f"- `supplementary/{label}/`\n" for label, _ in supplementary_dirs
+        )
+        file_lines = "".join(
+            f"- `supplementary/{path.name}`\n" for path in supplementary_files
+        )
+        supplementary_inventory = (
+            "\n## Supplementary evidence\n\n"
+            + directory_lines
+            + file_lines
+            + "\nEvidence labels and scope fields in these files are normative. In "
+            "particular, `real-online`, `replay`, and `derived-artifact` must not "
+            "be conflated. A label-conditioned reducer replay is not an end-to-end "
+            "detection result, and a second model scale in one family is not "
+            "cross-family robustness.\n"
+        )
     readme = output_dir / "README.md"
     readme.write_text(
         "# Anonymous semantic-reduction evidence\n\n"
@@ -290,7 +308,12 @@ def package(
         "python tools/benchmark_carrier/verify_semantic_merge_artifact.py "
         "comparison --endpoint-metadata endpoint/metadata.json"
         f"{verification_args}\n"
-        "```\n",
+        "```\n\n"
+        "Verify package integrity and provenance redaction with "
+        "`ANONYMIZATION_MANIFEST.json`; every packaged file has a SHA-256 entry "
+        "and the manifest must report `status=PASS`, an empty `failures` list, "
+        "and `publication_anonymized=true`.\n"
+        + supplementary_inventory,
         encoding="utf-8",
     )
     files["README.md"] = {
