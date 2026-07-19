@@ -6,7 +6,7 @@
   "repository": {
     "path": "/home/shuhao/SAGE",
     "branch": "feature/semantic-mapreduce-paper",
-    "execution_commit": "4982f44ddbce820b02fb9e652255c31c03de05ef",
+    "execution_commit": "729056a13d7c19fbfbb99cff6f252336191ce493",
     "execution_commit_must_be_clean_and_pushed": true,
     "protocol_execution_copy": "copy this byte-identical protocol outside the checkout or into an ignored .sage control root before checking out the execution commit",
     "frozen_sources": {
@@ -16,15 +16,15 @@
       },
       "runner": {
         "path": "tools/benchmark_carrier/run_semantic_reduce_edit_v2_online_matrix.py",
-        "sha256": "18a99e1c3d0d9ecc8149be0bbb5022609045771cba2fac640b20ecc4be81c635"
+        "sha256": "b0b0e35dfcc2333e607c74d1ce82a06a9d2ecfdc63bc693a0cb9a13413f3cdf4"
       },
       "verifier": {
         "path": "tools/benchmark_carrier/verify_semantic_reduce_v2_online_run.py",
-        "sha256": "b8f078261d2bde30d8f147a1f66ac025812e17870f84db7365f07ce519efebbc"
+        "sha256": "bca122e609ca62ea97b4d09af7eda7fdae90e37346a0692dc3e349c0e59e1dad"
       },
       "physical_preflight": {
         "path": "tools/benchmark_carrier/preflight_semantic_reduce_v2_online.py",
-        "sha256": "53f7867dbfcd499c9baaa9f54472b9d48144b13ad3013cb9bee260e11b2d38ee"
+        "sha256": "34032d7d34b6b508bd60b557f7f704dee6943c75f81eca7303334bb1044e37c7"
       },
       "authorized_orchestrator": {
         "path": "tools/benchmark_carrier/orchestrate_semantic_reduce_v2_authorized_run.py",
@@ -36,7 +36,11 @@
       },
       "reservation_request_generator": {
         "path": "tools/benchmark_carrier/generate_semantic_reduce_v2_reservation_request.py",
-        "sha256": "957533fcab027a9e8a776c63e9cc1ed88693a628922d4b4b91662d403404d4d9"
+        "sha256": "8ebe7e3f9654acde797d23b24106ce465cd7d5dcf62b3031b0205a8026db0213"
+      },
+      "request_contract": {
+        "path": "tools/benchmark_carrier/semantic_reduce_v2_request_contract.py",
+        "sha256": "11da0691d3971541f56dd01fbbc51e812ba8f077919449407baa968bad42ad34"
       },
       "managed_service_launcher": {
         "path": "tools/benchmark_carrier/run_npu3_semantic_mapreduce_experiment.sh",
@@ -88,7 +92,7 @@
     "must_bind": [
       "protocol_sha256",
       "repository_commit",
-      "reservation_request_id and reservation_request_sha256 for the exact unexpired request-only envelope",
+      "reservation_request_id and reservation_request_sha256 for the exact full-contract request-only envelope with requested_at_utc <= issued_at_utc < request_expires_utc",
       "exactly one authorized split and its exact run_id",
       "timezone-aware issued_at_utc <= allocation_start_utc <= admission time < expires_utc, spanning the requested 210-minute allocation with at least 180 minutes remaining at runner admission",
       "one physical NPU with ID 3 and the frozen topology",
@@ -249,7 +253,7 @@
   },
   "physical_preflight_logic": {
     "must_pass_after_central_grant_before_launch": [
-      "reservation request and grant bind request ID protocol SHA execution commit NPU3 model service and unexpired TTL",
+      "reservation request passes the exact frozen schema, three distinct SHA-bound SIGN envelopes, resources, clean upstream repository state, queue base, static physical gate, raw roots, cleanup chain, and non-substitution contract; grant binds its request ID and SHA, protocol SHA, execution commit, NPU3, model, service, and requested_at_utc <= issued_at_utc < request_expires_utc",
       "NPU3 has no foreign process and no conflicting container/device owner",
       "port 18383 is free before launch and owned by the exact managed service after launch",
       "repo and required submodules are clean at frozen commits and esage-vllm-hust-dev is active",
@@ -266,7 +270,7 @@
   "execution_and_release_chain": {
     "entrypoint": "tools/benchmark_carrier/orchestrate_semantic_reduce_v2_authorized_run.py",
     "steps": [
-      "validate and secret-scan the exact request-only reservation envelope, protocol, and central grant, including heldout final-development-closure binding, before any service action",
+      "validate and secret-scan the exact full-contract request-only reservation envelope with the frozen request-contract validator, protocol, and central grant, including requested_at_utc <= issued_at_utc < request_expires_utc and heldout final-development-closure binding, before any service action",
       "arm cleanup before PASS_PRELAUNCH collection",
       "launch only the grant-named repo-owned managed unit/container on NPU3 and port 18383",
       "collect PASS postlaunch physical/service/model/smoke evidence",
