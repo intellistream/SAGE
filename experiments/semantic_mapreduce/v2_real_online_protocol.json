@@ -6,7 +6,7 @@
   "repository": {
     "path": "/home/shuhao/SAGE",
     "branch": "feature/semantic-mapreduce-paper",
-    "execution_commit": "e79342ec74d35fdca1e71f6d01eee5be7ac4cddf",
+    "execution_commit": "e6488fe56df0b83ce197a5eccedf3a3f64d20626",
     "execution_commit_must_be_clean_and_pushed": true,
     "protocol_execution_copy": "copy this byte-identical protocol outside the checkout or into an ignored .sage control root before checking out the execution commit",
     "frozen_sources": {
@@ -16,7 +16,7 @@
       },
       "runner": {
         "path": "tools/benchmark_carrier/run_semantic_reduce_edit_v2_online_matrix.py",
-        "sha256": "ad8e2244f32231b60afc640c8e38804de21aa75825a5e31d68ce3ace22d84319"
+        "sha256": "91d26cb8b6d8f6abbd68b8b420cf2fb1dc793ba4338952a2fbc1c89244635236"
       },
       "verifier": {
         "path": "tools/benchmark_carrier/verify_semantic_reduce_v2_online_run.py",
@@ -24,15 +24,15 @@
       },
       "physical_preflight": {
         "path": "tools/benchmark_carrier/preflight_semantic_reduce_v2_online.py",
-        "sha256": "e9044881c832e2072208e257081a730e78ebcd77fd0cfda771357b23f84abf44"
+        "sha256": "4b0c16578cb4413e6c9b57f33519f23c8ce9ddde1d6eba980dc49537e276cb3c"
       },
       "authorized_orchestrator": {
         "path": "tools/benchmark_carrier/orchestrate_semantic_reduce_v2_authorized_run.py",
-        "sha256": "f71617c9803dbab98b288e4cb3bca64a9f1a53b3e8d99a1595ed61b0438db6c0"
+        "sha256": "30581cdbb18e6efeda27585cc8563897f51d352b888fefcc8f5eed3bbe490dcd"
       },
       "final_closure_verifier": {
         "path": "tools/benchmark_carrier/finalize_semantic_reduce_v2_execution_closure.py",
-        "sha256": "aff525d535910e9664b409f5eb406bb7f2050c6d52d595c6df0e2f29f3acde18"
+        "sha256": "fabaf34005dd878f8e3e61ad48712c02b0d1a26843ffb31b84bb26af772f3080"
       },
       "reservation_request_generator": {
         "path": "tools/benchmark_carrier/generate_semantic_reduce_v2_reservation_request.py",
@@ -89,7 +89,7 @@
       "protocol_sha256",
       "repository_commit",
       "exactly one authorized split and its exact run_id",
-      "issued_at_utc allocation_start_utc and expires_utc spanning at least the full requested 180-minute allocation",
+      "issued_at_utc allocation_start_utc and expires_utc spanning the requested 210-minute allocation, with at least 180 minutes remaining at runner admission",
       "one physical NPU with ID 3 and the frozen topology",
       "base_url port managed_unit container and manager",
       "served_model_name model path config SHA256 and generation-config SHA256"
@@ -287,7 +287,8 @@
     "requested_npu_count": 1,
     "requested_physical_npu": 3,
     "topology": "single-device TP1 managed OpenAI-compatible service",
-    "requested_duration_minutes": 180,
+    "requested_duration_minutes": 210,
+    "minimum_remaining_at_admission_minutes": 180,
     "request_ttl_minutes": 120,
     "estimated_model_requests": 281,
     "request_breakdown": "1 structured-output smoke + 80 development + 200 heldout",
