@@ -17,7 +17,7 @@ REQUIRED_REVIEW_ROLES = {
     "artifact-fail-closed",
 }
 REQUIRED_PHYSICAL_LOGIC = (
-    "grant binds protocol SHA execution commit NPU3 model service and unexpired TTL",
+    "reservation request and grant bind request ID protocol SHA execution commit NPU3 model service and unexpired TTL",
     "NPU3 has no foreign process and no conflicting container/device owner",
     "port 18383 is free before launch and owned by the exact managed service after launch",
     "repo and required submodules are clean at frozen commits and esage-vllm-hust-dev is active",
