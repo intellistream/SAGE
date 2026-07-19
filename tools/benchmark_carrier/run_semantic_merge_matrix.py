@@ -16,7 +16,10 @@ from typing import Any
 from sage.workloads.semantic_merge_analysis import SCENARIOS, run_semantic_merge_workload
 
 DEFAULT_SEEDS = "7,11,13,17,19,23,29,31,37,41"
-DEFAULT_REDUCERS = "map-only,service-local,window-aggregate,semantic-graph,hybrid-hint,llm-stub"
+DEFAULT_REDUCERS = (
+    "map-only,service-local,window-aggregate,constrained-agglomerative,"
+    "semantic-graph,hybrid-hint,llm-stub"
+)
 DEFAULT_SCENARIOS = ",".join(SCENARIOS)
 
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 
 import sage.workloads.semantic_merge_analysis as sma
@@ -10,6 +11,7 @@ from sage.workloads.semantic_merge_analysis import (
     OpenAIPairwiseValidatedMergeReducer,
     OpenAISemanticMergeReducer,
     SCENARIOS,
+    ConstrainedAgglomerativeMergeReducer,
     generate_semantic_merge_dataset,
     run_semantic_merge_workload,
 )
@@ -88,6 +90,35 @@ def test_hybrid_hint_reducer_repairs_partial_evidence_root_hints() -> None:
         sum(semantic_scores) / len(semantic_scores)
     )
     assert min(hybrid_scores) >= min(semantic_scores)
+
+
+def test_constrained_agglomerative_ignores_hidden_incident_ids() -> None:
+    dataset = generate_semantic_merge_dataset(
+        seed=7, shard_count=8, scenario="ambiguous-disconnected-merge"
+    )
+    without_ids = [replace(item, source_incident_id=None) for item in dataset.evidence]
+    permuted_ids = [
+        replace(item, source_incident_id=f"forbidden-{index % 3}")
+        for index, item in enumerate(dataset.evidence)
+    ]
+
+    expected = ConstrainedAgglomerativeMergeReducer().reduce(dataset.evidence)
+    assert ConstrainedAgglomerativeMergeReducer().reduce(without_ids) == expected
+    assert ConstrainedAgglomerativeMergeReducer().reduce(permuted_ids) == expected
+    assert all(item["evidence_ids"] for item in expected)
+
+
+def test_constrained_agglomerative_records_observable_contract() -> None:
+    dataset = generate_semantic_merge_dataset(
+        seed=11, shard_count=8, scenario="ambiguous-overmerge"
+    )
+    reducer = ConstrainedAgglomerativeMergeReducer()
+    hypotheses = reducer.reduce(dataset.evidence)
+
+    assert hypotheses
+    assert reducer.last_call["forbidden_fields"] == ["source_incident_id"]
+    assert "scenario" not in reducer.last_call["observable_fields"]
+    assert "source_incident_id" not in reducer.last_call["observable_fields"]
 
 
 def test_ambiguous_overmerge_stresses_candidate_splitting() -> None:

@@ -766,6 +766,100 @@ class WindowAggregateMergeReducer:
         return sorted(hypotheses, key=lambda item: item["score"], reverse=True)
 
 
+class ConstrainedAgglomerativeMergeReducer:
+    """Label-free single-link clustering over observable evidence fields.
+
+    The reducer is intentionally independent of scenario names, injected
+    incidents, and ``source_incident_id``.  Hard constraints prevent clusters
+    from crossing regions or combining contradictory non-null root hints;
+    deterministic pair affinity then uses time, service topology, signal
+    overlap, and confidence.
+    """
+
+    name = "constrained-agglomerative"
+    min_score = 0.5
+    min_affinity = 3.25
+    max_gap_minutes = 80
+    max_cluster_span_minutes = 120
+
+    def __init__(self) -> None:
+        self.last_call: dict[str, Any] = {}
+
+    def reduce(self, evidence: list[EvidenceObject]) -> list[dict[str, Any]]:
+        clusters = [
+            [item]
+            for item in sorted(evidence, key=lambda item: item.evidence_id)
+            if item.score >= self.min_score
+        ]
+        merge_trace: list[dict[str, Any]] = []
+        while True:
+            best: tuple[float, tuple[str, ...], int, int] | None = None
+            for left_index, left in enumerate(clusters):
+                for right_index in range(left_index + 1, len(clusters)):
+                    right = clusters[right_index]
+                    affinity = _cluster_affinity(
+                        left,
+                        right,
+                        max_gap_minutes=self.max_gap_minutes,
+                        max_cluster_span_minutes=self.max_cluster_span_minutes,
+                    )
+                    if affinity < self.min_affinity:
+                        continue
+                    evidence_ids = tuple(
+                        sorted(item.evidence_id for item in (*left, *right))
+                    )
+                    candidate = (affinity, evidence_ids, left_index, right_index)
+                    if best is None or candidate[:2] > best[:2]:
+                        best = candidate
+            if best is None:
+                break
+            affinity, _, left_index, right_index = best
+            left = clusters[left_index]
+            right = clusters[right_index]
+            merged = sorted((*left, *right), key=lambda item: item.evidence_id)
+            merge_trace.append(
+                {
+                    "left_evidence_ids": [item.evidence_id for item in left],
+                    "right_evidence_ids": [item.evidence_id for item in right],
+                    "affinity": round(affinity, 4),
+                }
+            )
+            clusters[left_index] = merged
+            del clusters[right_index]
+
+        hypotheses = [
+            _hypothesis_from_evidence_group(
+                cluster,
+                reducer=self.name,
+                include_root_hint_in_affected=True,
+            )
+            for cluster in clusters
+        ]
+        self.last_call = {
+            "algorithm": "constrained single-link agglomerative clustering",
+            "observable_fields": [
+                "score",
+                "region",
+                "start_minute",
+                "end_minute",
+                "service",
+                "signals",
+                "upstream_hint",
+            ],
+            "forbidden_fields": ["source_incident_id"],
+            "min_score": self.min_score,
+            "min_affinity": self.min_affinity,
+            "max_gap_minutes": self.max_gap_minutes,
+            "max_cluster_span_minutes": self.max_cluster_span_minutes,
+            "accepted_merge_count": len(merge_trace),
+            "merge_trace": merge_trace,
+        }
+        return sorted(
+            hypotheses,
+            key=lambda item: (-float(item["score"]), str(item["root_service"]), item["evidence_ids"]),
+        )
+
+
 class SemanticGraphMergeReducer:
     name = "semantic-graph"
     include_root_hint_in_affected = False
@@ -1645,6 +1739,12 @@ def resolve_merge_reducer(reducer: str | MergeReducer | None) -> MergeReducer:
         return ServiceLocalMergeReducer()
     if normalized in {"window-aggregate", "window"}:
         return WindowAggregateMergeReducer()
+    if normalized in {
+        "constrained-agglomerative",
+        "constrained_agglomerative",
+        "agglomerative",
+    }:
+        return ConstrainedAgglomerativeMergeReducer()
     if normalized in {"semantic-graph", "semantic", "sage"}:
         return SemanticGraphMergeReducer()
     if normalized in {"hybrid-hint", "hybrid", "hint-aware"}:
@@ -1804,7 +1904,8 @@ def resolve_merge_reducer(reducer: str | MergeReducer | None) -> MergeReducer:
         )
     raise ValueError(
         f"Unknown semantic merge reducer {reducer!r}. Expected map-only, "
-        "service-local, window-aggregate, semantic-graph, hybrid-hint, "
+        "service-local, window-aggregate, constrained-agglomerative, "
+        "semantic-graph, hybrid-hint, "
         "llm-stub, llm-hybrid, llm-hybrid-validated, llm-pairwise, "
         "llm-pairwise-validated, llm-pairwise-action, "
         "llm-pairwise-action-validated, or llm-openai."
@@ -2767,6 +2868,75 @@ def _semantic_graph_groups(evidence: list[EvidenceObject]) -> list[list[Evidence
     return groups
 
 
+def _cluster_affinity(
+    left: list[EvidenceObject],
+    right: list[EvidenceObject],
+    *,
+    max_gap_minutes: int,
+    max_cluster_span_minutes: int,
+) -> float:
+    left_regions = {item.region for item in left}
+    right_regions = {item.region for item in right}
+    if len(left_regions | right_regions) != 1:
+        return float("-inf")
+    left_hints = {item.upstream_hint for item in left if item.upstream_hint}
+    right_hints = {item.upstream_hint for item in right if item.upstream_hint}
+    if left_hints and right_hints and left_hints.isdisjoint(right_hints):
+        return float("-inf")
+    combined = [*left, *right]
+    span = max(item.end_minute for item in combined) - min(
+        item.start_minute for item in combined
+    )
+    if span > max_cluster_span_minutes:
+        return float("-inf")
+    gap = max(
+        min(item.start_minute for item in left),
+        min(item.start_minute for item in right),
+    ) - min(
+        max(item.end_minute for item in left),
+        max(item.end_minute for item in right),
+    )
+    if gap > max_gap_minutes:
+        return float("-inf")
+    return max(_observable_pair_affinity(a, b) for a in left for b in right)
+
+
+def _observable_pair_affinity(left: EvidenceObject, right: EvidenceObject) -> float:
+    if left.region != right.region:
+        return float("-inf")
+    if (
+        left.upstream_hint
+        and right.upstream_hint
+        and left.upstream_hint != right.upstream_hint
+    ):
+        return float("-inf")
+    gap = max(left.start_minute, right.start_minute) - min(
+        left.end_minute, right.end_minute
+    )
+    if gap > 80:
+        return float("-inf")
+
+    same_hint = bool(
+        left.upstream_hint
+        and left.upstream_hint == right.upstream_hint
+    )
+    related_services = _services_related(left.service, right.service)
+    score = 4.5 if same_hint else 0.0
+    if related_services:
+        score += 2.5
+    if gap <= 0:
+        score += 1.5
+    elif gap <= 12:
+        score += 1.0
+    elif gap <= 40:
+        score += 0.5
+    shared_signals = set(left.signals) & set(right.signals)
+    all_signals = set(left.signals) | set(right.signals)
+    score += 0.75 * len(shared_signals) / max(1, len(all_signals))
+    score += 0.5 * max(0.0, statistics.fmean((left.score, right.score)) - 0.5)
+    return score
+
+
 def _can_semantically_merge(item: EvidenceObject, group: list[EvidenceObject]) -> bool:
     if item.region != group[0].region:
         return False
@@ -3216,6 +3386,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             "map-only",
             "service-local",
             "window-aggregate",
+            "constrained-agglomerative",
             "semantic-graph",
             "hybrid-hint",
             "llm-stub",

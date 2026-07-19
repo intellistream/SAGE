@@ -42,3 +42,24 @@
   and `5d2a46f1a011e87b1575cd391bfc7ef5c4070fb1a38a1d75b91800cb4263ebdf`.
   The submission claim verifier, hardcase artifact gate, independently unpacked
   693-file artifact gate, anonymity scans, and 51 focused tests all pass.
+- 2026-07-19: Reopened the evaluation-comparison phase after the Figure 3
+  critique. The budget plot is correctly classified as an internal operating-
+  point ablation, not a SOTA comparison. New work will add a strong label-free
+  non-LLM reducer under the identical generator/evidence/scorer contract and a
+  separate main comparison visualization; frozen online evidence remains read-
+  only and no NPU run is planned.
+- 2026-07-19: Reducer/API audit confirms a fair plug-in point and a fixed common
+  scorer. Existing deterministic baselines are mostly fixed-rule grouping; the
+  planned stronger peer is label-free constrained agglomerative evidence
+  clustering. `source_incident_id` is forbidden input for its decisions and
+  will receive an invariance regression test.
+- 2026-07-19: Implemented the constrained-agglomerative reducer and two leakage/
+  contract tests; the semantic-merge test file passes 22/22. A dirty exploratory
+  540-row matrix completed successfully. No threshold was changed after viewing
+  results; the next valid paper artifact will be rerun from a clean committed
+  implementation.
+- 2026-07-19: Profiled the exploratory 540-row output. The new baseline reaches
+  0.9287 mean F1 over nine families x ten seeds, materially above hybrid 0.7796,
+  with non-perfect ordinary-family results. Chose a point/delta comparison over
+  a mean-only bar so per-unit variation remains visible. The matrix is
+  `simulation/model`; only its regenerated visualization is `derived-artifact`.
