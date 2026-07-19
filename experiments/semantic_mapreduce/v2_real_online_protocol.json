@@ -1,0 +1,292 @@
+{
+  "schema_version": "semantic-reduce-v2-real-online-protocol/1",
+  "protocol_id": "semantic-reduce-v2-shared-catalog-heldout",
+  "evidence_label": "real-online",
+  "status": "FROZEN_PENDING_THREE_SIGNOFFS_AND_CENTRAL_GRANT",
+  "repository": {
+    "path": "/home/shuhao/SAGE",
+    "branch": "feature/semantic-mapreduce-paper",
+    "execution_commit": "bdb4fa2c1ef0acd99bb0d92732c1e58128fcfb9d",
+    "execution_commit_must_be_clean_and_pushed": true,
+    "protocol_execution_copy": "copy this byte-identical protocol outside the checkout or into an ignored .sage control root before checking out the execution commit",
+    "frozen_sources": {
+      "selector": {
+        "path": "src/sage/workloads/semantic_reduce_edit_evaluation.py",
+        "sha256": "9e43222897fdd068fc5d8a2799e6ee090411f635ddba4ed23af14713125dc510"
+      },
+      "runner": {
+        "path": "tools/benchmark_carrier/run_semantic_reduce_edit_v2_online_matrix.py",
+        "sha256": "67858e04552939895c5bb5de83c77242040dceb1ae5f687fd17bac92e2eb1a3f"
+      },
+      "verifier": {
+        "path": "tools/benchmark_carrier/verify_semantic_reduce_v2_online_run.py",
+        "sha256": "a55f77dcde4d8c6795c0c952bc49257f0ae6c8ff1343d7343b664df59da2a6c3"
+      },
+      "physical_preflight": {
+        "path": "tools/benchmark_carrier/preflight_semantic_reduce_v2_online.py",
+        "sha256": "f90905b146f1144e58ed7fbf06b6f11983d8b3accabefd03e7ef056bb0226299"
+      },
+      "authorized_orchestrator": {
+        "path": "tools/benchmark_carrier/orchestrate_semantic_reduce_v2_authorized_run.py",
+        "sha256": "1660be3f661da86dd3010ab86f954bc38fd68378a71c78204a76291ec605bb2e"
+      },
+      "reservation_request_generator": {
+        "path": "tools/benchmark_carrier/generate_semantic_reduce_v2_reservation_request.py",
+        "sha256": "f579f45530903858900e96d9fb9033cab04a86566dc3c7db8aff37069d9f3ad7"
+      },
+      "managed_service_launcher": {
+        "path": "tools/benchmark_carrier/run_npu3_semantic_mapreduce_experiment.sh",
+        "sha256": "0aa7af44d26164113f626a45b58b5b1f48ee6f1db527cc9bbfe9d2d83d8dac1b"
+      },
+      "workload_config": {
+        "path": "experiments/semantic_mapreduce/heldout_v2_config.json",
+        "sha256": "6df9fe84d392f4341ed98fc2e4b0d175ebe82d080d07859d2e17fba5772bd488"
+      }
+    },
+    "frozen_submodules": {
+      "external/triton-ascend-hust": "612d5772bcd4ee7a75ab4939aa3580d937147d83",
+      "external/vllm-ascend-hust": "339b27ad69aa12b8f56bbd1885c046be4e53c945",
+      "external/vllm-hust": "5de748bea122fb0917adc6117fbb37429b60aa24",
+      "external/vllm-hust-dev-hub": "7ab74990d5bfc4953d7bb1f99dfb93720e2adc81",
+      "third_party/ascend-runtime-manager": "c5b0461aaecffe7e5011f8fab0944d32bedb1092",
+      "third_party/llm-serving-workloads": "79ed8e3469c0bcfccdf1cd0a66efa2db27156055"
+    }
+  },
+  "service": {
+    "runtime": "repo-owned vLLM-HUST OpenAI-compatible managed service",
+    "runtime_submodule": "external/vllm-hust",
+    "runtime_commit": "5de748bea122fb0917adc6117fbb37429b60aa24",
+    "dev_hub_submodule": "external/vllm-hust-dev-hub",
+    "dev_hub_commit": "7ab74990d5bfc4953d7bb1f99dfb93720e2adc81",
+    "runtime_manager_submodule": "third_party/ascend-runtime-manager",
+    "runtime_manager_commit": "c5b0461aaecffe7e5011f8fab0944d32bedb1092",
+    "physical_npu": 3,
+    "npu_count": 1,
+    "topology": "single Ascend NPU; tensor_parallel_size=1; no cross-device collectives",
+    "model_family": "Qwen2.5",
+    "model_scale": "7B",
+    "model_path": "/data/shared_models/Qwen2.5-7B-Instruct",
+    "model_config_sha256": "816bb59cb57cc72533900435706aa36680b293aebb6512d6891652e587e00a86",
+    "generation_config_sha256": "3a8f9087e486054c8a4a08dae2e5a3ba62e23da212b5b8c08bc42cb983c3459f",
+    "served_model_name": "qwen25-7b-semantic-reduce-v2",
+    "base_url": "http://127.0.0.1:18383",
+    "port": 18383,
+    "managed_unit": "sage-smr-v2-npu3.service",
+    "container": "sage-smr-v2-npu3",
+    "manager": "external/vllm-hust-dev-hub",
+    "api_key_env": "VLLM_HUST_API_KEY",
+    "request_timeout_sec": 180,
+    "structured_output": "OpenAI response_format=json_object; strict local proposal_ids parser",
+    "launch_authority": "central-grant holder only; this protocol does not authorize launch"
+  },
+  "central_grant_contract": {
+    "status_literal": "GRANTED",
+    "must_bind": [
+      "protocol_sha256",
+      "repository_commit",
+      "authorized_splits and exact per-split run_ids",
+      "expiry timestamp covering service launch plus the full requested 180-minute allocation",
+      "one physical NPU with ID 3 and the frozen topology",
+      "base_url port managed_unit container and manager",
+      "served_model_name model path config SHA256 and generation-config SHA256"
+    ],
+    "development_authorization": "one exact fresh run ID",
+    "heldout_authorization": "one exact fresh run ID after cryptographically closed development PASS",
+    "heldout_rerun": "forbidden unless a fresh central grant carries a nonempty heldout_rerun_authorization_id",
+    "credentials": "API key is supplied only through VLLM_HUST_API_KEY and is never part of request, grant, preflight, row, manifest, or log artifacts"
+  },
+  "experiment": {
+    "families": [
+      "hint-missing",
+      "hint-error-conflict",
+      "shared-hint",
+      "score-overlap",
+      "related-concurrent",
+      "topology-missing-stale",
+      "unseen-service-topology",
+      "mixed-split-merge",
+      "catalog-budget-truncation",
+      "fragmentation-shard-variance"
+    ],
+    "development_seeds": [7, 11, 13, 17],
+    "heldout_seeds": [101, 103, 107, 109],
+    "development_repeats": 2,
+    "heldout_repeats": 5,
+    "temperature": 0.0,
+    "sampling_seeds": [1103, 2207, 3301, 4409, 5501],
+    "order_seed": 20260719,
+    "randomization": "all family-seed-repeat units are shuffled once by order_seed; sampling seeds are fixed by repeat",
+    "development_heldout_isolation": {
+      "development_may_be_examined_first": true,
+      "heldout_raw_namespace_must_not_exist_before_development_gate": true,
+      "heldout_requires_matching_protocol_sha_and_development_gate_PASS": true,
+      "development_gate_binds": "exact protocol SHA, execution commit, central grant SHA, PASS manifest SHA, COMPLETE ledger SHA, summary SHA, 80 unique row keys, exact per-file/per-row SHA256 inventory, zero safety failures, secret-scan PASS, <=5% request/parser failure, and positive edit/MERGE/SPLIT counts",
+      "prompt_model_baselines_endpoints_and_statistics_freeze_before_development": true,
+      "no_parameter_or_prompt_change_after_any_development_response": true,
+      "any_change_requires_new_protocol_sha_and_three_fresh_signoffs": true
+    }
+  },
+  "comparators": {
+    "primary_baseline": "deterministic-proposal-selector over byte-identical semantic-graph H0 and proposal catalog",
+    "negative_control": "H0 no-edit",
+    "diagnostic_upper_envelope": "proposal oracle over the prebuilt catalog; ground truth used only for scoring/diagnosis",
+    "permission_labeled_reference": "constrained full-evidence global reclustering; never treated as a shared-permission selector peer",
+    "legacy_v1": "historical merge/no-op only; excluded from the v2 primary endpoint"
+  },
+  "statistics": {
+    "primary_population": "40 held-out family-seed units; five model repeats averaged within unit",
+    "primary_endpoint": "mean F1(online model selector) minus mean F1(deterministic shared-catalog selector)",
+    "primary_estimator": "paired unit mean delta",
+    "confidence_interval": "two-sided 95% family-clustered nonparametric bootstrap; resample 10 families and retain all seeds/repeats within sampled family",
+    "bootstrap_draws": 10000,
+    "bootstrap_seed": 270927,
+    "primary_admission_rule": "lower endpoint of family-clustered 95% CI must exceed 0; report result even if it fails",
+    "secondary_endpoints": [
+      "model and deterministic mean F1",
+      "unit wins/ties/losses",
+      "accepted MERGE and SPLIT counts",
+      "validator rejection count",
+      "request/parser failure rate",
+      "exact-oracle proposal match and proposal precision",
+      "latency and provider token usage"
+    ],
+    "multiplicity": "one confirmatory primary endpoint; all secondary endpoints are descriptive"
+  },
+  "stopping_rules": {
+    "development_max_failure_rate": 0.05,
+    "development_requires": [
+      "zero evidence-conservation or shared-catalog failures",
+      "at least one accepted edit",
+      "at least one accepted MERGE",
+      "at least one accepted SPLIT"
+    ],
+    "heldout_efficacy_stopping": "none; once heldout starts, finish all 200 planned model rows",
+    "immediate_safety_stop": [
+      "repository/protocol/grant SHA drift",
+      "central grant expiry or device mismatch",
+      "foreign process or container on granted device",
+      "port ownership mismatch",
+      "catalog digest mismatch",
+      "evidence conservation or unique-ownership failure",
+      "credential retention",
+      "output namespace reuse"
+    ],
+    "infrastructure_retry": "no row-level retry beyond the client request attempt; a complete rerun needs a fresh raw namespace and documented central reauthorization, never an efficacy-triggered retry"
+  },
+  "failure_and_rollback": {
+    "malformed_or_non_json_response": "record full raw response/provider envelope without credentials; select empty list; preserve exact H0",
+    "unknown_duplicate_or_conflicting_ids": "runtime validator rejects whole batch atomically; preserve exact H0 with reason code",
+    "request_failure": "record exception class and any response body; select empty list; count as request/parser failure",
+    "partial_heldout": "inadmissible as paper evidence; retain as failed real-online provenance only",
+    "partial_any_split": "write RUNNING before the first request; atomically update the row ledger after each row; on exception, signal, safety stop, failed development gate, or verifier failure retain FAILED_PARTIAL manifest and every completed row",
+    "cleanup_on_any_exit": "stop only the exact repo-owned managed service/container/unit named by the grant; verify NPU3 process table and port 18383 clear; emit release request through the central single writer"
+  },
+  "raw_evidence": {
+    "development_root": ".sage/benchmarks/semantic_reduce_edit_v2_real_online/$PROTOCOL_SHA256/development-$RUN_ID",
+    "heldout_root": ".sage/benchmarks/semantic_reduce_edit_v2_real_online/$PROTOCOL_SHA256/heldout-$RUN_ID",
+    "fresh_non_overwriting_namespaces": true,
+    "visibility": "private-nonanonymous",
+    "publication_eligible": false,
+    "reason": "raw roots contain host paths, repository/submodule commits, model/service/environment provenance, process observations, requests, and raw provider responses",
+    "initial_manifest_before_first_request": true,
+    "atomic_checksum_ledger_after_every_row": true,
+    "exact_planned_rows": {
+      "development": 80,
+      "heldout": 200
+    },
+    "required_per_row": [
+      "family seed repeat sampling seed and execution order",
+      "observable prompt request payload without authorization header",
+      "raw response body and provider usage",
+      "H0 catalog selection H1 and validator digests/outcomes",
+      "baseline/model/oracle scores and evidence conservation",
+      "latency failure class and timestamps"
+    ],
+    "required_run_files": [
+      "reservation request and central grant",
+      "protocol and protocol SHA",
+      "repo/submodule/environment/model/service provenance",
+      "development gate for heldout",
+      "all raw rows manifest and fail-closed summary",
+      "before/after device process container and port observations",
+      "cleanup and release chain"
+    ],
+    "final_verifier": "independently requires an exact per-file inventory; validates 80/200 unique family|seed|repeat rows and row hashes; recomputes all summaries and family-clustered CI; checks catalog/evidence invariants, provenance hashes, secret scan, manifest/ledger closure, and development admission predicates",
+    "anonymized_publication_gate": {
+      "separate_from_raw_verification": true,
+      "default": "REJECT until an explicit allowlist-only export is produced after the run",
+      "reject_patterns": [
+        "absolute home/workspace/model paths",
+        "hostnames IP addresses ports service units containers and process IDs",
+        "git remotes author emails and repository/submodule commits including 7-40 hex abbreviations",
+        "API keys Authorization/Bearer values and environment secrets",
+        "unallowlisted raw requests responses logs grants preflight cleanup or release files"
+      ],
+      "publication_label": "derived-artifact until anonymous artifact verifier separately passes; never silently relabel raw evidence"
+    }
+  },
+  "physical_preflight_logic": {
+    "must_pass_after_central_grant_before_launch": [
+      "grant binds protocol SHA execution commit NPU3 model service and unexpired TTL",
+      "NPU3 has no foreign process and no conflicting container/device owner",
+      "port 18383 is free before launch and owned by the exact managed service after launch",
+      "repo and required submodules are clean at frozen commits and esage-vllm-hust-dev is active",
+      "model config hashes match and /v1/models returns the frozen served name",
+      "structured-output smoke returns strict proposal_ids JSON without a benchmark unit",
+      "development and heldout output roots do not exist",
+      "at least 5 GiB free space and raw-log secret scanner enabled",
+      "cleanup trap and central release path are armed"
+    ],
+    "read_only_pre_request_gate": "protocol validator, three SHA-bound review envelopes, frozen queue-base observation, model metadata hashes, source-code hashes, and fresh namespace template only; this is a static-logic PASS and implies no hardware observation or authorization",
+    "authorized_execution_gate": "after a central grant only: the frozen preflight tool records PASS_PRELAUNCH before service launch and PASS after exact unit/container/NPU/port/model ownership plus a non-benchmark strict proposal_ids smoke; runner rejects any mismatch"
+  },
+  "execution_and_release_chain": {
+    "entrypoint": "tools/benchmark_carrier/orchestrate_semantic_reduce_v2_authorized_run.py",
+    "steps": [
+      "validate exact protocol and central grant before any service action",
+      "arm cleanup before PASS_PRELAUNCH collection",
+      "launch only the grant-named repo-owned managed unit/container on NPU3 and port 18383",
+      "collect PASS postlaunch physical/service/model/smoke evidence",
+      "run exactly one authorized split into its canonical fresh raw root",
+      "run independent full verifier outside the raw manifest inventory",
+      "on every success error or signal stop only the grant-named unit/container",
+      "verify granted NPU and port clear and retain cleanup observations",
+      "emit REQUEST_ONLY_CENTRAL_ACK_REQUIRED release request",
+      "central single writer records queue release; protocol owner never edits the queue"
+    ],
+    "legacy_bypass": "forbidden: no skip-server-management, skip-NPU-check, arbitrary output-dir, arbitrary base-url, or keep-server exit is exposed by the orchestrator",
+    "failure_semantics": "a cleanup failure forces nonzero exit and is retained in the release request; central release acknowledgement remains mandatory"
+  },
+  "queue_base_observation": {
+    "repository": "/home/shuhao/llm-optimizations",
+    "commit": "e006bb295f54f8957c77eb0813500588a39524b6",
+    "source_path": "docs/admin/current_optimization_queue_2026-07-18.md",
+    "source_sha256": "49bdbb844cdcbb7c201e774d428faec32c312012178395653dff54305cd5092b",
+    "source_tracked_at_base_commit": false
+  },
+  "non_substitution": {
+    "old_v1_online": "cannot substitute: different H0, merge/no-op action semantics, and no shared proposal catalog",
+    "offline_mock": "cannot substitute: no endpoint or model invocation",
+    "replay_simulation_derived": "cannot be promoted to real-online evidence",
+    "same_family_14b_v1": "cannot substitute for v2 or establish cross-family robustness"
+  },
+  "reservation_shape": {
+    "requested_npu_count": 1,
+    "requested_physical_npu": 3,
+    "topology": "single-device TP1 managed OpenAI-compatible service",
+    "requested_duration_minutes": 180,
+    "request_ttl_minutes": 120,
+    "estimated_model_requests": 281,
+    "request_breakdown": "1 structured-output smoke + 80 development + 200 heldout",
+    "no_queue_write_by_protocol_owner": true
+  },
+  "review": {
+    "required_roles": [
+      "systems-novelty",
+      "experiment-statistics-provenance",
+      "artifact-fail-closed"
+    ],
+    "all_reviewers_must_sign_identical_protocol_sha": true,
+    "any_reject_requires_revision_new_sha_and_three_fresh_reviews": true
+  }
+}
