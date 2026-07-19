@@ -6,7 +6,7 @@
   "repository": {
     "path": "/home/shuhao/SAGE",
     "branch": "feature/semantic-mapreduce-paper",
-    "execution_commit": "6d0801af1bb6b1ffbb8cb879f5f871eb34b601a1",
+    "execution_commit": "4982f44ddbce820b02fb9e652255c31c03de05ef",
     "execution_commit_must_be_clean_and_pushed": true,
     "protocol_execution_copy": "copy this byte-identical protocol outside the checkout or into an ignored .sage control root before checking out the execution commit",
     "frozen_sources": {
@@ -16,27 +16,27 @@
       },
       "runner": {
         "path": "tools/benchmark_carrier/run_semantic_reduce_edit_v2_online_matrix.py",
-        "sha256": "de657a9ff96188b0b837e2f755f84b468580f759ce8f6e568a2a4099c635abfe"
+        "sha256": "18a99e1c3d0d9ecc8149be0bbb5022609045771cba2fac640b20ecc4be81c635"
       },
       "verifier": {
         "path": "tools/benchmark_carrier/verify_semantic_reduce_v2_online_run.py",
-        "sha256": "1674fb15852f1537571e4621429dd503511403877c741185164af10b9d8a7a5d"
+        "sha256": "b8f078261d2bde30d8f147a1f66ac025812e17870f84db7365f07ce519efebbc"
       },
       "physical_preflight": {
         "path": "tools/benchmark_carrier/preflight_semantic_reduce_v2_online.py",
-        "sha256": "112efb64fa5fbda198779582d8426cc65fec4a734ce5634508dc746da824793e"
+        "sha256": "53f7867dbfcd499c9baaa9f54472b9d48144b13ad3013cb9bee260e11b2d38ee"
       },
       "authorized_orchestrator": {
         "path": "tools/benchmark_carrier/orchestrate_semantic_reduce_v2_authorized_run.py",
-        "sha256": "4b746a7db4db0c4f7be0fe5ada2b98a7ea2c06243133eeb1437ef9b1c2df5826"
+        "sha256": "296f6ece0202637d76f82e173a83dcaa5dcf3b3613cff15e31293326d9beae0c"
       },
       "final_closure_verifier": {
         "path": "tools/benchmark_carrier/finalize_semantic_reduce_v2_execution_closure.py",
-        "sha256": "4a05cebe7d6dd403d396cd558f908347bff31d300171488a654a0c645096c5ba"
+        "sha256": "212297dd2a19930441093f4d12b53224b1dfcc4289028e60be3b168ac2d4b60e"
       },
       "reservation_request_generator": {
         "path": "tools/benchmark_carrier/generate_semantic_reduce_v2_reservation_request.py",
-        "sha256": "25cdbc6ac4dbfc7b6a34338201dccefecde9c3f1c79d487410edcbfb38b2b2a7"
+        "sha256": "957533fcab027a9e8a776c63e9cc1ed88693a628922d4b4b91662d403404d4d9"
       },
       "managed_service_launcher": {
         "path": "tools/benchmark_carrier/run_npu3_semantic_mapreduce_experiment.sh",
@@ -88,6 +88,7 @@
     "must_bind": [
       "protocol_sha256",
       "repository_commit",
+      "reservation_request_id and reservation_request_sha256 for the exact unexpired request-only envelope",
       "exactly one authorized split and its exact run_id",
       "timezone-aware issued_at_utc <= allocation_start_utc <= admission time < expires_utc, spanning the requested 210-minute allocation with at least 180 minutes remaining at runner admission",
       "one physical NPU with ID 3 and the frozen topology",
@@ -105,12 +106,12 @@
     "queue_branch": "main",
     "queue_base_commit": "e006bb295f54f8957c77eb0813500588a39524b6",
     "queue_authority_source_path": "docs/admin/current_optimization_queue_2026-07-18.md",
-    "queue_authority_source_sha256": "49bdbb844cdcbb7c201e774d428faec32c312012178395653dff54305cd5092b",
+    "queue_base_source_sha256": "49bdbb844cdcbb7c201e774d428faec32c312012178395653dff54305cd5092b",
     "ack_path_template": "docs/admin/semantic-reduce-v2-release-acks/$PROTOCOL_SHA256/$SPLIT-$RUN_ID.json",
     "allowed_central_writer_ids": [
       "optimization-queue-central-writer"
     ],
-    "authority_rule": "ACK bytes must be committed on the exact origin/main upstream HEAD descended from queue_base_commit, at the canonical path, with the allowlisted central_writer_id and exact queue-base/source digests; a local JSON is never sufficient"
+    "authority_rule": "ACK has an exact secret-free schema and canonical path; finalizer derives its containing commit, verifies it against a live ls-remote origin/main head descended from queue_base_commit, verifies the committed queue-authority source bytes and digest at that commit, and requires the allowlisted central_writer_id plus exact request/grant/release/resource bindings; a local JSON or tracking ref is never sufficient"
   },
   "experiment": {
     "families": [
@@ -248,7 +249,7 @@
   },
   "physical_preflight_logic": {
     "must_pass_after_central_grant_before_launch": [
-      "grant binds protocol SHA execution commit NPU3 model service and unexpired TTL",
+      "reservation request and grant bind request ID protocol SHA execution commit NPU3 model service and unexpired TTL",
       "NPU3 has no foreign process and no conflicting container/device owner",
       "port 18383 is free before launch and owned by the exact managed service after launch",
       "repo and required submodules are clean at frozen commits and esage-vllm-hust-dev is active",
@@ -265,21 +266,21 @@
   "execution_and_release_chain": {
     "entrypoint": "tools/benchmark_carrier/orchestrate_semantic_reduce_v2_authorized_run.py",
     "steps": [
-      "validate exact protocol and central grant, including heldout final-development-closure binding, before any service action",
+      "validate and secret-scan the exact request-only reservation envelope, protocol, and central grant, including heldout final-development-closure binding, before any service action",
       "arm cleanup before PASS_PRELAUNCH collection",
       "launch only the grant-named repo-owned managed unit/container on NPU3 and port 18383",
       "collect PASS postlaunch physical/service/model/smoke evidence",
       "run exactly one authorized split into its canonical fresh raw root",
       "leave a complete raw run PROVISIONAL_COMPLETE rather than PASS",
-      "on every success error or signal use exact systemctl stop and exact dedicated-container stop/removal; never invoke broad manage.sh stop",
-      "verify granted NPU, port, unit and container clear and retain cleanup observations",
+      "on every success error or signal use exact systemctl stop, remove only the prelaunch-absent grant-named user unit and environment files created by the launcher, daemon-reload/reset, and use exact dedicated-container stop/removal; never invoke broad manage.sh stop",
+      "authoritatively verify granted NPU and port clear plus unit LoadState=not-found with unit/env files absent and container not found; observation failures fail closed",
       "scan every raw artifact recursively and bind exact path/digest coverage; scan grant/preflight/protocol before raw copying; immediately redact and fail closed on exact API-key or credential-header/token material",
       "after cleanup and raw scan run the independently implemented raw summary/CI/provenance verifier and bind its grant/raw identity and digests",
       "emit REQUEST_ONLY_CENTRAL_ACK_REQUIRED release request",
       "emit a local handoff that is explicitly not paper-admissible",
       "scan every final control artifact including release request and handoff with exact path/digest coverage, excluding only the self-referential scan report",
-      "central single writer records queue release and emits a SHA-bound acknowledgement committed and pushed at the frozen queue origin/branch; protocol owner never edits the queue",
-      "run the final closure verifier at the canonical non-overwriting path; only its exact raw/control/ACK-chain PASS is paper-admissible",
+      "central single writer records queue release and emits an exact-schema secret-free SHA-bound acknowledgement committed at the live remote head of the frozen queue origin/branch together with an independently hashed authority source; protocol owner never edits the queue",
+      "run the final closure verifier from canonical control/raw roots at the canonical non-overwriting path; only its exact request/grant/raw/control/ACK-chain PASS is paper-admissible",
       "obtain a separate heldout-only grant issued after and bound to final development closure"
     ],
     "legacy_bypass": "forbidden: no skip-server-management, skip-NPU-check, arbitrary output-dir, arbitrary base-url, or keep-server exit is exposed by the orchestrator",
