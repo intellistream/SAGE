@@ -11,8 +11,8 @@ closure. No online run, queue edit, reservation, or service launch occurred.
 
 Final frozen identities:
 
-- Protocol commit `b951629d260f9d981d4d725adeff6a5bd2bce4fa`, SHA-256
-  `33b48e86f7c48e635cc009bb4af551d7336cc00bbc097bb26edf37920a6ba83d`.
+- Protocol commit `96f537b4ad75a7432e0c039823c6bf7cf211a25e`, SHA-256
+  `8e760c7c4e716bfdcdfdde656fab62d17d98e664fe5877df0be2b919f6d0934e`.
 - Execution commit `fc0978d704630d5d298cff6aa573957eb15dbe3f`; 12 frozen
   source hashes and six submodule gitlinks.
 - Anonymous v6 artifact SHA-256

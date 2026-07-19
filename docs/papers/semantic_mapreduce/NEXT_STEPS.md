@@ -6,7 +6,7 @@ final-closure v2 real-online evidence and is therefore not submission-ready.
 
 ## Frozen Request-Only Handoff
 
-- Protocol SHA-256: `33b48e86f7c48e635cc009bb4af551d7336cc00bbc097bb26edf37920a6ba83d`.
+- Protocol SHA-256: `8e760c7c4e716bfdcdfdde656fab62d17d98e664fe5877df0be2b919f6d0934e`.
 - Execution commit: `fc0978d704630d5d298cff6aa573957eb15dbe3f`.
 - Three fresh reviewer decisions: SIGN on the same SHA.
 - Artifact v6 SHA-256:

@@ -27,7 +27,7 @@ Cross-submission audit Phase X4 — request-only reservation handoff
       and complete anonymous-artifact fail-closed gaps with regression tests.
 - [x] Obtain fresh SIGN envelopes from systems/novelty,
       experiments/statistics/provenance, and artifact/fail-closed reviewers on
-      protocol SHA `33b48e86...a6ba83d` and execution commit `fc0978d`.
+      protocol SHA `8e760c7c...6d0934e` and execution commit `fc0978d`.
 - [ ] Emit the request-only reservation JSON after final clean commit/upstream
       equality and read-only queue-base revalidation; do not reserve hardware,
       edit the queue, or start a service.

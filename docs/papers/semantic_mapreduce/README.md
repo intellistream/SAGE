@@ -14,7 +14,7 @@ shared-catalog policy harness; its new evidence is currently offline
 merge-only v1 implementation and must not be presented as online SPLIT.
 
 The frozen request protocol is SHA
-`33b48e86f7c48e635cc009bb4af551d7336cc00bbc097bb26edf37920a6ba83d`
+`8e760c7c4e716bfdcdfdde656fab62d17d98e664fe5877df0be2b919f6d0934e`
 over execution commit `fc0978d704630d5d298cff6aa573957eb15dbe3f`; all three
 independent reviewers SIGN it. This is request readiness, not execution
 authority. The anonymous v6 artifact SHA is

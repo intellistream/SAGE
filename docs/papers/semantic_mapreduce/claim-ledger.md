@@ -12,7 +12,7 @@ This section supersedes the older submission-preparation entries below.
 | Runtime recovery uses an independently supplied pre-failure checkpoint rather than current live state. | Clean 27-row runtime matrix: 27 state-changing commits, invalid-edit rejections, baseline preservations, checkpoint restores, independent-checkpoint checks, and deterministic replays. | “model-free supplied-checkpoint recovery”; not distributed exactly-once |
 | Historical action online evidence validates accepted merges and bounded rejection only. | Frozen 2026-07-18 artifact; legacy verifier PASS; all historical `split_count` values are zero. | “historical merge-only bounded-action result”, “accepted merge repairs semantic-graph grouping” |
 | Constrained agglomerative is a strong broader-permission reference. | Clean 90-unit controlled matrix: 0.9287; matched 27-unit value: 0.9028. | “full-evidence controlled reference”, “not a shared-H0 edit peer or published SOTA” |
-| A v2 real-online experiment is frozen and independently request-ready, but unexecuted. | Protocol SHA `33b48e86...a6ba83d`, execution `fc0978d`, and three exact-SHA SIGN envelopes; no central grant or online rows. | “three-reviewer-signed frozen protocol”, “request-only reservation readiness”; never “v2 real-online result” |
+| A v2 real-online experiment is frozen and independently request-ready, but unexecuted. | Protocol SHA `8e760c7c...6d0934e`, execution `fc0978d`, and three exact-SHA SIGN envelopes; no central grant or online rows. | “three-reviewer-signed frozen protocol”, “request-only reservation readiness”; never “v2 real-online result” |
 
 Forbidden until new direct evidence exists: “v2 SPLIT is real-online,” “the
 model beats the strongest deterministic policy,” “hybrid is the action pre-edit

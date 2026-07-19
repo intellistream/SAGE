@@ -3,7 +3,7 @@
 ## 2026-07-19 — Cross-Audit Closure and Reservation-Only Handoff
 
 - Three independent read-only reviewers finally SIGN the identical protocol
-  SHA `33b48e86f7c48e635cc009bb4af551d7336cc00bbc097bb26edf37920a6ba83d`
+  SHA `8e760c7c4e716bfdcdfdde656fab62d17d98e664fe5877df0be2b919f6d0934e`
   and execution commit `fc0978d704630d5d298cff6aa573957eb15dbe3f`.
 - Closed successive request chronology/schema, canonical review digest and
   reviewer independence, held-out namespace, archive infrastructure leakage,
@@ -19,6 +19,9 @@
 - No hardware, service, online model, credential, or central-queue action was
   taken. The next output is a machine-readable request-only reservation
   envelope; it confers no execution authority.
+- A final read-only queue check found the reviewed base had advanced. The
+  protocol was rebased to queue `89799d8` / authority SHA `fe24bb30...cfe59`,
+  pushed, and all three reviewers re-signed; the queue remained untouched.
 
 ## Session: 2026-07-19 — EuroSys'27 Cross-Submission Readiness Audit
 

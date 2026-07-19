@@ -5,8 +5,8 @@
 - The sole remaining scientific closure is an authorized v2 real-online model
   selector run; no NPU, endpoint, credential, queue mutation, reservation, or
   service launch occurred in this audit.
-- The frozen protocol is commit `b951629d260f9d981d4d725adeff6a5bd2bce4fa`,
-  SHA-256 `33b48e86f7c48e635cc009bb4af551d7336cc00bbc097bb26edf37920a6ba83d`,
+- The frozen protocol is commit `96f537b4ad75a7432e0c039823c6bf7cf211a25e`,
+  SHA-256 `8e760c7c4e716bfdcdfdde656fab62d17d98e664fe5877df0be2b919f6d0934e`,
   with execution commit `fc0978d704630d5d298cff6aa573957eb15dbe3f`,
   12 frozen source hashes, and six frozen submodule gitlinks.
 - Reviewer conflict was resolved by evidence, not disposition pressure. An
@@ -31,6 +31,10 @@
   requires central authorization, complete execution, cleanup/release ACK, and
   final closure. Old v1, replay, simulation, projected, or derived artifacts
   cannot substitute.
+- The final queue-base revalidation caught legitimate authority drift before
+  request generation. The protocol was rebased and all three reviews repeated
+  against queue commit `89799d825dbc8fb57df26dd6463ebaf138cbb8be` and
+  authority-file SHA `fe24bb30...cfe59`; no queue file was modified.
 
 ## 2026-07-19 EuroSys'27 Cross-Submission Audit Baseline
 
