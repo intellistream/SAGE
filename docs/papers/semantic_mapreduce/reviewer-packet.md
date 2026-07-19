@@ -20,7 +20,18 @@ model choose only `KEEP`, `MERGE`, `SPLIT`, or `ABSTAIN` over candidate pairs.
 The system assembles the edit, binds evidence identifiers, checks schema and
 root/affected consistency, records costs, and falls back if validation fails.
 The comparison against free-form pairwise JSON uses the same endpoint, model,
-evidence, candidates, and scorer; the difference is the reducer contract.
+evidence, candidates, and scorer; the difference is the reducer contract. The
+paper's ownership table makes this executable boundary explicit across admit,
+propose, assemble, validate, publish, and recover; the model owns only the
+single enum proposal.
+
+**Did the live model path itself demonstrate checkpoint recovery?**
+
+No. The 27-row model-free runtime-contract matrix directly exercises commit,
+reject, baseline preservation, checkpoint restore, and deterministic replay.
+The real-online path archives compatible candidate, evidence, and committed-
+state digests plus commit/preserve outcomes. This separates runtime recovery
+semantics from model quality and does not claim distributed exactly-once.
 
 **Why not ordinary JSON mode?**
 

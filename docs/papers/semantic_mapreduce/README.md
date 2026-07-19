@@ -64,8 +64,10 @@ docs/papers/semantic_mapreduce/claim-ledger.md
 
 The current submission framing is:
 
-- SAGE is an AI-native orchestration and semantic-reduction layer above or
+- Semantic MapReduce is a runtime-owned semantic-reducer boundary above or
   beside engines such as Spark, Flink, Ray, databases, and vector systems.
+  The host runtime owns evidence eligibility, bounded edit assembly,
+  validation, commit/fallback, checkpoint metadata, and replay traces.
 - The artifact supports shard-level map, evidence objects, reducer variants,
   missed-incident reporting, workflow trace, failure taxonomy, run manifests,
   and token/cost accounting fields.

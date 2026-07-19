@@ -87,15 +87,17 @@ We therefore ask: \emph{what operator and runtime contract can admit model judgm
 
 The prototype maps this algebra onto a workflow/stream runtime without modifying the storage or serving engines. Dataflow stages implement the scale-facing operators; reducer plug-ins share the same candidate, hypothesis, and trace types; an OpenAI-compatible endpoint can supply \textsf{Edit} decisions; and the runtime owns evidence identifiers, edit assembly, validation, fallback, latency/token accounting, and trace capture. Thus model output cannot directly become report state. It is an untrusted proposal interpreted through the same commit/reject interface as deterministic and hybrid policies.
 
-We evaluate the abstraction in four evidence tiers. A nine-family, ten-seed controlled matrix varies coverage, fragmentation, shared causes, concurrency, false correlation, partial evidence, overmerge, and edit admissibility under one schema and scorer. A public AIOps Challenge 2020 replay tests the evidence boundary on labeled metrics and exposes two detectable and two coverage-limited fault windows. A 27-run runtime matrix injects invalid edits and checkpoint recovery across every controlled family; all runs reject invalid state, preserve the baseline, restore the committed digest, and replay deterministically. Finally, a single-accelerator real-online matrix repeats the same nine families and three seeds five times: at an eight-candidate budget, bounded action validation improves mean F1 from 0.7801 for the hybrid baseline to 0.8645. Within-case F1 standard deviation is zero; four proposed actions are rejected, while schema failure and fallback remain zero. The online result is mechanism and repeated-execution evidence under one model, endpoint, and temperature, not production or cross-model robustness.
+We evaluate the abstraction in four evidence tiers. A nine-family, ten-seed controlled matrix varies coverage, fragmentation, shared causes, concurrency, false correlation, partial evidence, overmerge, and edit admissibility under one schema and scorer. A public AIOps Challenge 2020 replay tests the evidence boundary; an AIOpsArena replay tests label-conditioned incident grouping. A 27-run runtime matrix injects invalid edits and checkpoint recovery across every controlled family; all runs reject invalid state, preserve the baseline, restore the committed digest, and replay deterministically. Finally, a single-accelerator real-online matrix repeats the same nine families and three seeds five times: at an eight-candidate budget, bounded action validation improves mean F1 from 0.7801 for the hybrid baseline to 0.8645. Within-case F1 standard deviation is zero; four proposed actions are rejected, while schema failure and fallback remain zero. A three-sample 14B checkpoint retains the gain at 0.8392 F1. These online results are mechanism evidence at two scales in one model family and endpoint stack, not cross-family or production robustness.
 
 This paper makes three contributions:
 
 \begin{enumerate}[leftmargin=1.6em]
 \item \textbf{Operator contract.} We define a typed algebra for evidence-linked semantic reduction and specify bounded edit, validation, provenance, and recovery invariants that separate model policy from runtime state integrity.
 \item \textbf{Runtime integration.} We instantiate the algebra in a workflow/stream runtime that keeps edit assembly, validation, fallback, state digests, checkpoint recovery, accounting, and replayable traces system-owned.
-\item \textbf{Workloads and evidence.} We organize nine reproducible contract-obligation families, add a public-telemetry evidence replay and a recovery fault matrix, and report these separately from the real-online mechanism study.
+\item \textbf{Workloads and evidence.} We organize nine reproducible contract-obligation families, add public evidence-boundary and incident-grouping replays plus a recovery fault matrix, and report these separately from the real-online mechanism study.
 \end{enumerate}
+
+Sections~2--5 motivate and define the contract and its runtime integration; Sections~6--7 describe the workload and evaluation; Sections~8--10 discuss limitations, trust, and related work.
 
 \section{Motivation}
 
@@ -103,24 +105,13 @@ Operational analysis often starts with numerical aggregates but ends with semant
 
 LLM-enabled data tools often expose a chat interface over a database, log store, vector index, or dashboard. This is useful for ad hoc exploration, but it hides important systems structure: which context was inspected, how evidence was compressed, when follow-up queries were issued, and why a final answer should be trusted. Large-scale analysis needs explicit partitioning, bounded local evidence, semantic reduction, and traceable reports.
 
-The orchestration layer is the right place for this contract. It does not replace Spark, Flink, Ray, SQL engines, vector stores, or serving engines. Those systems own distributed execution, storage access, stream processing, indexing, model serving, and resource management. The orchestration layer expresses the LLM reasoning workflow as a dataflow/stream pipeline, coordinates semantic operators, and records intermediate evidence.
+The missing component is a reducer-state boundary, not a new storage, dataflow, or serving engine. Spark, Flink, Ray, SQL engines, vector stores, and serving engines can retain partitioning, scheduling, indexing, and inference. The runtime hosting semantic reduction must additionally specify the evidence admitted to a reducer, the finite state effects a policy may request, the checks preceding commit, and the state and trace retained after rejection or recovery.
 
 \section{Problem Statement}
 
-We define large-scale LLM-augmented data analysis as follows. The input is a large collection of heterogeneous observations: events, logs, metrics, traces, documents, experiment outputs, and derived aggregates. The output is a set of structured insights, incident hypotheses, explanations, evidence chains, and possible actions. A correct system must manage both scale and semantics.
+Let partitioned observations $D$ produce a valid baseline hypothesis state $H_0$. A semantic policy may propose an edit $\Delta$, but only the runtime may publish a successor state $H$. The contract must satisfy three obligations. \emph{Eligibility}: every reducer candidate and output hypothesis is derived from typed, provenance-bearing evidence selected before model invocation. \emph{Transition integrity}: the policy has a finite action space, and schema, evidence, and cross-field invariants are checked before commit; otherwise the visible state remains $H_0$. \emph{Recovery and audit}: committed state, validator outcome, cost, and replay metadata survive checkpoint recovery and suffice to reproduce the same semantic-state digest. Scale-facing operators may compress observations before this boundary, but compression failure must be reported as missing evidence rather than hidden as reducer error.
 
-This problem exposes six system challenges:
-
-\begin{itemize}[leftmargin=1.6em]
-\item \textbf{Scale and partitioning.} Data must be split across shards while preserving enough local context to extract meaningful evidence.
-\item \textbf{Evidence compression.} Raw records cannot all be sent to a reducer or LLM. Map stages must summarize without losing the signals needed for global reasoning.
-\item \textbf{Semantic reduction.} The reducer must merge related symptoms, remove duplicates, handle conflicts, and produce hypotheses rather than only numeric aggregates.
-\item \textbf{Auditability.} Reports must link back to the evidence and workflow decisions that produced them.
-\item \textbf{Latency and cost.} LLM calls, if used, must be bounded and placed where semantic value justifies cost.
-\item \textbf{Safety boundaries.} The orchestration layer must avoid leaking unnecessary raw data and must make it possible to restrict what reaches external models.
-\end{itemize}
-
-These constraints motivate a system that treats LLM interpretation as a workflow over evidence objects, not as a final chat step after data processing.
+This formulation excludes two tempting shortcuts. Generating valid JSON does not establish evidence eligibility, legal state effects, or rollback. Persisting an agent/workflow graph records control flow but does not by itself define which semantic transition is admissible. The research question is therefore not how to prompt a model to summarize data, but how a runtime admits an untrusted semantic decision into durable analysis state.
 
 \section{\systemname{} Operator Model}
 
@@ -144,7 +135,7 @@ The policies $\pi,\phi,\sigma,\gamma,\rho,V,\tau$ may be implemented by rules, q
 
 This model separates the part a model may do from the part the system must own. \textsf{SemanticReduce} can be deterministic, graph-based, LLM-backed, or hybrid. When a model is used, the safer interface is often \textsf{Edit}: the model makes a bounded semantic decision such as whether two candidates should be merged, split, kept separate, or abstained from. The system then assembles the edit payload, binds evidence identifiers, checks the incident schema, verifies root and affected-service consistency, and falls back when validation fails. This is why the evaluated one-token reducer is not merely a prompt variant: it changes the reducer contract from ``generate JSON hypotheses'' to ``choose a bounded action that the system can validate.''
 
-External data engines may implement the scale-facing operators, while LLM frameworks may implement semantic decisions or reporting. The orchestration layer composes them under one auditable evidence contract and owns the boundaries where data-plane outputs become semantic-control-plane decisions. The operators expose five contract surfaces: data engines provide shards, windows, summaries, or chunks; local findings become bounded evidence objects rather than prompt text; reducers may change strategy while preserving the incident schema and scorer; model-backed edits must pass evidence and schema validation; and \textsf{ReportTrace} ties every hypothesis to operator decisions, supporting evidence, and replay metadata.
+External data engines may implement the scale-facing operators, while LLM frameworks may implement semantic decisions or reporting. The semantic runtime composes them under one auditable evidence contract and owns the boundaries where data-plane outputs become semantic-control-plane decisions. The operators expose five contract surfaces: data engines provide shards, windows, summaries, or chunks; local findings become bounded evidence objects rather than prompt text; reducers may change strategy while preserving the incident schema and scorer; model-backed edits must pass evidence and schema validation; and \textsf{ReportTrace} ties every hypothesis to operator decisions, supporting evidence, and replay metadata.
 
 \textbf{Shard and map evidence.} Each shard is processed locally. \textsf{MapEvidence} may compute statistics, identify anomalies, summarize logs, classify symptoms, or invoke an LLM over a bounded context. Its output is not arbitrary prose. It is an evidence object with fields such as service, tenant, region, metric, time window, observed value, baseline, severity, confidence, and source references.
 
@@ -182,15 +173,38 @@ External data engines may implement the scale-facing operators, while LLM framew
 \end{algorithmic}
 \end{algorithm}
 
-Algorithm~\ref{alg:semantic-mapreduce} makes the operator vocabulary operational. The important constraint is that \textsf{SemanticReduce} consumes compact, normalized, grouped evidence objects rather than raw telemetry, and that model-backed \textsf{Edit} decisions are validated before they affect $\mathcal{H}$. This lets the orchestration layer place expensive or policy-sensitive LLM calls at semantic boundaries instead of at every scan or filter operation.
+Algorithm~\ref{alg:semantic-mapreduce} makes the operator vocabulary operational. The important constraint is that \textsf{SemanticReduce} consumes compact, normalized, grouped evidence objects rather than raw telemetry, and that model-backed \textsf{Edit} decisions are validated before they affect $\mathcal{H}$. This lets the runtime place expensive or policy-sensitive LLM calls at semantic boundaries instead of at every scan or filter operation.
 
-\section{Runtime and Orchestration Design}
+\section{Runtime Contract and Integration}
 
-The prototype keeps the execution boundary deliberately narrow. Storage, joins, stream windows, distributed scheduling, and model serving remain delegated to existing engines; the orchestration layer owns the semantic control plane: operator composition, evidence schemas, reducer selection, validation, and trace capture. This is the difference from simple stitching. A script can query a data engine and then call a model, but it does not define which evidence objects cross the boundary, how duplicate local alerts become one hypothesis, or how a report links back to reducer decisions.
+The prototype keeps the execution boundary deliberately narrow. Storage, joins, stream windows, distributed scheduling, and model serving remain delegated to existing engines; the semantic runtime owns operator composition, evidence schemas, reducer selection, validation, and trace capture. This is the difference from simple stitching. A script can query a data engine and then call a model, but it does not define which evidence objects cross the boundary, how duplicate local alerts become one hypothesis, or how a report links back to reducer decisions.
 
-The workflow graph is the runtime representation of this contract. It composes familiar stream/dataflow operators--map, filter, flatmap, key grouping, and connection--but assigns them semantic roles. Sharded maps implement \textsf{MapEvidence}; keyed stages implement \textsf{GroupEvidence}; downstream stages invoke \textsf{SemanticReduce}, optional \textsf{Edit}, \textsf{Validate}, and \textsf{ReportTrace}. Upstream systems may supply partitions, windows, feature tables, retrieved documents, or trace chunks. Downstream tools consume structured incidents and evidence-linked reports. The orchestration layer therefore sits above Spark, Flink, Ray, databases, vector stores, and serving endpoints rather than replacing them.
+The workflow graph is one host representation of this contract. It composes familiar stream/dataflow operators--map, filter, flatmap, key grouping, and connection--but assigns them semantic roles. Sharded maps implement \textsf{MapEvidence}; keyed stages implement \textsf{GroupEvidence}; downstream stages invoke \textsf{SemanticReduce}, optional \textsf{Edit}, \textsf{Validate}, and \textsf{ReportTrace}. Upstream systems may supply partitions, windows, feature tables, retrieved documents, or trace chunks. Downstream tools consume structured incidents and evidence-linked reports. The contract can therefore be embedded above Spark, Flink, Ray, databases, vector stores, and serving endpoints rather than replacing them.
 
 Evidence objects are the bridge between data systems and LLM reasoning. They include shard and time-window identifiers, service/region/metric fields, local baseline statistics, anomaly type, severity, confidence, and source references. Reducers consume grouped evidence and emit the same incident schema plus a reducer trace. The evaluated implementation includes map-only and window baselines, deterministic and hybrid semantic reducers, free-form LLM reducers, and action-constrained reducers under one scorer. Changing the reducer therefore does not require rewriting the generator, mapper, report schema, or benchmark matrix. The trace records reducer metadata, detected incidents, matched and missed incident IDs, evidence summaries, failure classes, run manifests, and token estimates, so false positives and false negatives can be attributed to evidence extraction, grouping, editing, validation, or thresholding rather than to an opaque final answer.
+
+\begin{table}[t]
+\caption{Reducer invocation as a runtime-owned state transition. The model can propose only the action column; it cannot construct, validate, or publish report state.}
+\label{tab:runtime-ownership}
+\centering
+\small
+\begin{tabular}{@{}p{0.18\columnwidth}p{0.42\columnwidth}p{0.29\columnwidth}@{}}
+\toprule
+Phase & Runtime-owned object or check & Model authority \\
+\midrule
+Admit & typed evidence IDs, candidate digest, $H_0$ & none \\
+Propose & pair ID and legal action set & one enum action \\
+Assemble & evidence-linked edit $\Delta$ & none \\
+Validate & schema, evidence coverage, root/service consistency & none \\
+Publish & committed $H$ or preserved $H_0$ & none \\
+Recover & checkpointed state/trace and replay digest & none \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Invocation lifecycle.} The runtime first computes $H_0$ with the configured deterministic or hybrid reducer and selects bounded candidate pairs. Only pair descriptions and their evidence references cross the model boundary. For each pair, the endpoint returns one enum; malformed text maps to \textsc{Abstain}. The runtime converts accepted decisions into edits over a private candidate copy, rejects unknown pairs and references not drawn from both candidates, and reconstructs hypotheses from registered evidence rather than model-authored fields. \textsf{Validate} then checks candidate-evidence preservation, nonempty support, and root/affected-service consistency. A validation failure returns the configured valid baseline and records the reason. In the runtime-contract path, only validated output proceeds to the state service.
+
+\textbf{Commit, checkpoint, and replay.} The model-free runtime-contract path wraps validated output in a checkpointable reduction service that stores hypotheses and their validator trace. Rejected edits do not invoke commit; snapshots include both state and trace; and recovery creates a new service instance before restoring the snapshot. The real-online path archives the same candidate, evidence, and committed-state digests plus whether the outcome committed or preserved the baseline. Thus the fault matrix isolates checkpoint/replay semantics without attributing them to model behavior. This is logical recovery for reducer state, not a claim of distributed exactly-once execution: upstream source replay, cross-operator transactions, and durable replicated storage remain responsibilities of the host engine.
 
 \section{Workload and Provenance}
 
@@ -503,7 +517,7 @@ These lessons define the role of an LLM reducer as a constrained semantic operat
 \section{Open System Challenges}
 \label{sec:open-challenges}
 
-\systemname{} separates the semantic control plane from data and serving planes. Data engines retain scans, joins, windows, and distributed execution; serving engines retain inference. The orchestration layer owns evidence eligibility, reducer policy, hypothesis provenance, validation, recovery metadata, and trace replay. The evaluated mechanism needs no new kernels or scheduler semantics. The public replays reduce, but do not eliminate, the external-validity gap: AIOps 2020 tests evidence coverage, while AIOpsArena scores only eight label-conditioned incident groups. Remaining challenges are non-oracle external MapEvidence, production incident grouping, cross-family studies, and serving-level constrained decoding only when a validator needs it. Evaluation should continue to establish coverage before reducer quality and live cost.
+\systemname{} separates the semantic control plane from data and serving planes. Data engines retain scans, joins, windows, and distributed execution; serving engines retain inference. The semantic runtime owns evidence eligibility, reducer policy, hypothesis provenance, validation, recovery metadata, and trace replay. The evaluated mechanism needs no new kernels or scheduler semantics. The public replays reduce, but do not eliminate, the external-validity gap: AIOps 2020 tests evidence coverage, while AIOpsArena scores only eight label-conditioned incident groups. Remaining challenges are non-oracle external MapEvidence, production incident grouping, cross-family studies, and serving-level constrained decoding only when a validator needs it. Evaluation should continue to establish coverage before reducer quality and live cost.
 
 \section{Auditability and Trust Boundary}
 
@@ -521,7 +535,7 @@ The common trace also makes negative results diagnostic. A recall loss can be cl
 
 \textbf{Serving and observability.} vLLM shows how memory management and scheduling shape LLM serving performance~\cite{kwon2023vllm}. DeathStarBench, FIRM, the Illinois trace dataset, OpenTelemetry Demo, AIOps Challenge 2020, and LO2 provide service graphs, metrics, logs, traces, and fault labels~\cite{gan2019deathstarbench,qiu2020firm,qiu2020tracedataset,opentelemetry2026demo,netman2020aiopschallenge,bakhtin2025lo2}. Root-cause localization systems such as CloudRanger and MicroRank exploit service dependencies and trace contrasts~\cite{wang2018cloudranger,yu2021microrank}. We replay AIOps 2020 at the evidence boundary and AIOpsArena at the label-conditioned incident-unit boundary, but retain controlled workloads for model-backed merge/split mechanisms and broader obligation coverage.
 
-\textbf{Data+AI platforms.} Databricks, Snowflake Cortex, and BigQuery ML integrate analytics engines with machine learning and LLM functionality. They are important reference points, but systematic product comparison is outside this paper. The distinction we claim is narrower: an open workflow/runtime layer can sit above multiple engines and make semantic reducer behavior auditable through standard evidence, validation, and trace operators.
+\textbf{Data+AI platforms.} Databricks, Snowflake Cortex, and BigQuery ML integrate analytics engines with machine learning and LLM functionality. They are important reference points, but systematic product comparison is outside this paper. The distinction we claim is narrower: a runtime-owned reducer boundary can sit above multiple engines and make evidence eligibility, bounded edit authority, validator-owned commit/fallback, and replayable semantic state explicit.
 
 \paragraph{Positioning summary.}
 

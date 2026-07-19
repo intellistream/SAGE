@@ -242,11 +242,20 @@ remain explicit rather than being reported as successful model actions.
   end-to-end detection or production/model generality.
 - A new operator-algebra figure shows the model-facing boundary at `Edit`,
   while `Validate`, trace generation, and fallback remain system-owned.
+- A runtime-ownership table now makes the invocation contract explicit across
+  admit, propose, assemble, validate, publish, and recover phases. The model
+  owns only one enum action; evidence eligibility, edit construction,
+  commit/fallback, checkpoint state, and replay digests remain runtime-owned.
+- The paper explicitly separates the model-free checkpoint/recovery fault
+  matrix from the real-online path: the former executes logical reducer-state
+  recovery, while the latter archives compatible candidate/evidence/state
+  digests and outcomes. Neither is described as distributed exactly-once.
 - The action reducer is written as an `Edit` + `Validate` instance, not as a
   prompt-engineering trick.
-- The rebuilt EuroSys PDF is 11 pages total, within the 12-page technical-
-  content limit. All pages, tables, the operator diagram, and references were
-  rendered to PNG and visually checked for clipping, overlap, and legibility.
+- The strengthened EuroSys PDF is 12 pages total; technical content ends on
+  page 11 and page 12 contains acknowledgments and references. All pages,
+  tables, the operator diagram, and references were rendered to PNG and
+  visually checked for clipping, overlap, and legibility.
 - The final focused no-NPU regression selection passes under
   `esage-vllm-hust-dev`: `68 passed` across semantic-merge, runtime-contract,
   checkpoint/recovery, AIOps replay, summary, and shared-state tests.
@@ -461,8 +470,8 @@ author-owned conflicts/identity/HotCRP metadata remain before submission.
 The real-online matrix and machine-executable artifact gates pass. Per-case/seed
 JSON and CSV report F1, support recall, accepted edits, fallback, invalid
 action/schema, tokens, latency, and failure taxonomy. The current PDF has 12
-total pages and has passed a complete visual inspection. Final submission
-The clean full-coverage rerun, regenerated anonymous package, rebuilt PDF, and
+total pages and has passed a complete visual inspection. The clean
+full-coverage rerun, regenerated anonymous package, rebuilt PDF, and
 public policy audit are complete. Author-owned upload checks remain in
 [`NEXT_STEPS.md`](NEXT_STEPS.md).
 
@@ -472,12 +481,12 @@ title/system-name sources and PDF are ignored and verified as untracked, so
 pushing the public technical report does not reveal the submission title or
 system alias. The 2026-07-19 build is
 12 letter-size pages; all pages were rendered, fonts are embedded, and the
-title page, anonymous workload-revision table, online tables, limitations, and
-references have no identity marker, replacement glyph, clipping, overlap, or
-caption drift. Private review PDF SHA-256:
-`d6ec9658b82481e771c9b0af0459278566c60c0b09d32299f74dcdcb47794fbf`.
+title page, runtime-ownership table, anonymous workload-revision table, online
+tables, limitations, and references have no identity marker, replacement
+glyph, clipping, overlap, or caption drift. Private review PDF SHA-256:
+`e40160980d3fcc9a901cf488de87365f79e89e9e3b24553cd272026de8e667c7`.
 The separately tracked public technical-report PDF SHA-256 is
-`570d8dc37f524f36eda187a62b9ce37cc9b371f8e6c754ac24050e3fe8529c11`.
+`269e28bfa363d3de4dfc51e78c4a09b407a5a69662c1bc9c733c79e139db9232`.
 The machine-executable submission-claim cross-check
 `tools/benchmark_carrier/verify_semantic_mapreduce_submission_claims.py`
 passes all primary/second-scale F1, paired-unit CI, conditional-cost, external
