@@ -173,6 +173,8 @@ def _verify_publication_manifest(package_root: Path, failures: list[str]) -> Non
     if not isinstance(endpoint_allowlist, list):
         failures.append("anonymization manifest lacks endpoint allowlist")
         endpoint_allowlist = []
+    if manifest.get("content_policy_self_exclusion") != ["verify.py"]:
+        failures.append("anonymization content-policy self-exclusion is not exact")
     for relative, metadata in listed.items():
         path = package_root / relative
         if not path.is_file() or not isinstance(metadata, dict):
@@ -181,6 +183,11 @@ def _verify_publication_manifest(package_root: Path, failures: list[str]) -> Non
         if not isinstance(expected, str) or _sha256(path) != expected:
             failures.append(f"anonymization hash mismatch: {relative}")
         text = path.read_text(encoding="utf-8", errors="replace")
+        # The verifier source contains the reject regex literals themselves.
+        # It remains inventory/hash-covered, but evidence-content rules cannot
+        # be meaningfully applied to this one exact policy source file.
+        if relative == "verify.py":
+            continue
         relative_path = Path(relative)
         if relative_path.parts[:1] == ("endpoint",) and relative_path.name not in endpoint_allowlist:
             failures.append(f"anonymization unallowlisted endpoint artifact: {relative}")

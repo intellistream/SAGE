@@ -72,7 +72,8 @@ def test_publication_manifest_rejects_all_anonymity_policy_classes(
         files[relative] = {"packaged_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
     manifest = {
         "status": "PASS", "failures": [], "publication_anonymized": True,
-        "endpoint_allowlist": ["metadata.json"], "files": files,
+        "endpoint_allowlist": ["metadata.json"],
+        "content_policy_self_exclusion": ["verify.py"], "files": files,
     }
     (package / "ANONYMIZATION_MANIFEST.json").write_text(
         json.dumps(manifest) + "\n", encoding="utf-8"
@@ -191,6 +192,7 @@ def _write_anonymization_manifest(package_root: Path) -> None:
                 "failures": [],
                 "publication_anonymized": True,
                 "endpoint_allowlist": [],
+                "content_policy_self_exclusion": ["verify.py"],
                 "files": files,
             }
         ),

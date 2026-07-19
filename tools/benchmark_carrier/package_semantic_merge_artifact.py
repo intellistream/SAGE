@@ -435,6 +435,7 @@ def package(
         "source_roots_redacted": True,
         "git_provenance_redacted": True,
         "endpoint_allowlist": list(ENDPOINT_ALLOWLIST),
+        "content_policy_self_exclusion": ["verify.py"],
         "excluded_endpoint_logs": True,
         "supplementary_files": [path.name for path in supplementary_files],
         "supplementary_dirs": [label for label, _ in supplementary_dirs],
