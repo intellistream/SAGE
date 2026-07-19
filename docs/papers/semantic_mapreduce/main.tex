@@ -97,7 +97,7 @@ This paper makes three contributions:
 \item \textbf{Workloads and evidence.} We organize nine reproducible contract-obligation families, add public evidence-boundary and incident-grouping replays plus a recovery fault matrix, and report these separately from the real-online mechanism study.
 \end{enumerate}
 
-Sections~2--5 motivate and define the contract and its runtime integration; Sections~6--7 describe the workload and evaluation; Sections~8--10 discuss limitations, trust, and related work.
+Sections~2--5 motivate and define the contract and its runtime integration; Sections~6--7 describe the workload and evaluation; Section~8 discusses implications and limitations; Section~9 covers related work.
 
 \section{Motivation}
 
@@ -183,24 +183,48 @@ The workflow graph is one host representation of this contract. It composes fami
 
 Evidence objects are the bridge between data systems and LLM reasoning. They include shard and time-window identifiers, service/region/metric fields, local baseline statistics, anomaly type, severity, confidence, and source references. Reducers consume grouped evidence and emit the same incident schema plus a reducer trace. The evaluated implementation includes map-only and window baselines, deterministic and hybrid semantic reducers, free-form LLM reducers, and action-constrained reducers under one scorer. Changing the reducer therefore does not require rewriting the generator, mapper, report schema, or benchmark matrix. The trace records reducer metadata, detected incidents, matched and missed incident IDs, evidence summaries, failure classes, run manifests, and token estimates, so false positives and false negatives can be attributed to evidence extraction, grouping, editing, validation, or thresholding rather than to an opaque final answer.
 
-\begin{table}[t]
-\caption{Reducer invocation as a runtime-owned state transition. The model can propose only the action column; it cannot construct, validate, or publish report state.}
-\label{tab:runtime-ownership}
+\begin{figure*}[t]
 \centering
-\small
-\begin{tabular}{@{}p{0.18\columnwidth}p{0.42\columnwidth}p{0.29\columnwidth}@{}}
-\toprule
-Phase & Runtime-owned object or check & Model authority \\
-\midrule
-Admit & typed evidence IDs, candidate digest, $H_0$ & none \\
-Propose & pair ID and legal action set & one enum action \\
-Assemble & evidence-linked edit $\Delta$ & none \\
-Validate & schema, evidence coverage, root/service consistency & none \\
-Publish & committed $H$ or preserved $H_0$ & none \\
-Recover & checkpointed state/trace and replay digest & none \\
-\bottomrule
-\end{tabular}
-\end{table}
+\begin{tikzpicture}[
+  font=\footnotesize,
+  runtime/.style={draw=blue!65!black, rounded corners=2pt, align=center, fill=blue!3, minimum height=0.72cm},
+  model/.style={draw=orange!80!black, rounded corners=2pt, align=center, fill=orange!7, minimum height=0.72cm},
+  state/.style={draw=green!55!black, rounded corners=2pt, align=center, fill=green!4, minimum height=0.72cm},
+  arr/.style={-{Stealth[length=2mm]}, thick},
+  reject/.style={-{Stealth[length=2mm]}, dashed, thick, red!65!black},
+  trace/.style={-{Stealth[length=2mm]}, dashed, thick, blue!60!black}
+]
+\node[runtime, minimum width=2.15cm] (admit) {Admit\\typed evidence $\mathcal{E}$};
+\node[runtime, minimum width=2.15cm, right=0.35cm of admit] (baseline) {Reduce\\valid baseline $H_0$};
+\node[runtime, minimum width=2.2cm, right=0.35cm of baseline] (pairs) {Select pairs\\candidate/evidence IDs};
+\node[model, minimum width=2.05cm, right=0.35cm of pairs] (model) {Model boundary\\one enum $a$};
+\node[runtime, minimum width=2.05cm, right=0.35cm of model] (assemble) {Assemble\\runtime edit $\Delta$};
+\node[runtime, minimum width=2.05cm, right=0.35cm of assemble] (validate) {Validate\\schema + evidence};
+\node[state, minimum width=2.15cm, right=0.35cm of validate] (publish) {Publish\\commit $H$};
+
+\draw[arr] (admit) -- (baseline);
+\draw[arr] (baseline) -- (pairs);
+\draw[arr] (pairs) -- (model);
+\draw[arr] (model) -- (assemble);
+\draw[arr] (assemble) -- (validate);
+\draw[arr] (validate) -- (publish);
+
+\node[state, minimum width=3.0cm, below=0.75cm of validate] (preserve) {Reject: preserve $H_0$\\record validator reason};
+\node[state, minimum width=2.7cm, below=0.75cm of baseline] (checkpoint) {Checkpoint/recover\\state + validator trace};
+\node[runtime, minimum width=3.3cm, below=0.75cm of model] (report) {ReportTrace\\candidate/evidence/state digests};
+
+\draw[reject] (validate.south) -- (preserve.north);
+\draw[trace] (publish.south) |- (report.east);
+\draw[trace] (preserve.west) -- (report.east);
+\draw[trace] (report.west) -- (checkpoint.east);
+\draw[arr] (checkpoint.north) -- node[right, font=\scriptsize] {restore} (baseline.south);
+
+\node[draw=orange!80!black, dashed, rounded corners=3pt, fit=(model), inner sep=5pt,
+      label={[font=\scriptsize, orange!80!black]above:model authority}] {};
+\end{tikzpicture}
+\caption{Concrete reducer invocation and recovery path. Only candidate descriptions and registered evidence IDs cross the model boundary, and the model returns one action enum. The runtime constructs $\Delta$, validates it, commits $H$ or preserves $H_0$, and records digests and validator outcomes for replay. Checkpoint recovery is exercised by the model-free contract path; real-online runs retain the compatible trace fields.}
+\label{fig:runtime-lifecycle}
+\end{figure*}
 
 \textbf{Invocation lifecycle.} The runtime first computes $H_0$ with the configured deterministic or hybrid reducer and selects bounded candidate pairs. Only pair descriptions and their evidence references cross the model boundary. For each pair, the endpoint returns one enum; malformed text maps to \textsc{Abstain}. The runtime converts accepted decisions into edits over a private candidate copy, rejects unknown pairs and references not drawn from both candidates, and reconstructs hypotheses from registered evidence rather than model-authored fields. \textsf{Validate} then checks candidate-evidence preservation, nonempty support, and root/affected-service consistency. A validation failure returns the configured valid baseline and records the reason. In the runtime-contract path, only validated output proceeds to the state service.
 
@@ -222,7 +246,7 @@ The task is to recover injected incidents from event streams. A detected inciden
 
 \paragraph{Why this workload exercises the system.}
 
-The workload is designed to stress the orchestration layer rather than raw storage throughput. It has enough structure to require semantic reasoning: incidents are injected across services, regions, and time windows, while local symptoms appear as latency, error, utilization, or queue-depth changes. A single shard can observe symptoms, but the global conclusion depends on how those symptoms are merged. This matches the \systemname{} pattern.
+The workload is designed to stress the reducer contract rather than raw storage throughput. It has enough structure to require semantic reasoning: incidents are injected across services, regions, and time windows, while local symptoms appear as latency, error, utilization, or queue-depth changes. A single shard can observe symptoms, but the global conclusion depends on how those symptoms are merged. This matches the \systemname{} pattern.
 
 The workload also forces the system to preserve evidence. If the reducer reports a latency spike, the report must include which shard-level candidates supported the decision. If it misses a saturation incident, the report should expose the missed incident ID. This is why the workload reports both detected and injected incidents, not only aggregate F1. The goal is not merely to score a classifier; it is to evaluate an auditable analysis workflow.
 
@@ -264,83 +288,21 @@ The report schema is deliberately richer than the minimum needed for precision a
 
 The workload is designed to make reducer behavior reproducible without placing environment-management details in the paper body. Each experiment records the workload scale, shard count, seed, reducer, top-k budget, detected incidents, missed incidents, and latency measurements. This provenance is sufficient to distinguish algorithmic changes in the reducer from changes in input generation or scoring. The accompanying artifact contains the implementation and per-run records needed to rerun the study.
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/fig3-evaluation-harness.png}
-\caption{Evaluation harness for the large-scale analysis workload. The same generated telemetry and injected incidents feed the evidence stage, reducer variants, and common scorer, so quality differences come from the semantic reduction contract rather than input drift. Solid reducer rows correspond to the deterministic matrix; the dashed model-backed branch is evaluated in the nine-family real-online semantic-merge matrix.}
-\Description{A five-stage evaluation pipeline. A workload generator produces telemetry; injected incidents provide ground truth; an evidence stage emits evidence objects; reducer variants compare map-only, window aggregate, deterministic, and planned LLM or hybrid reducers; a common scorer reports precision, recall, F1, latency, throughput, matched and missed incidents, and workflow traces.}
-\label{fig:evaluation-harness}
-\end{figure*}
-
 \section{Evaluation}
 
 \subsection{Setup and Scope}
 
-\begin{table}[t]
-\caption{Workload scales and representative seed-7 tail-aware deterministic runs. The full matrix repeats these two scales across ten seeds, map policies, and reducer regimes. Both representative runs detect all four injected incidents; their timing shows that \textsf{MapEvidence} dominates while reduction over compact evidence remains sub-millisecond. Evidence: derived artifact.}
-\label{tab:configs}
-\centering
-\small
-\begin{tabular}{lccccc}
-\toprule
-Scale & Top-k & P/R/F1 & Thru. & Map/Red. & Det. \\
- & & & k ev/s & ms & \\
-\midrule
-50K/16 & 12 & 1.00/1.00/1.00 & 105.8 & 72.94/0.35 & 4/4 \\
-100K/32 & 16 & 1.00/1.00/1.00 & 101.6 & 169.61/0.31 & 4/4 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:configs} lists the reproduced scales and representative single-seed runs used for scale/timing sanity checks. These rows are not the only quality evidence; the paper uses the ten-seed matrix for reducer and map-policy conclusions. They show a useful systems property: doubling events and shards roughly doubles map time, while the deterministic reducer still runs over compact evidence in less than one millisecond.
+Representative seed-7 scale checks process 50K events/16 shards at 105.8K events/s and 100K/32 at 101.6K events/s. Both detect all four incidents. \textsf{MapEvidence} takes 72.94 and 169.61 ms, whereas deterministic reduction over compact evidence takes 0.35 and 0.31 ms. These are timing sanity checks, not the quality matrix; they show that doubling events and shards roughly doubles map time while reduction remains sub-millisecond in these runs.
 
 The evaluation follows the operator contract rather than a single leaderboard. Q1 asks whether the workload exposes the right semantic object: incident hypotheses rather than alert fragments. Q2 asks whether \textsf{MapEvidence} surfaces enough evidence for any reducer, using coverage gates. Q3 asks whether reducer variants improve under a fixed generator, evidence schema, scorer, and report format. Q4 asks whether adjacent frameworks are substrates or whether they supply the missing semantic-reduction contract. Q5 asks whether a live model can be admitted as bounded \textsf{Edit}, rather than free-form \textsf{SemanticReduce}. This evidence ladder prevents the F1 tables from becoming a generic ML benchmark: precision, recall, and F1 check whether evidence objects are preserved, grouped, and reduced into the right incident unit. Unless explicitly labeled real-online, F1 and seed-matrix results in this section are derived artifacts from recorded workload reports; the real-online rows support live reducer-interface, validation, latency, and token-accounting claims only. The experiments are not tuned cluster deployments of Spark, Flink, Ray, LangGraph, LlamaIndex, or AutoGen.
 
 The artifact also includes a separate shared-workload probe from a pinned workload submodule. Across seeds 7, 11, and 13, the probe generates 23 canonical LLM-serving cases per seed and 1,232 supported requests per seed, covering session-affine, RAG, long-context, tool-agent, coding-assistant, dynamic-corpus, memory-reuse, and preemption/resume surfaces. We use this probe to record workload-source provenance and to keep prototype-specific \systemname{} stress cases separate from general LLM-serving scenario catalogs. It is not used as evidence that a reducer improves incident quality.
 
-\begin{table}[t]
-\caption{Shared workload-source probe from the pinned workload submodule. This table records scenario coverage and provenance for the artifact boundary; \systemname{} quality is measured only on workloads with injected incident labels and a common scorer.}
-\label{tab:shared-workload-probe}
-\centering
-\small
-\begin{tabular}{lr}
-\toprule
-Field & Value \\
-\midrule
-Workload revision & pinned anonymous revision \\
-Seeds & 7, 11, 13 \\
-Generated cases / seed & 23 \\
-Skipped boundary cases & 2 \\
-Supported requests / seed & 1,232 \\
-Example long-context prompt & 4,442 tokens \\
-Example RAG prompt & 2,974 tokens \\
-Evidence label & derived artifact \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:shared-workload-probe} gives the shared workload side of the artifact. The corresponding \systemname{} quality experiments remain repo-local because they require injected incident labels, evidence objects, reducer variants, and a common scorer. This separation prevents a common benchmark mistake: using a general workload catalog as if it were already a reducer-quality benchmark.
+The corresponding \systemname{} quality experiments remain repo-local because they require injected incident labels, evidence objects, reducer variants, and a common scorer. This separation prevents a common benchmark mistake: using a general workload catalog as if it were already a reducer-quality benchmark.
 
 \subsection{Reducer Quality}
 
-\begin{table}[t]
-\caption{Reducer comparison with the tail-aware map policy across 20 runs. Map-only and window-aggregate are diagnostic baselines for alert-style and windowed-analytics workflows; the incident reducer improves F1 by changing the output unit from alert fragments to incident hypotheses. Evidence: derived artifact.}
-\label{tab:aggregate}
-\centering
-\small
-\begin{tabular}{lcccc}
-\toprule
-Reducer & Precision & Recall & F1 & Detections \\
-\midrule
-Map-only & 0.1990 & 0.6875 & 0.3075 & 14.00 \\
-Window-aggregate & 0.5696 & 0.9750 & 0.7129 & 7.05 \\
-Incident reducer & 0.9500 & 0.9750 & 0.9579 & 4.15 \\
-\texttt{llm-stub} & 0.9500 & 0.9750 & 0.9579 & 4.15 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The aggregate results in Table~\ref{tab:aggregate} show why incident-level reduction is the relevant operation. Map-only alerts emit duplicate shard-local candidates and consume the top-k budget before all incidents are represented. Window aggregation improves recall but still reports multiple windows for one incident. The incident reducer keeps recall at 0.9750 while reducing average detections from 7.05 to 4.15, raising F1 from 0.7129 to 0.9579. In this paper, F1 is therefore a contract-level metric: it is high only when the workflow preserves enough evidence and emits the correct incident unit with traceable matches. This is the measured advantage in the current workload: semantic reduction changes the unit of output from alert fragments to incident hypotheses.
+An initial 20-run sanity matrix shows why incident-level reduction is the relevant operation. Map-only reaches 0.3075 F1, window aggregation 0.7129, and the incident reducer 0.9579 while reducing average detections from 7.05 to 4.15 at 0.9750 recall. F1 is therefore a contract-level metric here: it is high only when the workflow preserves enough evidence and emits the correct incident unit with traceable matches. The nine-family suite below is the harder and submission-facing derived matrix.
 
 \begin{table}[t]
 \caption{Semantic-merge suite across nine contract-obligation families and ten seeds (90 runs per reducer). Evidence: derived artifact.}
@@ -458,18 +420,18 @@ Table~\ref{tab:public-replay} replaces source availability with two scoped publi
 
 AIOpsArena~\cite{aiopsarena2024dataset} supplies a different missing label: its complex case records 23 injected component instances that natively collapse, by timestamp, service, failure type, and duration, into eight incident episodes. We convert each public label row to an evidence unit but withhold episode identifiers from reducers. Map-only emits 23 fragments; window aggregation merges two distinct simultaneous episodes and reaches 0.800 F1; service-local and semantic reduction each recover the eight episode units. This is an oracle/label-conditioned reducer-only replay, not end-to-end anomaly detection or evidence that an LLM generalizes to production. Its value is narrower: an external dataset now exercises and scores the output unit of \textsf{SemanticReduce}, while the AIOps 2020 misses continue to bound the upstream evidence claim.
 
-\subsection{Real-Online Readiness}
+\subsection{Bounded-Edit Online Evaluation}
 
 The real-online runs attach the same reducer contract to a live OpenAI-compatible endpoint. A smoke run served a 7B instruction-tuned model on one accelerator and completed 8/8 measured streaming requests after warmup, with mean TTFT 65.68 ms, mean TPOT 19.79 ms, and 45.71 output tokens/s. These numbers validate endpoint integration and measurement plumbing rather than SOTA serving performance. Earlier same-seed reducer probes exposed two preconditions for meaningful live LLM comparison. First, if map evidence misses incidents, no downstream reducer can recover them: a 2K/4-shard smoke produced F1 0.4000 because three injected incidents had zero overlapping map candidates. Second, asking a model to emit full reducer JSON is the wrong interface: full-evidence prompting returned legal JSON while losing incident units, and free-form candidate editors sometimes produced invalid structure or unsafe edits. The final live probe therefore focuses on the constrained \textsf{Edit}+\textsf{Validate} interface in Table~\ref{tab:pairwise-action-online}. This makes the live path an admission test for a model-backed operator: a model action is useful only if it clears coverage, schema, evidence-reference, and fallback checks under the same scorer.
 
 \begin{table*}[t]
-\caption{One-token pairwise action probe across nine families and three seeds at candidate budget 8. The primary 7B endpoint uses five samples (135 runs/reducer); the 14B checkpoint uses three (81 runs/reducer). Evidence: real-online.}
+\caption{One-token pairwise action probe across nine families and three seeds at candidate budget 8. The primary 7B endpoint uses five samples (135 runs/reducer); the 14B checkpoint uses three (81 runs/reducer). ``Bad'' columns count invalid action/schema outputs; FB is fallback. Evidence: real-online.}
 \label{tab:pairwise-action-online}
 \centering
 \small
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lrrrrrrrrrr}
 \toprule
-Reducer & Precision & Recall & F1 & Support rec. & Reduce ms & Tokens & Edits & Invalid act. & Invalid sch. & Fallback \\
+Reducer & P & R & F1 & Supp. R & ms & Tok. & Edit & Bad act. & Bad sch. & FB \\
 \midrule
 Hybrid hint & 0.7692 & 0.8426 & 0.7801 & 0.7810 & 0.23 & 0.0 & 0.0 & 0 & 0 & 0 \\
 Validated pairwise & 0.7881 & 0.8426 & 0.7932 & 0.7948 & 1980.49 & 276.0 & 0.13 & 0 & 39 & 39 \\
@@ -486,40 +448,34 @@ A follow-up pairwise edit probe narrows the interface further. Instead of asking
 
 The second checkpoint holds the workload, candidate generator, validator, scorer, and endpoint stack fixed while increasing model scale within the same family. Its action path reaches 0.8392 F1 versus 0.7801 for the hybrid baseline; the same 27-unit analysis gives $+0.0591$ (95\% CI: $0.0147$--$0.1149$). It has two rejected actions, zero schema failures, and zero fallback. The action path calls the model on 48.15\% of rows at both scales; conditional on a call, median reducer latency is 160.0 ms (7B) and 276.2 ms (14B), with 541.8 and 542.3 provider-reported tokens. Reporting conditional cost avoids diluting model cost with no-pair rows. These are two checkpoints in one model family at temperature zero, not cross-family or production robustness.
 
-\begin{table}[t]
-\caption{Controlled action-reducer budget sweep. Tokens use provider usage when present and an explicit character estimate otherwise. The hybrid baseline remains 0.7801 F1.}
-\label{tab:action-budget}
+\begin{figure*}[t]
 \centering
-\small
-\begin{tabular}{rrrrrr}
-\toprule
-Candidates & F1 & Support rec. & Mean ms & p95 ms & Tokens \\
-\midrule
-4 & 0.7791 & 0.7455 & 19.8 & 104.8 & 45.8 \\
-8 & 0.8645 & 0.8672 & 102.7 & 366.4 & 260.9 \\
-12 & 0.8571 & 0.8795 & 120.3 & 547.2 & 304.1 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\input{figures/fig3-quality-cost.tex}
+\caption{Measured action-reducer operating points over the frozen five-sample, nine-family matrix (135 rows per budget). (a) F1 and support-evidence recall; the dotted line is the 0.7801 hybrid F1. (b) all-row mean and p95 reducer latency. (c) all-row mean and p95 tokens, using provider usage when present and the recorded estimate otherwise. Four candidates truncate relations; eight maximize F1; twelve cost more without improving F1. Evidence: derived summaries of real-online rows.}
+\Description{Three line charts over candidate budgets 4, 8, and 12. Quality peaks at budget 8, while reducer latency and token use continue increasing through budget 12.}
+\label{fig:quality-cost}
+\end{figure*}
 
-Table~\ref{tab:action-budget} separates quality from cost rather than claiming a serving speedup. Four candidates truncate temporal relations and do not beat the baseline. Eight candidates give the highest F1; twelve add support recall but consume more tokens and tail latency without improving F1. The three points establish a measured operating boundary, not a general quality--cost frontier.
+Figure~\ref{fig:quality-cost} separates quality from cost rather than claiming a serving speedup. Four candidates truncate temporal relations and do not beat the baseline. Eight candidates give the highest F1; twelve add support recall but consume more tokens and tail latency without improving F1. The three points establish a measured operating boundary, not a general quality--cost frontier.
 
 The benchmark records more than a summary score: configuration, reducer name, injected and detected incidents, matched and missed incident IDs, evidence support, latency, token estimates, and failure classes. In the 2K live smoke, for example, three injected incidents had zero overlapping map candidates; the low F1 therefore diagnoses a coverage failure, not a reducer-quality result.
 
 The online artifact retains each bounded-action response and provider usage envelope, timestamps, request failures, replay IDs, and state digests. The stability and budget summaries are derived from those real-online rows and remain tied to their clean endpoint commits. The same-family second scale is part of the supported claim; a cross-family model or independent endpoint would further strengthen external validity but remains untested.
 
-\subsection{Lessons}
+\subsection{Evaluation Takeaways}
 
 The evaluation gives three lessons. First, the workload is not merely a classifier benchmark. Precision measures whether the reducer avoids inventing incidents from noisy evidence; recall measures whether the map and reduce stages preserve weak but real incidents; the missed-incident list shows which operator boundary failed. Second, the incident reducer improves quality mainly by changing the unit of output from windows to hypotheses. The output count drops toward the four injected incidents while recall remains high. Third, the map policy matters as much as the reducer: if a saturation event never becomes evidence, no downstream LLM can recover it without going back to raw telemetry.
 
 These lessons define the role of an LLM reducer as a constrained semantic operator rather than a replacement for the pipeline. A model should not be rewarded for basic scanning, thresholding, or duplicate removal that deterministic operators already handle. Its useful role is to adjudicate ambiguous evidence groups, use service relationships to reject false positives, explain why symptoms belong together, and produce operator-facing reports from bounded evidence objects. The implemented online path exercises this contract and shows why validation is part of the system design: accepted model edits must preserve schema, evidence references, root/affected-service consistency, and cost visibility.
 
-\section{Open System Challenges}
+\section{Discussion and Limitations}
 \label{sec:open-challenges}
+
+\subsection{Scope and Open Challenges}
 
 \systemname{} separates the semantic control plane from data and serving planes. Data engines retain scans, joins, windows, and distributed execution; serving engines retain inference. The semantic runtime owns evidence eligibility, reducer policy, hypothesis provenance, validation, recovery metadata, and trace replay. The evaluated mechanism needs no new kernels or scheduler semantics. The public replays reduce, but do not eliminate, the external-validity gap: AIOps 2020 tests evidence coverage, while AIOpsArena scores only eight label-conditioned incident groups. Remaining challenges are non-oracle external MapEvidence, production incident grouping, cross-family studies, and serving-level constrained decoding only when a validator needs it. Evaluation should continue to establish coverage before reducer quality and live cost.
 
-\section{Auditability and Trust Boundary}
+\subsection{Trust Boundary and Auditability}
 
 Auditability is the reason to make semantic reduction an operator contract. A hypothesis is trusted because it replays to eligible evidence, reducer candidates, accepted edits, validator outcomes, and failure classes---not because its prose is fluent. The model therefore receives a bounded \textsf{Edit} over candidates that already cite evidence. The system constructs the payload, checks schema and references, verifies root/affected-service consistency, records token and latency cost, and retains the pre-edit hypothesis on rejection. The live free-form/action contrast exercises this boundary directly: one-token output turns generation uncertainty into a checkable decision.
 
@@ -531,7 +487,7 @@ The common trace also makes negative results diagnostic. A recall loss can be cl
 
 \textbf{Execution substrates.} MapReduce, Spark, and Flink provide the substrate for large-scale batch and stream analytics, and Ray provides a general distributed runtime for AI applications~\cite{dean2004mapreduce,zaharia2012spark,carbone2015flink,moritz2018ray}. \systemname{} borrows the local/global decomposition but changes the reducer contract from fixed aggregation to semantic evidence fusion. These systems can execute or host parts of the pipeline; they do not by themselves define the evidence object, semantic edit, validation, and trace contract studied here.
 
-\textbf{LLM data and workflow systems.} LOTUS and Palimpzest expose LLM calls as declarative or optimizable data-processing operators~\cite{patel2024semanticoperators,liu2024palimpzest}. LangGraph, LlamaIndex, and AutoGen provide useful abstractions for agents, retrieval, tool use, and multi-agent workflows~\cite{langchain2026langgraph,llamaindex2026,wu2023autogen}. \systemname{} is complementary: it focuses less on query optimization or agent control flow alone and more on workflow/stream orchestration, incident-level semantic reduction, and evidence-linked audit traces under one scorer.
+\textbf{LLM data and workflow systems.} LOTUS and Palimpzest expose LLM calls as declarative or optimizable data-processing operators~\cite{patel2024semanticoperators,liu2024palimpzest}. LangGraph, LlamaIndex, and AutoGen provide useful abstractions for agents, retrieval, tool use, and multi-agent workflows~\cite{langchain2026langgraph,llamaindex2026,wu2023autogen}. \systemname{} is complementary: those systems can carry the graph, while this paper studies the reducer-state interface---evidence eligibility, finite edit authority, validator-owned commit/fallback, and replayable semantic state.
 
 \textbf{Serving and observability.} vLLM shows how memory management and scheduling shape LLM serving performance~\cite{kwon2023vllm}. DeathStarBench, FIRM, the Illinois trace dataset, OpenTelemetry Demo, AIOps Challenge 2020, and LO2 provide service graphs, metrics, logs, traces, and fault labels~\cite{gan2019deathstarbench,qiu2020firm,qiu2020tracedataset,opentelemetry2026demo,netman2020aiopschallenge,bakhtin2025lo2}. Root-cause localization systems such as CloudRanger and MicroRank exploit service dependencies and trace contrasts~\cite{wang2018cloudranger,yu2021microrank}. We replay AIOps 2020 at the evidence boundary and AIOpsArena at the label-conditioned incident-unit boundary, but retain controlled workloads for model-backed merge/split mechanisms and broader obligation coverage.
 
@@ -543,9 +499,7 @@ The closest intellectual ancestor is MapReduce itself: local processing followed
 
 \section{Conclusion}
 
-Large-scale LLM-augmented analysis needs more than fast scans and more than chat over data. \systemname{} extends map/reduce from fixed aggregation to evidence fusion: partition observations, compress evidence, reduce hypotheses, and preserve executable audit and recovery state. Nine controlled obligation families, a public telemetry replay, and a 27-run recovery matrix distinguish evidence coverage, reducer policy, and runtime integrity. The live experiment exposes the remaining systems requirement: model edits must be constrained to verifiable actions, schema-validated, evidence-linked, and reversible before they become committed state. Model-backed reduction therefore needs an operator boundary that can admit, validate, abstain, recover, and replay.
-
-This reframes the LLM as a bounded semantic decision procedure inside an auditable reducer. The system owns evidence eligibility, candidate construction, validation, fallback, and trace replay; reducer edits change workflow state only through checkable actions.
+Large-scale LLM-augmented analysis needs more than fast scans and more than chat over data. \systemname{} extends map/reduce from fixed aggregation to evidence fusion: partition observations, compress evidence, reduce hypotheses, and preserve executable audit and recovery state. Nine controlled obligation families, public evidence-boundary and incident-grouping replays, and a 27-run recovery matrix distinguish evidence coverage, reducer policy, and runtime integrity. The live experiment shows the remaining systems requirement: model edits must be bounded, schema-validated, evidence-linked, and reversible before becoming committed state. This reframes the LLM as a constrained decision procedure inside an auditable reducer: the runtime owns evidence eligibility, candidate construction, validation, fallback, and replay, so model-backed edits change analysis state only through checkable actions.
 
 \section*{Acknowledgments}
 Generative AI tools were used to assist with drafting, editing, and code generation. The authors reviewed and validated the resulting text, code, experiments, and claims.

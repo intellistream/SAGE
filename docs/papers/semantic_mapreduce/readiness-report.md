@@ -242,10 +242,11 @@ remain explicit rather than being reported as successful model actions.
   end-to-end detection or production/model generality.
 - A new operator-algebra figure shows the model-facing boundary at `Edit`,
   while `Validate`, trace generation, and fallback remain system-owned.
-- A runtime-ownership table now makes the invocation contract explicit across
-  admit, propose, assemble, validate, publish, and recover phases. The model
-  owns only one enum action; evidence eligibility, edit construction,
-  commit/fallback, checkpoint state, and replay digests remain runtime-owned.
+- A concrete reducer-lifecycle figure makes the invocation contract explicit
+  across admit, reduce, select, propose, assemble, validate, publish, reject,
+  checkpoint/recover, and trace phases. The model owns only one enum action;
+  evidence eligibility, edit construction, commit/fallback, checkpoint state,
+  and replay digests remain runtime-owned.
 - The paper explicitly separates the model-free checkpoint/recovery fault
   matrix from the real-online path: the former executes logical reducer-state
   recovery, while the latter archives compatible candidate/evidence/state
@@ -253,12 +254,13 @@ remain explicit rather than being reported as successful model actions.
 - The action reducer is written as an `Edit` + `Validate` instance, not as a
   prompt-engineering trick.
 - The strengthened EuroSys PDF is 12 pages total; technical content ends on
-  page 11 and page 12 contains acknowledgments and references. All pages,
-  tables, the operator diagram, and references were rendered to PNG and
-  visually checked for clipping, overlap, and legibility.
+  page 11 and references continue through page 12. All pages, seven retained
+  tables, three figures, and references were rendered to PNG and visually
+  checked for clipping, overlap, and legibility.
 - The final focused no-NPU regression selection passes under
-  `esage-vllm-hust-dev`: `68 passed` across semantic-merge, runtime-contract,
-  checkpoint/recovery, AIOps replay, summary, and shared-state tests.
+  `esage-vllm-hust-dev`: `51 passed` across semantic-merge, runtime-contract,
+  checkpoint/recovery, AIOps replay, summary, shared-state, and deterministic
+  quality--cost figure tests.
 - The full nine-family, three-seed, five-sample NPU3 matrix passes the artifact
   gate at candidate budget 8: F1 0.8645 versus 0.7801 for `hybrid-hint`, zero
   fallback/schema invalid, four rejected actions, and clean parent/submodule
@@ -481,12 +483,12 @@ title/system-name sources and PDF are ignored and verified as untracked, so
 pushing the public technical report does not reveal the submission title or
 system alias. The 2026-07-19 build is
 12 letter-size pages; all pages were rendered, fonts are embedded, and the
-title page, runtime-ownership table, anonymous workload-revision table, online
-tables, limitations, and references have no identity marker, replacement
+title page, reducer-lifecycle figure, anonymous workload-revision table, online
+tables, quality--cost figure, limitations, and references have no identity marker, replacement
 glyph, clipping, overlap, or caption drift. Private review PDF SHA-256:
-`e40160980d3fcc9a901cf488de87365f79e89e9e3b24553cd272026de8e667c7`.
+`5d2a46f1a011e87b1575cd391bfc7ef5c4070fb1a38a1d75b91800cb4263ebdf`.
 The separately tracked public technical-report PDF SHA-256 is
-`269e28bfa363d3de4dfc51e78c4a09b407a5a69662c1bc9c733c79e139db9232`.
+`51b68c45944283bf2c2b883dce8c690a986e839d5d005e1fe47ad87ca40eda8a`.
 The machine-executable submission-claim cross-check
 `tools/benchmark_carrier/verify_semantic_mapreduce_submission_claims.py`
 passes all primary/second-scale F1, paired-unit CI, conditional-cost, external

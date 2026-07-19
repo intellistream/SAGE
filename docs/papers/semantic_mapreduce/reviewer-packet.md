@@ -21,9 +21,9 @@ The system assembles the edit, binds evidence identifiers, checks schema and
 root/affected consistency, records costs, and falls back if validation fails.
 The comparison against free-form pairwise JSON uses the same endpoint, model,
 evidence, candidates, and scorer; the difference is the reducer contract. The
-paper's ownership table makes this executable boundary explicit across admit,
-propose, assemble, validate, publish, and recover; the model owns only the
-single enum proposal.
+paper's concrete reducer-lifecycle figure makes this executable boundary
+explicit across admit, reduce, select, propose, assemble, validate, publish,
+reject, recover, and trace; the model owns only the single enum proposal.
 
 **Did the live model path itself demonstrate checkpoint recovery?**
 

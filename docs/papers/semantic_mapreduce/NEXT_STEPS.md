@@ -38,11 +38,11 @@ optional evidence upgrades.
   focused tests, inspect all rendered pages, and cross-check every paper number
   against the frozen result manifests and `claim-ledger.md`. The 12-page private
   review PDF SHA-256 is
-  `e40160980d3fcc9a901cf488de87365f79e89e9e3b24553cd272026de8e667c7`;
+  `5d2a46f1a011e87b1575cd391bfc7ef5c4070fb1a38a1d75b91800cb4263ebdf`;
   neither its title/system-name sources nor PDF is Git-tracked.
-- [x] Strengthen the paper's runtime/operator framing with an explicit
-  admit--propose--assemble--validate--publish--recover ownership table and a
-  concrete invocation lifecycle. Keep checkpoint recovery scoped to the
+- [x] Strengthen the paper's runtime/operator framing with a concrete
+  admit--reduce--select--propose--assemble--validate--publish--recover
+  lifecycle figure. Keep checkpoint recovery scoped to the
   model-free runtime-contract matrix and live evidence scoped to compatible
   state digests/outcomes; do not imply distributed exactly-once execution.
 - [x] Verify the paper against the live EuroSys 2027 CFP: at most 12 technical

@@ -30,6 +30,15 @@ label-conditioned external replay.
   tables, fonts, anonymity, and visual layout.
 - [completed] Rerun claim/regression gates, synchronize readiness/claim ledger,
   commit, push, and refresh the umbrella handoff.
+- [completed] Replace the abstract system-boundary drawing with a concrete
+  reducer invocation/recovery lifecycle and visually audit it in the PDF.
+- [completed] Replace the action-budget table with a deterministic three-panel
+  quality, latency, and token-cost figure sourced from frozen summaries with
+  numeric assertions.
+- [completed] Remove low-value tables, merge the atypical challenge/audit
+  sections into Discussion and Limitations, and make Conclusion one paragraph.
+- [completed] Rebuild public/private PDFs, rerun claim/artifact/anonymity
+  gates, inspect all pages, commit/push, and refresh the umbrella handoff.
 
 ## Constraints
 - Do not rerun or rewrite frozen raw online evidence.

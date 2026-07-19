@@ -49,6 +49,23 @@ The generated PDF is:
 docs/papers/semantic_mapreduce/main.pdf
 ```
 
+The quality--latency--token figure is generated without third-party plotting
+packages. It reads only frozen comparison/stability summaries, asserts the
+submission-facing values, and emits deterministic TikZ:
+
+```bash
+/home/shuhao/miniconda3/envs/esage-vllm-hust-dev/bin/python \
+  tools/benchmark_carrier/plot_semantic_mapreduce_quality_cost.py \
+  --budget-dir .sage/benchmarks/real_online_semantic_merge_stability/20260718T-eurosys27-9family-3seed-5sample-000c513/candidates-4 \
+  --budget-dir .sage/benchmarks/real_online_semantic_merge_stability/20260718T-eurosys27-9family-3seed-5sample-000c513/candidates-8 \
+  --budget-dir .sage/benchmarks/real_online_semantic_merge_stability/20260718T-eurosys27-9family-3seed-5sample-000c513/candidates-12 \
+  --output docs/papers/semantic_mapreduce/figures/fig3-quality-cost.tex
+```
+
+This is a derived visualization of frozen real-online rows, not a new online
+experiment. The script fails closed if any plotted number differs from the
+recorded submission values.
+
 The remaining final-PDF and submission-policy gates are tracked in
 [`NEXT_STEPS.md`](NEXT_STEPS.md). Treat that checklist as the submission-freeze
 source of truth. The clean full-coverage repeated run and anonymous package are

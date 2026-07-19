@@ -33,12 +33,30 @@
   online path archives compatible digests and outcomes. The paper now states
   that distinction explicitly instead of implying live checkpoint recovery.
 - The final public PDF is 12 letter-size pages, SHA-256
-  `269e28bfa363d3de4dfc51e78c4a09b407a5a69662c1bc9c733c79e139db9232`;
+  `51b68c45944283bf2c2b883dce8c690a986e839d5d005e1fe47ad87ca40eda8a`;
   technical content ends on page 11. The ignored private-title review PDF is
   also 12 pages, SHA-256
-  `e40160980d3fcc9a901cf488de87365f79e89e9e3b24553cd272026de8e667c7`.
+  `5d2a46f1a011e87b1575cd391bfc7ef5c4070fb1a38a1d75b91800cb4263ebdf`.
   Both have embedded fonts and zero identity/email/path/replacement-glyph hits.
 - The frozen evidence archive remains unchanged at SHA-256
   `f590fde5a371c2d663ebeddd9b609fe4d6ea74a5f36c794e9fd3fbad2d73d4a0`;
   the submission-claim verifier passes every numeric and scope check, and the
-  focused no-NPU regression selection passes 49/49 tests.
+  focused no-NPU regression selection passes 51/51 tests.
+
+## Visual and structural remediation (2026-07-19)
+
+- The old Figure 2 described components but did not expose authority or state
+  transitions. The replacement follows one invocation from typed evidence to
+  validated commit, with separate reject, checkpoint/recover, and ReportTrace
+  paths; only the enum proposal crosses the model boundary.
+- The paper had too many tables and no experimental plot. Four low-value or
+  redundant tables were removed; the remaining seven carry comparison matrices
+  or contract evidence. Figure 3 now exposes the measured budget-4/8/12 quality,
+  mean/p95 reducer latency, and mean/p95 tokens without implying a general
+  frontier.
+- A standard-library generator emits deterministic TikZ and asserts every
+  plotted submission value against frozen summaries. This avoids adding an
+  unpinned plotting dependency and makes the figure fail closed on drift.
+- Combining scope/challenges with trust/auditability yields one conventional
+  Discussion and Limitations section. Related Work remains distinct, and the
+  conclusion is a single paragraph.
