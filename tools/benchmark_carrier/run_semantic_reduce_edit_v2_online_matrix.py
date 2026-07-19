@@ -9,6 +9,7 @@ import json
 import os
 import random
 import re
+import socket
 import statistics
 import subprocess
 import sys
@@ -311,6 +312,75 @@ def _models_snapshot(protocol: dict[str, Any], api_key: str) -> dict[str, Any]:
     return {"captured_utc": _now(), "model_ids": model_ids, "raw": payload}
 
 
+def _npu_pairs(text: str) -> set[tuple[int, int]]:
+    pairs: set[tuple[int, int]] = set()
+    for line in text.splitlines():
+        fields = [field.strip() for field in line.split("|")]
+        if len(fields) >= 4:
+            device = fields[1].split()
+            if device and device[0].isdigit() and fields[2].isdigit():
+                pairs.add((int(device[0]), int(fields[2])))
+    return pairs
+
+
+def _live_authority_check(
+    *,
+    protocol: dict[str, Any],
+    grant: dict[str, Any],
+    protocol_path: Path,
+    protocol_sha: str,
+    grant_path: Path,
+    grant_sha: str,
+    preflight_path: Path,
+    preflight_sha: str,
+) -> None:
+    service = protocol["service"]
+    if _utc(grant.get("expires_utc")) <= datetime.now(timezone.utc):
+        raise RuntimeError("central grant expired during execution")
+    if (
+        _sha256(protocol_path) != protocol_sha
+        or _sha256(grant_path) != grant_sha
+        or _sha256(preflight_path) != preflight_sha
+    ):
+        raise RuntimeError("protocol/grant/preflight drift during execution")
+    if _git("rev-parse", "HEAD") != protocol["repository"]["execution_commit"]:
+        raise RuntimeError("repository commit drift during execution")
+    if _git("status", "--porcelain"):
+        raise RuntimeError("repository became dirty during execution")
+    active = subprocess.run(
+        ["systemctl", "--user", "is-active", service["managed_unit"]],
+        text=True,
+        capture_output=True,
+    )
+    if active.returncode or active.stdout.strip() != "active":
+        raise RuntimeError("grant-named managed unit is not active")
+    top = subprocess.run(
+        ["sudo", "-n", "docker", "top", service["container"], "-eo", "pid"],
+        text=True,
+        capture_output=True,
+    )
+    if top.returncode:
+        raise RuntimeError("grant-named container is not inspectable")
+    container_pids = {
+        int(line.strip()) for line in top.stdout.splitlines()[1:] if line.strip().isdigit()
+    }
+    npu = subprocess.run(
+        ["npu-smi", "info"], text=True, capture_output=True
+    )
+    if npu.returncode:
+        raise RuntimeError("cannot inspect NPU process ownership")
+    physical_npu = int(service["physical_npu"])
+    device_pids = {
+        pid for device, pid in _npu_pairs(npu.stdout) if device == physical_npu
+    }
+    if not device_pids or not device_pids <= container_pids:
+        raise RuntimeError("foreign or missing process on grant-named NPU")
+    with socket.socket() as sock:
+        sock.settimeout(0.5)
+        if sock.connect_ex(("127.0.0.1", int(service["port"]))) != 0:
+            raise RuntimeError("grant-named port is no longer listening")
+
+
 def _expected_rows(protocol: dict[str, Any], split: str) -> int:
     return (
         len(protocol["experiment"]["families"])
@@ -457,6 +527,16 @@ def main() -> int:
         ]
         random.Random(protocol["experiment"]["order_seed"]).shuffle(units)
         for index, (family, seed, repeat) in enumerate(units):
+            _live_authority_check(
+                protocol=protocol,
+                grant=grant,
+                protocol_path=args.protocol,
+                protocol_sha=args.protocol_sha256,
+                grant_path=args.grant,
+                grant_sha=grant_sha,
+                preflight_path=args.preflight,
+                preflight_sha=preflight_sha,
+            )
             row_started = _now()
             sampling_seed = protocol["experiment"]["sampling_seeds"][repeat]
             selector = OpenAIProposalSelector(
