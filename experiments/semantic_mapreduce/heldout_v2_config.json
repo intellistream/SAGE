@@ -1,0 +1,49 @@
+{
+  "schema_version": "semantic-reduce-heldout/v2",
+  "frozen_utc": "2026-07-19T00:00:00Z",
+  "evidence_label": "simulation/model",
+  "development_seeds": [7, 11, 13, 17],
+  "heldout_seeds": [101, 103, 107, 109],
+  "families": [
+    "hint-missing",
+    "hint-error-conflict",
+    "shared-hint",
+    "score-overlap",
+    "related-concurrent",
+    "topology-missing-stale",
+    "unseen-service-topology",
+    "mixed-split-merge",
+    "catalog-budget-truncation",
+    "fragmentation-shard-variance"
+  ],
+  "parameters": {
+    "incident_count": 4,
+    "base_shard_count": 8,
+    "hint_missing_rate": 0.65,
+    "hint_error_rate": 0.5,
+    "true_score_range": [0.38, 0.72],
+    "noise_score_range": [0.36, 0.7],
+    "temporal_gap_minutes": 20,
+    "default_proposal_budget": 64,
+    "truncated_proposal_budget": 2,
+    "oracle_max_edits": 2,
+    "score_probe_threshold": 0.5
+  },
+  "success_gates_frozen_before_heldout_matrix": {
+    "all_contract_tests_pass": true,
+    "merge_and_split_proposals_both_observed": true,
+    "oracle_repairable_fraction_of_erroneous_h0_min": 0.35,
+    "improving_merge_unit_count_min": 1,
+    "improving_split_unit_count_min": 1,
+    "aggregate_score_threshold_balanced_accuracy_max": 0.8,
+    "aggregate_hint_coverage_times_correctness_max": 0.8,
+    "deterministic_and_mock_model_catalog_digest_match": true,
+    "new_online_run_authorized": false
+  },
+  "discipline": {
+    "source_incident_id_visible_to_generator_and_scorer_only": true,
+    "catalog_forbidden_fields": ["scenario", "source_incident_id", "incident_id"],
+    "tune_on_heldout": false,
+    "controlled_workload_external_validity": "BLOCKED: simulation/model; no claim of production representativeness"
+  }
+}
