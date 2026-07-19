@@ -175,19 +175,8 @@ def _verify_publication_manifest(package_root: Path, failures: list[str]) -> Non
         endpoint_allowlist = []
     if manifest.get("content_policy_self_exclusion") != ["verify.py"]:
         failures.append("anonymization content-policy self-exclusion is not exact")
-    for relative, metadata in listed.items():
-        path = package_root / relative
-        if not path.is_file() or not isinstance(metadata, dict):
-            continue
-        expected = metadata.get("packaged_sha256")
-        if not isinstance(expected, str) or _sha256(path) != expected:
-            failures.append(f"anonymization hash mismatch: {relative}")
-        text = path.read_text(encoding="utf-8", errors="replace")
-        # The verifier source contains the reject regex literals themselves.
-        # It remains inventory/hash-covered, but evidence-content rules cannot
-        # be meaningfully applied to this one exact policy source file.
-        if relative == "verify.py":
-            continue
+
+    def scan_content(relative: str, text: str) -> None:
         relative_path = Path(relative)
         if relative_path.parts[:1] == ("endpoint",) and relative_path.name not in endpoint_allowlist:
             failures.append(f"anonymization unallowlisted endpoint artifact: {relative}")
@@ -217,6 +206,25 @@ def _verify_publication_manifest(package_root: Path, failures: list[str]) -> Non
                 and NPU_MANAGED_PID_ROW.search(text)
             ):
                 failures.append(f"anonymization process-ID leak: {relative}")
+
+    scan_content(
+        "ANONYMIZATION_MANIFEST.json",
+        manifest_path.read_text(encoding="utf-8", errors="replace"),
+    )
+    for relative, metadata in listed.items():
+        path = package_root / relative
+        if not path.is_file() or not isinstance(metadata, dict):
+            continue
+        expected = metadata.get("packaged_sha256")
+        if not isinstance(expected, str) or _sha256(path) != expected:
+            failures.append(f"anonymization hash mismatch: {relative}")
+        text = path.read_text(encoding="utf-8", errors="replace")
+        # The verifier source contains the reject regex literals themselves.
+        # It remains inventory/hash-covered, but evidence-content rules cannot
+        # be meaningfully applied to this one exact policy source file.
+        if relative == "verify.py":
+            continue
+        scan_content(relative, text)
 
 
 def verify(

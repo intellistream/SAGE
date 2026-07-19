@@ -87,6 +87,36 @@ def test_publication_manifest_rejects_all_anonymity_policy_classes(
         assert any(fragment in item for item in failures), (fragment, failures)
 
 
+def test_publication_manifest_content_is_scanned_despite_self_hash_exclusion(
+    tmp_path: Path,
+) -> None:
+    verifier = _load_verifier()
+    package = tmp_path / "artifact"
+    package.mkdir()
+    evidence = package / "evidence.json"
+    evidence.write_text('{"status":"clean"}\n', encoding="utf-8")
+    manifest = {
+        "status": "PASS", "failures": [], "publication_anonymized": True,
+        "endpoint_allowlist": [],
+        "content_policy_self_exclusion": ["verify.py"],
+        "audit_note": "/home/private/workspace/reviewer",
+        "files": {
+            "evidence.json": {
+                "packaged_sha256": hashlib.sha256(evidence.read_bytes()).hexdigest()
+            }
+        },
+    }
+    (package / "ANONYMIZATION_MANIFEST.json").write_text(
+        json.dumps(manifest) + "\n", encoding="utf-8"
+    )
+    failures: list[str] = []
+    verifier._verify_publication_manifest(package, failures)
+    assert any(
+        "sensitive path leak: ANONYMIZATION_MANIFEST.json" in item
+        for item in failures
+    )
+
+
 def _write_complete_fixture(
     verifier,
     artifact: Path,
