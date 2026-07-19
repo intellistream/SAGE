@@ -177,11 +177,16 @@ def verify_run(
     if protocol["repository"]["execution_commit"] != expected_repository_commit:
         _fail("protocol snapshot commit mismatch")
     grant = _load(raw_root / "grant.json")
+    reservation_request = _load(raw_root / "reservation-request.json")
     preflight = _load(raw_root / "preflight.json")
     if manifest.get("grant_sha256") != _sha256(raw_root / "grant.json"):
         _fail("grant digest binding mismatch")
     if manifest.get("preflight_sha256") != _sha256(raw_root / "preflight.json"):
         _fail("preflight digest binding mismatch")
+    if manifest.get("reservation_request_sha256") != _sha256(
+        raw_root / "reservation-request.json"
+    ):
+        _fail("reservation request digest binding mismatch")
 
     observed_sources: dict[str, str] = {}
     for name, item in protocol["repository"]["frozen_sources"].items():
@@ -218,6 +223,9 @@ def verify_run(
         "commit": grant.get("repository_commit") == expected_repository_commit,
         "split": grant.get("authorized_splits") == [split],
         "run-id": grant.get("run_ids", {}).get(split) == run_id,
+        "reservation-request": grant.get("reservation_request_sha256")
+        == manifest.get("reservation_request_sha256")
+        and grant.get("reservation_request_id") == reservation_request.get("request_id"),
         "grant-issued-before-allocation": _timestamp(grant.get("issued_at_utc"))
         <= _timestamp(grant.get("allocation_start_utc")),
         "allocation-window": _timestamp(grant.get("expires_utc"))
@@ -245,6 +253,19 @@ def verify_run(
     }
     if failed := [name for name, passed in grant_checks.items() if not passed]:
         _fail("grant provenance mismatch: " + ",".join(failed))
+    request_checks = {
+        "status": reservation_request.get("status") == "REQUEST_ONLY_NOT_AUTHORIZED",
+        "protocol": reservation_request.get("protocol", {}).get("sha256")
+        == expected_protocol_sha256,
+        "commit": reservation_request.get("repository", {}).get("execution_commit")
+        == expected_repository_commit,
+        "identity": manifest.get("reservation_request_id")
+        == reservation_request.get("request_id"),
+        "unexpired-at-grant": _timestamp(reservation_request.get("request_expires_utc"))
+        >= _timestamp(grant.get("issued_at_utc")),
+    }
+    if failed := [name for name, passed in request_checks.items() if not passed]:
+        _fail("reservation request provenance mismatch: " + ",".join(failed))
     if split == "heldout":
         development = _load(raw_root / "development-closure.json")
         heldout_checks = {
@@ -265,6 +286,8 @@ def verify_run(
         "protocol": preflight.get("protocol_sha256") == expected_protocol_sha256,
         "commit": preflight.get("repository_commit") == expected_repository_commit,
         "grant": preflight.get("grant_sha256") == manifest.get("grant_sha256"),
+        "reservation-request": preflight.get("reservation_request_sha256")
+        == manifest.get("reservation_request_sha256"),
         "split": preflight.get("split") == split,
         "run-id": preflight.get("run_id") == run_id,
         "service": preflight.get("service")
@@ -301,6 +324,7 @@ def verify_run(
     provenance_names = [
         "protocol.json",
         "grant.json",
+        "reservation-request.json",
         "preflight.json",
         "service-models.json",
     ]
@@ -419,6 +443,8 @@ def verify_run(
         "protocol_sha256": expected_protocol_sha256,
         "repository_commit": expected_repository_commit,
         "grant_sha256": manifest["grant_sha256"],
+        "reservation_request_sha256": manifest["reservation_request_sha256"],
+        "reservation_request_id": manifest["reservation_request_id"],
         "split": split,
         "verified_row_count": len(rows),
         "manifest_sha256": _sha256(raw_root / "manifest.json"),

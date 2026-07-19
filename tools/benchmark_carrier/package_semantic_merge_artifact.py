@@ -352,6 +352,8 @@ def package(
         "comparison --endpoint-metadata endpoint/metadata.json"
         f"{verification_args}\n"
         "```\n\n"
+        "With no `--output`, verification is read-only and writes only to stdout. "
+        "If a report file is desired, choose a fresh path outside the extracted package.\n\n"
         "Verify package integrity and provenance redaction with "
         "`ANONYMIZATION_MANIFEST.json`; every packaged file has a SHA-256 entry "
         "and the manifest must report `status=PASS`, an empty `failures` list, "

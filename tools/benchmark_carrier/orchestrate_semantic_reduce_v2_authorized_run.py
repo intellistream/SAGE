@@ -106,6 +106,14 @@ def _port_open(port: int) -> bool:
         return sock.connect_ex(("127.0.0.1", port)) == 0
 
 
+def _systemd_unit_paths(unit: str) -> tuple[Path, Path]:
+    if Path(unit).name != unit:
+        raise RuntimeError("managed unit must be a basename")
+    config = Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config")))
+    unit_path = config / "systemd" / "user" / unit
+    return unit_path, Path(str(unit_path) + ".env")
+
+
 def _granted_npu_has_process(npu: int) -> bool:
     result = subprocess.run(
         ["npu-smi", "info"], text=True, capture_output=True
@@ -122,17 +130,20 @@ def _granted_npu_has_process(npu: int) -> bool:
     return False
 
 
-def _unit_active_fail_closed(unit: str) -> bool:
+def _unit_present_fail_closed(unit: str) -> bool:
     result = subprocess.run(
-        ["systemctl", "--user", "show", "-p", "ActiveState", "--value", unit],
+        ["systemctl", "--user", "show", "-p", "LoadState", "--value", unit],
         text=True, capture_output=True,
     )
     if result.returncode:
         raise RuntimeError("systemd cleanup observation failed")
     state = result.stdout.strip()
-    if state not in {"inactive", "failed"}:
-        return True
-    return False
+    if state == "not-found":
+        unit_path, unit_env_path = _systemd_unit_paths(unit)
+        return any(
+            path.exists() or path.is_symlink() for path in (unit_path, unit_env_path)
+        )
+    return True
 
 
 def _container_present_fail_closed(container: str) -> bool:
@@ -176,6 +187,7 @@ def main() -> int:
     parser.add_argument("--protocol", type=Path, required=True)
     parser.add_argument("--protocol-sha256", required=True)
     parser.add_argument("--grant", type=Path, required=True)
+    parser.add_argument("--reservation-request", type=Path, required=True)
     parser.add_argument("--split", choices=("development", "heldout"), required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--development-closure", type=Path)
@@ -185,6 +197,8 @@ def main() -> int:
     protocol = _load(args.protocol)
     _load(args.grant)
     initial_grant_sha = _sha256(args.grant)
+    _load(args.reservation_request)
+    initial_request_sha = _sha256(args.reservation_request)
     service = protocol["service"]
     if args.split == "heldout" and not args.development_closure:
         raise SystemExit("heldout requires --development-closure")
@@ -214,6 +228,7 @@ def main() -> int:
         "--protocol", str(args.protocol.resolve()),
         "--protocol-sha256", args.protocol_sha256,
         "--grant", str(args.grant.resolve()),
+        "--reservation-request", str(args.reservation_request.resolve()),
         "--split", args.split,
         "--run-id", args.run_id,
     ]
@@ -310,6 +325,24 @@ def main() -> int:
                     stdout=stream,
                     stderr=subprocess.STDOUT,
                 )
+                unit_path, unit_env_path = _systemd_unit_paths(service["managed_unit"])
+                for owned_path in (unit_path, unit_env_path):
+                    try:
+                        owned_path.unlink(missing_ok=True)
+                    except OSError as exc:
+                        cleanup_errors.append(f"unit-file-remove: {exc}")
+                daemon_reload = subprocess.run(
+                    ["systemctl", "--user", "daemon-reload"],
+                    cwd=ROOT, env=env, stdout=stream, stderr=subprocess.STDOUT,
+                )
+                reset_failed = subprocess.run(
+                    ["systemctl", "--user", "reset-failed", service["managed_unit"]],
+                    cwd=ROOT, env=env, stdout=stream, stderr=subprocess.STDOUT,
+                )
+                if daemon_reload.returncode:
+                    cleanup_errors.append(f"systemd-daemon-reload-exit-{daemon_reload.returncode}")
+                if reset_failed.returncode not in {0, 1}:
+                    cleanup_errors.append(f"systemd-reset-failed-exit-{reset_failed.returncode}")
                 inspect = subprocess.run(
                     [
                         "sudo", "-n", "docker", "inspect", "-f",
@@ -357,39 +390,42 @@ def main() -> int:
             else:
                 cleanup_errors.append("device-or-port-still-occupied")
         try:
-            unit_active = _unit_active_fail_closed(service["managed_unit"])
+            unit_present = _unit_present_fail_closed(service["managed_unit"])
             container_present = _container_present_fail_closed(service["container"])
             npu_clear = not _granted_npu_has_process(int(service["physical_npu"]))
             port_clear = not _port_open(int(service["port"]))
         except RuntimeError as exc:
             cleanup_errors.append(str(exc))
-            unit_active = True
+            unit_present = True
             container_present = True
             npu_clear = False
             port_clear = False
-        if unit_active or container_present:
+        if unit_present or container_present:
             cleanup_errors.append("grant-named-unit-or-container-still-present")
         try:
             _require_unchanged(args.grant, initial_grant_sha)
+            _require_unchanged(args.reservation_request, initial_request_sha)
         except RuntimeError:
-            cleanup_errors.append("external-grant-drift-after-admission")
+            cleanup_errors.append("external-request-or-grant-drift-after-admission")
         cleanup_observation = {
             "schema_version": "semantic-reduce-v2-cleanup-observation/1",
             "status": "PASS" if not cleanup_errors else "FAIL",
             "protocol_sha256": args.protocol_sha256,
             "grant_sha256": initial_grant_sha,
+            "reservation_request_sha256": initial_request_sha,
             "split": args.split,
             "run_id": args.run_id,
             "ownership_basis": {
                 "unit_and_container_absent_prelaunch": prelaunch_fresh_names,
                 "postlaunch_process_lineage_verified": service_ownership_verified,
-            "cleanup_used_only_exact_systemd_unit_and_container": True,
+                "cleanup_used_only_exact_systemd_unit_and_container": True,
+                "exact_managed_unit_and_env_files_removed": True,
                 "manage_sh_stop_used": False,
             },
             "observed_clear": {
                 "npu": npu_clear,
                 "port": port_clear,
-                "managed_unit_active": unit_active,
+                "managed_unit_present": unit_present,
                 "container_present": container_present,
             },
             "errors": cleanup_errors,
@@ -445,6 +481,7 @@ def main() -> int:
             "protocol_sha256": args.protocol_sha256,
             "repository_commit": protocol["repository"]["execution_commit"],
             "grant_sha256": initial_grant_sha,
+            "reservation_request_sha256": initial_request_sha,
             "split": args.split,
             "run_id": args.run_id,
             "experiment_outcome": outcome,
@@ -483,6 +520,8 @@ def main() -> int:
                 "protocol_sha256": args.protocol_sha256,
                 "repository_commit": protocol["repository"]["execution_commit"],
                 "grant_sha256": initial_grant_sha,
+                "reservation_request_sha256": initial_request_sha,
+                "reservation_request_id": _load(args.reservation_request)["request_id"],
                 "split": args.split,
                 "run_id": args.run_id,
                 "raw_root": str(raw_root.resolve()),
@@ -540,6 +579,7 @@ def main() -> int:
                 "paper_admissible": False,
                 "protocol_sha256": args.protocol_sha256,
                 "grant_sha256": initial_grant_sha,
+                "reservation_request_sha256": initial_request_sha,
                 "split": args.split,
                 "run_id": args.run_id,
                 "runner_complete": runner_complete,

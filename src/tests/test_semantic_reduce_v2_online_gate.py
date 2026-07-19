@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 import sys
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
@@ -19,6 +20,7 @@ import verify_semantic_reduce_v2_online_run as online_verifier  # noqa: E402
 from orchestrate_semantic_reduce_v2_authorized_run import (  # noqa: E402
     _require_unchanged,
     _scan_and_redact_log,
+    _unit_present_fail_closed,
 )
 from run_semantic_reduce_edit_v2_online_matrix import (  # noqa: E402
     _expected_rows,
@@ -27,7 +29,7 @@ from run_semantic_reduce_edit_v2_online_matrix import (  # noqa: E402
 )
 
 
-def _envelopes() -> tuple[dict, dict, dict]:
+def _envelopes() -> tuple[dict, dict, dict, dict]:
     service = {
         "physical_npu": 3,
         "npu_count": 1,
@@ -55,12 +57,21 @@ def _envelopes() -> tuple[dict, dict, dict]:
             "development_repeats": 2,
         },
     }
+    request = {
+        "status": "REQUEST_ONLY_NOT_AUTHORIZED",
+        "request_id": "request-1",
+        "protocol": {"sha256": "d" * 64},
+        "repository": {"execution_commit": "c" * 40},
+        "request_expires_utc": (datetime.now(UTC) + timedelta(hours=1)).isoformat(),
+    }
     grant = {
         "status": "GRANTED",
         "protocol_sha256": "d" * 64,
         "repository_commit": "c" * 40,
         "authorized_splits": ["development"],
         "run_ids": {"development": "run-1"},
+        "reservation_request_id": "request-1",
+        "reservation_request_sha256": "r" * 64,
         "issued_at_utc": (
             datetime.now(UTC) - timedelta(hours=4)
         ).isoformat(),
@@ -94,6 +105,7 @@ def _envelopes() -> tuple[dict, dict, dict]:
         "protocol_sha256": "d" * 64,
         "repository_commit": "c" * 40,
         "grant_sha256": "e" * 64,
+        "reservation_request_sha256": "r" * 64,
         "split": "development",
         "run_id": "run-1",
         "service": {
@@ -119,17 +131,19 @@ def _envelopes() -> tuple[dict, dict, dict]:
         },
         "prelaunch_sha256": "f" * 64,
     }
-    return protocol, grant, preflight
+    return protocol, request, grant, preflight
 
 
 def test_exact_grant_and_preflight_bindings_pass() -> None:
-    protocol, grant, preflight = _envelopes()
+    protocol, request, grant, preflight = _envelopes()
     _validate_authorization(
         protocol=protocol,
         protocol_sha="d" * 64,
         grant=grant,
+        reservation_request=request,
         preflight=preflight,
         grant_sha="e" * 64,
+        reservation_request_sha="r" * 64,
         split="development",
         run_id="run-1",
     )
@@ -146,7 +160,7 @@ def test_exact_grant_and_preflight_bindings_pass() -> None:
 def test_grant_identity_drift_fails_closed(
     section: str, key: str, bad_value: object
 ) -> None:
-    protocol, grant, preflight = _envelopes()
+    protocol, request, grant, preflight = _envelopes()
     changed = deepcopy(grant)
     changed[section][key] = bad_value
     with pytest.raises(ValueError, match="authorization/preflight rejected"):
@@ -154,8 +168,10 @@ def test_grant_identity_drift_fails_closed(
             protocol=protocol,
             protocol_sha="d" * 64,
             grant=changed,
+            reservation_request=request,
             preflight=preflight,
             grant_sha="e" * 64,
+            reservation_request_sha="r" * 64,
             split="development",
             run_id="run-1",
         )
@@ -173,29 +189,33 @@ def test_raw_secret_scanner_detects_exact_and_generic_credentials() -> None:
 
 
 def test_expected_row_count_is_frozen_cartesian_product() -> None:
-    protocol, _, _ = _envelopes()
+    protocol, _, _, _ = _envelopes()
     assert _expected_rows(protocol, "development") == 8
 
 
 @pytest.mark.parametrize("bad_issued", [None, "2026-07-19T12:00:00"])
 def test_grant_issuance_missing_or_naive_fails_closed(bad_issued: object) -> None:
-    protocol, grant, preflight = _envelopes()
+    protocol, request, grant, preflight = _envelopes()
     grant["issued_at_utc"] = bad_issued
     with pytest.raises((ValueError, TypeError)):
         _validate_authorization(
             protocol=protocol, protocol_sha="d" * 64, grant=grant,
+            reservation_request=request,
             preflight=preflight, grant_sha="e" * 64,
+            reservation_request_sha="r" * 64,
             split="development", run_id="run-1",
         )
 
 
 def test_future_dated_grant_fails_closed() -> None:
-    protocol, grant, preflight = _envelopes()
+    protocol, request, grant, preflight = _envelopes()
     grant["issued_at_utc"] = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
     with pytest.raises(ValueError, match="grant-issued"):
         _validate_authorization(
             protocol=protocol, protocol_sha="d" * 64, grant=grant,
+            reservation_request=request,
             preflight=preflight, grant_sha="e" * 64,
+            reservation_request_sha="r" * 64,
             split="development", run_id="run-1",
         )
 
@@ -269,6 +289,23 @@ def test_external_grant_mutation_fails_closed(tmp_path: Path) -> None:
         _require_unchanged(grant, expected)
 
 
+def test_systemd_cleanup_requires_loaded_state_and_files_absent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.setattr(
+        "orchestrate_semantic_reduce_v2_authorized_run.subprocess.run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args[0], 0, stdout="not-found\n", stderr=""
+        ),
+    )
+    assert _unit_present_fail_closed("owned.service") is False
+    unit = tmp_path / "systemd/user/owned.service"
+    unit.parent.mkdir(parents=True)
+    unit.write_text("[Service]\n", encoding="utf-8")
+    assert _unit_present_fail_closed("owned.service") is True
+
+
 def test_verifier_statistics_do_not_reuse_runner_implementation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -322,22 +359,25 @@ def test_final_closure_requires_and_binds_central_release_ack(
 
     protocol_path = tmp_path / "protocol.json"
     queue = tmp_path / "queue"
-    control = tmp_path / "control"
-    raw = tmp_path / "raw"
     queue_commit = "q" * 40
     protocol = {
         "repository": {"execution_commit": "c" * 40, "path": str(tmp_path)},
         "service": {
             "physical_npu": 3, "port": 18383,
-            "managed_unit": "unit.service", "container": "container",
+                "managed_unit": "unit.service", "container": "container",
+                "api_key_env": "VLLM_HUST_API_KEY",
         },
         "raw_evidence": {
-            "final_closure_root": ".closures/$PROTOCOL_SHA256/$SPLIT-$RUN_ID/final-closure.json"
+            "development_root": ".raw/$PROTOCOL_SHA256/development-$RUN_ID",
+            "heldout_root": ".raw/$PROTOCOL_SHA256/heldout-$RUN_ID",
+            "control_root": ".control/$PROTOCOL_SHA256/$SPLIT-$RUN_ID",
+            "final_closure_root": ".closures/$PROTOCOL_SHA256/$SPLIT-$RUN_ID/final-closure.json",
         },
         "central_release_ack_contract": {
             "ack_path_template": "acks/$PROTOCOL_SHA256/$SPLIT-$RUN_ID.json",
             "queue_base_commit": "b" * 40,
-            "queue_authority_source_sha256": "a" * 64,
+            "queue_base_source_sha256": "a" * 64,
+            "queue_authority_source_path": "queue.md",
             "allowed_central_writer_ids": ["queue-writer"],
             "queue_branch": "main",
             "queue_origin_url": "git@example.org:queue.git",
@@ -345,8 +385,12 @@ def test_final_closure_requires_and_binds_central_release_ack(
     }
     write(protocol_path, protocol)
     protocol_sha = digest(protocol_path)
+    control = tmp_path / ".control" / protocol_sha / "heldout-run"
+    raw = tmp_path / ".raw" / protocol_sha / "heldout-run"
     grant_sha = "g" * 64
-    for name in ("manifest.json", "row-ledger.json", "summary.json"):
+    request_sha = "r" * 64
+    request_id = "request-1"
+    for name in ("manifest.json", "row-ledger.json", "summary.json", "reservation-request.json"):
         write(raw / name, {"name": name})
     raw_inventory = {path.name: digest(path) for path in sorted(raw.iterdir())}
     write(
@@ -367,17 +411,19 @@ def test_final_closure_requires_and_binds_central_release_ack(
                 "unit_and_container_absent_prelaunch": True,
                 "postlaunch_process_lineage_verified": True,
                 "cleanup_used_only_exact_systemd_unit_and_container": True,
+                "exact_managed_unit_and_env_files_removed": True,
                 "manage_sh_stop_used": False,
             },
             "observed_clear": {
                 "npu": True, "port": True,
-                "managed_unit_active": False, "container_present": False,
+                "managed_unit_present": False, "container_present": False,
             },
         },
     )
     prelaunch = {
         "protocol_sha256": protocol_sha, "repository_commit": "c" * 40,
-        "grant_sha256": grant_sha, "split": "heldout", "run_id": "run",
+        "grant_sha256": grant_sha, "reservation_request_sha256": request_sha,
+        "split": "heldout", "run_id": "run",
     }
     write(control / "prelaunch.json", prelaunch)
     write(
@@ -389,6 +435,8 @@ def test_final_closure_requires_and_binds_central_release_ack(
         "status": "PASS", "raw_root": str(raw),
         "protocol_sha256": protocol_sha, "repository_commit": "c" * 40,
         "grant_sha256": grant_sha, "split": "heldout", "verified_row_count": 200,
+        "reservation_request_sha256": request_sha,
+        "reservation_request_id": request_id,
         "manifest_sha256": digest(raw / "manifest.json"),
         "ledger_sha256": digest(raw / "row-ledger.json"),
         "summary_sha256": digest(raw / "summary.json"),
@@ -399,6 +447,7 @@ def test_final_closure_requires_and_binds_central_release_ack(
         "status": "REQUEST_ONLY_CENTRAL_ACK_REQUIRED",
         "protocol_sha256": protocol_sha, "repository_commit": "c" * 40,
         "grant_sha256": grant_sha, "split": "heldout", "run_id": "run",
+        "reservation_request_sha256": request_sha,
         "queue_mutation_performed": False, "cleanup": {"status": "PASS"},
         "control_secret_scan": {"status": "PENDING_FINAL_COVERAGE"},
         "release_requested_utc": "2026-07-19T12:00:00Z",
@@ -413,6 +462,8 @@ def test_final_closure_requires_and_binds_central_release_ack(
         "status": "LOCAL_GATES_PASS_PENDING_CENTRAL_RELEASE_ACK",
         "paper_admissible": False, "protocol_sha256": protocol_sha,
         "repository_commit": "c" * 40, "grant_sha256": grant_sha,
+        "reservation_request_sha256": request_sha,
+        "reservation_request_id": request_id,
         "split": "heldout", "run_id": "run", "raw_root": str(raw),
         "raw_manifest_sha256": digest(raw / "manifest.json"),
         "raw_ledger_sha256": digest(raw / "row-ledger.json"),
@@ -434,30 +485,37 @@ def test_final_closure_requires_and_binds_central_release_ack(
     ack_relative = f"acks/{protocol_sha}/heldout-run.json"
     ack_path = queue / ack_relative
     ack = {
+        "schema_version": "semantic-reduce-v2-central-release-ack/1",
         "status": "RELEASE_ACKNOWLEDGED", "protocol_sha256": protocol_sha,
         "repository_commit": "c" * 40, "grant_sha256": grant_sha,
+        "reservation_request_sha256": request_sha,
         "release_request_sha256": digest(control / "release-request.json"),
         "split": "heldout", "run_id": "run",
         "released_resources": {"physical_npus": [3], "port": 18383,
                                "managed_unit": "unit.service", "container": "container"},
         "acknowledged_utc": "2026-07-19T12:01:00Z",
         "central_writer_id": "queue-writer", "queue_base_commit": "b" * 40,
-        "queue_authority_source_sha256": "a" * 64, "queue_ack_commit": queue_commit,
+        "queue_base_source_sha256": "a" * 64,
+        "queue_authority_source_sha256": hashlib.sha256(b"queue\n").hexdigest(),
     }
     write(ack_path, ack)
     output = tmp_path / ".closures" / protocol_sha / "heldout-run" / "final-closure.json"
+    remote_head = {"sha": queue_commit}
     monkeypatch.setattr(
         closure_finalizer, "_git",
         lambda _repo, *args: (
             queue_commit if args[:2] in {("rev-parse", "HEAD"), ("rev-parse", "@{upstream}")}
             else "main" if args == ("branch", "--show-current")
             else "git@example.org:queue.git" if args == ("remote", "get-url", "origin")
+            else f"{remote_head['sha']}\trefs/heads/main" if args[:2] == ("ls-remote", "origin")
             else ""
         ),
     )
     monkeypatch.setattr(
         closure_finalizer.subprocess, "check_output",
-        lambda *args, **kwargs: ack_path.read_bytes(),
+        lambda command, **kwargs: (
+            ack_path.read_bytes() if str(command[-1]).endswith(ack_relative) else b"queue\n"
+        ),
     )
     monkeypatch.setattr(
         sys, "argv",
@@ -477,6 +535,15 @@ def test_final_closure_requires_and_binds_central_release_ack(
         {"status": "PASS", "coverage": coverage, "expected_coverage": coverage,
          "self_exclusion": "control-secret-scan.json"},
     )
+    remote_head["sha"] = "z" * 40
+    with pytest.raises(SystemExit, match="live remote branch"):
+        closure_finalizer.main()
+    remote_head["sha"] = queue_commit
+    contaminated_ack = {**ack, "Authorization": "Bearer super-secret-token"}
+    write(ack_path, contaminated_ack)
+    with pytest.raises(SystemExit, match="schema or secret scan"):
+        closure_finalizer.main()
+    write(ack_path, ack)
     assert closure_finalizer.main() == 0
     assert json.loads(output.read_text())["paper_admissible"] is True
 

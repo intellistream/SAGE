@@ -51,6 +51,14 @@ def _port_open(port: int) -> bool:
         return sock.connect_ex(("127.0.0.1", port)) == 0
 
 
+def _systemd_unit_paths(unit: str) -> tuple[Path, Path]:
+    if Path(unit).name != unit:
+        raise RuntimeError("managed unit must be a basename")
+    config = Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config")))
+    unit_path = config / "systemd" / "user" / unit
+    return unit_path, Path(str(unit_path) + ".env")
+
+
 def _listener_pids(port: int) -> set[int]:
     output = _run(
         "sudo", "-n", "ss", "-H", "-ltnp", "sport", "=", f":{port}"
@@ -62,7 +70,7 @@ def _secret_free(payload: object, api_key: str) -> bool:
     text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
     lowered = text.lower()
     return (
-        api_key not in text
+        (not api_key or api_key not in text)
         and '"authorization": "bearer ' not in lowered
         and '"api_key":' not in lowered
         and '"api-key":' not in lowered
@@ -142,7 +150,7 @@ def _npu_pairs(text: str) -> set[tuple[int, int]]:
 
 def _validate_static(
     protocol: dict[str, Any], protocol_sha: str, grant: dict[str, Any], grant_sha: str,
-    *, split: str, run_id: str
+    request: dict[str, Any], request_sha: str, *, split: str, run_id: str
 ) -> dict[str, Any]:
     service = protocol["service"]
     commit = protocol["repository"]["execution_commit"]
@@ -153,6 +161,18 @@ def _validate_static(
         "protocol": grant.get("protocol_sha256") == protocol_sha,
         "commit": grant.get("repository_commit") == commit,
         "status": grant.get("status") == "GRANTED",
+        "request-status": request.get("status") == "REQUEST_ONLY_NOT_AUTHORIZED",
+        "request-protocol": request.get("protocol", {}).get("sha256") == protocol_sha,
+        "request-commit": request.get("repository", {}).get("execution_commit") == commit,
+        "request-id": grant.get("reservation_request_id") == request.get("request_id"),
+        "request-sha": grant.get("reservation_request_sha256") == request_sha,
+        "request-unexpired-at-grant": _utc(request.get("request_expires_utc")) >= issued,
+        "request-no-authorization": request.get("authorization") == {
+            "central_grant_present": False,
+            "may_modify_queue": False,
+            "may_reserve_or_occupy_npu": False,
+            "may_start_service": False,
+        },
         "grant-issued-before-allocation": issued <= allocation_start,
         "grant-issued-not-in-future": issued <= now,
         "allocation-started": allocation_start <= now,
@@ -257,6 +277,7 @@ def main() -> int:
     parser.add_argument("--protocol", type=Path, required=True)
     parser.add_argument("--protocol-sha256", required=True)
     parser.add_argument("--grant", type=Path, required=True)
+    parser.add_argument("--reservation-request", type=Path, required=True)
     parser.add_argument("--split", choices=("development", "heldout"), required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--prelaunch", type=Path)
@@ -268,9 +289,17 @@ def main() -> int:
     if _sha256(args.protocol) != args.protocol_sha256:
         raise SystemExit("protocol SHA mismatch")
     protocol, grant = _load(args.protocol), _load(args.grant)
+    request = _load(args.reservation_request)
+    admission_secret = os.environ.get(protocol["service"]["api_key_env"], "")
+    if not all(
+        _secret_free(payload, admission_secret)
+        for payload in (protocol, request, grant)
+    ):
+        raise SystemExit("protocol/request/grant secret scan failed before launch")
     grant_sha = _sha256(args.grant)
+    request_sha = _sha256(args.reservation_request)
     static = _validate_static(
-        protocol, args.protocol_sha256, grant, grant_sha,
+        protocol, args.protocol_sha256, grant, grant_sha, request, request_sha,
         split=args.split, run_id=args.run_id
     )
     development_binding = None
@@ -354,6 +383,9 @@ def main() -> int:
         )
         if unit_state != "not-found":
             raise SystemExit("grant-named managed unit already exists before launch")
+        unit_path, unit_env_path = _systemd_unit_paths(service["managed_unit"])
+        if unit_path.exists() or unit_path.is_symlink() or unit_env_path.exists() or unit_env_path.is_symlink():
+            raise SystemExit("grant-named managed unit files already exist before launch")
         if container_inspect.returncode == 0:
             raise SystemExit("grant-named container already exists before launch")
         if "No such object" not in container_inspect.stderr:
@@ -363,6 +395,7 @@ def main() -> int:
                 "device_idle": True,
                 "port_free": True,
                 "managed_unit_absent": True,
+                "managed_unit_files_absent": True,
                 "container_absent": True,
             }
         )
@@ -386,6 +419,7 @@ def main() -> int:
                 "device_idle",
                 "port_free",
                 "managed_unit_absent",
+                "managed_unit_files_absent",
                 "container_absent",
             )
         ):
@@ -450,6 +484,8 @@ def main() -> int:
         "protocol_sha256": args.protocol_sha256,
         "repository_commit": commit,
         "grant_sha256": grant_sha,
+        "reservation_request_sha256": request_sha,
+        "reservation_request_id": request["request_id"],
         "split": args.split,
         "run_id": args.run_id,
         "service": {

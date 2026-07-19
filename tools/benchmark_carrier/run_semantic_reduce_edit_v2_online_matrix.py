@@ -113,8 +113,10 @@ def _validate_authorization(
     protocol: dict[str, Any],
     protocol_sha: str,
     grant: dict[str, Any],
+    reservation_request: dict[str, Any],
     preflight: dict[str, Any],
     grant_sha: str,
+    reservation_request_sha: str,
     split: str,
     run_id: str,
     development_closure: dict[str, Any] | None = None,
@@ -129,6 +131,18 @@ def _validate_authorization(
     allocation_start = _utc(grant.get("allocation_start_utc"))
     conditions = {
         "grant-status": grant.get("status") == "GRANTED",
+        "reservation-request-status": reservation_request.get("status")
+        == "REQUEST_ONLY_NOT_AUTHORIZED",
+        "reservation-request-protocol": reservation_request.get("protocol", {}).get(
+            "sha256"
+        ) == protocol_sha,
+        "reservation-request-commit": reservation_request.get("repository", {}).get(
+            "execution_commit"
+        ) == expected,
+        "grant-request-id": grant.get("reservation_request_id")
+        == reservation_request.get("request_id"),
+        "grant-request-sha": grant.get("reservation_request_sha256")
+        == reservation_request_sha,
         "protocol-sha": grant.get("protocol_sha256") == protocol_sha,
         "execution-commit": grant.get("repository_commit") == expected,
         "authorized-split": grant.get("authorized_splits") == [split],
@@ -170,6 +184,8 @@ def _validate_authorization(
         "preflight-protocol": preflight.get("protocol_sha256") == protocol_sha,
         "preflight-commit": preflight.get("repository_commit") == expected,
         "preflight-grant": preflight.get("grant_sha256") == grant_sha,
+        "preflight-request": preflight.get("reservation_request_sha256")
+        == reservation_request_sha,
         "preflight-split": preflight.get("split") == split,
         "preflight-run": preflight.get("run_id") == run_id,
         "preflight-base-url": preflight.get("service", {}).get("base_url")
@@ -371,6 +387,8 @@ def _live_authority_check(
     protocol_sha: str,
     grant_path: Path,
     grant_sha: str,
+    reservation_request_path: Path,
+    reservation_request_sha: str,
     preflight_path: Path,
     preflight_sha: str,
 ) -> None:
@@ -380,9 +398,10 @@ def _live_authority_check(
     if (
         _sha256(protocol_path) != protocol_sha
         or _sha256(grant_path) != grant_sha
+        or _sha256(reservation_request_path) != reservation_request_sha
         or _sha256(preflight_path) != preflight_sha
     ):
-        raise RuntimeError("protocol/grant/preflight drift during execution")
+        raise RuntimeError("protocol/request/grant/preflight drift during execution")
     if _git("rev-parse", "HEAD") != protocol["repository"]["execution_commit"]:
         raise RuntimeError("repository commit drift during execution")
     if _git("status", "--porcelain"):
@@ -535,6 +554,7 @@ def main() -> int:
     parser.add_argument("--protocol", required=True, type=Path)
     parser.add_argument("--protocol-sha256", required=True)
     parser.add_argument("--grant", required=True, type=Path)
+    parser.add_argument("--reservation-request", required=True, type=Path)
     parser.add_argument("--preflight", required=True, type=Path)
     parser.add_argument("--split", choices=("development", "heldout"), required=True)
     parser.add_argument("--run-id", required=True)
@@ -548,8 +568,9 @@ def main() -> int:
         raise SystemExit("protocol must be an immutable external/ignored copy")
     if _sha256(args.protocol) != args.protocol_sha256:
         raise SystemExit("protocol SHA mismatch")
-    protocol, grant, preflight = _load(args.protocol), _load(args.grant), _load(
-        args.preflight
+    protocol, grant, reservation_request, preflight = (
+        _load(args.protocol), _load(args.grant), _load(args.reservation_request),
+        _load(args.preflight),
     )
     development_closure = (
         _load(args.development_closure) if args.development_closure else None
@@ -572,13 +593,17 @@ def main() -> int:
     if os.environ.get("CONDA_DEFAULT_ENV", Path(sys.prefix).name) != "esage-vllm-hust-dev":
         raise SystemExit("wrong conda environment")
     source_hashes = _source_hashes_at_commit(protocol)
-    grant_sha, preflight_sha = _sha256(args.grant), _sha256(args.preflight)
+    grant_sha = _sha256(args.grant)
+    reservation_request_sha = _sha256(args.reservation_request)
+    preflight_sha = _sha256(args.preflight)
     _validate_authorization(
         protocol=protocol,
         protocol_sha=args.protocol_sha256,
         grant=grant,
+        reservation_request=reservation_request,
         preflight=preflight,
         grant_sha=grant_sha,
+        reservation_request_sha=reservation_request_sha,
         split=args.split,
         run_id=args.run_id,
         development_closure=development_closure,
@@ -601,6 +626,7 @@ def main() -> int:
     for name, payload in (
         ("protocol", protocol),
         ("grant", grant),
+        ("reservation-request", reservation_request),
         ("preflight", preflight),
         ("development-closure", development_closure or {}),
     ):
@@ -617,6 +643,8 @@ def main() -> int:
         "protocol_sha256": args.protocol_sha256,
         "repository_commit": execution_commit,
         "grant_sha256": grant_sha,
+        "reservation_request_sha256": reservation_request_sha,
+        "reservation_request_id": reservation_request["request_id"],
         "preflight_sha256": preflight_sha,
         "split": args.split,
         "run_id": args.run_id,
@@ -632,6 +660,9 @@ def main() -> int:
     try:
         _atomic_json(output_dir / "manifest.json", state)
         _atomic_bytes(output_dir / "grant.json", args.grant.read_bytes())
+        _atomic_bytes(
+            output_dir / "reservation-request.json", args.reservation_request.read_bytes()
+        )
         _atomic_bytes(output_dir / "preflight.json", args.preflight.read_bytes())
         _atomic_bytes(output_dir / "protocol.json", args.protocol.read_bytes())
         if args.development_closure:
@@ -655,7 +686,10 @@ def main() -> int:
     exit_code = 1
     failure_reason: str | None = None
     try:
-        for name, payload in (("grant", grant), ("preflight", preflight)):
+        for name, payload in (
+            ("grant", grant), ("reservation-request", reservation_request),
+            ("preflight", preflight),
+        ):
             hits = _secret_hits(payload, api_key=api_key)
             if hits:
                 raise RuntimeError(f"secret scan failed for {name}: {','.join(hits)}")
@@ -682,6 +716,8 @@ def main() -> int:
                 protocol_sha=args.protocol_sha256,
                 grant_path=args.grant,
                 grant_sha=grant_sha,
+                reservation_request_path=args.reservation_request,
+                reservation_request_sha=reservation_request_sha,
                 preflight_path=args.preflight,
                 preflight_sha=preflight_sha,
             )
@@ -752,6 +788,7 @@ def main() -> int:
         _atomic_json(output_dir / "row-ledger.json", ledger)
         inventory_names = [
             "grant.json",
+            "reservation-request.json",
             "preflight.json",
             "protocol.json",
             "service-models.json",

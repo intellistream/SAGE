@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import re
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -34,6 +36,25 @@ def _git(repo: Path, *args: str) -> str:
     return subprocess.check_output(["git", "-C", str(repo), *args], text=True).strip()
 
 
+def _canonical(repo: Path, template: str, protocol_sha: str, split: str, run_id: str) -> Path:
+    return (
+        repo / template.replace("$PROTOCOL_SHA256", protocol_sha)
+        .replace("$SPLIT", split).replace("$RUN_ID", run_id)
+    ).resolve()
+
+
+def _secret_free(payload: object, exact_secret: str) -> bool:
+    text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    patterns = (
+        r"(?i)authorization.{0,16}bearer\s+[A-Za-z0-9._~+/=-]{8,}",
+        r"(?i)bearer\s+[A-Za-z0-9._~+/=-]{8,}",
+        r"(?i)[\"']?api[_-]?key[\"']?\s*[:=]\s*[\"']?[^\s\"']{8,}",
+    )
+    return (not exact_secret or exact_secret not in text) and not any(
+        re.search(pattern, text) for pattern in patterns
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--protocol", type=Path, required=True)
@@ -50,14 +71,22 @@ def main() -> int:
     protocol = _load(args.protocol)
     handoff = _load(args.execution_handoff)
     ack = _load(args.central_release_ack)
-    control = args.execution_handoff.resolve().parent
-    canonical_output = (
-        Path(protocol["repository"]["path"])
-        / protocol["raw_evidence"]["final_closure_root"]
-        .replace("$PROTOCOL_SHA256", args.expected_protocol_sha256)
-        .replace("$SPLIT", str(handoff.get("split")))
-        .replace("$RUN_ID", str(handoff.get("run_id")))
-    ).resolve()
+    split, run_id = handoff.get("split"), handoff.get("run_id")
+    if split not in {"development", "heldout"} or not re.fullmatch(
+        r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}", str(run_id)
+    ):
+        raise SystemExit("invalid split or run ID in handoff")
+    repo = Path(protocol["repository"]["path"])
+    control = _canonical(
+        repo, protocol["raw_evidence"]["control_root"],
+        args.expected_protocol_sha256, split, run_id,
+    )
+    if args.execution_handoff.resolve() != control / "execution-handoff.json":
+        raise SystemExit("execution handoff is not in the canonical control root")
+    canonical_output = _canonical(
+        repo, protocol["raw_evidence"]["final_closure_root"],
+        args.expected_protocol_sha256, split, run_id,
+    )
     if args.output.resolve() != canonical_output:
         raise SystemExit("final closure output is not the canonical protocol path")
     expected = {
@@ -94,6 +123,7 @@ def main() -> int:
         if path.is_file() and path.name != "control-secret-scan.json"
     }
     verified_grant_sha = verification.get("grant_sha256")
+    verified_request_sha = verification.get("reservation_request_sha256")
     local_checks = {
         "release-request": _sha256(release_path)
         == handoff.get("release_request_sha256"),
@@ -132,18 +162,24 @@ def main() -> int:
         == release.get("grant_sha256")
         == prelaunch.get("grant_sha256")
         == postlaunch.get("grant_sha256"),
+        "reservation-request-chain": bool(verified_request_sha)
+        and verified_request_sha == handoff.get("reservation_request_sha256")
+        == release.get("reservation_request_sha256")
+        == prelaunch.get("reservation_request_sha256")
+        == postlaunch.get("reservation_request_sha256"),
         "cleanup-ownership": cleanup.get("ownership_basis")
         == {
             "unit_and_container_absent_prelaunch": True,
             "postlaunch_process_lineage_verified": True,
             "cleanup_used_only_exact_systemd_unit_and_container": True,
+            "exact_managed_unit_and_env_files_removed": True,
             "manage_sh_stop_used": False,
         }
         and cleanup.get("observed_clear")
         == {
             "npu": True,
             "port": True,
-            "managed_unit_active": False,
+            "managed_unit_present": False,
             "container_present": False,
         },
     }
@@ -162,6 +198,12 @@ def main() -> int:
     upstream_commit = _git(queue_repo, "rev-parse", "@{upstream}")
     if queue_commit != upstream_commit:
         raise SystemExit("central ACK is not anchored at the queue upstream")
+    remote_line = _git(
+        queue_repo, "ls-remote", "origin", f"refs/heads/{authority['queue_branch']}"
+    )
+    remote_parts = remote_line.split()
+    if len(remote_parts) != 2 or remote_parts[0] != queue_commit:
+        raise SystemExit("central ACK commit is not present at the live remote branch")
     if _git(queue_repo, "merge-base", "--is-ancestor", authority["queue_base_commit"], queue_commit):
         raise SystemExit("central ACK commit is not descended from the reviewed queue base")
     committed_ack = subprocess.check_output(
@@ -175,12 +217,30 @@ def main() -> int:
         != authority["queue_origin_url"]
     ):
         raise SystemExit("central ACK queue origin/branch authority mismatch")
+    expected_ack_keys = {
+        "schema_version", "status", "protocol_sha256", "repository_commit",
+        "reservation_request_sha256", "grant_sha256", "release_request_sha256",
+        "split", "run_id", "released_resources", "acknowledged_utc",
+        "central_writer_id", "queue_base_commit", "queue_base_source_sha256",
+        "queue_authority_source_sha256",
+    }
+    if set(ack) != expected_ack_keys or not _secret_free(
+        ack, os.environ.get(protocol["service"]["api_key_env"], "")
+    ):
+        raise SystemExit("central ACK schema or secret scan rejected")
+    authority_source = subprocess.check_output(
+        ["git", "-C", str(queue_repo), "show",
+         f"{queue_commit}:{authority['queue_authority_source_path']}"]
+    )
+    authority_source_sha = hashlib.sha256(authority_source).hexdigest()
     ack_checks = {
         "status": ack.get("status") == "RELEASE_ACKNOWLEDGED",
         "protocol": ack.get("protocol_sha256") == args.expected_protocol_sha256,
         "commit": ack.get("repository_commit")
         == protocol["repository"]["execution_commit"],
         "grant": ack.get("grant_sha256") == handoff.get("grant_sha256"),
+        "reservation-request": ack.get("reservation_request_sha256")
+        == handoff.get("reservation_request_sha256"),
         "release": ack.get("release_request_sha256") == _sha256(release_path),
         "split": ack.get("split") == handoff.get("split"),
         "run-id": ack.get("run_id") == handoff.get("run_id"),
@@ -195,13 +255,20 @@ def main() -> int:
         >= _timestamp(release.get("release_requested_utc")),
         "authority": ack.get("central_writer_id") in authority["allowed_central_writer_ids"],
         "queue-base": ack.get("queue_base_commit") == authority["queue_base_commit"]
-        and ack.get("queue_authority_source_sha256")
-        == authority["queue_authority_source_sha256"],
-        "queue-anchor": ack.get("queue_ack_commit") == queue_commit,
+        and ack.get("queue_base_source_sha256")
+        == authority["queue_base_source_sha256"],
+        "queue-authority-source": ack.get("queue_authority_source_sha256")
+        == authority_source_sha,
     }
     if failed := [name for name, passed in ack_checks.items() if not passed]:
         raise SystemExit("central release acknowledgement rejected: " + ",".join(failed))
-    raw_root = Path(handoff["raw_root"])
+    raw_root = _canonical(
+        repo,
+        protocol["raw_evidence"][f"{split}_root"],
+        args.expected_protocol_sha256, split, run_id,
+    )
+    if Path(handoff["raw_root"]).resolve() != raw_root:
+        raise SystemExit("handoff raw root is not canonical")
     raw_manifest = raw_root / "manifest.json"
     raw_ledger = raw_root / "row-ledger.json"
     raw_summary = raw_root / "summary.json"
@@ -233,6 +300,8 @@ def main() -> int:
         "protocol_sha256": args.expected_protocol_sha256,
         "repository_commit": protocol["repository"]["execution_commit"],
         "grant_sha256": handoff["grant_sha256"],
+        "reservation_request_sha256": handoff["reservation_request_sha256"],
+        "reservation_request_id": handoff["reservation_request_id"],
         "split": handoff["split"],
         "verified_row_count": row_count,
         "manifest_sha256": handoff["raw_manifest_sha256"],
@@ -250,6 +319,8 @@ def main() -> int:
         "protocol_sha256": args.expected_protocol_sha256,
         "repository_commit": protocol["repository"]["execution_commit"],
         "grant_sha256": handoff["grant_sha256"],
+        "reservation_request_sha256": handoff["reservation_request_sha256"],
+        "reservation_request_id": handoff["reservation_request_id"],
         "split": handoff["split"],
         "run_id": handoff["run_id"],
         "raw_root": str(raw_root.resolve()),
@@ -267,6 +338,7 @@ def main() -> int:
         "release_request_sha256": _sha256(release_path),
         "central_release_acknowledgement": "PASS",
         "central_release_ack_sha256": _sha256(args.central_release_ack),
+        "central_queue_ack_commit": queue_commit,
         "execution_handoff_sha256": _sha256(args.execution_handoff),
         "completed_utc": ack["acknowledged_utc"],
     }
