@@ -6,7 +6,7 @@
   "repository": {
     "path": "/home/shuhao/SAGE",
     "branch": "feature/semantic-mapreduce-paper",
-    "execution_commit": "729056a13d7c19fbfbb99cff6f252336191ce493",
+    "execution_commit": "cad0bd081b739c50a8e1b55f2ce0b8a92aae369f",
     "execution_commit_must_be_clean_and_pushed": true,
     "protocol_execution_copy": "copy this byte-identical protocol outside the checkout or into an ignored .sage control root before checking out the execution commit",
     "frozen_sources": {
@@ -20,7 +20,7 @@
       },
       "verifier": {
         "path": "tools/benchmark_carrier/verify_semantic_reduce_v2_online_run.py",
-        "sha256": "bca122e609ca62ea97b4d09af7eda7fdae90e37346a0692dc3e349c0e59e1dad"
+        "sha256": "81283cf7c739a324e7e43eb0aef46c4752efc134a0b8c17949821947befaf8bb"
       },
       "physical_preflight": {
         "path": "tools/benchmark_carrier/preflight_semantic_reduce_v2_online.py",
@@ -36,11 +36,19 @@
       },
       "reservation_request_generator": {
         "path": "tools/benchmark_carrier/generate_semantic_reduce_v2_reservation_request.py",
-        "sha256": "8ebe7e3f9654acde797d23b24106ce465cd7d5dcf62b3031b0205a8026db0213"
+        "sha256": "695e61c64e5ed0ca11954f068e97b30930c0d0ef95d2fc7405ef29a2d5e63772"
       },
       "request_contract": {
         "path": "tools/benchmark_carrier/semantic_reduce_v2_request_contract.py",
-        "sha256": "11da0691d3971541f56dd01fbbc51e812ba8f077919449407baa968bad42ad34"
+        "sha256": "f43d5a6ae4af21ea74c5358f8cb803e04420c1e4354124cd02236e9fa0ea50b3"
+      },
+      "anonymous_artifact_packager": {
+        "path": "tools/benchmark_carrier/package_semantic_merge_artifact.py",
+        "sha256": "cc0d2819f85492477660c7b3a43b60ae26482fda8a1158a3d4542f349974920b"
+      },
+      "anonymous_artifact_verifier": {
+        "path": "tools/benchmark_carrier/verify_semantic_merge_artifact.py",
+        "sha256": "a5866d9606e6838f79d0bae49089a853b91a8468591bbe2c55e46755ebf3cc77"
       },
       "managed_service_launcher": {
         "path": "tools/benchmark_carrier/run_npu3_semantic_mapreduce_experiment.sh",
@@ -248,18 +256,18 @@
         "API keys Authorization/Bearer values and environment secrets",
         "unallowlisted raw requests responses logs grants preflight cleanup or release files"
       ],
-      "publication_label": "derived-artifact until anonymous artifact verifier separately passes; never silently relabel raw evidence"
+      "publication_label": "derived-artifact until the independently implemented anonymous artifact verifier recomputes manifest inventory/hashes and rejects sensitive paths, host/network/service/process/topology identifiers, Git descriptors/revisions/remotes/emails, credentials, and unallowlisted raw/control artifacts; never silently relabel raw evidence"
     }
   },
   "physical_preflight_logic": {
     "must_pass_after_central_grant_before_launch": [
-      "reservation request passes the exact frozen schema, three distinct SHA-bound SIGN envelopes, resources, clean upstream repository state, queue base, static physical gate, raw roots, cleanup chain, and non-substitution contract; grant binds its request ID and SHA, protocol SHA, execution commit, NPU3, model, service, and requested_at_utc <= issued_at_utc < request_expires_utc",
+      "reservation request passes the exact frozen schema, three distinct content-digest-bound SIGN envelopes with independent reviewer identities and review timestamps no later than the request, resources, clean upstream repository state, queue base, static physical gate, raw roots, cleanup chain, and non-substitution contract; grant binds its request ID and SHA, protocol SHA, execution commit, NPU3, model, service, and requested_at_utc <= issued_at_utc < request_expires_utc",
       "NPU3 has no foreign process and no conflicting container/device owner",
       "port 18383 is free before launch and owned by the exact managed service after launch",
       "repo and required submodules are clean at frozen commits and esage-vllm-hust-dev is active",
       "model config hashes match and /v1/models returns the frozen served name",
       "structured-output smoke returns strict proposal_ids JSON without a benchmark unit",
-      "development and heldout output roots do not exist",
+      "the exact grant-authorized split and run target root does not exist; heldout additionally requires the bound canonical development raw root and final development closure to exist and match",
       "at least 5 GiB free space and raw-log secret scanner enabled",
       "cleanup trap and central release path are armed",
       "heldout grant binds a final development closure issued before any service launch"
