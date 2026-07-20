@@ -25,7 +25,7 @@ def test_fair_harness_shares_h0_and_catalog_and_reports_all_policy_layers() -> N
     assert (
         row["policies"]["proposal_oracle"]["f1"] >= row["policies"]["deterministic_selector"]["f1"]
     )
-    assert row["policies"]["proposal_oracle"]["f1"] >= row["policies"]["mock_model_selector"]["f1"]
+    assert len(row["policies"]["proposal_oracle"]["selected_proposal_ids"]) <= 2
     assert row["policies"]["constrained_reference"]["permission"].startswith("full-evidence")
     assert row["policies"]["mock_model_selector"]["permission"].startswith("offline")
     assert row["proposal_coverage"]["gold_merge_pair_count"] > 0
@@ -45,6 +45,25 @@ def test_policy_rows_keep_actions_validation_conservation_and_conditioned_delta(
         assert "f1_delta_from_h0" in policy
     assert row["proposal_coverage"]["merge_proposal_recall"] >= 0
     assert row["proposal_coverage"]["split_proposal_recall"] >= 0
+
+
+class _OverBudgetSelector:
+    name = "over-budget-adversarial-selector"
+
+    def select(self, *, h0, catalog, evidence):
+        del h0, evidence
+        return [proposal.proposal_id for proposal in catalog.proposals[:3]]
+
+
+def test_oracle_is_frozen_before_model_and_never_admits_over_budget_selection() -> None:
+    row = evaluate_workload(
+        generate_heldout_workload("mixed-split-merge", seed=7, split="development"),
+        oracle_max_edits=2,
+        model_selector=_OverBudgetSelector(),
+    )
+    assert len(row["policies"]["online_model_selector"]["selected_proposal_ids"]) == 3
+    assert len(row["policies"]["proposal_oracle"]["selected_proposal_ids"]) <= 2
+    assert row["policies"]["online_model_selector"]["selector_exact_oracle_match"] is False
 
 
 class _Response:

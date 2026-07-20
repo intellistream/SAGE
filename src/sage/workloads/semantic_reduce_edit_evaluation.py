@@ -246,9 +246,8 @@ def proposal_oracle(
     h0: CandidateState,
     catalog: ProposalCatalog,
     max_edits: int,
-    candidate_selections: Sequence[Sequence[str]] = (),
 ) -> tuple[EditRuntimeResult, ScoredState, dict[str, bool]]:
-    """Diagnostic oracle over catalog IDs; ground truth never builds proposals."""
+    """Pre-model diagnostic oracle over bounded catalog-ID combinations."""
 
     baseline = runtime.commit_selection(
         evidence=workload.dataset.evidence,
@@ -280,7 +279,6 @@ def proposal_oracle(
             for combination in itertools.combinations(edits, size)
             if _selection_is_nonconflicting(combination)
         )
-    selections.extend(tuple(values) for values in candidate_selections)
     seen: set[tuple[str, ...]] = set()
     for selected in selections:
         selected = tuple(selected)
@@ -427,7 +425,6 @@ def evaluate_workload(
         h0=h0,
         catalog=catalog,
         max_edits=oracle_max_edits,
-        candidate_selections=(tuple(deterministic_ids), tuple(model_ids)),
     )
     deterministic_result = runtime.commit_selection(
         evidence=workload.dataset.evidence,
