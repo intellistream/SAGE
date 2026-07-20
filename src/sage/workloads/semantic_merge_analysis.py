@@ -11,6 +11,7 @@ objects into a single hypothesis with provenance.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import random
@@ -19,15 +20,15 @@ import time
 import urllib.error
 import urllib.request
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable, Protocol
+from typing import Any, Protocol
 
 from sage.workloads.large_scale_analysis import (
     _api_key_from_env_or_file,
     _extract_json_payload,
 )
-
 
 SERVICES = ("router", "scheduler", "prefill", "decode", "kv-cache", "embedding")
 REGIONS = ("npu-a", "npu-b", "npu-c")
@@ -185,8 +186,7 @@ def generate_semantic_merge_dataset(
 ) -> MergeDataset:
     if scenario not in SCENARIOS:
         raise ValueError(
-            f"Unknown semantic merge scenario {scenario!r}. "
-            f"Expected one of {', '.join(SCENARIOS)}."
+            f"Unknown semantic merge scenario {scenario!r}. Expected one of {', '.join(SCENARIOS)}."
         )
     rng = random.Random(seed)
     if scenario == "ambiguous-overmerge":
@@ -307,7 +307,11 @@ def _scenario_templates(scenario: str) -> list[tuple[str, tuple[str, ...], str]]
         ]
     if scenario == "ambiguous-disconnected-merge":
         return [
-            ("scheduler", ("scheduler", "kv-cache", "embedding"), "disconnected_scheduler_pressure"),
+            (
+                "scheduler",
+                ("scheduler", "kv-cache", "embedding"),
+                "disconnected_scheduler_pressure",
+            ),
             ("router", ("router", "kv-cache", "embedding"), "disconnected_router_pressure"),
         ]
     if scenario == "ambiguous-temporal-split":
@@ -454,9 +458,7 @@ def _generate_disconnected_merge_dataset(
         ),
     ]
     rng.shuffle(templates)
-    for idx, (root, affected, observed, kind) in enumerate(
-        templates[:incident_count], start=1
-    ):
+    for idx, (root, affected, observed, kind) in enumerate(templates[:incident_count], start=1):
         region = REGIONS[(seed + idx) % len(REGIONS)]
         start = 80 + idx * 82 + rng.randint(0, 8)
         duration = rng.randint(38, 52)
@@ -759,10 +761,105 @@ class WindowAggregateMergeReducer:
             if item.score >= 0.34:
                 groups[(item.region, item.start_minute // 40)].append(item)
         hypotheses = [
-            _hypothesis_from_evidence_group(items, reducer=self.name)
-            for items in groups.values()
+            _hypothesis_from_evidence_group(items, reducer=self.name) for items in groups.values()
         ]
         return sorted(hypotheses, key=lambda item: item["score"], reverse=True)
+
+
+class ConstrainedAgglomerativeMergeReducer:
+    """Label-free single-link clustering over observable evidence fields.
+
+    The reducer is intentionally independent of scenario names, injected
+    incidents, and ``source_incident_id``.  Hard constraints prevent clusters
+    from crossing regions or combining contradictory non-null root hints;
+    deterministic pair affinity then uses time, service topology, signal
+    overlap, and confidence.
+    """
+
+    name = "constrained-agglomerative"
+    min_score = 0.5
+    min_affinity = 3.25
+    max_gap_minutes = 80
+    max_cluster_span_minutes = 120
+
+    def __init__(self) -> None:
+        self.last_call: dict[str, Any] = {}
+
+    def reduce(self, evidence: list[EvidenceObject]) -> list[dict[str, Any]]:
+        clusters = [
+            [item]
+            for item in sorted(evidence, key=lambda item: item.evidence_id)
+            if item.score >= self.min_score
+        ]
+        merge_trace: list[dict[str, Any]] = []
+        while True:
+            best: tuple[float, tuple[str, ...], int, int] | None = None
+            for left_index, left in enumerate(clusters):
+                for right_index in range(left_index + 1, len(clusters)):
+                    right = clusters[right_index]
+                    affinity = _cluster_affinity(
+                        left,
+                        right,
+                        max_gap_minutes=self.max_gap_minutes,
+                        max_cluster_span_minutes=self.max_cluster_span_minutes,
+                    )
+                    if affinity < self.min_affinity:
+                        continue
+                    evidence_ids = tuple(sorted(item.evidence_id for item in (*left, *right)))
+                    candidate = (affinity, evidence_ids, left_index, right_index)
+                    if best is None or candidate[:2] > best[:2]:
+                        best = candidate
+            if best is None:
+                break
+            affinity, _, left_index, right_index = best
+            left = clusters[left_index]
+            right = clusters[right_index]
+            merged = sorted((*left, *right), key=lambda item: item.evidence_id)
+            merge_trace.append(
+                {
+                    "left_evidence_ids": [item.evidence_id for item in left],
+                    "right_evidence_ids": [item.evidence_id for item in right],
+                    "affinity": round(affinity, 4),
+                }
+            )
+            clusters[left_index] = merged
+            del clusters[right_index]
+
+        hypotheses = [
+            _hypothesis_from_evidence_group(
+                cluster,
+                reducer=self.name,
+                include_root_hint_in_affected=True,
+            )
+            for cluster in clusters
+        ]
+        self.last_call = {
+            "algorithm": "constrained single-link agglomerative clustering",
+            "observable_fields": [
+                "score",
+                "region",
+                "start_minute",
+                "end_minute",
+                "service",
+                "signals",
+                "upstream_hint",
+            ],
+            "forbidden_fields": ["source_incident_id"],
+            "min_score": self.min_score,
+            "min_affinity": self.min_affinity,
+            "max_gap_minutes": self.max_gap_minutes,
+            "max_cluster_span_minutes": self.max_cluster_span_minutes,
+            "accepted_merge_count": len(merge_trace),
+            "merge_trace": merge_trace,
+        }
+        return sorted(
+            hypotheses,
+            key=lambda item: (
+                -float(item["score"]),
+                str(item["root_service"]),
+                item["evidence_ids"],
+            ),
+        )
 
 
 class SemanticGraphMergeReducer:
@@ -817,6 +914,7 @@ class OpenAISemanticMergeReducer:
         max_tokens: int = 512,
         timeout_sec: int = 180,
         structured_output: bool = False,
+        temperature: float | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
@@ -825,12 +923,15 @@ class OpenAISemanticMergeReducer:
         self.max_tokens = max_tokens
         self.timeout_sec = timeout_sec
         self.structured_output = structured_output
+        self.temperature = (
+            float(os.environ.get("SAGE_SMR_LLM_TEMPERATURE", "0"))
+            if temperature is None
+            else float(temperature)
+        )
         self.last_call: dict[str, Any] = {}
 
     def reduce(self, evidence: list[EvidenceObject]) -> list[dict[str, Any]]:
-        selected = sorted(evidence, key=lambda item: item.score, reverse=True)[
-            : self.max_evidence
-        ]
+        selected = sorted(evidence, key=lambda item: item.score, reverse=True)[: self.max_evidence]
         prompt = _build_llm_semantic_merge_prompt(selected)
         started = time.perf_counter()
         text = ""
@@ -851,6 +952,7 @@ class OpenAISemanticMergeReducer:
             "model": self.model,
             "base_url": self.base_url,
             "structured_output": self.structured_output,
+            "temperature": self.temperature,
             "latency_ms": round(latency_ms, 2),
             "json_valid": json_valid,
             "schema_valid": schema_valid,
@@ -860,9 +962,7 @@ class OpenAISemanticMergeReducer:
             "response_preview": text[:500],
             "estimated_prompt_tokens": _estimate_tokens_from_chars(len(prompt)),
             "estimated_response_tokens": _estimate_tokens_from_chars(len(text)),
-            "estimated_total_tokens": _estimate_tokens_from_chars(
-                len(prompt) + len(text)
-            ),
+            "estimated_total_tokens": _estimate_tokens_from_chars(len(prompt) + len(text)),
             "input_evidence_count": len(selected),
             "output_incident_count": len(hypotheses),
         }
@@ -883,7 +983,7 @@ class OpenAISemanticMergeReducer:
                 {"role": "user", "content": prompt},
             ],
             "max_tokens": self.max_tokens,
-            "temperature": 0.0,
+            "temperature": self.temperature,
         }
         if self.structured_output:
             payload["response_format"] = {"type": "json_object"}
@@ -936,6 +1036,7 @@ class OpenAIHybridMergeReducer:
         structured_output: bool = False,
         allow_drop: bool = False,
         fallback_reducer: MergeReducer | None = None,
+        temperature: float | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
@@ -946,6 +1047,11 @@ class OpenAIHybridMergeReducer:
         self.structured_output = structured_output
         self.allow_drop = allow_drop
         self.fallback_reducer = fallback_reducer
+        self.temperature = (
+            float(os.environ.get("SAGE_SMR_LLM_TEMPERATURE", "0"))
+            if temperature is None
+            else float(temperature)
+        )
         self.last_call: dict[str, Any] = {}
 
     def reduce(self, evidence: list[EvidenceObject]) -> list[dict[str, Any]]:
@@ -984,9 +1090,7 @@ class OpenAIHybridMergeReducer:
                 "response_chars": len(text),
                 "estimated_prompt_tokens": _estimate_tokens_from_chars(len(prompt)),
                 "estimated_response_tokens": _estimate_tokens_from_chars(len(text)),
-                "estimated_total_tokens": _estimate_tokens_from_chars(
-                    len(prompt) + len(text)
-                ),
+                "estimated_total_tokens": _estimate_tokens_from_chars(len(prompt) + len(text)),
                 "input_evidence_count": len(evidence),
                 "input_candidate_count": len(candidates),
                 "output_incident_count": len(fallback_hypotheses),
@@ -1031,9 +1135,7 @@ class OpenAIHybridMergeReducer:
             "response_preview": text[:500],
             "estimated_prompt_tokens": _estimate_tokens_from_chars(len(prompt)),
             "estimated_response_tokens": _estimate_tokens_from_chars(len(text)),
-            "estimated_total_tokens": _estimate_tokens_from_chars(
-                len(prompt) + len(text)
-            ),
+            "estimated_total_tokens": _estimate_tokens_from_chars(len(prompt) + len(text)),
             "input_evidence_count": len(evidence),
             "input_candidate_count": len(candidates),
             "output_incident_count": len(edited),
@@ -1041,16 +1143,10 @@ class OpenAIHybridMergeReducer:
             "validation_trace": validation_trace,
             "repair_count": int(validation_trace.get("repair_count", 0)),
             "fallback_count": int(validation_trace.get("fallback_count", 0)),
-            "split_count": sum(
-                1 for item in edit_trace if item.get("action") == "split"
-            ),
-            "merge_count": sum(
-                1 for item in edit_trace if item.get("action") == "merge"
-            ),
+            "split_count": sum(1 for item in edit_trace if item.get("action") == "split"),
+            "merge_count": sum(1 for item in edit_trace if item.get("action") == "merge"),
             "accepted_edit_count": sum(
-                1
-                for item in edit_trace
-                if item.get("action") in {"edit", "split", "merge"}
+                1 for item in edit_trace if item.get("action") in {"edit", "split", "merge"}
             ),
             "base_reducer": graph.name,
             "fallback_reducer": fallback.name,
@@ -1079,7 +1175,7 @@ class OpenAIHybridMergeReducer:
                 {"role": "user", "content": prompt},
             ],
             "max_tokens": self.max_tokens,
-            "temperature": 0.0,
+            "temperature": self.temperature,
         }
         if self.structured_output:
             payload["response_format"] = {"type": "json_object"}
@@ -1137,22 +1233,18 @@ class OpenAIPairwiseMergeReducer(OpenAIHybridMergeReducer):
         hypotheses = graph.reduce(evidence)
         candidates = hypotheses[: self.max_candidates]
         evidence_by_id = _evidence_index_by_id(evidence)
-        pair_prompt, pairs = _build_llm_pairwise_merge_prompt(
-            candidates, evidence_by_id
-        )
+        pair_prompt, pairs = _build_llm_pairwise_merge_prompt(candidates, evidence_by_id)
         started = time.perf_counter()
         text = ""
         retry_count = 0
         try:
             attempts = 2 if self.validated else 1
-            last_error: Exception | None = None
             for attempt in range(attempts):
                 retry_count = attempt
                 attempt_prompt = pair_prompt
                 if attempt:
                     attempt_prompt = (
-                        pair_prompt
-                        + "\nRetry because the previous output was invalid. "
+                        pair_prompt + "\nRetry because the previous output was invalid. "
                         "Return exactly one JSON object with key decisions and "
                         "no extra keys, prose, code fences, or non-JSON text."
                     )
@@ -1166,8 +1258,7 @@ class OpenAIPairwiseMergeReducer(OpenAIHybridMergeReducer):
                         evidence_by_id,
                     )
                     break
-                except Exception as exc:
-                    last_error = exc
+                except Exception:
                     if attempt + 1 >= attempts:
                         raise
             else:  # pragma: no cover - defensive; loop always breaks or raises.
@@ -1188,13 +1279,9 @@ class OpenAIPairwiseMergeReducer(OpenAIHybridMergeReducer):
                 "response_preview": text[:500],
                 "prompt_chars": len(pair_prompt),
                 "response_chars": len(text),
-                "estimated_prompt_tokens": _estimate_tokens_from_chars(
-                    len(pair_prompt)
-                ),
+                "estimated_prompt_tokens": _estimate_tokens_from_chars(len(pair_prompt)),
                 "estimated_response_tokens": _estimate_tokens_from_chars(len(text)),
-                "estimated_total_tokens": _estimate_tokens_from_chars(
-                    len(pair_prompt) + len(text)
-                ),
+                "estimated_total_tokens": _estimate_tokens_from_chars(len(pair_prompt) + len(text)),
                 "input_evidence_count": len(evidence),
                 "input_candidate_count": len(candidates),
                 "input_pair_count": len(pairs),
@@ -1242,9 +1329,7 @@ class OpenAIPairwiseMergeReducer(OpenAIHybridMergeReducer):
             "response_preview": text[:500],
             "estimated_prompt_tokens": _estimate_tokens_from_chars(len(pair_prompt)),
             "estimated_response_tokens": _estimate_tokens_from_chars(len(text)),
-            "estimated_total_tokens": _estimate_tokens_from_chars(
-                len(pair_prompt) + len(text)
-            ),
+            "estimated_total_tokens": _estimate_tokens_from_chars(len(pair_prompt) + len(text)),
             "input_evidence_count": len(evidence),
             "input_candidate_count": len(candidates),
             "input_pair_count": len(pairs),
@@ -1256,12 +1341,8 @@ class OpenAIPairwiseMergeReducer(OpenAIHybridMergeReducer):
             "repair_count": int(validation_trace.get("repair_count", 0)),
             "fallback_count": int(validation_trace.get("fallback_count", 0)),
             "split_count": 0,
-            "merge_count": sum(
-                1 for item in edit_trace if item.get("action") == "merge"
-            ),
-            "accepted_edit_count": sum(
-                1 for item in edit_trace if item.get("action") == "merge"
-            ),
+            "merge_count": sum(1 for item in edit_trace if item.get("action") == "merge"),
+            "accepted_edit_count": sum(1 for item in edit_trace if item.get("action") == "merge"),
             "base_reducer": graph.name,
             "fallback_reducer": fallback.name,
             "allow_drop": False,
@@ -1281,14 +1362,14 @@ class OpenAIPairwiseMergeReducer(OpenAIHybridMergeReducer):
                     "role": "system",
                     "content": (
                         "You are a strict JSON pairwise incident merge judge. "
-                        "Return only {\"decisions\":[...]} with one action per "
+                        'Return only {"decisions":[...]} with one action per '
                         "provided pair. Do not write full hypotheses."
                     ),
                 },
                 {"role": "user", "content": prompt},
             ],
             "max_tokens": self.max_tokens,
-            "temperature": 0.0,
+            "temperature": self.temperature,
         }
         if self.structured_output:
             payload["response_format"] = {"type": "json_object"}
@@ -1347,11 +1428,50 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
         prompt_chars = 0
         response_chars = 0
         invalid_action_count = 0
+        request_trace: list[dict[str, Any]] = []
         try:
             for pair in pairs:
                 prompt = _build_pair_action_prompt(pair)
                 prompt_chars += len(prompt)
-                text = self._completion_action(prompt)
+                request_started = time.perf_counter()
+                request_started_utc = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                self._last_provider_response = None
+                try:
+                    text = self._completion_action(prompt)
+                except Exception as exc:
+                    request_trace.append(
+                        {
+                            "pair": int(pair["pair"]),
+                            "attempt": 1,
+                            "started_utc": request_started_utc,
+                            "latency_ms": round((time.perf_counter() - request_started) * 1000, 2),
+                            "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
+                            "prompt_chars": len(prompt),
+                            "response_text": "",
+                            "response_sha256": hashlib.sha256(b"").hexdigest(),
+                            "provider_response": self._last_provider_response,
+                            "status": "error",
+                            "error_type": type(exc).__name__,
+                            "error_message": str(exc)[:300],
+                        }
+                    )
+                    raise
+                request_trace.append(
+                    {
+                        "pair": int(pair["pair"]),
+                        "attempt": 1,
+                        "started_utc": request_started_utc,
+                        "latency_ms": round((time.perf_counter() - request_started) * 1000, 2),
+                        "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
+                        "prompt_chars": len(prompt),
+                        "response_text": text,
+                        "response_sha256": hashlib.sha256(text.encode()).hexdigest(),
+                        "provider_response": self._last_provider_response,
+                        "status": "ok",
+                        "error_type": None,
+                        "error_message": None,
+                    }
+                )
                 response_chars += len(text)
                 action, action_valid = _parse_pair_action(text)
                 if not action_valid:
@@ -1391,6 +1511,14 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
         except Exception as exc:
             latency_ms = (time.perf_counter() - started) * 1000
             fallback_hypotheses = fallback.reduce(evidence)
+            provider_usage = _provider_usage_from_request_trace(request_trace)
+            contract_trace = _build_semantic_reduce_contract_trace(
+                candidates=candidates,
+                output_hypotheses=fallback_hypotheses,
+                evidence=evidence,
+                validation_trace={"fallback_count": 1},
+                bounded_actions=("KEEP", "MERGE", "SPLIT", "ABSTAIN"),
+            )
             self.last_call = {
                 "model": self.model,
                 "base_url": self.base_url,
@@ -1405,17 +1533,21 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
                 "prompt_chars": prompt_chars,
                 "response_chars": response_chars,
                 "estimated_prompt_tokens": _estimate_tokens_from_chars(prompt_chars),
-                "estimated_response_tokens": _estimate_tokens_from_chars(
-                    response_chars
-                ),
+                "estimated_response_tokens": _estimate_tokens_from_chars(response_chars),
                 "estimated_total_tokens": _estimate_tokens_from_chars(
                     prompt_chars + response_chars
                 ),
+                **provider_usage,
                 "input_evidence_count": len(evidence),
                 "input_candidate_count": len(candidates),
                 "input_pair_count": len(pairs),
                 "invalid_action_count": invalid_action_count,
                 "retry_count": 0,
+                "retry_policy": "none; request failure triggers reducer fallback",
+                "temperature": self.temperature,
+                "raw_response_retained": True,
+                "request_trace": request_trace,
+                "contract_trace": contract_trace,
                 "output_incident_count": len(fallback_hypotheses),
                 "edit_trace": [],
                 "pair_trace": [],
@@ -1436,6 +1568,7 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
             ]
 
         latency_ms = (time.perf_counter() - started) * 1000
+        provider_usage = _provider_usage_from_request_trace(request_trace)
         validation_trace: dict[str, Any] = {
             "enabled": False,
             "repair_count": 0,
@@ -1449,6 +1582,13 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
                 evidence_by_id=evidence_by_id,
                 fallback_hypotheses=fallback.reduce(evidence),
             )
+        contract_trace = _build_semantic_reduce_contract_trace(
+            candidates=candidates,
+            output_hypotheses=edited,
+            evidence=evidence,
+            validation_trace=validation_trace,
+            bounded_actions=("KEEP", "MERGE", "SPLIT", "ABSTAIN"),
+        )
         self.last_call = {
             "model": self.model,
             "base_url": self.base_url,
@@ -1461,29 +1601,29 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
             "response_preview": json.dumps(responses[:4], sort_keys=True)[:500],
             "estimated_prompt_tokens": _estimate_tokens_from_chars(prompt_chars),
             "estimated_response_tokens": _estimate_tokens_from_chars(response_chars),
-            "estimated_total_tokens": _estimate_tokens_from_chars(
-                prompt_chars + response_chars
-            ),
+            "estimated_total_tokens": _estimate_tokens_from_chars(prompt_chars + response_chars),
+            **provider_usage,
             "input_evidence_count": len(evidence),
             "input_candidate_count": len(candidates),
             "input_pair_count": len(pairs),
             "invalid_action_count": invalid_action_count,
             "retry_count": 0,
+            "retry_policy": "none; invalid enum maps to ABSTAIN",
+            "temperature": self.temperature,
+            "raw_response_retained": True,
+            "request_trace": request_trace,
             "output_incident_count": len(edited),
             "edit_trace": edit_trace,
             "pair_trace": pair_trace,
             "action_trace": responses,
             "validation_trace": validation_trace,
+            "contract_trace": contract_trace,
             "repair_count": int(validation_trace.get("repair_count", 0)),
             "fallback_count": int(validation_trace.get("fallback_count", 0)),
             "validator_reject_reason": validation_trace.get("fallback_reason"),
             "split_count": 0,
-            "merge_count": sum(
-                1 for item in edit_trace if item.get("action") == "merge"
-            ),
-            "accepted_edit_count": sum(
-                1 for item in edit_trace if item.get("action") == "merge"
-            ),
+            "merge_count": sum(1 for item in edit_trace if item.get("action") == "merge"),
+            "accepted_edit_count": sum(1 for item in edit_trace if item.get("action") == "merge"),
             "base_reducer": graph.name,
             "fallback_reducer": fallback.name,
             "allow_drop": False,
@@ -1509,7 +1649,7 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
                 {"role": "user", "content": prompt},
             ],
             "max_tokens": min(self.max_tokens, 8),
-            "temperature": 0.0,
+            "temperature": self.temperature,
         }
         req = urllib.request.Request(
             f"{self.base_url}/v1/chat/completions",
@@ -1529,6 +1669,7 @@ class OpenAIPairwiseActionMergeReducer(OpenAIPairwiseMergeReducer):
                 f"LLM pairwise action endpoint returned HTTP {exc.code}: {body[:300]}"
             ) from exc
         parsed = json.loads(body) if body else {}
+        self._last_provider_response = parsed
         choices = parsed.get("choices") or []
         if not choices:
             raise RuntimeError("LLM pairwise action endpoint returned no choices.")
@@ -1559,6 +1700,12 @@ def resolve_merge_reducer(reducer: str | MergeReducer | None) -> MergeReducer:
         return ServiceLocalMergeReducer()
     if normalized in {"window-aggregate", "window"}:
         return WindowAggregateMergeReducer()
+    if normalized in {
+        "constrained-agglomerative",
+        "constrained_agglomerative",
+        "agglomerative",
+    }:
+        return ConstrainedAgglomerativeMergeReducer()
     if normalized in {"semantic-graph", "semantic", "sage"}:
         return SemanticGraphMergeReducer()
     if normalized in {"hybrid-hint", "hybrid", "hint-aware"}:
@@ -1579,13 +1726,9 @@ def resolve_merge_reducer(reducer: str | MergeReducer | None) -> MergeReducer:
             max_candidates=int(os.environ.get("SAGE_SMR_LLM_MAX_CANDIDATES", "12")),
             max_tokens=int(os.environ.get("SAGE_SMR_LLM_MAX_TOKENS", "384")),
             timeout_sec=int(os.environ.get("SAGE_SMR_LLM_TIMEOUT_SEC", "180")),
-            structured_output=os.environ.get("SAGE_SMR_LLM_STRUCTURED_OUTPUT", "")
-            .strip()
-            .lower()
+            structured_output=os.environ.get("SAGE_SMR_LLM_STRUCTURED_OUTPUT", "").strip().lower()
             in {"1", "true", "yes", "on"},
-            allow_drop=os.environ.get("SAGE_SMR_LLM_ALLOW_DROP", "")
-            .strip()
-            .lower()
+            allow_drop=os.environ.get("SAGE_SMR_LLM_ALLOW_DROP", "").strip().lower()
             in {"1", "true", "yes", "on"},
         )
     if normalized in {
@@ -1607,13 +1750,9 @@ def resolve_merge_reducer(reducer: str | MergeReducer | None) -> MergeReducer:
             max_candidates=int(os.environ.get("SAGE_SMR_LLM_MAX_CANDIDATES", "12")),
             max_tokens=int(os.environ.get("SAGE_SMR_LLM_MAX_TOKENS", "384")),
             timeout_sec=int(os.environ.get("SAGE_SMR_LLM_TIMEOUT_SEC", "180")),
-            structured_output=os.environ.get("SAGE_SMR_LLM_STRUCTURED_OUTPUT", "")
-            .strip()
-            .lower()
+            structured_output=os.environ.get("SAGE_SMR_LLM_STRUCTURED_OUTPUT", "").strip().lower()
             in {"1", "true", "yes", "on"},
-            allow_drop=os.environ.get("SAGE_SMR_LLM_ALLOW_DROP", "")
-            .strip()
-            .lower()
+            allow_drop=os.environ.get("SAGE_SMR_LLM_ALLOW_DROP", "").strip().lower()
             in {"1", "true", "yes", "on"},
         )
     if normalized in {"llm-pairwise", "llm_pairwise", "pairwise-openai"}:
@@ -1630,9 +1769,7 @@ def resolve_merge_reducer(reducer: str | MergeReducer | None) -> MergeReducer:
             max_candidates=int(os.environ.get("SAGE_SMR_LLM_MAX_CANDIDATES", "12")),
             max_tokens=int(os.environ.get("SAGE_SMR_LLM_MAX_TOKENS", "384")),
             timeout_sec=int(os.environ.get("SAGE_SMR_LLM_TIMEOUT_SEC", "180")),
-            structured_output=os.environ.get("SAGE_SMR_LLM_STRUCTURED_OUTPUT", "")
-            .strip()
-            .lower()
+            structured_output=os.environ.get("SAGE_SMR_LLM_STRUCTURED_OUTPUT", "").strip().lower()
             in {"1", "true", "yes", "on"},
         )
     if normalized in {
@@ -1653,9 +1790,7 @@ def resolve_merge_reducer(reducer: str | MergeReducer | None) -> MergeReducer:
             max_candidates=int(os.environ.get("SAGE_SMR_LLM_MAX_CANDIDATES", "12")),
             max_tokens=int(os.environ.get("SAGE_SMR_LLM_MAX_TOKENS", "384")),
             timeout_sec=int(os.environ.get("SAGE_SMR_LLM_TIMEOUT_SEC", "180")),
-            structured_output=os.environ.get("SAGE_SMR_LLM_STRUCTURED_OUTPUT", "")
-            .strip()
-            .lower()
+            structured_output=os.environ.get("SAGE_SMR_LLM_STRUCTURED_OUTPUT", "").strip().lower()
             in {"1", "true", "yes", "on"},
         )
     if normalized in {
@@ -1711,14 +1846,13 @@ def resolve_merge_reducer(reducer: str | MergeReducer | None) -> MergeReducer:
             max_evidence=int(os.environ.get("SAGE_SMR_LLM_MAX_EVIDENCE", "24")),
             max_tokens=int(os.environ.get("SAGE_SMR_LLM_MAX_TOKENS", "512")),
             timeout_sec=int(os.environ.get("SAGE_SMR_LLM_TIMEOUT_SEC", "180")),
-            structured_output=os.environ.get("SAGE_SMR_LLM_STRUCTURED_OUTPUT", "")
-            .strip()
-            .lower()
+            structured_output=os.environ.get("SAGE_SMR_LLM_STRUCTURED_OUTPUT", "").strip().lower()
             in {"1", "true", "yes", "on"},
         )
     raise ValueError(
         f"Unknown semantic merge reducer {reducer!r}. Expected map-only, "
-        "service-local, window-aggregate, semantic-graph, hybrid-hint, "
+        "service-local, window-aggregate, constrained-agglomerative, "
+        "semantic-graph, hybrid-hint, "
         "llm-stub, llm-hybrid, llm-hybrid-validated, llm-pairwise, "
         "llm-pairwise-validated, llm-pairwise-action, "
         "llm-pairwise-action-validated, or llm-openai."
@@ -1745,9 +1879,9 @@ def _build_llm_semantic_merge_prompt(evidence: list[EvidenceObject]) -> str:
         "Group evidence rows into incident-level hypotheses. Use the dependency "
         "graph to merge downstream symptoms into one root-cause incident. "
         "The root_service must also appear in affected_services. "
-        "Return ONLY JSON: {\"incidents\":[{\"root_service\":\"router\","
-        "\"region\":\"npu-a\",\"evidence_rows\":[0,1],"
-        "\"affected_services\":[\"router\",\"scheduler\"]}]}.\n"
+        'Return ONLY JSON: {"incidents":[{"root_service":"router",'
+        '"region":"npu-a","evidence_rows":[0,1],'
+        '"affected_services":["router","scheduler"]}]}.\n'
         f"Dependency graph: {json.dumps(DEPENDENCIES, sort_keys=True)}\n"
         f"Evidence: {json.dumps(compact, sort_keys=True)}"
     )
@@ -1777,9 +1911,7 @@ def _build_llm_hybrid_merge_prompt(
                 }
             )
         upstream_hints = [
-            str(row["upstream_hint"])
-            for row in evidence_rows
-            if row.get("upstream_hint")
+            str(row["upstream_hint"]) for row in evidence_rows if row.get("upstream_hint")
         ]
         dominant_hint = statistics.mode(upstream_hints) if upstream_hints else None
         candidates.append(
@@ -1846,14 +1978,14 @@ def _build_llm_hybrid_merge_prompt(
         "dependency hints. The root_service must also appear in affected_services. "
         "Return ONLY JSON "
         "with this "
-        "shape: {\"edits\":[{\"candidate\":0,\"action\":\"keep\","
-        "\"root_service\":\"router\",\"affected_services\":[\"router\","
-        "\"scheduler\"]},{\"candidate\":1,\"action\":\"merge\","
-        "\"candidates\":[1,2],\"root_service\":\"scheduler\","
-        "\"affected_services\":[\"scheduler\",\"prefill\",\"decode\"]},"
-        "{\"candidate\":3,\"action\":\"split\",\"parts\":["
-        "{\"evidence_ids\":[\"e1\",\"e2\"],\"root_service\":\"scheduler\","
-        "\"affected_services\":[\"scheduler\",\"prefill\"]}]}]}.\n"
+        'shape: {"edits":[{"candidate":0,"action":"keep",'
+        '"root_service":"router","affected_services":["router",'
+        '"scheduler"]},{"candidate":1,"action":"merge",'
+        '"candidates":[1,2],"root_service":"scheduler",'
+        '"affected_services":["scheduler","prefill","decode"]},'
+        '{"candidate":3,"action":"split","parts":['
+        '{"evidence_ids":["e1","e2"],"root_service":"scheduler",'
+        '"affected_services":["scheduler","prefill"]}]}]}.\n'
         "Every edit must use one of these actions: keep, merge, split, edit, drop. "
         "Every merge must include a candidates array. Every split part must cite "
         "evidence_ids from the source candidate. Use only services and evidence "
@@ -1889,9 +2021,7 @@ def _build_llm_pairwise_merge_prompt(
                 "dominant_upstream_hint": dominant_hint,
                 "evidence_ids": [item.evidence_id for item in evidence_items],
                 "services": sorted({item.service for item in evidence_items}),
-                "signals": sorted(
-                    {signal for item in evidence_items for signal in item.signals}
-                ),
+                "signals": sorted({signal for item in evidence_items for signal in item.signals}),
             }
         )
 
@@ -1914,9 +2044,7 @@ def _build_llm_pairwise_merge_prompt(
             right_end = int(right.get("end_minute", 0) or 0)
             gap = max(left_start, right_start) - min(left_end, right_end)
             nearby = gap <= 80
-            if not (same_hint and nearby) and not (
-                related_services and gap <= 20
-            ):
+            if not (same_hint and nearby) and not (related_services and gap <= 20):
                 continue
             pair_id = len(pairs)
             pair_evidence_ids = list(
@@ -1960,16 +2088,13 @@ def _build_llm_pairwise_merge_prompt(
         )
     )
     max_pairs = int(os.environ.get("SAGE_SMR_LLM_MAX_PAIRS", "6"))
-    pairs = [
-        {**pair, "pair": idx}
-        for idx, pair in enumerate(pairs[: max(1, max_pairs)])
-    ]
+    pairs = [{**pair, "pair": idx} for idx, pair in enumerate(pairs[: max(1, max_pairs)])]
 
     return (
         "Return JSON only. Task: judge if each pair is the same incident. "
-        "Do not write incident hypotheses. Schema: {\"decisions\":[{\"pair\":0,"
-        "\"action\":\"merge\",\"evidence_ids\":[\"e1\",\"e2\"],"
-        "\"reason\":\"same upstream\"}]}.\n"
+        'Do not write incident hypotheses. Schema: {"decisions":[{"pair":0,'
+        '"action":"merge","evidence_ids":["e1","e2"],'
+        '"reason":"same upstream"}]}.\n'
         "Actions: merge, keep, split. Treat split as keep. Rule: if "
         "same_upstream_hint is true and gap_minutes <= 80, choose merge unless "
         "the two windows clearly contradict. Different services are expected "
@@ -2006,8 +2131,7 @@ def _parse_pair_action(text: str) -> tuple[str, bool]:
         if normalized == action:
             return action, True
     tokens = [
-        token.strip(" \t\r\n.,:;!?\"'`[]{}()<>")
-        for token in normalized.replace("/", " ").split()
+        token.strip(" \t\r\n.,:;!?\"'`[]{}()<>") for token in normalized.replace("/", " ").split()
     ]
     for action in ("MERGE", "KEEP", "SPLIT", "ABSTAIN"):
         if action in tokens:
@@ -2138,8 +2262,7 @@ def _apply_llm_hybrid_merge_payload(
                     if not part_evidence_ids:
                         continue
                     part_evidence = [
-                        evidence_by_id[evidence_id]
-                        for evidence_id in part_evidence_ids
+                        evidence_by_id[evidence_id] for evidence_id in part_evidence_ids
                     ]
                     part_item = _hypothesis_from_evidence_group(
                         part_evidence,
@@ -2154,10 +2277,7 @@ def _apply_llm_hybrid_merge_payload(
                     }
                     part_allowed = part_services | part_hints
                     root_service = part.get("root_service")
-                    if (
-                        isinstance(root_service, str)
-                        and root_service in part_allowed
-                    ):
+                    if isinstance(root_service, str) and root_service in part_allowed:
                         part_item["root_service"] = root_service
                     affected_services = part.get("affected_services")
                     if isinstance(affected_services, list):
@@ -2205,8 +2325,7 @@ def _apply_llm_hybrid_merge_payload(
             merge_indices = [
                 candidate
                 for candidate in dict.fromkeys([idx, *merge_indices])
-                if 0 <= candidate < len(hypotheses)
-                and candidate not in consumed_by_merge
+                if 0 <= candidate < len(hypotheses) and candidate not in consumed_by_merge
             ]
             merge_evidence_ids: list[str] = []
             for candidate in merge_indices:
@@ -2217,20 +2336,14 @@ def _apply_llm_hybrid_merge_payload(
                 )
             merge_evidence_ids = list(dict.fromkeys(merge_evidence_ids))
             if len(merge_indices) > 1 and merge_evidence_ids:
-                merge_evidence = [
-                    evidence_by_id[evidence_id] for evidence_id in merge_evidence_ids
-                ]
+                merge_evidence = [evidence_by_id[evidence_id] for evidence_id in merge_evidence_ids]
                 merge_item = _hypothesis_from_evidence_group(
                     merge_evidence,
                     reducer="llm-hybrid",
                     include_root_hint_in_affected=True,
                 )
-                allowed_services = {
-                    evidence.service for evidence in merge_evidence
-                } | {
-                    evidence.upstream_hint
-                    for evidence in merge_evidence
-                    if evidence.upstream_hint
+                allowed_services = {evidence.service for evidence in merge_evidence} | {
+                    evidence.upstream_hint for evidence in merge_evidence if evidence.upstream_hint
                 }
                 root_service = raw.get("root_service")
                 if isinstance(root_service, str) and root_service in allowed_services:
@@ -2338,9 +2451,7 @@ def _apply_llm_pairwise_merge_payload(
             continue
         pair = pair_by_id.get(int(pair_id))
         if pair is None:
-            pair_trace.append(
-                {"pair": int(pair_id), "action": "invalid", "reason": "unknown_pair"}
-            )
+            pair_trace.append({"pair": int(pair_id), "action": "invalid", "reason": "unknown_pair"})
             continue
         action = str(raw.get("action", "keep")).strip().lower()
         reason = str(raw.get("reason", ""))[:160]
@@ -2350,9 +2461,7 @@ def _apply_llm_pairwise_merge_payload(
             if isinstance(candidate, int) or str(candidate).isdigit()
         ]
         if len(candidate_indices) != 2:
-            pair_trace.append(
-                {"pair": int(pair_id), "action": "invalid", "reason": "bad_pair"}
-            )
+            pair_trace.append({"pair": int(pair_id), "action": "invalid", "reason": "bad_pair"})
             continue
         pair_evidence_ids = {
             str(evidence_id)
@@ -2596,6 +2705,57 @@ def _mark_validated_fallback(
     ]
 
 
+def _stable_payload_digest(payload: Any) -> str:
+    encoded = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _build_semantic_reduce_contract_trace(
+    *,
+    candidates: list[dict[str, Any]],
+    output_hypotheses: list[dict[str, Any]],
+    evidence: list[EvidenceObject],
+    validation_trace: dict[str, Any],
+    bounded_actions: tuple[str, ...],
+) -> dict[str, Any]:
+    """Build the replay key and state-transition record owned by the runtime.
+
+    The model never supplies these fields. They bind a reducer decision to the
+    exact candidate/evidence state and make commit versus baseline preservation
+    directly checkable in archived artifacts.
+    """
+
+    candidate_digest = _stable_payload_digest(candidates)
+    output_digest = _stable_payload_digest(output_hypotheses)
+    evidence_digest = _stable_payload_digest(
+        [evidence_to_dict(item) for item in sorted(evidence, key=lambda item: item.evidence_id)]
+    )
+    fallback_count = int(validation_trace.get("fallback_count", 0) or 0)
+    commit_outcome = "preserved-baseline" if fallback_count else "committed"
+    replay_id = _stable_payload_digest(
+        {
+            "candidate_state_digest": candidate_digest,
+            "evidence_state_digest": evidence_digest,
+            "bounded_actions": list(bounded_actions),
+        }
+    )
+    return {
+        "contract_version": "semantic-reduce/v1",
+        "bounded_actions": list(bounded_actions),
+        "candidate_state_digest": candidate_digest,
+        "evidence_state_digest": evidence_digest,
+        "committed_state_digest": output_digest,
+        "commit_outcome": commit_outcome,
+        "validator_owned": True,
+        "replay_id": replay_id,
+    }
+
+
 def _clusters_from_groups(
     groups: dict[tuple[str, str], list[EvidenceObject]], *, reducer: str
 ) -> list[dict[str, Any]]:
@@ -2628,6 +2788,64 @@ def _semantic_graph_groups(evidence: list[EvidenceObject]) -> list[list[Evidence
         else:
             target_group.append(item)
     return groups
+
+
+def _cluster_affinity(
+    left: list[EvidenceObject],
+    right: list[EvidenceObject],
+    *,
+    max_gap_minutes: int,
+    max_cluster_span_minutes: int,
+) -> float:
+    left_regions = {item.region for item in left}
+    right_regions = {item.region for item in right}
+    if len(left_regions | right_regions) != 1:
+        return float("-inf")
+    left_hints = {item.upstream_hint for item in left if item.upstream_hint}
+    right_hints = {item.upstream_hint for item in right if item.upstream_hint}
+    if left_hints and right_hints and left_hints.isdisjoint(right_hints):
+        return float("-inf")
+    combined = [*left, *right]
+    span = max(item.end_minute for item in combined) - min(item.start_minute for item in combined)
+    if span > max_cluster_span_minutes:
+        return float("-inf")
+    gap = max(
+        min(item.start_minute for item in left),
+        min(item.start_minute for item in right),
+    ) - min(
+        max(item.end_minute for item in left),
+        max(item.end_minute for item in right),
+    )
+    if gap > max_gap_minutes:
+        return float("-inf")
+    return max(_observable_pair_affinity(a, b) for a in left for b in right)
+
+
+def _observable_pair_affinity(left: EvidenceObject, right: EvidenceObject) -> float:
+    if left.region != right.region:
+        return float("-inf")
+    if left.upstream_hint and right.upstream_hint and left.upstream_hint != right.upstream_hint:
+        return float("-inf")
+    gap = max(left.start_minute, right.start_minute) - min(left.end_minute, right.end_minute)
+    if gap > 80:
+        return float("-inf")
+
+    same_hint = bool(left.upstream_hint and left.upstream_hint == right.upstream_hint)
+    related_services = _services_related(left.service, right.service)
+    score = 4.5 if same_hint else 0.0
+    if related_services:
+        score += 2.5
+    if gap <= 0:
+        score += 1.5
+    elif gap <= 12:
+        score += 1.0
+    elif gap <= 40:
+        score += 0.5
+    shared_signals = set(left.signals) & set(right.signals)
+    all_signals = set(left.signals) | set(right.signals)
+    score += 0.75 * len(shared_signals) / max(1, len(all_signals))
+    score += 0.5 * max(0.0, statistics.fmean((left.score, right.score)) - 0.5)
+    return score
 
 
 def _can_semantically_merge(item: EvidenceObject, group: list[EvidenceObject]) -> bool:
@@ -2741,9 +2959,37 @@ def _estimate_tokens_from_chars(chars: int) -> int:
     return max(1, (chars + 3) // 4) if chars else 0
 
 
-def _cost_accounting_for_reducer(
-    reducer: MergeReducer, *, reduce_ms: float
+def _provider_usage_from_request_trace(
+    request_trace: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    """Sum provider-reported usage without treating estimates as measurements."""
+    prompt_tokens = 0
+    response_tokens = 0
+    total_tokens = 0
+    observed = False
+    for request in request_trace:
+        provider_response = request.get("provider_response")
+        usage = provider_response.get("usage") if isinstance(provider_response, dict) else None
+        if not isinstance(usage, dict):
+            continue
+        observed = True
+        prompt = usage.get("prompt_tokens", usage.get("input_tokens", 0))
+        response = usage.get("completion_tokens", usage.get("output_tokens", 0))
+        prompt_tokens += int(prompt or 0)
+        response_tokens += int(response or 0)
+        total_tokens += int(usage.get("total_tokens", 0) or 0)
+    if observed and total_tokens == 0:
+        total_tokens = prompt_tokens + response_tokens
+    return {
+        "provider_usage_available": observed,
+        "provider_prompt_tokens": prompt_tokens if observed else None,
+        "provider_response_tokens": response_tokens if observed else None,
+        "provider_total_tokens": total_tokens if observed else None,
+        "token_measurement_source": "provider-usage" if observed else "char-estimate",
+    }
+
+
+def _cost_accounting_for_reducer(reducer: MergeReducer, *, reduce_ms: float) -> dict[str, Any]:
     last_call = getattr(reducer, "last_call", None)
     if isinstance(last_call, dict) and last_call:
         return {
@@ -2768,10 +3014,13 @@ def _cost_accounting_for_reducer(
             ).get("fallback_reason"),
             "retry_count": int(last_call.get("retry_count", 0)),
             "estimated_prompt_tokens": int(last_call.get("estimated_prompt_tokens", 0)),
-            "estimated_response_tokens": int(
-                last_call.get("estimated_response_tokens", 0)
-            ),
+            "estimated_response_tokens": int(last_call.get("estimated_response_tokens", 0)),
             "estimated_total_tokens": int(last_call.get("estimated_total_tokens", 0)),
+            "provider_usage_available": bool(last_call.get("provider_usage_available", False)),
+            "provider_prompt_tokens": last_call.get("provider_prompt_tokens"),
+            "provider_response_tokens": last_call.get("provider_response_tokens"),
+            "provider_total_tokens": last_call.get("provider_total_tokens"),
+            "token_measurement_source": last_call.get("token_measurement_source", "char-estimate"),
         }
     return {
         "provider": "offline",
@@ -2781,6 +3030,11 @@ def _cost_accounting_for_reducer(
         "estimated_prompt_tokens": 0,
         "estimated_response_tokens": 0,
         "estimated_total_tokens": 0,
+        "provider_usage_available": False,
+        "provider_prompt_tokens": None,
+        "provider_response_tokens": None,
+        "provider_total_tokens": None,
+        "token_measurement_source": "not-applicable",
     }
 
 
@@ -2813,9 +3067,7 @@ def _classify_missed_incident(
     evidence: list[EvidenceObject],
 ) -> dict[str, Any]:
     source_evidence = _incident_evidence(evidence, incident)
-    overlapping = [
-        item for item in detected if _overlaps_incident(item, incident)
-    ]
+    overlapping = [item for item in detected if _overlaps_incident(item, incident)]
     result = {
         **incident_to_dict(incident),
         "failure_type": "unknown",
@@ -2862,8 +3114,7 @@ def _classify_false_positive(
         {
             evidence_by_id[evidence_id].source_incident_id
             for evidence_id in evidence_ids
-            if evidence_id in evidence_by_id
-            and evidence_by_id[evidence_id].source_incident_id
+            if evidence_id in evidence_by_id and evidence_by_id[evidence_id].source_incident_id
         }
     )
     if not source_ids:
@@ -2886,8 +3137,7 @@ def _evidence_coverage_metrics(
     detected: list[dict[str, Any]],
 ) -> dict[str, float]:
     evidence_by_incident: dict[str, list[EvidenceObject]] = {
-        incident.incident_id: _incident_evidence(evidence, incident)
-        for incident in incidents
+        incident.incident_id: _incident_evidence(evidence, incident) for incident in incidents
     }
     incident_count = len(incidents)
     evidence_covered = sum(1 for items in evidence_by_incident.values() if items)
@@ -2910,14 +3160,9 @@ def _evidence_coverage_metrics(
         )
 
     return {
-        "evidence_coverage": evidence_covered / incident_count
-        if incident_count
-        else 1.0,
-        "root_evidence_coverage": root_covered / incident_count
-        if incident_count
-        else 1.0,
-        "support_evidence_recall": len(referenced_source_ids)
-        / max(1, len(source_evidence_ids)),
+        "evidence_coverage": evidence_covered / incident_count if incident_count else 1.0,
+        "root_evidence_coverage": root_covered / incident_count if incident_count else 1.0,
+        "support_evidence_recall": len(referenced_source_ids) / max(1, len(source_evidence_ids)),
     }
 
 
@@ -2946,9 +3191,7 @@ def run_semantic_merge_workload(
     recall = len(matched_ids) / len(dataset.incidents) if dataset.incidents else 1.0
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
     missed = [
-        _classify_missed_incident(
-            incident, detected=detected, evidence=dataset.evidence
-        )
+        _classify_missed_incident(incident, detected=detected, evidence=dataset.evidence)
         for incident in dataset.incidents
         if incident.incident_id not in matched_ids
     ]
@@ -2966,6 +3209,17 @@ def run_semantic_merge_workload(
     reducer_metadata = getattr(merge_reducer, "last_call", {})
     if not isinstance(reducer_metadata, dict):
         reducer_metadata = {}
+    contract_trace = reducer_metadata.get("contract_trace", {})
+    operators = [
+        "Shard",
+        "MapEvidence",
+        "Normalize",
+        "GroupEvidence",
+        "SemanticReduce",
+    ]
+    if contract_trace:
+        operators.extend(["Edit", "Validate"])
+    operators.append("ReportTrace")
     return MergeReport(
         reducer_name=merge_reducer.name,
         scenario=dataset.scenario,
@@ -2994,20 +3248,12 @@ def run_semantic_merge_workload(
             "reduce_duration_ms": round(reduce_ms, 2),
             "metadata": reducer_metadata,
         },
-        cost_accounting=_cost_accounting_for_reducer(
-            merge_reducer, reduce_ms=reduce_ms
-        ),
+        cost_accounting=_cost_accounting_for_reducer(merge_reducer, reduce_ms=reduce_ms),
         workflow_trace={
-            "operators": [
-                "Shard",
-                "MapEvidence",
-                "Normalize",
-                "GroupEvidence",
-                "SemanticReduce",
-                "ReportTrace",
-            ],
+            "operators": operators,
             "dependency_graph": DEPENDENCIES,
             "evidence": [evidence_to_dict(item) for item in dataset.evidence],
+            "execution_contract": contract_trace,
         },
     )
 
@@ -3026,6 +3272,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             "map-only",
             "service-local",
             "window-aggregate",
+            "constrained-agglomerative",
             "semantic-graph",
             "hybrid-hint",
             "llm-stub",

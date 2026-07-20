@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from copy import deepcopy
 from dataclasses import dataclass, field, replace
 from threading import RLock
 from typing import Any
@@ -128,6 +129,7 @@ class SharedStateServiceRegistry:
         descriptor_or_contract_id: Any,
         *,
         reason: str = "manual_recovery",
+        checkpoint_snapshot: Any | None = None,
     ) -> SharedStateServiceRecord:
         contract_id = self._resolve_contract_id(descriptor_or_contract_id)
         normalized_reason = _normalize_optional_non_empty(reason) or "manual_recovery"
@@ -154,7 +156,11 @@ class SharedStateServiceRegistry:
                         error_prefix="shared_state_checkpoint_restore_not_supported",
                         details=checkpoint_details,
                     )
-                    snapshot = snapshot_checkpoint_state(record.service_object)
+                    snapshot = (
+                        snapshot_checkpoint_state(record.service_object)
+                        if checkpoint_snapshot is None
+                        else deepcopy(checkpoint_snapshot)
+                    )
                     recovered_object = factory(*record.factory_args, **record.factory_kwargs)
                     require_checkpoint_restore_support(
                         recovered_object,
@@ -183,6 +189,9 @@ class SharedStateServiceRegistry:
                     metadata={
                         "contract_id": contract_id,
                         "service_revision": int(record.service_revision) + 1,
+                        "checkpoint_source": (
+                            "live-service" if checkpoint_snapshot is None else "supplied-snapshot"
+                        ),
                     },
                 )
             else:
