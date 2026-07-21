@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import hashlib
 import json
 
+from jsonschema import Draft202012Validator
+
 from sage.workloads.semantic_reduce_edit_evaluation import (
+    BoundedEditRuntime,
     OpenAIProposalSelector,
+    SemanticGraphMergeReducer,
     evaluate_workload,
 )
 from sage.workloads.semantic_reduce_heldout import generate_heldout_workload
@@ -83,14 +88,21 @@ class _Response:
 def test_real_online_selector_returns_ids_and_retains_secret_free_raw_trace(
     monkeypatch,
 ) -> None:
-    monkeypatch.setattr(
-        "urllib.request.urlopen",
-        lambda request, timeout: _Response(
+    captured: dict[str, object] = {}
+
+    def respond(request, timeout):
+        del timeout
+        captured["request"] = json.loads(request.data)
+        return _Response(
             {
                 "choices": [{"message": {"content": '{"proposal_ids":[]}'}}],
                 "usage": {"prompt_tokens": 12, "completion_tokens": 4},
             }
-        ),
+        )
+
+    monkeypatch.setattr(
+        "urllib.request.urlopen",
+        respond,
     )
     selector = OpenAIProposalSelector(
         base_url="http://127.0.0.1:18383",
@@ -108,6 +120,108 @@ def test_real_online_selector_returns_ids_and_retains_secret_free_raw_trace(
     assert "online_model_selector" in row["policies"]
     assert selector.last_trace["outcome"] == "parsed"
     assert "do-not-retain" not in json.dumps(selector.last_trace)
+    response_format = captured["request"]["response_format"]
+    assert response_format["type"] == "json_schema"
+    assert response_format["json_schema"]["strict"] is True
+    schema = response_format["json_schema"]["schema"]
+    assert schema["required"] == ["proposal_ids"]
+    assert schema["additionalProperties"] is False
+    proposal_ids = schema["properties"]["proposal_ids"]
+    assert proposal_ids["type"] == "array"
+    assert proposal_ids["uniqueItems"] is True
+    assert proposal_ids["maxItems"] > 0
+    assert proposal_ids["items"]["type"] == "string"
+    assert proposal_ids["items"]["enum"]
+
+
+def test_real_online_selector_emits_digest_stable_strict_selection_schema() -> None:
+    workload = generate_heldout_workload("hint-missing", seed=7, split="development")
+    runtime = BoundedEditRuntime(
+        base_reducer=SemanticGraphMergeReducer(),
+        proposal_budget=workload.proposal_budget,
+        service_topology=workload.service_topology,
+    )
+    h0 = runtime.build_h0(workload.dataset.evidence)
+    catalog = runtime.build_catalog(h0, workload.dataset.evidence)
+    selector = OpenAIProposalSelector(
+        base_url="http://127.0.0.1.invalid",
+        model="offline",
+        api_key="offline",
+        sampling_seed=0,
+    )
+
+    response_format = selector.response_format(catalog)
+    schema = response_format["json_schema"]["schema"]
+    canonical = json.dumps(
+        response_format, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    visible_ids = schema["properties"]["proposal_ids"]["items"]["enum"]
+    expected_max_items = len(
+        {
+            candidate_id
+            for proposal in catalog.proposals
+            if proposal.action in {"MERGE", "SPLIT"}
+            for candidate_id in proposal.candidate_ids
+        }
+    )
+
+    assert (
+        hashlib.sha256(canonical).hexdigest()
+        == "c6c6f48e9ed07ae17a4001f07f6d11b00755df38ed3eced67fc0fb1f34e52251"
+    )
+    assert schema["properties"]["proposal_ids"]["maxItems"] == expected_max_items
+    Draft202012Validator.check_schema(schema)
+    validator = Draft202012Validator(schema)
+    validator.validate({"proposal_ids": []})
+    validator.validate({"proposal_ids": [visible_ids[0]]})
+
+    rejected = (
+        {},
+        {"proposal_ids": [], "explanation": "not allowed"},
+        {"proposal_ids": [visible_ids[0], visible_ids[0]]},
+        {"proposal_ids": ["not-a-visible-proposal"]},
+    )
+    for payload in rejected:
+        assert list(validator.iter_errors(payload)), payload
+
+
+def test_strict_wire_schema_does_not_replace_conflict_validation() -> None:
+    workload = generate_heldout_workload("catalog-budget-truncation", seed=7, split="development")
+    runtime = BoundedEditRuntime(
+        base_reducer=SemanticGraphMergeReducer(),
+        proposal_budget=workload.proposal_budget,
+        service_topology=workload.service_topology,
+    )
+    h0 = runtime.build_h0(workload.dataset.evidence)
+    catalog = runtime.build_catalog(h0, workload.dataset.evidence)
+    conflicting = next(
+        (left.proposal_id, right.proposal_id)
+        for left in catalog.proposals
+        for right in catalog.proposals
+        if left.proposal_id < right.proposal_id
+        and left.action in {"MERGE", "SPLIT"}
+        and right.action in {"MERGE", "SPLIT"}
+        and set(left.candidate_ids) & set(right.candidate_ids)
+    )
+    schema = OpenAIProposalSelector(
+        base_url="http://127.0.0.1.invalid",
+        model="offline",
+        api_key="offline",
+        sampling_seed=0,
+    ).response_format(catalog)["json_schema"]["schema"]
+
+    # Both IDs are wire-valid. The system-owned validator, not JSON Schema,
+    # must continue to reject their conflicting candidate consumption.
+    Draft202012Validator(schema).validate({"proposal_ids": list(conflicting)})
+    result = runtime.commit_selection(
+        evidence=workload.dataset.evidence,
+        h0=h0,
+        catalog=catalog,
+        raw_selection=conflicting,
+        selector_name="schema-valid-conflict-fixture",
+    )
+    assert result.trace["commit_outcome"] == "rolled-back-invalid-selection"
+    assert result.trace["validator_reason_code"] == "conflicting_candidate_consumption"
 
 
 def test_real_online_selector_fails_closed_on_malformed_response(monkeypatch) -> None:

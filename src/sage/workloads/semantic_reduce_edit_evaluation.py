@@ -272,6 +272,48 @@ class OpenAIProposalSelector:
             },
         ]
 
+    def response_format(self, catalog: ProposalCatalog) -> dict[str, Any]:
+        """Bind the wire grammar to the same ID-only contract as the parser."""
+        by_id = catalog.by_id()
+        if self.visible_proposal_ids is None:
+            visible = sorted(
+                (
+                    proposal
+                    for proposal in catalog.proposals
+                    if proposal.action in {"MERGE", "SPLIT"}
+                ),
+                key=lambda proposal: proposal.proposal_id,
+            )
+        else:
+            unknown = [value for value in self.visible_proposal_ids if value not in by_id]
+            if unknown:
+                raise ValueError(f"unknown visible proposal IDs: {unknown}")
+            visible = [by_id[value] for value in self.visible_proposal_ids]
+        visible_ids = [proposal.proposal_id for proposal in visible]
+        candidate_count = len(
+            {candidate_id for proposal in visible for candidate_id in proposal.candidate_ids}
+        )
+        return {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "semantic_reduce_proposal_selection",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "proposal_ids": {
+                            "type": "array",
+                            "items": {"type": "string", "enum": visible_ids},
+                            "maxItems": candidate_count,
+                            "uniqueItems": True,
+                        }
+                    },
+                    "required": ["proposal_ids"],
+                    "additionalProperties": False,
+                },
+            },
+        }
+
     def select(
         self,
         *,
@@ -286,7 +328,7 @@ class OpenAIProposalSelector:
             "temperature": self.temperature,
             "seed": self.sampling_seed,
             "max_tokens": self.max_tokens,
-            "response_format": {"type": "json_object"},
+            "response_format": self.response_format(catalog),
         }
         request = urllib.request.Request(
             f"{self.base_url}/v1/chat/completions",
