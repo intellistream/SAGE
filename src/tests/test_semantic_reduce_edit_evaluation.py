@@ -130,3 +130,36 @@ def test_real_online_selector_fails_closed_on_malformed_response(monkeypatch) ->
     assert selector.last_trace["outcome"] == "fail-closed-empty-selection"
     assert row["policies"]["online_model_selector"]["selected_proposal_ids"] == []
     assert row["policies"]["online_model_selector"]["f1_delta_from_h0"] == 0
+
+
+def test_compact_prompt_keeps_complete_evidence_for_visible_proposals() -> None:
+    workload = generate_heldout_workload("mixed-split-merge", seed=7, split="development")
+    captured: dict[str, object] = {}
+
+    class _CaptureSelector:
+        name = "capture-selector"
+
+        def select(self, *, h0, catalog, evidence):
+            proposal = next(item for item in catalog.proposals if item.action == "SPLIT")
+            selector = OpenAIProposalSelector(
+                base_url="http://127.0.0.1.invalid",
+                model="offline",
+                api_key="offline",
+                sampling_seed=0,
+                visible_proposal_ids=[proposal.proposal_id],
+            )
+            prompt = selector.build_messages(h0=h0, catalog=catalog, evidence=evidence)[1][
+                "content"
+            ]
+            candidate = next(
+                item for item in h0.candidates if item.candidate_id in proposal.candidate_ids
+            )
+            captured["prompt"] = prompt
+            captured["evidence_ids"] = candidate.evidence_ids
+            return []
+
+    evaluate_workload(workload, model_selector=_CaptureSelector())
+    prompt = str(captured["prompt"])
+    for evidence_id in captured["evidence_ids"]:
+        assert f"E|{evidence_id}|" in prompt
+    assert "no field or row is truncated" in prompt

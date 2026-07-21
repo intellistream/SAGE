@@ -109,6 +109,7 @@ class OpenAIProposalSelector:
     """Fail-closed real-online selector over system-owned proposal IDs only."""
 
     name = "openai-proposal-id-selector"
+    system_message = "You are a bounded semantic-reduction proposal selector."
 
     def __init__(
         self,
@@ -120,6 +121,7 @@ class OpenAIProposalSelector:
         temperature: float = 0.0,
         max_tokens: int = 256,
         timeout_sec: int = 180,
+        visible_proposal_ids: Sequence[str] | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
@@ -128,7 +130,28 @@ class OpenAIProposalSelector:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.timeout_sec = timeout_sec
+        self.visible_proposal_ids = (
+            tuple(visible_proposal_ids) if visible_proposal_ids is not None else None
+        )
         self.last_trace: dict[str, Any] = {}
+
+    @staticmethod
+    def _field(value: Any) -> str:
+        if value is None:
+            return "-"
+        if isinstance(value, bool):
+            return str(value).lower()
+        if isinstance(value, dict):
+            return (
+                ",".join(
+                    f"{key}={OpenAIProposalSelector._field(item)}"
+                    for key, item in sorted(value.items())
+                )
+                or "-"
+            )
+        if isinstance(value, (list, tuple)):
+            return ",".join(OpenAIProposalSelector._field(item) for item in value) or "-"
+        return str(value)
 
     @staticmethod
     def _prompt(
@@ -136,22 +159,118 @@ class OpenAIProposalSelector:
         h0: CandidateState,
         catalog: ProposalCatalog,
         evidence: Sequence[Any],
+        visible_proposal_ids: Sequence[str] | None = None,
     ) -> str:
-        payload = {
-            "contract_version": "semantic-reduce/v2",
-            "h0_digest": h0.digest,
-            "catalog_digest": catalog.digest,
-            "h0": h0.to_dict(),
-            "catalog": catalog.to_dict(),
-            "observable_evidence": [observable_evidence_dict(item) for item in evidence],
+        by_id = catalog.by_id()
+        if visible_proposal_ids is None:
+            visible = [item for item in catalog.proposals if item.action in {"MERGE", "SPLIT"}]
+        else:
+            unknown = [value for value in visible_proposal_ids if value not in by_id]
+            if unknown:
+                raise ValueError(f"visible proposal IDs are not in catalog: {unknown}")
+            visible = [by_id[value] for value in visible_proposal_ids]
+            if any(item.action not in {"MERGE", "SPLIT"} for item in visible):
+                raise ValueError("prompt view may contain only state-changing proposals")
+
+        candidate_ids = {
+            candidate_id for proposal in visible for candidate_id in proposal.candidate_ids
         }
-        return (
-            "Select zero or more nonconflicting proposal IDs from the supplied "
-            "system-owned catalog. Never invent an ID or edit payload. Prefer "
-            "repairs justified by observable evidence; choose an empty list when "
-            'uncertain. Return JSON only as {"proposal_ids":["A0001"]}.\n'
-            + json.dumps(payload, ensure_ascii=False, sort_keys=True)
+        candidates = [
+            candidate for candidate in h0.candidates if candidate.candidate_id in candidate_ids
+        ]
+        critical_evidence_ids = {
+            evidence_id for candidate in candidates for evidence_id in candidate.evidence_ids
+        }
+        observable = {item.evidence_id: observable_evidence_dict(item) for item in evidence}
+        missing = sorted(critical_evidence_ids - observable.keys())
+        if missing:
+            raise ValueError(f"candidate evidence is missing from prompt input: {missing}")
+
+        lines = [
+            "CONTRACT semantic-reduce/v2-compact-prompt/1",
+            f"H0 {h0.digest}",
+            f"CATALOG {catalog.digest}",
+            "EVIDENCE_RULE every evidence row owned by a visible proposal candidate is complete; no field or row is truncated",
+            "COLUMNS C:id|root|region|start-end|services|signals|score|evidence_ids",
+            "COLUMNS P:id|action|candidate_ids|generator|metadata|parts",
+            "COLUMNS E:id|service|region|start-end|signals|score|p95ms|error_rate|queue_depth|npu_util|upstream_hint",
+        ]
+        for candidate in candidates:
+            hypothesis = candidate.hypothesis
+            lines.append(
+                "|".join(
+                    [
+                        "C",
+                        candidate.candidate_id,
+                        str(hypothesis["root_service"]),
+                        str(hypothesis["region"]),
+                        f"{hypothesis['start_minute']}-{hypothesis['end_minute']}",
+                        OpenAIProposalSelector._field(hypothesis["affected_services"]),
+                        OpenAIProposalSelector._field(hypothesis["signals"]),
+                        str(hypothesis["score"]),
+                        OpenAIProposalSelector._field(candidate.evidence_ids),
+                    ]
+                )
+            )
+        for proposal in visible:
+            lines.append(
+                "|".join(
+                    [
+                        "P",
+                        proposal.proposal_id,
+                        proposal.action,
+                        OpenAIProposalSelector._field(proposal.candidate_ids),
+                        proposal.generator,
+                        OpenAIProposalSelector._field(dict(proposal.metadata)),
+                        ";".join(OpenAIProposalSelector._field(part) for part in proposal.parts)
+                        or "-",
+                    ]
+                )
+            )
+        evidence_fields = (
+            "evidence_id",
+            "service",
+            "region",
+            "start_minute",
+            "end_minute",
+            "signals",
+            "score",
+            "p95_latency_ms",
+            "error_rate",
+            "queue_depth",
+            "npu_util",
+            "upstream_hint",
         )
+        for evidence_id in sorted(critical_evidence_ids):
+            item = observable[evidence_id]
+            values = [OpenAIProposalSelector._field(item[key]) for key in evidence_fields]
+            values[3:5] = [f"{values[3]}-{values[4]}"]
+            lines.append("|".join(["E", *values]))
+        return (
+            "Select zero or more nonconflicting MERGE/SPLIT proposal IDs shown below. "
+            "Never invent an ID or payload. An empty list keeps H0. Return JSON only "
+            'as {"proposal_ids":["A12"]}.\n' + "\n".join(lines)
+        )
+
+    def build_messages(
+        self,
+        *,
+        h0: CandidateState,
+        catalog: ProposalCatalog,
+        evidence: Sequence[Any],
+    ) -> list[dict[str, str]]:
+        return [
+            {"role": "system", "content": self.system_message},
+            {
+                "role": "user",
+                "content": self._prompt(
+                    h0=h0,
+                    catalog=catalog,
+                    evidence=evidence,
+                    visible_proposal_ids=self.visible_proposal_ids,
+                ),
+            },
+        ]
 
     def select(
         self,
@@ -160,16 +279,10 @@ class OpenAIProposalSelector:
         catalog: ProposalCatalog,
         evidence: Sequence[Any],
     ) -> Sequence[str]:
-        prompt = self._prompt(h0=h0, catalog=catalog, evidence=evidence)
+        messages = self.build_messages(h0=h0, catalog=catalog, evidence=evidence)
         request_payload: dict[str, Any] = {
             "model": self.model,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are a bounded semantic-reduction proposal selector.",
-                },
-                {"role": "user", "content": prompt},
-            ],
+            "messages": messages,
             "temperature": self.temperature,
             "seed": self.sampling_seed,
             "max_tokens": self.max_tokens,
