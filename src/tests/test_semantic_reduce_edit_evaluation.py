@@ -128,7 +128,7 @@ def test_real_online_selector_returns_ids_and_retains_secret_free_raw_trace(
     assert schema["additionalProperties"] is False
     proposal_ids = schema["properties"]["proposal_ids"]
     assert proposal_ids["type"] == "array"
-    assert proposal_ids["uniqueItems"] is True
+    assert "uniqueItems" not in proposal_ids
     assert proposal_ids["maxItems"] > 0
     assert proposal_ids["items"]["type"] == "string"
     assert proposal_ids["items"]["enum"]
@@ -167,7 +167,7 @@ def test_real_online_selector_emits_digest_stable_strict_selection_schema() -> N
 
     assert (
         hashlib.sha256(canonical).hexdigest()
-        == "c6c6f48e9ed07ae17a4001f07f6d11b00755df38ed3eced67fc0fb1f34e52251"
+        == "e21d5b150d6fa2893032d8971b3f575f11d49ac99ba0d16dda717a219987988b"
     )
     assert schema["properties"]["proposal_ids"]["maxItems"] == expected_max_items
     Draft202012Validator.check_schema(schema)
@@ -175,14 +175,53 @@ def test_real_online_selector_emits_digest_stable_strict_selection_schema() -> N
     validator.validate({"proposal_ids": []})
     validator.validate({"proposal_ids": [visible_ids[0]]})
 
-    rejected = (
+    wire_rejected = (
         {},
         {"proposal_ids": [], "explanation": "not allowed"},
-        {"proposal_ids": [visible_ids[0], visible_ids[0]]},
         {"proposal_ids": ["not-a-visible-proposal"]},
     )
-    for payload in rejected:
+    for payload in wire_rejected:
         assert list(validator.iter_errors(payload)), payload
+    # vLLM-HUST rejects the JSON-Schema uniqueItems keyword before xgrammar
+    # compilation. Duplicate rejection therefore remains in the local parser.
+    validator.validate({"proposal_ids": [visible_ids[0], visible_ids[0]]})
+
+
+def test_real_online_selector_rejects_duplicates_locally(monkeypatch) -> None:
+    def respond(request, timeout):
+        del timeout
+        schema = json.loads(request.data)["response_format"]["json_schema"]["schema"]
+        visible_id = schema["properties"]["proposal_ids"]["items"]["enum"][0]
+        return _Response(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {"proposal_ids": [visible_id, visible_id]}
+                            )
+                        }
+                    }
+                ],
+                "usage": {"prompt_tokens": 12, "completion_tokens": 4},
+            }
+        )
+
+    monkeypatch.setattr("urllib.request.urlopen", respond)
+    selector = OpenAIProposalSelector(
+        base_url="http://127.0.0.1:18383",
+        model="review-model",
+        api_key="do-not-retain",
+        sampling_seed=101,
+    )
+    evaluate_workload(
+        generate_heldout_workload("hint-missing", seed=7, split="development"),
+        model_selector=selector,
+        evidence_label="real-online",
+    )
+    assert selector.last_trace["outcome"] == "fail-closed-empty-selection"
+    assert selector.last_trace["error_type"] == "ValueError"
+    assert selector.last_trace["selected_proposal_ids"] == []
 
 
 def test_strict_wire_schema_does_not_replace_conflict_validation() -> None:

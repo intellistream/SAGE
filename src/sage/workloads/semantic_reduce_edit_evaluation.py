@@ -305,7 +305,6 @@ class OpenAIProposalSelector:
                             "type": "array",
                             "items": {"type": "string", "enum": visible_ids},
                             "maxItems": candidate_count,
-                            "uniqueItems": True,
                         }
                     },
                     "required": ["proposal_ids"],
@@ -322,13 +321,14 @@ class OpenAIProposalSelector:
         evidence: Sequence[Any],
     ) -> Sequence[str]:
         messages = self.build_messages(h0=h0, catalog=catalog, evidence=evidence)
+        response_format = self.response_format(catalog)
         request_payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
             "temperature": self.temperature,
             "seed": self.sampling_seed,
             "max_tokens": self.max_tokens,
-            "response_format": self.response_format(catalog),
+            "response_format": response_format,
         }
         request = urllib.request.Request(
             f"{self.base_url}/v1/chat/completions",
@@ -357,6 +357,15 @@ class OpenAIProposalSelector:
                 isinstance(value, str) for value in raw_ids
             ):
                 raise ValueError("proposal_ids must be a list of strings")
+            proposal_schema = response_format["json_schema"]["schema"]["properties"]
+            proposal_schema = proposal_schema["proposal_ids"]
+            visible_ids = set(proposal_schema["items"]["enum"])
+            if len(raw_ids) != len(set(raw_ids)):
+                raise ValueError("proposal_ids must be unique")
+            if len(raw_ids) > int(proposal_schema["maxItems"]):
+                raise ValueError("proposal_ids exceeds the candidate budget")
+            if not set(raw_ids) <= visible_ids:
+                raise ValueError("proposal_ids contains an unknown or hidden ID")
             selected = list(raw_ids)
             outcome = "parsed"
         except (OSError, ValueError, KeyError, IndexError, json.JSONDecodeError) as exc:
