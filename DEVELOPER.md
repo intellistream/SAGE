@@ -40,7 +40,7 @@ ______________________________________________________________________
 
 ```bash
 # Clone repository
-git clone https://github.com/intellistream/SAGE.git
+git clone https://github.com/SAGE-Research/SAGE.git
 cd SAGE
 
 # Use canonical branch
@@ -95,7 +95,7 @@ git checkout main
 1. Clone and switch to canonical branch
 
    ```bash
-   git clone https://github.com/intellistream/SAGE.git && cd SAGE
+   git clone https://github.com/SAGE-Research/SAGE.git && cd SAGE
    git checkout main
    ```
 
