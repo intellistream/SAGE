@@ -10,6 +10,8 @@ from sage.runtime.flownet import (
 )
 from sage.runtime.flownet.runtime.actors.backend_jobs import (
     _resolve_prefix_cache_key_backend_affinity,
+)
+from sage.runtime.flownet.runtime.actors.backend_jobs import (
     submit_backend_job as actor_submit_backend_job,
 )
 from sage.runtime.flownet.runtime.actors.execution_context import (
@@ -485,8 +487,9 @@ def test_actor_submit_backend_job_uses_prefix_cache_key_for_stable_backend_affin
             ]
             is True
         )
-        assert "preferred_backend" in target_backend.submitted_requests[-1]["backend_selection"][
-            "selection_reason_codes"
-        ]
+        assert (
+            "preferred_backend"
+            in target_backend.submitted_requests[-1]["backend_selection"]["selection_reason_codes"]
+        )
     finally:
         bootstrap.shutdown()

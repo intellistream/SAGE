@@ -174,7 +174,7 @@ async def _await_runtime_task(value: Any, *, timeout_ms: int | None = None) -> A
         return await awaitable
     try:
         return await asyncio.wait_for(awaitable, timeout=timeout_seconds)
-    except asyncio.TimeoutError as exc:
+    except TimeoutError as exc:
         raise RuntimeError(
             build_error_message(
                 ACTOR_TASK_TIMEOUT,

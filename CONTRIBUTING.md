@@ -50,7 +50,7 @@ sage-dev quality check --all-files --readme
 
 ```bash
 # 克隆仓库（若已 fork，请替换为你的 fork 地址）
-git clone https://github.com/intellistream/SAGE.git
+git clone https://github.com/SAGE-Research/SAGE.git
 cd SAGE
 
 # 切换默认分支并更新

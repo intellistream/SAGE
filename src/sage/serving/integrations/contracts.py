@@ -163,7 +163,9 @@ class WorkflowServingRequestContext:
     def __post_init__(self) -> None:
         object.__setattr__(self, "tenant_id", _normalize_optional_non_empty(self.tenant_id))
         object.__setattr__(self, "model_id", _normalize_optional_non_empty(self.model_id))
-        object.__setattr__(self, "prefix_cache_key", _normalize_optional_non_empty(self.prefix_cache_key))
+        object.__setattr__(
+            self, "prefix_cache_key", _normalize_optional_non_empty(self.prefix_cache_key)
+        )
         object.__setattr__(
             self,
             "prompt_len",

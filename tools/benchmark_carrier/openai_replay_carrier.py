@@ -19,7 +19,6 @@ import aiohttp
 
 from sage.serving.integrations import policy as runtime_policy
 
-
 SUPPORTED_DIRECT_ENDPOINT_VARIANTS = runtime_policy.SUPPORTED_DIRECT_ENDPOINT_VARIANTS
 _DIRECT_ENDPOINT_VARIANT_POLICIES = runtime_policy.DIRECT_ENDPOINT_VARIANT_POLICIES
 _EXECUTION_PRIORITY_MODES = runtime_policy.EXECUTION_PRIORITY_MODES
@@ -46,7 +45,7 @@ def _parse_args() -> argparse.Namespace:
         "--endpoint-map",
         help=(
             "JSON object mapping replay model_id values to base URLs, for example "
-            "'{\"meta-llama/Llama-3.1-8B-Instruct\":\"http://127.0.0.1:8101\"}'."
+            '\'{"meta-llama/Llama-3.1-8B-Instruct":"http://127.0.0.1:8101"}\'.'
         ),
     )
     parser.add_argument(
@@ -80,7 +79,7 @@ def _parse_args() -> argparse.Namespace:
         "--deadline-class-max-tokens",
         help=(
             "Optional JSON object mapping deadline_class values to explicit max_tokens caps, "
-            "for example '{\"interactive-high\":512,\"batch-standard\":64}'. "
+            'for example \'{"interactive-high":512,"batch-standard":64}\'. '
             "When set, the replay request budget is clamped to the smaller of the replay "
             "value and the configured class cap."
         ),
@@ -671,9 +670,13 @@ async def _run_one_request(
     if sleep_for > 0:
         await asyncio.sleep(sleep_for)
 
-    policy_trace = await _await_policy_dispatch_window(event, base_url, variant_policy, current_load)
+    policy_trace = await _await_policy_dispatch_window(
+        event, base_url, variant_policy, current_load
+    )
     _controller_decision_end = time.perf_counter()
-    _controller_decision_us = (_controller_decision_end - (start_perf + scheduled_at_s + max(0, sleep_for))) * 1e6
+    _controller_decision_us = (
+        _controller_decision_end - (start_perf + scheduled_at_s + max(0, sleep_for))
+    ) * 1e6
     control_snapshot = dict(policy_trace.get("observed_load") or {})
     if not control_snapshot:
         control_snapshot = _live_load_snapshot(current_load, base_url)
@@ -831,7 +834,9 @@ def _build_metrics(
 ) -> dict[str, Any]:
     total_requests = len(rows)
     completed_rows = [row for row in rows if row.get("success")]
-    ttft_values = [float(row["ttft_ms"]) for row in completed_rows if row.get("ttft_ms") is not None]
+    ttft_values = [
+        float(row["ttft_ms"]) for row in completed_rows if row.get("ttft_ms") is not None
+    ]
     e2e_values = [float(row["e2e_ms"]) for row in completed_rows if row.get("e2e_ms") is not None]
     reject_count = sum(1 for row in rows if not row.get("success"))
     violation_count = sum(1 for row in rows if row.get("slo_violated"))
@@ -840,7 +845,8 @@ def _build_metrics(
         delayed_count = sum(
             1
             for row in rows
-            if float(row.get("started_at_s") or 0.0) - float(row.get("scheduled_at_s") or 0.0) > 0.05
+            if float(row.get("started_at_s") or 0.0) - float(row.get("scheduled_at_s") or 0.0)
+            > 0.05
         )
     duration_s = 0.0
     if rows:
@@ -880,10 +886,14 @@ def _build_metrics(
         ),
         "free_vram_bytes": None,
         "reserved_vram_bytes": None,
-        "slo_violation_rate": round(violation_count / total_requests, 6) if total_requests else None,
+        "slo_violation_rate": round(violation_count / total_requests, 6)
+        if total_requests
+        else None,
         "spillover_rate": round(spillover_count / total_requests, 6) if total_requests else None,
         "reject_rate": round(reject_count / total_requests, 6) if total_requests else None,
-        "delayed_request_rate": round(delayed_count / total_requests, 6) if total_requests else None,
+        "delayed_request_rate": round(delayed_count / total_requests, 6)
+        if total_requests
+        else None,
     }
     for metric_name in _metric_names(run_plan):
         metrics.setdefault(metric_name, None)
@@ -901,9 +911,11 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
     _validate_direct_endpoint_variant(variant)
     variant_policy = _variant_policy_for(args.variant_kind, args.variant_name)
     endpoint_map = _load_endpoint_map(args)
-    deadline_class_token_controller, deadline_class_max_tokens_source = _resolve_deadline_class_max_tokens(
-        args,
-        variant_policy,
+    deadline_class_token_controller, deadline_class_max_tokens_source = (
+        _resolve_deadline_class_max_tokens(
+            args,
+            variant_policy,
+        )
     )
     replay = _read_replay(replay_path)
     summary_output = _resolve_output_path(args.summary_output, output_root)
@@ -1103,7 +1115,9 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
         + ("\n" if trace_rows else ""),
         encoding="utf-8",
     )
-    summary_output.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    summary_output.write_text(
+        json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return {
         "summary_output": str(summary_output),
         "trace_output": str(trace_output),

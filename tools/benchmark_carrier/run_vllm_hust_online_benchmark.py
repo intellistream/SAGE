@@ -13,7 +13,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-
 DEFAULT_PROMPT = (
     "You are validating a SAGE real-online benchmark. "
     "Reply with a concise technical sentence about semantic orchestration."
@@ -39,9 +38,7 @@ def _api_key(args: argparse.Namespace) -> str:
     env_values = _load_env_file(Path(args.env_file).expanduser())
     if args.api_key_env and env_values.get(args.api_key_env):
         return env_values[args.api_key_env]
-    raise RuntimeError(
-        f"Missing API key. Set {args.api_key_env} or provide it in {args.env_file}."
-    )
+    raise RuntimeError(f"Missing API key. Set {args.api_key_env} or provide it in {args.env_file}.")
 
 
 def _percentile(values: list[float], percentile: float) -> float | None:
@@ -175,11 +172,7 @@ def _aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "error_count": len(rows) - len(ok_rows),
     }
     for metric in ("latency_ms", "ttft_ms", "decode_ms", "tpot_ms", "tokens_per_s"):
-        values = [
-            float(row[metric])
-            for row in ok_rows
-            if row.get(metric) is not None
-        ]
+        values = [float(row[metric]) for row in ok_rows if row.get(metric) is not None]
         aggregate[metric] = {
             "mean": _mean(values),
             "p50": _percentile(values, 0.50),
@@ -190,17 +183,11 @@ def _aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
     aggregate["total_completion_tokens"] = sum(
         int(row.get("completion_tokens") or 0) for row in ok_rows
     )
-    aggregate["total_prompt_tokens"] = sum(
-        int(row.get("prompt_tokens") or 0) for row in ok_rows
-    )
+    aggregate["total_prompt_tokens"] = sum(int(row.get("prompt_tokens") or 0) for row in ok_rows)
     aggregate["completion_token_sources"] = dict(
         sorted(
             {
-                source: sum(
-                    1
-                    for row in ok_rows
-                    if row.get("completion_token_source") == source
-                )
+                source: sum(1 for row in ok_rows if row.get("completion_token_source") == source)
                 for source in {
                     str(row.get("completion_token_source"))
                     for row in ok_rows

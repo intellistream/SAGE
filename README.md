@@ -2,13 +2,13 @@
 
 > A dataflow-native framework for modular, controllable, and transparent LLM-augmented reasoning.
 
-[![Build & Test](https://github.com/intellistream/SAGE/actions/workflows/ci-build-test.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/ci-build-test.yml)
-[![codecov](https://codecov.io/gh/intellistream/SAGE/branch/main/graph/badge.svg)](https://codecov.io/gh/intellistream/SAGE)
+[![Build & Test](https://github.com/SAGE-Research/SAGE/actions/workflows/ci-build-test.yml/badge.svg?branch=main)](https://github.com/SAGE-Research/SAGE/actions/workflows/ci-build-test.yml)
+[![codecov](https://codecov.io/gh/SAGE-Research/SAGE/branch/main/graph/badge.svg)](https://codecov.io/gh/SAGE-Research/SAGE)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://python.org)
 [![PyPI version](https://badge.fury.io/py/isage.svg)](https://badge.fury.io/py/isage)
-[![GitHub Issues](https://img.shields.io/github/issues/intellistream/SAGE)](https://github.com/intellistream/SAGE/issues)
-[![GitHub Stars](https://img.shields.io/github/stars/intellistream/SAGE?style=social)](https://github.com/intellistream/SAGE/stargazers)
+[![GitHub Issues](https://img.shields.io/github/issues/SAGE-Research/SAGE)](https://github.com/SAGE-Research/SAGE/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/SAGE-Research/SAGE?style=social)](https://github.com/SAGE-Research/SAGE/stargazers)
 
 **SAGE** turns LLM reasoning workflows into explicit dataflow pipelines. It is designed for
 streaming execution, transparent orchestration, controllable serving, and modular integration with
@@ -17,9 +17,9 @@ retrieval, memory, tool-use, and inference-engine backends.
 ## News
 
 - **May 2026**: The SAGE paper was accepted to **ICML 2026**: *SAGE: A Dataflow-Native Framework for
-  Modular, Controllable, and Transparent LLM-Augmented Reasoning*. An author PDF is available from
-  the project maintainer's
-  [publication page](https://shuhaozhangtony.github.io/contents/research_papers/2026/2026_sage_icml_2026.pdf).
+  Modular, Controllable, and Transparent LLM-Augmented Reasoning*.
+  [OpenReview](https://openreview.net/forum?id=TXcFJdT7at) |
+  [author PDF](https://shuhao.sage.org.ai/contents/research_papers/2026/2026_sage_icml_2026.pdf).
 
 ## Current Scope
 
@@ -108,7 +108,7 @@ env.submit(autostop=True)
 ### Try it yourself
 
 ```bash
-git clone https://github.com/intellistream/SAGE.git && cd SAGE
+git clone https://github.com/SAGE-Research/SAGE.git && cd SAGE
 git checkout main
 ./quickstart.sh --dev --yes
 
@@ -178,7 +178,7 @@ capabilities), forbidden directions, and boundary refactor review checklist
 ### Quickstart (Recommended)
 
 ```bash
-git clone https://github.com/intellistream/SAGE.git && cd SAGE
+git clone https://github.com/SAGE-Research/SAGE.git && cd SAGE
 ./quickstart.sh --dev --yes
 # or
 ./quickstart.sh --standard --yes
@@ -327,6 +327,8 @@ through a pull request.
 
 If SAGE is useful in your research, please cite the ICML 2026 paper:
 
+Paper record: https://openreview.net/forum?id=TXcFJdT7at
+
 ```bibtex
 @inproceedings{liu2026sage,
   title = {SAGE: A Dataflow-Native Framework for Modular, Controllable, and Transparent LLM-Augmented Reasoning},
@@ -384,9 +386,9 @@ capability boundary or migration purpose.
 
 ## Community
 
-Use [GitHub Issues](https://github.com/intellistream/SAGE/issues) for bugs and feature requests. For
+Use [GitHub Issues](https://github.com/SAGE-Research/SAGE/issues) for bugs and feature requests. For
 broader design discussions, use
-[GitHub Discussions](https://github.com/intellistream/SAGE/discussions) when enabled for the
+[GitHub Discussions](https://github.com/SAGE-Research/SAGE/discussions) when enabled for the
 repository.
 
 ## License
