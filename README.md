@@ -116,7 +116,7 @@ git checkout main
 sage verify
 
 # Explore tutorials from the separate learning repo
-git clone https://github.com/intellistream/sage-tutorials.git
+git clone https://github.com/SAGE-Research/sage-tutorials.git
 python sage-tutorials/L1-common/hello_world.py
 ```
 
@@ -289,7 +289,7 @@ Tutorials live in the separate `sage-tutorials` repository so that learning mate
 without drifting the main package contract.
 
 ```bash
-git clone https://github.com/intellistream/sage-tutorials.git
+git clone https://github.com/SAGE-Research/sage-tutorials.git
 cd sage-tutorials
 python L1-common/hello_world.py
 ```
@@ -304,7 +304,7 @@ README.
 - **Architecture**: [https://sage.org.ai/architecture/](https://sage.org.ai/architecture/)
 - **Developer guide**: [DEVELOPER.md](./DEVELOPER.md)
 - **Contribution guide**: [CONTRIBUTING.md](./CONTRIBUTING.md)
-- **Tutorials**: [intellistream/sage-tutorials](https://github.com/intellistream/sage-tutorials)
+- **Tutorials**: [SAGE-Research/sage-tutorials](https://github.com/SAGE-Research/sage-tutorials)
 
 ## Contributing
 

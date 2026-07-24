@@ -77,7 +77,7 @@ git checkout main
 - `sage chat --ask "Hello, SAGE!"`
 - `sage index ingest --source ./docs --index local-docs`
 
-> 💡 **注意**: 用户文档已迁移到独立的 [sage-docs](https://github.com/intellistream/sage-docs) 仓库。
+> 💡 **注意**: 用户文档已迁移到独立的 [SAGE-Docs](https://github.com/SAGE-Research/SAGE-Docs) 仓库。
 
 ### Runtime Parallelism Contract
 
@@ -763,7 +763,7 @@ We follow [Semantic Versioning](https://semver.org/):
 ## Getting Help
 
 - **Documentation**: Check `docs/`, `README.md`, and `CONTRIBUTING.md`
-- **Examples**: See [sage-examples](https://github.com/intellistream/sage-examples) repository
+- **Examples**: See [sage-examples](https://github.com/SAGE-Research/sage-examples) repository
 - **Issues**: Search existing issues or create new one
 - **Community**: Join our
   [Slack](https://join.slack.com/t/intellistream/shared_invite/zt-2qayp8bs7-v4F71ge0RkO_rn34hBDWQg)

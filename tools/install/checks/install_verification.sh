@@ -347,7 +347,7 @@ verify_sage_imports() {
     # - sageLLM: 独立 PyPI 包 isagellm (pip install isagellm)
     # - sage-examples (原 sage.apps): 已迁移到 sage-examples 仓库
     # - sage.benchmark: 独立 PyPI 包 isage-benchmark (pip install isage-benchmark)
-    # - sage.studio: 独立仓库 https://github.com/intellistream/sage-studio
+    # - sage.studio: 独立仓库 https://github.com/SAGE-Research/sage-studio
     # - sage.edge: 已回归主仓产品面；根包导入应始终可用，FastAPI 运行依赖由 extras 提供
     local sage_packages=(
         "sage.foundation"         # Core: in-tree foundation

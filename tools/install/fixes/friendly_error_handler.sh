@@ -153,9 +153,9 @@ show_friendly_error() {
     fi
 
     echo -e "\n${BLUE}${BOLD}📚 获取更多帮助：${NC}"
-    echo -e "  • 安装故障排除指南：${DIM}https://github.com/intellistream/SAGE/wiki/Troubleshooting${NC}"
-    echo -e "  • 环境配置最佳实践：${DIM}https://github.com/intellistream/SAGE/wiki/Environment-Setup${NC}"
-    echo -e "  • 提交问题报告：${DIM}https://github.com/intellistream/SAGE/issues${NC}"
+    echo -e "  • 安装故障排除指南：${DIM}https://github.com/SAGE-Research/SAGE/wiki/Troubleshooting${NC}"
+    echo -e "  • 环境配置最佳实践：${DIM}https://github.com/SAGE-Research/SAGE/wiki/Environment-Setup${NC}"
+    echo -e "  • 提交问题报告：${DIM}https://github.com/SAGE-Research/SAGE/issues${NC}"
 
     echo -e "\n${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 
