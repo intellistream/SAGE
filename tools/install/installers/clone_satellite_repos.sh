@@ -1,6 +1,6 @@
 #!/bin/bash
 # SAGE 附属仓库克隆模块
-# 从 SAGE.code-workspace 文件动态读取要克隆的仓库列表
+# 从显式清单读取适合公开开发环境的 SAGE 附属仓库
 
 # 获取脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -8,40 +8,71 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 导入颜色定义
 source "$SCRIPT_DIR/../ui/colors.sh"
 
-# 获取 workspace 文件路径
+# 获取仓库根目录与公开附属仓库清单
 SAGE_ROOT="${SAGE_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
-WORKSPACE_FILE="$SAGE_ROOT/SAGE.code-workspace"
+REPOSITORY_MANIFEST="$SAGE_ROOT/tools/install/satellite-repositories.json"
 
-# 从 workspace 文件读取仓库配置
-load_repos_from_workspace() {
-    local workspace_file="$1"
+# 从公开仓库清单读取 name|clone_url，拒绝跨组织或不完整条目。
+load_public_repos_from_manifest() {
+    local manifest_file="${1:-$REPOSITORY_MANIFEST}"
 
-    if [ ! -f "$workspace_file" ]; then
-        echo -e "${RED}❌ Workspace 文件不存在: $workspace_file${NC}" >&2
+    if [ ! -f "$manifest_file" ]; then
+        echo -e "${RED}❌ 附属仓库清单不存在: $manifest_file${NC}" >&2
         return 1
     fi
 
-    # JSONC 兼容解析：使用 Python 提取 path 字段，避免依赖 GNU grep -P。
-    python3 - "$workspace_file" <<'PY'
-import pathlib
-import re
+    python3 - "$manifest_file" <<'PY'
+import json
 import sys
+from pathlib import Path
 
-workspace_file = pathlib.Path(sys.argv[1])
-content = workspace_file.read_text(encoding="utf-8")
-for match in re.finditer(r'"path"\s*:\s*"([^"]+)"', content):
-    repo_path = match.group(1)
-    if repo_path == ".":
-        continue
-    print(pathlib.PurePosixPath(repo_path).name)
+manifest_file = Path(sys.argv[1])
+try:
+    data = json.loads(manifest_file.read_text(encoding="utf-8"))
+except (OSError, json.JSONDecodeError) as exc:
+    raise SystemExit(f"invalid satellite repository manifest: {exc}")
+
+if data.get("version") != 1:
+    raise SystemExit("invalid satellite repository manifest: version must be 1")
+
+repositories = data.get("repositories")
+if not isinstance(repositories, list):
+    raise SystemExit("invalid satellite repository manifest: repositories must be a list")
+
+seen_names: set[str] = set()
+seen_full_names: set[str] = set()
+for index, item in enumerate(repositories):
+    if not isinstance(item, dict):
+        raise SystemExit(f"invalid satellite repository manifest: entry {index} must be an object")
+
+    name = item.get("name")
+    full_name = item.get("full_name")
+    category = item.get("category")
+    clone_by_default = item.get("clone_by_default")
+    if not all(isinstance(value, str) and value for value in (name, full_name, category)):
+        raise SystemExit(
+            f"invalid satellite repository manifest: entry {index} has missing fields"
+        )
+    if not isinstance(clone_by_default, bool):
+        raise SystemExit(
+            f"invalid satellite repository manifest: {name} clone_by_default must be boolean"
+        )
+    if not full_name.startswith("SAGE-Research/") or full_name.count("/") != 1:
+        raise SystemExit(
+            f"invalid satellite repository manifest: {name} must belong to SAGE-Research"
+        )
+    if full_name.rsplit("/", 1)[1] != name:
+        raise SystemExit(
+            f"invalid satellite repository manifest: {name} does not match {full_name}"
+        )
+    if name in seen_names or full_name.lower() in seen_full_names:
+        raise SystemExit(f"invalid satellite repository manifest: duplicate {name}")
+    seen_names.add(name)
+    seen_full_names.add(full_name.lower())
+
+    if clone_by_default:
+        print(f"{name}|https://github.com/{full_name}.git")
 PY
-}
-
-# 构建仓库 URL
-get_repo_url() {
-    local repo_name="$1"
-    # 标准的 GitHub 仓库 URL 格式
-    echo "https://github.com/intellistream/${repo_name}.git"
 }
 
 ensure_canonical_branch() {
@@ -142,7 +173,7 @@ clone_single_repo() {
 # 克隆所有公开附属仓库
 clone_all_public_repos() {
     local parent_dir="$1"
-    local workspace_file="${2:-$WORKSPACE_FILE}"
+    local manifest_file="${2:-$REPOSITORY_MANIFEST}"
     local failed_repos=()
 
     echo ""
@@ -158,10 +189,10 @@ clone_all_public_repos() {
         return 1
     fi
 
-    # 从 workspace 读取仓库列表
+    # 从显式清单读取公开 SAGE 仓库，避免把个人 workspace 当作所有权清单。
     local repos_output
-    if ! repos_output=$(load_repos_from_workspace "$workspace_file"); then
-        echo -e "${RED}❌ 无法读取 workspace 文件: $workspace_file${NC}"
+    if ! repos_output=$(load_public_repos_from_manifest "$manifest_file"); then
+        echo -e "${RED}❌ 无法读取附属仓库清单: $manifest_file${NC}"
         return 1
     fi
 
@@ -173,13 +204,13 @@ clone_all_public_repos() {
     fi
 
     local current=0
-    while IFS= read -r repo_name; do
+    while IFS='|' read -r repo_name repo_url; do
         [ -z "$repo_name" ] && continue
+        [ -z "$repo_url" ] && continue
 
         current=$((current + 1))
         echo -e "${DIM}[$current/$total_repos]${NC} $repo_name"
 
-        local repo_url=$(get_repo_url "$repo_name")
         if clone_single_repo "$repo_name" "$repo_url" "$parent_dir"; then
             echo ""
         else
@@ -207,15 +238,15 @@ clone_private_repos() {
 # 交互式克隆选择
 interactive_clone_repos() {
     local parent_dir="$1"
-    local workspace_file="${2:-$WORKSPACE_FILE}"
+    local manifest_file="${2:-$REPOSITORY_MANIFEST}"
 
     echo ""
     echo -e "${BOLD}是否克隆 SAGE 附属仓库到当前目录？${NC}"
     echo ""
-    echo -e "${DIM}附属仓库将从 SAGE.code-workspace 文件读取，包括：${NC}"
-    echo -e "${DIM}  • sage-examples, sage-tutorials, sagellm, sage-benchmark${NC}"
-    echo -e "${DIM}  • sage-agentic, sage-agentic-tooluse${NC}"
-    echo -e "${DIM}  • sage-anns, sage-eval, sage-finetune, sage-studio 等${NC}"
+    echo -e "${DIM}附属仓库将从公开 SAGE 仓库清单读取，包括：${NC}"
+    echo -e "${DIM}  • SAGE-Docs, sage-examples, sage-tutorials, sage-benchmark${NC}"
+    echo -e "${DIM}  • sage-agentic, sage-agentic-tooluse, sage-rag${NC}"
+    echo -e "${DIM}  • sage-eval, sage-finetune, sage-libs-intent, sage-studio${NC}"
     echo ""
     echo -e "${YELLOW}💡 提示：${NC}"
     echo -e "${DIM}  如果不克隆，可以稍后手动克隆：${NC}"
@@ -226,7 +257,7 @@ interactive_clone_repos() {
     response=${response,,}
 
     if [[ "$response" =~ ^(y|yes)$ ]]; then
-        clone_all_public_repos "$parent_dir" "$workspace_file"
+        clone_all_public_repos "$parent_dir" "$manifest_file"
         return 0
     else
         echo -e "${DIM}已取消克隆操作${NC}"
@@ -235,8 +266,7 @@ interactive_clone_repos() {
 }
 
 # 导出函数供外部使用
-export -f load_repos_from_workspace
-export -f get_repo_url
+export -f load_public_repos_from_manifest
 export -f clone_single_repo
 export -f clone_all_public_repos
 export -f clone_private_repos

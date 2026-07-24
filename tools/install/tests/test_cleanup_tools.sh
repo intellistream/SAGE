@@ -94,6 +94,31 @@ assert_success() {
     fi
 }
 
+set_test_sage_root() {
+    local script_file="$1"
+    local test_root="$2"
+
+    python3 - "$script_file" "$test_root" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+script_file = Path(sys.argv[1])
+test_root = sys.argv[2]
+content = script_file.read_text(encoding="utf-8")
+updated, count = re.subn(
+    r"^SAGE_ROOT=.*$",
+    f'SAGE_ROOT="{test_root}"',
+    content,
+    count=1,
+    flags=re.MULTILINE,
+)
+if count != 1:
+    raise SystemExit(f"could not replace SAGE_ROOT in {script_file}")
+script_file.write_text(updated, encoding="utf-8")
+PY
+}
+
 # ============================================================================
 # 测试 track_install.sh
 # ============================================================================
@@ -113,7 +138,7 @@ test_track_install_record_info() {
 
     # 创建测试脚本副本
     cp "$orig_sage_root/tools/install/cleanup/track_install.sh" "$TEST_DIR/track_install.sh"
-    sed -i "s|SAGE_ROOT=.*|SAGE_ROOT=\"$TEST_DIR\"|g" "$TEST_DIR/track_install.sh"
+    set_test_sage_root "$TEST_DIR/track_install.sh" "$TEST_DIR"
 
     # 测试记录安装信息
     cd "$TEST_DIR"
@@ -170,7 +195,7 @@ test_uninstall_yes_flag() {
 
     # 创建测试脚本副本
     cp "$orig_sage_root/tools/install/cleanup/uninstall_sage.sh" "$TEST_DIR/uninstall_sage.sh"
-    sed -i "s|SAGE_ROOT=.*|SAGE_ROOT=\"$TEST_DIR\"|g" "$TEST_DIR/uninstall_sage.sh"
+    set_test_sage_root "$TEST_DIR/uninstall_sage.sh" "$TEST_DIR"
 
     # 测试 --yes 标志（应该不会有交互提示）
     cd "$TEST_DIR"

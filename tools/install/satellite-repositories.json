@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "repositories": [
+    {
+      "name": "SAGE-Docs",
+      "full_name": "SAGE-Research/SAGE-Docs",
+      "category": "documentation",
+      "clone_by_default": true
+    },
+    {
+      "name": "sage-agentic",
+      "full_name": "SAGE-Research/sage-agentic",
+      "category": "agents",
+      "clone_by_default": true
+    },
+    {
+      "name": "sage-agentic-tooluse",
+      "full_name": "SAGE-Research/sage-agentic-tooluse",
+      "category": "agents",
+      "clone_by_default": true
+    },
+    {
+      "name": "sage-benchmark",
+      "full_name": "SAGE-Research/sage-benchmark",
+      "category": "benchmark",
+      "clone_by_default": true
+    },
+    {
+      "name": "sage-eval",
+      "full_name": "SAGE-Research/sage-eval",
+      "category": "evaluation",
+      "clone_by_default": true
+    },
+    {
+      "name": "sage-examples",
+      "full_name": "SAGE-Research/sage-examples",
+      "category": "learning",
+      "clone_by_default": true
+    },
+    {
+      "name": "sage-finetune",
+      "full_name": "SAGE-Research/sage-finetune",
+      "category": "training",
+      "clone_by_default": true
+    },
+    {
+      "name": "sage-libs-intent",
+      "full_name": "SAGE-Research/sage-libs-intent",
+      "category": "library",
+      "clone_by_default": true
+    },
+    {
+      "name": "sage-rag",
+      "full_name": "SAGE-Research/sage-rag",
+      "category": "rag",
+      "clone_by_default": true
+    },
+    {
+      "name": "sage-studio",
+      "full_name": "SAGE-Research/sage-studio",
+      "category": "application",
+      "clone_by_default": true
+    },
+    {
+      "name": "sage-tutorials",
+      "full_name": "SAGE-Research/sage-tutorials",
+      "category": "learning",
+      "clone_by_default": true
+    }
+  ]
+}

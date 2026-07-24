@@ -70,6 +70,7 @@ run_test_suite() {
 # 运行所有测试套件
 run_test_suite "$SCRIPT_DIR/test_environment_config.sh" "环境配置单元测试"
 run_test_suite "$SCRIPT_DIR/test_cleanup_tools.sh" "清理工具单元测试"
+run_test_suite "$SCRIPT_DIR/test_satellite_repository_manifest.sh" "附属仓库清单测试"
 run_test_suite "$SCRIPT_DIR/test_e2e_integration.sh" "端到端集成测试"
 
 # 打印总结
