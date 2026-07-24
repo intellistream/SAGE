@@ -33,15 +33,32 @@ PIP_INDEX_URL="${PIP_INDEX_URL:-}"
 HF_ENDPOINT="${HF_ENDPOINT:-}"
 # ============================================================================
 
-declare -A PYPI_MIRRORS=(
-    ["官方源"]="https://pypi.org/simple"
-    ["清华大学"]="https://pypi.tuna.tsinghua.edu.cn/simple"
-    ["阿里云"]="https://mirrors.aliyun.com/pypi/simple"
-    ["腾讯云"]="https://mirrors.cloud.tencent.com/pypi/simple"
-    ["华为云"]="https://repo.huaweicloud.com/repository/pypi/simple"
-    ["豆瓣"]="https://pypi.doubanio.com/simple"
-    ["中国科技大学"]="https://pypi.mirrors.ustc.edu.cn/simple"
+PYPI_MIRROR_NAMES=(
+    "官方源"
+    "清华大学"
+    "阿里云"
+    "腾讯云"
+    "华为云"
+    "豆瓣"
+    "中国科技大学"
 )
+PYPI_MIRROR_URLS=(
+    "https://pypi.org/simple"
+    "https://pypi.tuna.tsinghua.edu.cn/simple"
+    "https://mirrors.aliyun.com/pypi/simple"
+    "https://mirrors.cloud.tencent.com/pypi/simple"
+    "https://repo.huaweicloud.com/repository/pypi/simple"
+    "https://pypi.doubanio.com/simple"
+    "https://pypi.mirrors.ustc.edu.cn/simple"
+)
+
+current_time_ms() {
+    python3 - <<'PY'
+import time
+
+print(time.time_ns() // 1_000_000)
+PY
+}
 
 # 测试镜像速度（使用 HTTP 响应时间）
 test_mirror_speed() {
@@ -53,9 +70,11 @@ test_mirror_speed() {
 
     # 使用 curl 测试（如果可用）
     if command -v curl &> /dev/null; then
-        local start_time=$(date +%s%3N)
+        local start_time
+        start_time=$(current_time_ms)
         if curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w "%{http_code}" "$test_url" 2>/dev/null | grep -q "200\|301\|302"; then
-            local end_time=$(date +%s%3N)
+            local end_time
+            end_time=$(current_time_ms)
             local duration=$((end_time - start_time))
             echo "$duration"
             return 0
@@ -65,9 +84,11 @@ test_mirror_speed() {
         fi
     # 使用 wget 测试（备选）
     elif command -v wget &> /dev/null; then
-        local start_time=$(date +%s%3N)
+        local start_time
+        start_time=$(current_time_ms)
         if wget -q --spider --timeout=10 --tries=1 "$test_url" 2>/dev/null; then
-            local end_time=$(date +%s%3N)
+            local end_time
+            end_time=$(current_time_ms)
             local duration=$((end_time - start_time))
             echo "$duration"
             return 0
@@ -157,8 +178,9 @@ auto_select_fastest_mirror() {
     local fastest_time=99999
 
     # 测试每个镜像
-    for mirror_name in "${!PYPI_MIRRORS[@]}"; do
-        local mirror_url="${PYPI_MIRRORS[$mirror_name]}"
+    for mirror_index in "${!PYPI_MIRROR_NAMES[@]}"; do
+        local mirror_name="${PYPI_MIRROR_NAMES[$mirror_index]}"
+        local mirror_url="${PYPI_MIRROR_URLS[$mirror_index]}"
 
         if [ "$verbose" = "true" ]; then
             echo -e "${DIM}   测试 $mirror_name...${NC}"
@@ -427,8 +449,9 @@ show_mirror_list() {
     echo ""
 
     local index=1
-    for mirror_name in "${!PYPI_MIRRORS[@]}"; do
-        local mirror_url="${PYPI_MIRRORS[$mirror_name]}"
+    for mirror_index in "${!PYPI_MIRROR_NAMES[@]}"; do
+        local mirror_name="${PYPI_MIRROR_NAMES[$mirror_index]}"
+        local mirror_url="${PYPI_MIRROR_URLS[$mirror_index]}"
         echo -e "${DIM}$index. ${NC}${GREEN}$mirror_name${NC}"
         echo -e "${DIM}   $mirror_url${NC}"
         echo ""
@@ -446,10 +469,12 @@ interactive_select_mirror() {
     local mirror_urls=()
     local index=1
 
-    for mirror_name in "${!PYPI_MIRRORS[@]}"; do
+    for mirror_index in "${!PYPI_MIRROR_NAMES[@]}"; do
+        local mirror_name="${PYPI_MIRROR_NAMES[$mirror_index]}"
+        local mirror_url="${PYPI_MIRROR_URLS[$mirror_index]}"
         mirror_names+=("$mirror_name")
-        mirror_urls+=("${PYPI_MIRRORS[$mirror_name]}")
-        echo -e "${DIM}$index.${NC} ${GREEN}$mirror_name${NC} ${DIM}(${PYPI_MIRRORS[$mirror_name]})${NC}"
+        mirror_urls+=("$mirror_url")
+        echo -e "${DIM}$index.${NC} ${GREEN}$mirror_name${NC} ${DIM}($mirror_url)${NC}"
         index=$((index + 1))
     done
 

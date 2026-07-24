@@ -267,6 +267,23 @@ test_verify_mirror_download_capability_rejects_missing_artifact_url() {
     fi
 }
 
+test_mirror_selector_supports_macos_bash() {
+    echo ""
+    echo -e "${BLUE}测试组: mirror_selector - macOS Bash 3.2 兼容性${NC}"
+
+    if (
+        source "${SAGE_ROOT:-}/tools/install/checks/mirror_selector.sh"
+        [ "${#PYPI_MIRROR_NAMES[@]}" -eq "${#PYPI_MIRROR_URLS[@]}" ]
+        timestamp="$(current_time_ms)"
+        [[ "$timestamp" =~ ^[0-9]+$ ]]
+    ); then
+        assert_success "镜像列表与毫秒计时兼容 macOS Bash"
+    else
+        assert_failure "镜像列表与毫秒计时应兼容 macOS Bash"
+        false
+    fi
+}
+
 # ============================================================================
 # 测试报告
 # ============================================================================
@@ -318,6 +335,7 @@ main() {
     test_check_venv_rejected
     test_is_mirror_download_healthy_rejects_missing_artifact_url
     test_verify_mirror_download_capability_rejects_missing_artifact_url
+    test_mirror_selector_supports_macos_bash
 
     # 打印总结
     print_test_summary
