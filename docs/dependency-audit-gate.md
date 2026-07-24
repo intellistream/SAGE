@@ -93,7 +93,7 @@ The repo no longer treats the retired split-package layout as a set of direct de
 
 ### `dev`
 
-- Packages: `fastapi`, `uvicorn`, `httpx`, `pytest`, `pytest-cov`, `pytest-asyncio`, `pytest-mock`,
+- Packages: `fastapi`, `uvicorn`, `httpx`, `aiohttp`, `pytest`, `pytest-cov`, `pytest-asyncio`, `pytest-mock`,
   `ruff`, `mypy`, `pre-commit`
 - Callsite: `DEVELOPER.md`
 - Rationale: in-tree `sage-dev` developer workflow and validation.

@@ -4,7 +4,6 @@ import asyncio
 import json
 from typing import Any
 
-
 SUPPORTED_DIRECT_ENDPOINT_VARIANTS = frozenset(
     {
         ("baseline", "fifo"),
@@ -467,7 +466,7 @@ def risk_aware_shaping_caps(
     serving_context = dict(event.get("serving_context") or {})
     deadline_class = str(serving_context.get("deadline_class") or "unknown")
     target_e2e_ms = float(serving_context.get("target_e2e_ms") or 0.0)
-    running = float((snapshot.get("num_requests_running") or 0.0))
+    running = float(snapshot.get("num_requests_running") or 0.0)
     base_decode = float(risk_config.get("base_decode_ms_per_token") or 25.0)
     load_factor = float(risk_config.get("load_factor_per_running") or 0.5)
     base_ttft = float(risk_config.get("base_ttft_ms") or 150.0)

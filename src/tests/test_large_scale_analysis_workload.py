@@ -4,10 +4,10 @@ import json
 
 import sage.workloads.large_scale_analysis as lsa
 from sage.workloads.large_scale_analysis import (
+    STANDARD_OPERATORS,
     LLMStubIncidentReducer,
     MapOnlyIncidentReducer,
     OpenAICompletionIncidentReducer,
-    STANDARD_OPERATORS,
     WindowAggregateIncidentReducer,
     generate_synthetic_events,
     map_shard,
@@ -259,7 +259,7 @@ def test_openai_completion_reducer_can_request_json_schema(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
     class DummyResponse:
-        def __enter__(self) -> "DummyResponse":
+        def __enter__(self) -> DummyResponse:
             return self
 
         def __exit__(self, *_args: object) -> None:

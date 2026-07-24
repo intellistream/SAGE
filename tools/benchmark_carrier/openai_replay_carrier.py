@@ -16,9 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import aiohttp
-
 from sage.serving.integrations import policy as runtime_policy
-
 
 SUPPORTED_DIRECT_ENDPOINT_VARIANTS = runtime_policy.SUPPORTED_DIRECT_ENDPOINT_VARIANTS
 _DIRECT_ENDPOINT_VARIANT_POLICIES = runtime_policy.DIRECT_ENDPOINT_VARIANT_POLICIES

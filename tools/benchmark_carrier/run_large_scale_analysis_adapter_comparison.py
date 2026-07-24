@@ -23,7 +23,6 @@ from sage.workloads.large_scale_analysis import (
     score_detections,
 )
 
-
 DEFAULT_SIZES = "50000:16:12,100000:32:16"
 DEFAULT_SEEDS = "7,11,13"
 DEFAULT_ADAPTERS = "sage-local,ray-local,langgraph-local,llamaindex-docstore"

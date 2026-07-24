@@ -10,6 +10,8 @@ from sage.runtime.flownet import (
 )
 from sage.runtime.flownet.runtime.actors.backend_jobs import (
     _resolve_prefix_cache_key_backend_affinity,
+)
+from sage.runtime.flownet.runtime.actors.backend_jobs import (
     submit_backend_job as actor_submit_backend_job,
 )
 from sage.runtime.flownet.runtime.actors.execution_context import (

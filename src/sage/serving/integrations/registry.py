@@ -24,7 +24,6 @@ from .contracts import (
     default_workflow_product_extension_points,
 )
 
-
 DEFAULT_WORKFLOW_POLICY_VARIANT_KIND = "baseline"
 DEFAULT_WORKFLOW_POLICY_VARIANT_NAME = "vamos-slo-feasibility-controller"
 DEFAULT_WORKFLOW_POLICY_EXECUTION_PRIORITY_MODE = "invert-vamos"

@@ -6,7 +6,6 @@ from threading import RLock
 from typing import Any
 
 from . import policy as runtime_policy
-
 from .contracts import (
     ImportedWorkflow,
     WorkflowExecutionTarget,

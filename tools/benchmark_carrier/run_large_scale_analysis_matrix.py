@@ -11,7 +11,6 @@ from typing import Any
 
 from sage.workloads.large_scale_analysis import run_large_scale_analysis_workload
 
-
 DEFAULT_SIZES = "50000:16:12,100000:32:16"
 DEFAULT_SEEDS = "7,11,13"
 DEFAULT_REDUCERS = "map-only,window-aggregate,deterministic,llm-stub"

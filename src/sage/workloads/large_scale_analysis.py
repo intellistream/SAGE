@@ -20,9 +20,10 @@ import urllib.error
 import urllib.request
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -719,11 +720,13 @@ def _extract_json_payload(text: str) -> dict[str, Any]:
             cleaned = cleaned[4:].strip()
     try:
         parsed = json.loads(cleaned)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
         start = cleaned.find("{")
         end = cleaned.rfind("}")
         if start < 0 or end <= start:
-            raise RuntimeError(f"LLM reducer returned non-JSON text: {text[:300]}")
+            raise RuntimeError(
+                f"LLM reducer returned non-JSON text: {text[:300]}"
+            ) from exc
         parsed = json.loads(cleaned[start : end + 1])
     if not isinstance(parsed, dict):
         raise RuntimeError("LLM reducer JSON payload must be an object.")
