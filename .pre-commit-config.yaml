@@ -377,7 +377,7 @@ repos:
     exclude: ^(\.secrets\.baseline|\.env\.template|\.github/workflows/|examples/config/.*\.yaml|tests/fixtures/|.*package-lock\.json$|.*\.ipynb$|docs/.*\.md$|examples/.*\.py$|.*\.html$|.*/benchmark_anns/|ThirdParty/|thirdparty/|.*/implementations/(SPTAG|faiss|DiskANN|diskann-ms|candy|puck|pybind11)/)
 
           # SAGE Data Architecture Validation - REMOVED (sage-benchmark is now independent)
-          # See: https://github.com/intellistream/sage-benchmark
+          # See: https://github.com/SAGE-Research/sage-benchmark
 - repo: local
   hooks:
   - id: copilot-instructions-sync-check

@@ -219,7 +219,7 @@ interactive_clone_repos() {
     echo ""
     echo -e "${YELLOW}💡 提示：${NC}"
     echo -e "${DIM}  如果不克隆，可以稍后手动克隆：${NC}"
-    echo -e "${DIM}  git clone https://github.com/intellistream/sage-examples.git${NC}"
+    echo -e "${DIM}  git clone https://github.com/SAGE-Research/sage-examples.git${NC}"
     echo ""
 
     read -p "是否现在克隆附属仓库？[y/N]: " -r response

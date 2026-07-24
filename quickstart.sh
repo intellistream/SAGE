@@ -301,7 +301,7 @@ _init_sage_workspace() {
     # ── 主 SAGE meta 仓库（当前仓库）─────────────────────────────────────────
     if [ ! -d "$workspace_dir/SAGE/.git" ]; then
         echo -e "  ${CYAN}⬇${NC} clone intellistream/SAGE (meta)..."
-        git clone "https://github.com/intellistream/SAGE.git" "$workspace_dir/SAGE" --depth 1 2>&1 | tail -1 && ((ok++)) || ((fail++))
+        git clone "https://github.com/SAGE-Research/SAGE.git" "$workspace_dir/SAGE" --depth 1 2>&1 | tail -1 && ((ok++)) || ((fail++))
     else
         echo -e "  ${YELLOW}↻${NC} SAGE — 已存在，跳过"
         ((skip++))

@@ -87,10 +87,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/intellistream/SAGE"
+Homepage = "https://sage.org.ai/"
 Documentation = "https://intellistream.github.io/SAGE-Docs/"
-Repository = "https://github.com/intellistream/SAGE.git"
-"Bug Tracker" = "https://github.com/intellistream/SAGE/issues"
+Repository = "https://github.com/SAGE-Research/SAGE.git"
+"Bug Tracker" = "https://github.com/SAGE-Research/SAGE/issues"
 
 [tool.setuptools.packages.find]
 namespaces = true
