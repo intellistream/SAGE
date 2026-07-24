@@ -236,7 +236,7 @@ ensure_precommit_runtime_tools() {
 }
 
 # ─── SAGE 工作区初始化函数 ───────────────────────────────────────────────────
-# 用于按当前 SAGE.code-workspace 克隆协同仓库到本地工作区目录。
+# 用于按公开附属仓库清单克隆协同仓库到本地工作区目录。
 # 使用方法：./quickstart.sh --workspace [--dir <path>]
 _init_sage_workspace() {
     # 解析 --dir 参数
@@ -255,41 +255,44 @@ _init_sage_workspace() {
     echo -e "\n${BOLD}🚀 SAGE 工作区初始化${NC}"
     echo -e "${CYAN}目标目录: ${workspace_dir}${NC}\n"
 
-    # ── 当前工作区协同仓库列表（与 SAGE.code-workspace 保持一致）────────────
-    local workspace_file="$SAGE_ROOT/SAGE.code-workspace"
+    # ── 公开 SAGE 协同仓库列表 ───────────────────────────────────────────────
+    local repository_manifest="$SAGE_ROOT/tools/install/satellite-repositories.json"
     local SAGE_REPOS=()
 
-    if declare -f load_repos_from_workspace >/dev/null 2>&1; then
+    if declare -f load_public_repos_from_manifest >/dev/null 2>&1; then
         local repos_output
-        if repos_output=$(load_repos_from_workspace "$workspace_file" 2>/dev/null); then
-            while IFS= read -r repo_name; do
+        if repos_output=$(load_public_repos_from_manifest "$repository_manifest" 2>/dev/null); then
+            while IFS='|' read -r repo_name repo_url; do
                 [ -z "$repo_name" ] && continue
-                SAGE_REPOS+=("intellistream/$repo_name")
+                [ -z "$repo_url" ] && continue
+                SAGE_REPOS+=("$repo_url")
             done <<< "$repos_output"
         fi
     fi
 
     if [ ${#SAGE_REPOS[@]} -eq 0 ]; then
         SAGE_REPOS=(
-            "intellistream/sage-benchmark"
-            "intellistream/sage-docs"
-            "intellistream/sage-examples"
-            "intellistream/sage-tutorials"
+            "https://github.com/SAGE-Research/SAGE-Docs.git"
+            "https://github.com/SAGE-Research/sage-benchmark.git"
+            "https://github.com/SAGE-Research/sage-examples.git"
+            "https://github.com/SAGE-Research/sage-tutorials.git"
         )
     fi
 
     mkdir -p "$workspace_dir"
 
     local ok=0; local skip=0; local fail=0
-    for repo in "${SAGE_REPOS[@]}"; do
-        local name="${repo#*/}"
+    for repo_url in "${SAGE_REPOS[@]}"; do
+        local repo="${repo_url#https://github.com/}"
+        repo="${repo%.git}"
+        local name="${repo##*/}"
         local target="$workspace_dir/$name"
         if [ -d "$target/.git" ]; then
             echo -e "  ${YELLOW}↻${NC} $name — 已存在，正在 pull..."
             git -C "$target" pull --ff-only 2>&1 | tail -1 && ((skip++)) || ((fail++))
         else
             echo -e "  ${CYAN}⬇${NC} clone $repo..."
-            if git clone "https://github.com/$repo.git" "$target" --depth 1 2>&1 | tail -1; then
+            if git clone "$repo_url" "$target" --depth 1 2>&1 | tail -1; then
                 ((ok++))
             else
                 echo -e "  ${YELLOW}⚠ clone 失败，跳过 $name${NC}"
@@ -300,7 +303,7 @@ _init_sage_workspace() {
 
     # ── 主 SAGE meta 仓库（当前仓库）─────────────────────────────────────────
     if [ ! -d "$workspace_dir/SAGE/.git" ]; then
-        echo -e "  ${CYAN}⬇${NC} clone intellistream/SAGE (meta)..."
+        echo -e "  ${CYAN}⬇${NC} clone SAGE-Research/SAGE (meta)..."
         git clone "https://github.com/SAGE-Research/SAGE.git" "$workspace_dir/SAGE" --depth 1 2>&1 | tail -1 && ((ok++)) || ((fail++))
     else
         echo -e "  ${YELLOW}↻${NC} SAGE — 已存在，跳过"
@@ -552,7 +555,8 @@ main() {
     if [ "$mode" = "dev" ] && [ "$clone_satellites" = "true" ]; then
         echo ""
         echo -e "${BLUE}📚 同步附属仓库（dev 模式）...${NC}"
-        clone_all_public_repos "$(dirname "$SAGE_ROOT")" "$SAGE_ROOT/SAGE.code-workspace" || true
+        clone_all_public_repos "$(dirname "$SAGE_ROOT")" \
+            "$SAGE_ROOT/tools/install/satellite-repositories.json" || true
     fi
 
     # 执行深度依赖验证（如果指定了 --verify-deps）
@@ -790,7 +794,7 @@ main() {
         if [ "${SAGE_SET_SKIP_SMUDGE:-0}" = 1 ]; then
             echo -e "${DIM}提示: 已跳过 Git LFS 大文件的自动下载，以缩短初始化时间。${NC}"
             echo -e "${DIM}如需使用 LibAMM 基准数据，请在独立 benchmark 仓库执行数据初始化脚本。${NC}"
-            echo -e "  ${DIM}参考: intellistream/sage-benchmark${NC}"
+            echo -e "  ${DIM}参考: https://github.com/SAGE-Research/sage-benchmark${NC}"
         fi
     else
         echo ""
