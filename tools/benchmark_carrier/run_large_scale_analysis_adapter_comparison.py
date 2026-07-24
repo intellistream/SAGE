@@ -33,9 +33,7 @@ def _parse_sizes(raw_value: str) -> list[tuple[int, int, int]]:
     for item in raw_value.split(","):
         fields = item.strip().split(":")
         if len(fields) != 3:
-            raise ValueError(
-                f"Invalid size spec {item!r}; expected events:shards:top_k."
-            )
+            raise ValueError(f"Invalid size spec {item!r}; expected events:shards:top_k.")
         sizes.append(tuple(int(field) for field in fields))
     return sizes
 
@@ -64,9 +62,7 @@ def _report_from_parts(
 ) -> WorkloadReport:
     incident_reducer = resolve_incident_reducer(reducer)
     detections = incident_reducer.reduce(summaries)[:top_k]
-    matched, precision, recall, f1, coverage = score_detections(
-        detections, dataset.incidents
-    )
+    matched, precision, recall, f1, coverage = score_detections(detections, dataset.incidents)
     matched_incident_ids, _ = match_detections(detections, dataset.incidents)
     missed_incidents = [
         incident_to_dict(incident)
@@ -155,10 +151,7 @@ def run_ray_local(
 
     map_started = time.perf_counter()
     summaries = ray.get(
-        [
-            _remote_map.remote(shard_id, shard, map_policy)
-            for shard_id, shard in enumerate(shards)
-        ]
+        [_remote_map.remote(shard_id, shard, map_policy) for shard_id, shard in enumerate(shards)]
     )
     map_duration_ms = (time.perf_counter() - map_started) * 1000
 
@@ -179,9 +172,7 @@ def run_ray_local(
     )
     report.reduce_duration_ms = (time.perf_counter() - reduce_started) * 1000
     report.total_duration_ms = (time.perf_counter() - started) * 1000
-    report.throughput_events_per_s = event_count / max(
-        report.total_duration_ms / 1000, 0.001
-    )
+    report.throughput_events_per_s = event_count / max(report.total_duration_ms / 1000, 0.001)
     report.operator_duration_ms = operator_durations(
         map_duration_ms=map_duration_ms,
         reduce_duration_ms=report.reduce_duration_ms,
@@ -220,9 +211,7 @@ def run_langgraph_local(
         raise RuntimeError(f"langgraph adapter unavailable: {exc}") from exc
 
     def generate_node(state: _GraphState) -> dict[str, Any]:
-        dataset = generate_synthetic_events(
-            event_count=state["event_count"], seed=state["seed"]
-        )
+        dataset = generate_synthetic_events(event_count=state["event_count"], seed=state["seed"])
         return {
             "dataset": dataset,
             "shards": partition_events(dataset.events, state["shard_count"]),
@@ -311,8 +300,7 @@ def run_llamaindex_docstore(
 
     map_started = time.perf_counter()
     summaries = [
-        map_shard(shard_id, shard, map_policy=map_policy)
-        for shard_id, shard in enumerate(shards)
+        map_shard(shard_id, shard, map_policy=map_policy) for shard_id, shard in enumerate(shards)
     ]
     docstore = SimpleDocumentStore()
     documents = []
@@ -351,9 +339,7 @@ def run_llamaindex_docstore(
     )
     report.reduce_duration_ms = (time.perf_counter() - reduce_started) * 1000
     report.total_duration_ms = (time.perf_counter() - started) * 1000
-    report.throughput_events_per_s = event_count / max(
-        report.total_duration_ms / 1000, 0.001
-    )
+    report.throughput_events_per_s = event_count / max(report.total_duration_ms / 1000, 0.001)
     report.operator_duration_ms = operator_durations(
         map_duration_ms=map_duration_ms,
         reduce_duration_ms=report.reduce_duration_ms,
@@ -403,8 +389,7 @@ def _aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Compare optional orchestration adapters for the large-scale "
-            "analysis workload."
+            "Compare optional orchestration adapters for the large-scale analysis workload."
         )
     )
     parser.add_argument("--sizes", default=DEFAULT_SIZES)
@@ -495,8 +480,9 @@ def main() -> int:
                     2,
                 )
                 artifact_name = (
-                    f"events{events}_shards{shards}_seed{seed}_{adapter_name}.json"
-                    .replace("-", "_")
+                    f"events{events}_shards{shards}_seed{seed}_{adapter_name}.json".replace(
+                        "-", "_"
+                    )
                 )
                 (outdir / artifact_name).write_text(
                     json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
@@ -514,16 +500,12 @@ def main() -> int:
                     "precision": payload.get("precision", ""),
                     "recall": payload.get("recall", ""),
                     "f1": payload.get("f1", ""),
-                    "throughput_events_per_s": payload.get(
-                        "throughput_events_per_s", ""
-                    ),
+                    "throughput_events_per_s": payload.get("throughput_events_per_s", ""),
                     "map_duration_ms": payload.get("map_duration_ms", ""),
                     "reduce_duration_ms": payload.get("reduce_duration_ms", ""),
                     "total_duration_ms": payload.get("total_duration_ms", ""),
                     "wall_duration_ms": payload["wall_duration_ms"],
-                    "detected_incident_count": payload.get(
-                        "detected_incident_count", ""
-                    ),
+                    "detected_incident_count": payload.get("detected_incident_count", ""),
                     "matched_incident_count": payload.get("matched_incident_count", ""),
                     "error": error,
                 }

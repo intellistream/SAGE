@@ -487,8 +487,9 @@ def test_actor_submit_backend_job_uses_prefix_cache_key_for_stable_backend_affin
             ]
             is True
         )
-        assert "preferred_backend" in target_backend.submitted_requests[-1]["backend_selection"][
-            "selection_reason_codes"
-        ]
+        assert (
+            "preferred_backend"
+            in target_backend.submitted_requests[-1]["backend_selection"]["selection_reason_codes"]
+        )
     finally:
         bootstrap.shutdown()

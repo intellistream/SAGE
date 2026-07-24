@@ -339,7 +339,9 @@ def normalize_adaptive_deadline_class_max_tokens(
     if raw_value is None:
         return {}
     if not isinstance(raw_value, dict):
-        raise ValueError(f"{source_label} adaptive_deadline_class_max_tokens must be a JSON object.")
+        raise ValueError(
+            f"{source_label} adaptive_deadline_class_max_tokens must be a JSON object."
+        )
     profiles: dict[str, dict[str, int]] = {}
     for profile_name, max_tokens in raw_value.items():
         profiles[str(profile_name)] = normalize_deadline_class_max_tokens(
@@ -395,11 +397,11 @@ def policy_overload_state(
     running = snapshot.get("num_requests_running")
     waiting = snapshot.get("num_requests_waiting")
     kv_cache = snapshot.get("kv_cache_usage_perc")
-    running_overloaded = (
-        running is not None and running >= float(policy.get("running_threshold") or 0.0)
+    running_overloaded = running is not None and running >= float(
+        policy.get("running_threshold") or 0.0
     )
-    waiting_overloaded = (
-        waiting is not None and waiting > float(policy.get("waiting_threshold") or 0.0)
+    waiting_overloaded = waiting is not None and waiting > float(
+        policy.get("waiting_threshold") or 0.0
     )
     use_memory_signal = bool(policy.get("use_memory_signal", True))
     kv_threshold = policy.get("kv_cache_threshold")
@@ -451,7 +453,7 @@ def graduated_shaping_caps(
         min_cap = int(bounds.get("min_cap") or 16)
         cap = int(max_cap - (max_cap - min_cap) * pressure)
         caps[class_name] = max(min_cap, min(max_cap, cap))
-    profile_name = f"graduated-p{int(pressure*100)}"
+    profile_name = f"graduated-p{int(pressure * 100)}"
     return caps, profile_name
 
 
@@ -575,7 +577,9 @@ def policy_dispatch_decision(
         }
 
     if mode == "no-profiling":
-        if deadline_class == "interactive-high" or priority >= int(policy.get("priority_cutoff") or 0):
+        if deadline_class == "interactive-high" or priority >= int(
+            policy.get("priority_cutoff") or 0
+        ):
             return {
                 "action": "dispatch",
                 "reason": "priority_bypass",
@@ -621,7 +625,9 @@ def policy_dispatch_decision(
         if mode == "strict-priority":
             max_concurrent = int(policy.get("max_concurrent_batch") or 2)
             running = snapshot.get("num_requests_running")
-            if deadline_class == "interactive-high" or priority >= int(policy.get("priority_cutoff") or 0):
+            if deadline_class == "interactive-high" or priority >= int(
+                policy.get("priority_cutoff") or 0
+            ):
                 return {
                     "action": "dispatch",
                     "reason": "strict_priority_bypass",

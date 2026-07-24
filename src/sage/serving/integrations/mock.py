@@ -321,7 +321,9 @@ class MockWorkflowProductAdapter:
         endpoint_request["submit_via"] = "endpoint_request"
         endpoint_request["workflow_id"] = imported_workflow.workflow_id
         if serving_context is not None:
-            shaped_context, policy_decision = self._shape_serving_context_with_policy(serving_context)
+            shaped_context, policy_decision = self._shape_serving_context_with_policy(
+                serving_context
+            )
             endpoint_request["serving_context"] = shaped_context
             if policy_decision is not None:
                 endpoint_request["policy_decision"] = policy_decision

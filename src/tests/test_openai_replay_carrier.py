@@ -506,15 +506,15 @@ def test_openai_replay_carrier_parses_prefix_cache_metrics_from_prometheus_snaps
     snapshot = module._parse_load_metrics_snapshot(
         "\n".join(
             [
-                "vllm:num_requests_running{engine=\"0\"} 2",
-                "vllm:num_requests_waiting{engine=\"0\"} 1",
-                "vllm:kv_cache_usage_perc{engine=\"0\"} 0.25",
-                "vllm:prefix_cache_queries_total{engine=\"0\"} 100",
-                "vllm:prefix_cache_hits_total{engine=\"0\"} 40",
-                "vllm:external_prefix_cache_queries_total{engine=\"0\"} 20",
-                "vllm:external_prefix_cache_hits_total{engine=\"0\"} 5",
-                "vllm:prefix_cache_queries_total{engine=\"1\"} 50",
-                "vllm:prefix_cache_hits_total{engine=\"1\"} 15",
+                'vllm:num_requests_running{engine="0"} 2',
+                'vllm:num_requests_waiting{engine="0"} 1',
+                'vllm:kv_cache_usage_perc{engine="0"} 0.25',
+                'vllm:prefix_cache_queries_total{engine="0"} 100',
+                'vllm:prefix_cache_hits_total{engine="0"} 40',
+                'vllm:external_prefix_cache_queries_total{engine="0"} 20',
+                'vllm:external_prefix_cache_hits_total{engine="0"} 5',
+                'vllm:prefix_cache_queries_total{engine="1"} 50',
+                'vllm:prefix_cache_hits_total{engine="1"} 15',
             ]
         )
     )
@@ -759,23 +759,27 @@ def test_openai_replay_carrier_rejects_still_unsupported_variant(tmp_path: Path)
             "baseline:fifo, baseline:balanced-operating-point, baseline:load-aware, baseline:no-spillover, baseline:no-memory-aware, baseline:full-policy, baseline:prism-style-static-sharing, baseline:prism-style-elastic-sharing, baseline:prism-style-two-level-scheduler, baseline:vamos-slo-feasibility-controller, baseline:vamos-slo-rescue-no-reject, ablation:aggressive-upper-bound, ablation:no-admission-control, ablation:no-profiling, and ablation:adaptive-controller"
         ),
     ):
-        module._validate_direct_endpoint_variant({"kind": "ablation", "name": "no-prefix-cache-signal"})
+        module._validate_direct_endpoint_variant(
+            {"kind": "ablation", "name": "no-prefix-cache-signal"}
+        )
 
 
 def test_openai_replay_carrier_persists_response_metadata_in_raw_log_and_trace(
     tmp_path: Path,
 ) -> None:
     module = _load_module(tmp_path)
-    result, summary, raw_row, trace_row, captured_request_inputs = _run_fake_replay_with_response_metadata(
-        module,
-        tmp_path,
-        {
-            "x-vllm-backend-id": "served-test-model",
-            "x-vllm-endpoint-pool-id": "single-endpoint:served-test-model",
-            "x-vllm-backend-scope": "local",
-            "x-vllm-route-outcome": "local_only",
-        },
-        execution_priority_mode="invert-vamos",
+    result, summary, raw_row, trace_row, captured_request_inputs = (
+        _run_fake_replay_with_response_metadata(
+            module,
+            tmp_path,
+            {
+                "x-vllm-backend-id": "served-test-model",
+                "x-vllm-endpoint-pool-id": "single-endpoint:served-test-model",
+                "x-vllm-backend-scope": "local",
+                "x-vllm-route-outcome": "local_only",
+            },
+            execution_priority_mode="invert-vamos",
+        )
     )
 
     assert result["raw_log_output"].endswith("raw-log.jsonl")
@@ -791,9 +795,7 @@ def test_openai_replay_carrier_persists_response_metadata_in_raw_log_and_trace(
     assert summary["metrics"]["spillover_rate"] == 0.0
     assert summary["request_mix"]["route_outcome_counts"] == {"local_only": 1}
     assert summary["request_mix"]["backend_scope_counts"] == {"local": 1}
-    assert summary["request_mix"]["prefix_cache_key_counts"] == {
-        "tenant-a:incident-summary:v1": 1
-    }
+    assert summary["request_mix"]["prefix_cache_key_counts"] == {"tenant-a:incident-summary:v1": 1}
     assert raw_row["prefix_cache_key"] == "tenant-a:incident-summary:v1"
     assert trace_row["decision_trace"]["execution_priority"] == -100
     assert trace_row["decision_trace"]["prefix_cache_key"] == "tenant-a:incident-summary:v1"
@@ -811,16 +813,18 @@ def test_openai_replay_carrier_caps_deadline_class_max_tokens_before_dispatch(
     tmp_path: Path,
 ) -> None:
     module = _load_module(tmp_path)
-    _, summary, raw_row, trace_row, captured_request_inputs = _run_fake_replay_with_response_metadata(
-        module,
-        tmp_path,
-        {
-            "x-vllm-backend-id": "served-test-model",
-            "x-vllm-endpoint-pool-id": "single-endpoint:served-test-model",
-            "x-vllm-backend-scope": "local",
-            "x-vllm-route-outcome": "local_only",
-        },
-        deadline_class_max_tokens={"interactive-high": 4},
+    _, summary, raw_row, trace_row, captured_request_inputs = (
+        _run_fake_replay_with_response_metadata(
+            module,
+            tmp_path,
+            {
+                "x-vllm-backend-id": "served-test-model",
+                "x-vllm-endpoint-pool-id": "single-endpoint:served-test-model",
+                "x-vllm-backend-scope": "local",
+                "x-vllm-route-outcome": "local_only",
+            },
+            deadline_class_max_tokens={"interactive-high": 4},
+        )
     )
 
     assert summary["execution_metadata"]["deadline_class_max_tokens"] == {"interactive-high": 4}
@@ -836,19 +840,21 @@ def test_openai_replay_carrier_variant_policy_caps_deadline_class_max_tokens_bef
     tmp_path: Path,
 ) -> None:
     module = _load_module(tmp_path)
-    _, summary, raw_row, trace_row, captured_request_inputs = _run_fake_replay_with_response_metadata(
-        module,
-        tmp_path,
-        {
-            "x-vllm-backend-id": "served-test-model",
-            "x-vllm-endpoint-pool-id": "single-endpoint:served-test-model",
-            "x-vllm-backend-scope": "local",
-            "x-vllm-route-outcome": "local_only",
-        },
-        variant_kind="baseline",
-        variant_name="balanced-operating-point",
-        request_deadline_class="batch-standard",
-        request_max_tokens=512,
+    _, summary, raw_row, trace_row, captured_request_inputs = (
+        _run_fake_replay_with_response_metadata(
+            module,
+            tmp_path,
+            {
+                "x-vllm-backend-id": "served-test-model",
+                "x-vllm-endpoint-pool-id": "single-endpoint:served-test-model",
+                "x-vllm-backend-scope": "local",
+                "x-vllm-route-outcome": "local_only",
+            },
+            variant_kind="baseline",
+            variant_name="balanced-operating-point",
+            request_deadline_class="batch-standard",
+            request_max_tokens=512,
+        )
     )
 
     assert summary["execution_metadata"]["deadline_class_max_tokens"] == {
@@ -892,24 +898,26 @@ def test_openai_replay_carrier_adaptive_controller_uses_default_cap_profile_belo
     tmp_path: Path,
 ) -> None:
     module = _load_module(tmp_path)
-    _, summary, raw_row, trace_row, captured_request_inputs = _run_fake_replay_with_response_metadata(
-        module,
-        tmp_path,
-        {
-            "x-vllm-backend-id": "served-test-model",
-            "x-vllm-endpoint-pool-id": "single-endpoint:served-test-model",
-            "x-vllm-backend-scope": "local",
-            "x-vllm-route-outcome": "local_only",
-        },
-        variant_kind="ablation",
-        variant_name="adaptive-controller",
-        request_deadline_class="interactive-high",
-        request_max_tokens=512,
-        current_load_snapshot={
-            "num_requests_running": 1.0,
-            "num_requests_waiting": 0.0,
-            "kv_cache_usage_perc": 0.01,
-        },
+    _, summary, raw_row, trace_row, captured_request_inputs = (
+        _run_fake_replay_with_response_metadata(
+            module,
+            tmp_path,
+            {
+                "x-vllm-backend-id": "served-test-model",
+                "x-vllm-endpoint-pool-id": "single-endpoint:served-test-model",
+                "x-vllm-backend-scope": "local",
+                "x-vllm-route-outcome": "local_only",
+            },
+            variant_kind="ablation",
+            variant_name="adaptive-controller",
+            request_deadline_class="interactive-high",
+            request_max_tokens=512,
+            current_load_snapshot={
+                "num_requests_running": 1.0,
+                "num_requests_waiting": 0.0,
+                "kv_cache_usage_perc": 0.01,
+            },
+        )
     )
 
     assert summary["execution_metadata"]["adaptive_deadline_class_max_tokens"] == {
@@ -931,24 +939,26 @@ def test_openai_replay_carrier_adaptive_controller_uses_overload_cap_profile_und
     tmp_path: Path,
 ) -> None:
     module = _load_module(tmp_path)
-    _, summary, raw_row, trace_row, captured_request_inputs = _run_fake_replay_with_response_metadata(
-        module,
-        tmp_path,
-        {
-            "x-vllm-backend-id": "served-test-model",
-            "x-vllm-endpoint-pool-id": "single-endpoint:served-test-model",
-            "x-vllm-backend-scope": "local",
-            "x-vllm-route-outcome": "local_only",
-        },
-        variant_kind="ablation",
-        variant_name="adaptive-controller",
-        request_deadline_class="interactive-high",
-        request_max_tokens=512,
-        current_load_snapshot={
-            "num_requests_running": 3.0,
-            "num_requests_waiting": 0.0,
-            "kv_cache_usage_perc": 0.06,
-        },
+    _, summary, raw_row, trace_row, captured_request_inputs = (
+        _run_fake_replay_with_response_metadata(
+            module,
+            tmp_path,
+            {
+                "x-vllm-backend-id": "served-test-model",
+                "x-vllm-endpoint-pool-id": "single-endpoint:served-test-model",
+                "x-vllm-backend-scope": "local",
+                "x-vllm-route-outcome": "local_only",
+            },
+            variant_kind="ablation",
+            variant_name="adaptive-controller",
+            request_deadline_class="interactive-high",
+            request_max_tokens=512,
+            current_load_snapshot={
+                "num_requests_running": 3.0,
+                "num_requests_waiting": 0.0,
+                "kv_cache_usage_perc": 0.06,
+            },
+        )
     )
 
     assert summary["execution_metadata"]["adaptive_deadline_class_max_tokens"] == {
@@ -967,36 +977,38 @@ def test_openai_replay_carrier_adaptive_controller_recomputes_cap_profile_at_dis
     tmp_path: Path,
 ) -> None:
     module = _load_module(tmp_path)
-    _, summary, raw_row, trace_row, captured_request_inputs = _run_fake_replay_with_response_metadata(
-        module,
-        tmp_path,
-        {
-            "x-vllm-backend-id": "served-test-model",
-            "x-vllm-endpoint-pool-id": "single-endpoint:served-test-model",
-            "x-vllm-backend-scope": "local",
-            "x-vllm-route-outcome": "local_only",
-        },
-        variant_kind="ablation",
-        variant_name="adaptive-controller",
-        request_deadline_class="interactive-high",
-        request_max_tokens=512,
-        current_load_snapshot={
-            "num_requests_running": 0.0,
-            "num_requests_waiting": 0.0,
-            "kv_cache_usage_perc": 0.0,
-        },
-        policy_trace_override={
-            "policy_action": "dispatch",
-            "policy_mode": "fifo",
-            "policy_reason": "fifo_order",
-            "dispatch_delay_s": 0.0,
-            "deferral_count": 0,
-            "observed_load": {
-                "num_requests_running": 4.0,
-                "num_requests_waiting": 0.0,
-                "kv_cache_usage_perc": 0.06,
+    _, summary, raw_row, trace_row, captured_request_inputs = (
+        _run_fake_replay_with_response_metadata(
+            module,
+            tmp_path,
+            {
+                "x-vllm-backend-id": "served-test-model",
+                "x-vllm-endpoint-pool-id": "single-endpoint:served-test-model",
+                "x-vllm-backend-scope": "local",
+                "x-vllm-route-outcome": "local_only",
             },
-        },
+            variant_kind="ablation",
+            variant_name="adaptive-controller",
+            request_deadline_class="interactive-high",
+            request_max_tokens=512,
+            current_load_snapshot={
+                "num_requests_running": 0.0,
+                "num_requests_waiting": 0.0,
+                "kv_cache_usage_perc": 0.0,
+            },
+            policy_trace_override={
+                "policy_action": "dispatch",
+                "policy_mode": "fifo",
+                "policy_reason": "fifo_order",
+                "dispatch_delay_s": 0.0,
+                "deferral_count": 0,
+                "observed_load": {
+                    "num_requests_running": 4.0,
+                    "num_requests_waiting": 0.0,
+                    "kv_cache_usage_perc": 0.06,
+                },
+            },
+        )
     )
 
     assert summary["execution_metadata"]["adaptive_deadline_class_max_tokens"] == {

@@ -22,9 +22,7 @@ def _parse_sizes(raw_value: str) -> list[tuple[int, int, int]]:
     for item in raw_value.split(","):
         fields = item.strip().split(":")
         if len(fields) != 3:
-            raise ValueError(
-                f"Invalid size spec {item!r}; expected events:shards:top_k."
-            )
+            raise ValueError(f"Invalid size spec {item!r}; expected events:shards:top_k.")
         events, shards, top_k = (int(field) for field in fields)
         sizes.append((events, shards, top_k))
     if not sizes:
@@ -72,9 +70,7 @@ def _aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
     size_summary = {}
     for size_key, size_rows in sorted(by_size.items()):
-        deterministic_rows = [
-            row for row in size_rows if row["reducer"] == "deterministic"
-        ]
+        deterministic_rows = [row for row in size_rows if row["reducer"] == "deterministic"]
         if not deterministic_rows:
             continue
         size_summary[size_key] = {
@@ -100,10 +96,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--sizes",
         default=DEFAULT_SIZES,
-        help=(
-            "Comma-separated events:shards:top_k specs. "
-            f"Default: {DEFAULT_SIZES}"
-        ),
+        help=(f"Comma-separated events:shards:top_k specs. Default: {DEFAULT_SIZES}"),
     )
     parser.add_argument(
         "--seeds",
@@ -118,10 +111,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--map-policies",
         default=DEFAULT_MAP_POLICIES,
-        help=(
-            "Comma-separated MapEvidence policies. "
-            f"Default: {DEFAULT_MAP_POLICIES}"
-        ),
+        help=(f"Comma-separated MapEvidence policies. Default: {DEFAULT_MAP_POLICIES}"),
     )
     parser.add_argument(
         "--output-root",
@@ -166,8 +156,7 @@ def main() -> int:
                         2,
                     )
                     artifact_name = (
-                        f"events{events}_shards{shards}_seed{seed}_"
-                        f"{map_policy}_{reducer}.json"
+                        f"events{events}_shards{shards}_seed{seed}_{map_policy}_{reducer}.json"
                     ).replace("-", "_")
                     (outdir / artifact_name).write_text(
                         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",

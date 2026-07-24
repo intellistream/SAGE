@@ -619,7 +619,10 @@ def test_registry_policy_hook_skips_adapter_with_builtin_policy() -> None:
     )
 
     assert submit_response.metadata.get("policy_decision") is None
-    assert submit_response.submit_payload["policy_decision"]["variant_name"] == "vamos-slo-feasibility-controller"
+    assert (
+        submit_response.submit_payload["policy_decision"]["variant_name"]
+        == "vamos-slo-feasibility-controller"
+    )
 
 
 def test_build_registry_from_env_applies_policy_config() -> None:
@@ -628,7 +631,7 @@ def test_build_registry_from_env_applies_policy_config() -> None:
             "SAGE_WORKFLOW_POLICY_VARIANT_KIND": "baseline",
             "SAGE_WORKFLOW_POLICY_VARIANT_NAME": "vamos-slo-feasibility-controller",
             "SAGE_WORKFLOW_POLICY_EXECUTION_PRIORITY_MODE": "invert-vamos",
-            "SAGE_WORKFLOW_POLICY_LOAD_SNAPSHOT_JSON": "{\"num_requests_running\": 2, \"num_requests_waiting\": 1, \"kv_cache_usage_perc\": 0.06}",
+            "SAGE_WORKFLOW_POLICY_LOAD_SNAPSHOT_JSON": '{"num_requests_running": 2, "num_requests_waiting": 1, "kv_cache_usage_perc": 0.06}',
         }
     )
     adapter = MockWorkflowProductAdapter(
@@ -670,7 +673,7 @@ def test_build_registry_from_env_direct_metrics_override_json() -> None:
         env={
             "SAGE_WORKFLOW_POLICY_VARIANT_KIND": "ablation",
             "SAGE_WORKFLOW_POLICY_VARIANT_NAME": "adaptive-controller",
-            "SAGE_WORKFLOW_POLICY_LOAD_SNAPSHOT_JSON": "{\"num_requests_running\": 0, \"num_requests_waiting\": 0, \"kv_cache_usage_perc\": 0.0}",
+            "SAGE_WORKFLOW_POLICY_LOAD_SNAPSHOT_JSON": '{"num_requests_running": 0, "num_requests_waiting": 0, "kv_cache_usage_perc": 0.0}',
             "SAGE_WORKFLOW_POLICY_NUM_REQUESTS_RUNNING": "3",
             "SAGE_WORKFLOW_POLICY_NUM_REQUESTS_WAITING": "1",
             "SAGE_WORKFLOW_POLICY_KV_CACHE_USAGE_PERC": "0.06",

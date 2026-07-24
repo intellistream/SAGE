@@ -179,7 +179,8 @@ def test_openai_completion_reducer_parses_json_incidents() -> None:
         model="unit-test-model",
         api_key="unit-test-key",
     )
-    reducer._completion = lambda _prompt: """{
+    reducer._completion = lambda _prompt: (
+        """{
       "incidents": [
         {
           "service": "decode",
@@ -193,6 +194,7 @@ def test_openai_completion_reducer_parses_json_incidents() -> None:
         }
       ]
     }"""
+    )
 
     incidents = reducer.reduce(summaries)
 
@@ -214,7 +216,8 @@ def test_openai_completion_reducer_uses_evidence_as_source_of_truth() -> None:
         model="unit-test-model",
         api_key="unit-test-key",
     )
-    reducer._completion = lambda _prompt: """{
+    reducer._completion = lambda _prompt: (
+        """{
       "incidents": [
         {
           "service": "scheduler",
@@ -236,6 +239,7 @@ def test_openai_completion_reducer_uses_evidence_as_source_of_truth() -> None:
         }
       ]
     }"""
+    )
 
     incidents = reducer.reduce(summaries)
 
@@ -266,9 +270,9 @@ def test_openai_completion_reducer_can_request_json_schema(monkeypatch) -> None:
             return None
 
         def read(self) -> bytes:
-            return json.dumps(
-                {"choices": [{"message": {"content": "{\"incidents\": []}"}}]}
-            ).encode("utf-8")
+            return json.dumps({"choices": [{"message": {"content": '{"incidents": []}'}}]}).encode(
+                "utf-8"
+            )
 
     def fake_urlopen(request, timeout):  # type: ignore[no-untyped-def]
         captured["timeout"] = timeout
@@ -283,10 +287,8 @@ def test_openai_completion_reducer_can_request_json_schema(monkeypatch) -> None:
         structured_output=True,
     )
 
-    assert reducer._completion("return json") == "{\"incidents\": []}"
+    assert reducer._completion("return json") == '{"incidents": []}'
     payload = captured["payload"]
     assert isinstance(payload, dict)
     assert payload["response_format"]["type"] == "json_schema"
-    assert payload["response_format"]["json_schema"]["schema"]["required"] == [
-        "incidents"
-    ]
+    assert payload["response_format"]["json_schema"]["schema"]["required"] == ["incidents"]

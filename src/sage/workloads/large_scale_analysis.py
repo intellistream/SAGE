@@ -179,8 +179,7 @@ class MapOnlyIncidentReducer(IncidentReducer):
                         "mean_npu_util": candidate["mean_npu_util"],
                         "mean_queue_depth": candidate["mean_queue_depth"],
                         "summary": (
-                            f"[map-only shard={summary.shard_id}] "
-                            f"{_explain_candidate(candidate)}"
+                            f"[map-only shard={summary.shard_id}] {_explain_candidate(candidate)}"
                         ),
                     }
                 )
@@ -220,8 +219,7 @@ class LLMStubIncidentReducer(IncidentReducer):
                 **incident,
                 "reducer": self.name,
                 "summary": (
-                    "[LLM reducer stub; deterministic evidence fusion] "
-                    f"{incident['summary']}"
+                    f"[LLM reducer stub; deterministic evidence fusion] {incident['summary']}"
                 ),
             }
             for incident in incidents
@@ -324,9 +322,7 @@ class OpenAICompletionIncidentReducer(IncidentReducer):
                 "temperature": self.temperature,
             }
         else:
-            raise RuntimeError(
-                f"Unsupported LLM reducer endpoint_type: {self.endpoint_type!r}"
-            )
+            raise RuntimeError(f"Unsupported LLM reducer endpoint_type: {self.endpoint_type!r}")
         req = urllib.request.Request(
             f"{self.base_url}{path}",
             data=json.dumps(payload).encode("utf-8"),
@@ -381,9 +377,7 @@ def resolve_incident_reducer(reducer: str | IncidentReducer | None) -> IncidentR
     if normalized in {"llm-stub", "llm_stub"}:
         return LLMStubIncidentReducer()
     if normalized in {"llm-openai", "llm_openai", "openai"}:
-        api_key = os.environ.get("SAGE_LSA_LLM_API_KEY") or os.environ.get(
-            "VLLM_HUST_API_KEY"
-        )
+        api_key = os.environ.get("SAGE_LSA_LLM_API_KEY") or os.environ.get("VLLM_HUST_API_KEY")
         if not api_key:
             raise ValueError(
                 "llm-openai reducer requires SAGE_LSA_LLM_API_KEY or "
@@ -397,9 +391,7 @@ def resolve_incident_reducer(reducer: str | IncidentReducer | None) -> IncidentR
             max_tokens=int(os.environ.get("SAGE_LSA_LLM_MAX_TOKENS", "768")),
             timeout_sec=int(os.environ.get("SAGE_LSA_LLM_TIMEOUT_SEC", "180")),
             endpoint_type=os.environ.get("SAGE_LSA_LLM_ENDPOINT_TYPE", "chat"),
-            structured_output=os.environ.get("SAGE_LSA_LLM_STRUCTURED_OUTPUT", "")
-            .strip()
-            .lower()
+            structured_output=os.environ.get("SAGE_LSA_LLM_STRUCTURED_OUTPUT", "").strip().lower()
             in {"1", "true", "yes", "on"},
         )
     raise ValueError(
@@ -534,9 +526,7 @@ def map_shard(
     map_policy: str = "tail-aware",
 ) -> ShardSummary:
     if map_policy not in {"tail-aware", "mean-only"}:
-        raise ValueError(
-            f"Unknown map_policy {map_policy!r}. Expected tail-aware or mean-only."
-        )
+        raise ValueError(f"Unknown map_policy {map_policy!r}. Expected tail-aware or mean-only.")
     started = time.perf_counter()
     grouped: dict[tuple[str, str, int], list[AnalysisEvent]] = defaultdict(list)
     for event in events:
@@ -645,9 +635,9 @@ def _build_llm_reduce_prompt(evidence: list[dict[str, Any]]) -> str:
         "You are a semantic reducer for large-scale LLM serving telemetry.\n"
         "Group the provided evidence rows into incident-level hypotheses. "
         "Use only the evidence provided. Return ONLY valid JSON with this schema:\n"
-        "{\"incidents\":[{\"service\":\"...\",\"region\":\"...\","
-        "\"start_minute\":0,\"end_minute\":0,\"score\":0.0,"
-        "\"signals\":[\"latency\"],\"evidence_ids\":[0]}]}\n"
+        '{"incidents":[{"service":"...","region":"...",'
+        '"start_minute":0,"end_minute":0,"score":0.0,'
+        '"signals":["latency"],"evidence_ids":[0]}]}\n'
         "Rules: every evidence_id is an input row id. Use each evidence_id at "
         "most once across the whole output. Group adjacent evidence rows for "
         "the same service and region into one incident. Create separate "
@@ -724,9 +714,7 @@ def _extract_json_payload(text: str) -> dict[str, Any]:
         start = cleaned.find("{")
         end = cleaned.rfind("}")
         if start < 0 or end <= start:
-            raise RuntimeError(
-                f"LLM reducer returned non-JSON text: {text[:300]}"
-            ) from exc
+            raise RuntimeError(f"LLM reducer returned non-JSON text: {text[:300]}") from exc
         parsed = json.loads(cleaned[start : end + 1])
     if not isinstance(parsed, dict):
         raise RuntimeError("LLM reducer JSON payload must be an object.")
@@ -779,15 +767,10 @@ def _normalize_llm_incidents(
         error_rate = max((float(item["error_rate"]) for item in selected), default=0.0)
         npu_util = max((float(item["mean_npu_util"]) for item in selected), default=0.0)
         p95_npu_util = max(
-            (
-                float(item.get("p95_npu_util", item["mean_npu_util"]))
-                for item in selected
-            ),
+            (float(item.get("p95_npu_util", item["mean_npu_util"])) for item in selected),
             default=0.0,
         )
-        queue_depth = max(
-            (float(item["mean_queue_depth"]) for item in selected), default=0.0
-        )
+        queue_depth = max((float(item["mean_queue_depth"]) for item in selected), default=0.0)
         key = (service, region, start_minute, max(end_minute, start_minute), tuple(evidence_ids))
         if key in seen:
             continue
@@ -829,9 +812,7 @@ def _repair_llm_incident_coverage(
         if isinstance(idx, int)
     }
     remaining = [
-        {**item, "evidence_id": idx}
-        for idx, item in enumerate(evidence)
-        if idx not in used_ids
+        {**item, "evidence_id": idx} for idx, item in enumerate(evidence) if idx not in used_ids
     ]
     if not remaining:
         return incidents
@@ -922,8 +903,7 @@ def _merge_llm_incident_cluster(
         "error_rate": max(float(item["error_rate"]) for item in incidents),
         "mean_npu_util": max(float(item["mean_npu_util"]) for item in incidents),
         "p95_npu_util": max(
-            float(item.get("p95_npu_util", item["mean_npu_util"]))
-            for item in incidents
+            float(item.get("p95_npu_util", item["mean_npu_util"])) for item in incidents
         ),
         "mean_queue_depth": max(float(item["mean_queue_depth"]) for item in incidents),
         "evidence_ids": evidence_ids,
@@ -987,9 +967,7 @@ def _reduce_summaries_by_window(summaries: list[ShardSummary]) -> list[dict[str,
         p95 = max(item["p95_latency_ms"] for item in candidates)
         error_rate = max(item["error_rate"] for item in candidates)
         mean_npu_util = max(item["mean_npu_util"] for item in candidates)
-        p95_npu_util = max(
-            item.get("p95_npu_util", item["mean_npu_util"]) for item in candidates
-        )
+        p95_npu_util = max(item.get("p95_npu_util", item["mean_npu_util"]) for item in candidates)
         mean_queue_depth = max(item["mean_queue_depth"] for item in candidates)
         window_detections.append(
             {
@@ -1079,9 +1057,7 @@ def _cluster_window_detections(
         "p95_latency_ms": p95,
         "error_rate": error_rate,
         "mean_npu_util": mean_npu_util,
-        "p95_npu_util": max(
-            item.get("p95_npu_util", item["mean_npu_util"]) for item in detections
-        ),
+        "p95_npu_util": max(item.get("p95_npu_util", item["mean_npu_util"]) for item in detections),
         "mean_queue_depth": mean_queue_depth,
         "summary": _explain_candidate(
             {
@@ -1091,8 +1067,7 @@ def _cluster_window_detections(
                 "error_rate": error_rate,
                 "mean_npu_util": mean_npu_util,
                 "p95_npu_util": max(
-                    item.get("p95_npu_util", item["mean_npu_util"])
-                    for item in detections
+                    item.get("p95_npu_util", item["mean_npu_util"]) for item in detections
                 ),
                 "mean_queue_depth": mean_queue_depth,
             }
@@ -1118,8 +1093,8 @@ def score_detections(
     precision = matched_detections / len(detections) if detections else 0.0
     recall = len(matched_incidents) / len(incidents) if incidents else 1.0
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
-    evidence_coverage = (
-        sum(detection["evidence_count"] for detection in detections) / max(1, len(detections))
+    evidence_coverage = sum(detection["evidence_count"] for detection in detections) / max(
+        1, len(detections)
     )
     return len(matched_incidents), precision, recall, f1, evidence_coverage
 
@@ -1161,8 +1136,7 @@ def run_large_scale_analysis_workload(
 
     map_started = time.perf_counter()
     summaries = [
-        map_shard(shard_id, shard, map_policy=map_policy)
-        for shard_id, shard in enumerate(shards)
+        map_shard(shard_id, shard, map_policy=map_policy) for shard_id, shard in enumerate(shards)
     ]
     map_duration_ms = (time.perf_counter() - map_started) * 1000
 
@@ -1171,9 +1145,7 @@ def run_large_scale_analysis_workload(
     reduce_duration_ms = (time.perf_counter() - reduce_started) * 1000
 
     report_started = time.perf_counter()
-    matched, precision, recall, f1, coverage = score_detections(
-        detections, dataset.incidents
-    )
+    matched, precision, recall, f1, coverage = score_detections(detections, dataset.incidents)
     matched_incident_ids, _ = match_detections(detections, dataset.incidents)
     missed_incidents = [
         incident_to_dict(incident)
