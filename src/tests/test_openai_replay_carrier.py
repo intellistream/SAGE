@@ -1065,3 +1065,99 @@ def test_openai_replay_carrier_selects_exact_planned_seed(tmp_path: Path) -> Non
     assert selected["run_id"] == "fifo-seed137"
     with pytest.raises(ValueError, match="found 0"):
         module._find_variant(plan, "baseline", "fifo", 256)
+
+
+def test_openai_replay_carrier_reports_the_complete_service_bill(
+    tmp_path: Path,
+) -> None:
+    module = _load_module(tmp_path)
+    rows = [
+        {
+            "success": True,
+            "policy_action": "dispatch",
+            "deadline_class": "interactive-high",
+            "ttft_ms": 100.0,
+            "e2e_ms": 800.0,
+            "target_e2e_ms": 1000.0,
+            "slo_violated": False,
+            "dispatch_delay_s": 0.25,
+            "requested_max_tokens": 64,
+            "effective_max_tokens": 16,
+            "output_tokens": 16,
+            "completed_at_s": 2.0,
+            "used_spillover": False,
+            "controller_decision_latency_us": 20.0,
+        },
+        {
+            "success": False,
+            "policy_action": "reject",
+            "deadline_class": "batch-standard",
+            "ttft_ms": None,
+            "e2e_ms": None,
+            "target_e2e_ms": 5000.0,
+            "slo_violated": True,
+            "dispatch_delay_s": 2.0,
+            "requested_max_tokens": 128,
+            "effective_max_tokens": 64,
+            "output_tokens": 0,
+            "completed_at_s": 2.0,
+            "used_spillover": False,
+            "controller_decision_latency_us": 40.0,
+        },
+        {
+            "success": False,
+            "policy_action": "dispatch",
+            "deadline_class": "interactive-high",
+            "ttft_ms": None,
+            "e2e_ms": None,
+            "target_e2e_ms": 1000.0,
+            "slo_violated": True,
+            "dispatch_delay_s": 0.0,
+            "requested_max_tokens": 64,
+            "effective_max_tokens": 64,
+            "output_tokens": 0,
+            "completed_at_s": 2.0,
+            "used_spillover": False,
+            "controller_decision_latency_us": 30.0,
+        },
+    ]
+    metrics = module._build_metrics(
+        {"metrics": {}},
+        rows,
+        {
+            "prefix_cache_queries_start": None,
+            "prefix_cache_queries_end": None,
+            "prefix_cache_hits_start": None,
+            "prefix_cache_hits_end": None,
+        },
+    )
+    assert metrics["reject_rate"] == pytest.approx(1 / 3, abs=1e-6)
+    assert metrics["execution_failure_rate"] == pytest.approx(1 / 3, abs=1e-6)
+    assert metrics["delayed_request_rate"] == pytest.approx(2 / 3, abs=1e-6)
+    assert metrics["shortened_request_rate"] == pytest.approx(2 / 3, abs=1e-6)
+    assert metrics["interactive_e2e_attainment"] == 0.5
+    assert metrics["requested_output_budget_mean"] == pytest.approx(
+        256 / 3, abs=1e-6
+    )
+    assert metrics["effective_output_budget_mean"] == 48.0
+    assert metrics["output_degradation_delta_g"] == pytest.approx(
+        112 / 3, abs=1e-6
+    )
+    assert metrics["throughput_tokens_per_sec"] == 8.0
+    assert metrics["controller_decision_latency_us_mean"] == 30.0
+    assert metrics["completion_rate"] == pytest.approx(1 / 3, abs=1e-6)
+    assert metrics["slo_goodput_rps"] == 0.5
+    assert metrics["per_class"]["interactive-high"] == {
+        "offered_requests": 2,
+        "completed_requests": 1,
+        "policy_rejected_requests": 0,
+        "execution_failed_requests": 1,
+        "completion_rate": 0.5,
+        "slo_attainment_rate": 0.5,
+        "policy_reject_rate": 0.0,
+        "execution_failure_rate": 0.5,
+        "shortened_request_rate": 0.5,
+        "delayed_request_rate": 0.5,
+        "throughput_rps": 0.5,
+        "slo_goodput_rps": 0.5,
+    }

@@ -863,20 +863,115 @@ def _build_metrics(
     completed_rows = [row for row in rows if row.get("success")]
     ttft_values = [float(row["ttft_ms"]) for row in completed_rows if row.get("ttft_ms") is not None]
     e2e_values = [float(row["e2e_ms"]) for row in completed_rows if row.get("e2e_ms") is not None]
-    reject_count = sum(1 for row in rows if not row.get("success"))
+    policy_reject_count = sum(
+        1 for row in rows if row.get("policy_action") == "reject"
+    )
+    execution_failure_count = sum(
+        1
+        for row in rows
+        if not row.get("success") and row.get("policy_action") != "reject"
+    )
     violation_count = sum(1 for row in rows if row.get("slo_violated"))
-    delayed_count = 0
-    if rows:
-        delayed_count = sum(
-            1
-            for row in rows
-            if float(row.get("started_at_s") or 0.0) - float(row.get("scheduled_at_s") or 0.0) > 0.05
-        )
+    delayed_count = sum(
+        1 for row in rows if float(row.get("dispatch_delay_s") or 0.0) > 0.0
+    )
+    shortened_count = sum(
+        1
+        for row in rows
+        if int(row.get("effective_max_tokens") or 0)
+        < int(row.get("requested_max_tokens") or 0)
+    )
+    interactive_rows = [
+        row for row in rows if row.get("deadline_class") == "interactive-high"
+    ]
+    interactive_e2e_successes = sum(
+        1
+        for row in interactive_rows
+        if row.get("success")
+        and row.get("e2e_ms") is not None
+        and row.get("target_e2e_ms") is not None
+        and float(row["e2e_ms"]) <= float(row["target_e2e_ms"])
+    )
     duration_s = 0.0
     if rows:
         duration_s = max(float(row.get("completed_at_s") or 0.0) for row in rows)
         duration_s = max(duration_s, 1e-9)
     spillover_count = sum(1 for row in rows if row.get("used_spillover"))
+    output_tokens = [
+        float(row.get("output_tokens") or 0.0) for row in completed_rows
+    ]
+    requested_budgets = [
+        float(row.get("requested_max_tokens") or 0.0) for row in rows
+    ]
+    effective_budgets = [
+        float(row.get("effective_max_tokens") or 0.0) for row in rows
+    ]
+    degradation_deltas = [
+        requested - effective
+        for requested, effective in zip(requested_budgets, effective_budgets)
+    ]
+    controller_latencies = [
+        float(row.get("controller_decision_latency_us") or 0.0) for row in rows
+    ]
+    per_class: dict[str, dict[str, Any]] = {}
+    for deadline_class in sorted(
+        {str(row.get("deadline_class") or "unknown") for row in rows}
+    ):
+        class_rows = [
+            row
+            for row in rows
+            if str(row.get("deadline_class") or "unknown") == deadline_class
+        ]
+        class_completed = [row for row in class_rows if row.get("success")]
+        class_slo_good = [
+            row
+            for row in class_completed
+            if row.get("slo_violated") is False
+        ]
+        class_policy_rejected = [
+            row for row in class_rows if row.get("policy_action") == "reject"
+        ]
+        class_execution_failed = [
+            row
+            for row in class_rows
+            if not row.get("success") and row.get("policy_action") != "reject"
+        ]
+        class_shortened = [
+            row
+            for row in class_rows
+            if int(row.get("effective_max_tokens") or 0)
+            < int(row.get("requested_max_tokens") or 0)
+        ]
+        class_delayed = [
+            row
+            for row in class_rows
+            if float(row.get("dispatch_delay_s") or 0.0) > 0.0
+        ]
+        denominator = len(class_rows)
+        per_class[deadline_class] = {
+            "offered_requests": denominator,
+            "completed_requests": len(class_completed),
+            "policy_rejected_requests": len(class_policy_rejected),
+            "execution_failed_requests": len(class_execution_failed),
+            "completion_rate": round(len(class_completed) / denominator, 6),
+            "slo_attainment_rate": round(len(class_slo_good) / denominator, 6),
+            "policy_reject_rate": round(
+                len(class_policy_rejected) / denominator, 6
+            ),
+            "execution_failure_rate": round(
+                len(class_execution_failed) / denominator, 6
+            ),
+            "shortened_request_rate": round(
+                len(class_shortened) / denominator, 6
+            ),
+            "delayed_request_rate": round(len(class_delayed) / denominator, 6),
+            "throughput_rps": round(len(class_completed) / duration_s, 6)
+            if duration_s
+            else 0.0,
+            "slo_goodput_rps": round(len(class_slo_good) / duration_s, 6)
+            if duration_s
+            else 0.0,
+        }
     prefix_cache_queries_delta = _counter_delta(peak_load, "prefix_cache_queries")
     prefix_cache_hits_delta = _counter_delta(peak_load, "prefix_cache_hits")
     external_prefix_cache_queries_delta = _counter_delta(
@@ -891,8 +986,24 @@ def _build_metrics(
     metrics: dict[str, Any] = {
         "ttft_p50_ms": _quantile(ttft_values, 50.0),
         "ttft_p95_ms": _quantile(ttft_values, 95.0),
+        "ttft_p99_ms": _quantile(ttft_values, 99.0),
+        "e2e_p50_ms": _quantile(e2e_values, 50.0),
         "e2e_p95_ms": _quantile(e2e_values, 95.0),
+        "e2e_p99_ms": _quantile(e2e_values, 99.0),
         "throughput_rps": round(len(completed_rows) / duration_s, 6) if duration_s else 0.0,
+        "throughput_tokens_per_sec": round(sum(output_tokens) / duration_s, 6)
+        if duration_s
+        else 0.0,
+        "slo_goodput_rps": round(
+            sum(1 for row in completed_rows if row.get("slo_violated") is False)
+            / duration_s,
+            6,
+        )
+        if duration_s
+        else 0.0,
+        "completion_rate": round(len(completed_rows) / total_requests, 6)
+        if total_requests
+        else None,
         "running_requests": peak_load.get("running_requests"),
         "waiting_requests": peak_load.get("waiting_requests"),
         "kv_cache_usage_perc": peak_load.get("kv_cache_usage_perc"),
@@ -912,8 +1023,50 @@ def _build_metrics(
         "reserved_vram_bytes": None,
         "slo_violation_rate": round(violation_count / total_requests, 6) if total_requests else None,
         "spillover_rate": round(spillover_count / total_requests, 6) if total_requests else None,
-        "reject_rate": round(reject_count / total_requests, 6) if total_requests else None,
+        "reject_rate": round(policy_reject_count / total_requests, 6)
+        if total_requests
+        else None,
+        "execution_failure_rate": round(execution_failure_count / total_requests, 6)
+        if total_requests
+        else None,
         "delayed_request_rate": round(delayed_count / total_requests, 6) if total_requests else None,
+        "shortened_request_rate": round(shortened_count / total_requests, 6)
+        if total_requests
+        else None,
+        "interactive_e2e_attainment": round(
+            interactive_e2e_successes / len(interactive_rows), 6
+        )
+        if interactive_rows
+        else None,
+        "requested_output_budget_mean": round(
+            sum(requested_budgets) / total_requests, 6
+        )
+        if total_requests
+        else None,
+        "effective_output_budget_mean": round(
+            sum(effective_budgets) / total_requests, 6
+        )
+        if total_requests
+        else None,
+        "output_degradation_delta_g": round(
+            sum(degradation_deltas) / total_requests, 6
+        )
+        if total_requests
+        else None,
+        "actual_output_tokens_mean": round(
+            sum(output_tokens) / len(completed_rows), 6
+        )
+        if completed_rows
+        else None,
+        "controller_decision_latency_us_mean": round(
+            sum(controller_latencies) / total_requests, 6
+        )
+        if total_requests
+        else None,
+        "controller_decision_latency_us_p95": _quantile(
+            controller_latencies, 95.0
+        ),
+        "per_class": per_class,
     }
     for metric_name in _metric_names(run_plan):
         metrics.setdefault(metric_name, None)
@@ -1073,6 +1226,14 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
         trace_rows,
         policy_identity=f"{args.variant_kind}:{args.variant_name}",
         policy_config=variant_policy,
+    )
+    certificate_count = sum(
+        1
+        for row in trace_rows
+        if isinstance((row.get("decision_trace") or {}).get("certificate"), dict)
+    )
+    metrics["decision_certificate_coverage_rate"] = (
+        round(certificate_count / len(trace_rows), 6) if trace_rows else None
     )
 
     summary = {
