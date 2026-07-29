@@ -1040,3 +1040,28 @@ def test_openai_replay_carrier_derives_spillover_rate_from_response_metadata(
     assert summary["metrics"]["spillover_rate"] == 1.0
     assert summary["request_mix"]["route_outcome_counts"] == {"spillover_remote": 1}
     assert summary["request_mix"]["backend_scope_counts"] == {"remote": 1}
+
+
+def test_openai_replay_carrier_selects_exact_planned_seed(tmp_path: Path) -> None:
+    module = _load_module(tmp_path)
+    plan = {
+        "variants": [{"kind": "baseline", "name": "fifo"}],
+        "runs": [
+            {
+                "kind": "baseline",
+                "name": "fifo",
+                "seed": 42,
+                "run_id": "fifo-seed42",
+            },
+            {
+                "kind": "baseline",
+                "name": "fifo",
+                "seed": 137,
+                "run_id": "fifo-seed137",
+            },
+        ],
+    }
+    selected = module._find_variant(plan, "baseline", "fifo", 137)
+    assert selected["run_id"] == "fifo-seed137"
+    with pytest.raises(ValueError, match="found 0"):
+        module._find_variant(plan, "baseline", "fifo", 256)

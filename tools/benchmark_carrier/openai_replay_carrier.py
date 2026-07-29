@@ -251,7 +251,28 @@ def _load_run_plan(path: Path) -> dict[str, Any]:
     return payload
 
 
-def _find_variant(run_plan: dict[str, Any], kind: str, name: str) -> dict[str, Any]:
+def _find_variant(
+    run_plan: dict[str, Any],
+    kind: str,
+    name: str,
+    seed: int | None = None,
+) -> dict[str, Any]:
+    runs = run_plan.get("runs")
+    if isinstance(runs, list) and runs:
+        matches = [
+            item
+            for item in runs
+            if isinstance(item, dict)
+            and str(item.get("kind") or "") == kind
+            and str(item.get("name") or "") == name
+            and int(item.get("seed", -1)) == seed
+        ]
+        if len(matches) != 1:
+            raise ValueError(
+                f"Expected exactly one planned run for {kind}:{name} "
+                f"seed={seed}, found {len(matches)}"
+            )
+        return matches[0]
     for item in run_plan.get("variants") or []:
         if not isinstance(item, dict):
             continue
@@ -906,7 +927,12 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
     output_root = Path(args.output_root).resolve() if args.output_root else None
 
     run_plan = _load_run_plan(run_plan_path)
-    variant = _find_variant(run_plan, args.variant_kind, args.variant_name)
+    variant = _find_variant(
+        run_plan,
+        args.variant_kind,
+        args.variant_name,
+        args.seed,
+    )
     _validate_direct_endpoint_variant(variant)
     variant_policy = _variant_policy_for(args.variant_kind, args.variant_name)
     endpoint_map = _load_endpoint_map(args)
@@ -1050,6 +1076,7 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
     )
 
     summary = {
+        "run_id": str(variant.get("run_id") or ""),
         "kind": args.variant_kind,
         "name": args.variant_name,
         "variant": args.variant_name,
@@ -1068,6 +1095,7 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
             "run_plan": str(run_plan_path),
             "workload_replay": str(replay_path),
             "seed": args.seed,
+            "planned_run_id": str(variant.get("run_id") or ""),
         },
         "systems": dict(run_plan.get("systems") or {}),
         "execution_metadata": {
@@ -1136,6 +1164,7 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
         "trace_output": str(trace_output),
         "raw_log_output": str(raw_log_output),
         "variant": args.variant_name,
+        "run_id": str(variant.get("run_id") or ""),
     }
 
 
