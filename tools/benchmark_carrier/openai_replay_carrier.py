@@ -17,6 +17,7 @@ from typing import Any
 
 import aiohttp
 
+from sage.serving.integrations.audit import build_decision_certificate_chain
 from sage.serving.integrations import policy as runtime_policy
 
 
@@ -721,12 +722,16 @@ async def _run_one_request(
             "deadline_class_cap_profile": deadline_class_cap_profile,
             "deadline_class_cap_source": deadline_class_max_tokens_source,
             "decision": "rejected",
+            "policy_action": policy_trace["policy_action"],
             "used_spillover": False,
             "policy_mode": policy_trace["policy_mode"],
             "policy_reason": policy_trace["policy_reason"],
             "dispatch_delay_s": policy_trace["dispatch_delay_s"],
             "deferral_count": policy_trace["deferral_count"],
             "observed_load": policy_trace["observed_load"],
+            "controller_decision_latency_us": policy_trace[
+                "controller_decision_latency_us"
+            ],
             "success": False,
             "ttft_ms": None,
             "e2e_ms": None,
@@ -804,12 +809,16 @@ async def _run_one_request(
         "deadline_class_cap_profile": deadline_class_cap_profile,
         "deadline_class_cap_source": deadline_class_max_tokens_source,
         "decision": decision,
+        "policy_action": policy_trace["policy_action"],
         "used_spillover": used_spillover,
         "policy_mode": policy_trace["policy_mode"],
         "policy_reason": policy_trace["policy_reason"],
         "dispatch_delay_s": policy_trace["dispatch_delay_s"],
         "deferral_count": policy_trace["deferral_count"],
         "observed_load": policy_trace["observed_load"],
+        "controller_decision_latency_us": policy_trace[
+            "controller_decision_latency_us"
+        ],
         "success": output.success,
         "ttft_ms": ttft_ms,
         "e2e_ms": e2e_ms,
@@ -999,12 +1008,16 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
             "prefix_cache_key": row.get("prefix_cache_key"),
             "decision_trace": {
                 "decision": row["decision"],
+                "policy_action": row["policy_action"],
                 "used_spillover": row["used_spillover"],
                 "policy_mode": row["policy_mode"],
                 "policy_reason": row["policy_reason"],
                 "dispatch_delay_s": row["dispatch_delay_s"],
                 "deferral_count": row["deferral_count"],
                 "observed_load": row["observed_load"],
+                "controller_decision_latency_us": row[
+                    "controller_decision_latency_us"
+                ],
                 "priority": row["priority"],
                 "prefix_cache_key": row.get("prefix_cache_key"),
                 "execution_priority": row["execution_priority"],
@@ -1018,10 +1031,23 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
                 "ttft_ms": row["ttft_ms"],
                 "e2e_ms": row["e2e_ms"],
                 "response_metadata": row["response_metadata"],
+                "policy_constraints": {
+                    "admission_control": bool(
+                        variant_policy.get("admission_control", False)
+                    ),
+                    "max_deferral_sec": float(
+                        variant_policy.get("max_deferral_sec") or 0.0
+                    ),
+                },
             },
         }
         for row in rows
     ]
+    trace_rows, audit_chain = build_decision_certificate_chain(
+        trace_rows,
+        policy_identity=f"{args.variant_kind}:{args.variant_name}",
+        policy_config=variant_policy,
+    )
 
     summary = {
         "kind": args.variant_kind,
@@ -1065,6 +1091,7 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
             "deadline_class_max_tokens_source": deadline_class_max_tokens_source,
         },
         "metrics": metrics,
+        "audit_chain": audit_chain,
         "notes": [
             "Real execution-plane replay against OpenAI-compatible vllm-hust endpoints.",
             "Request-level raw logs and traces capture OpenAI response routing metadata when the endpoint exports x-vllm-* headers.",
