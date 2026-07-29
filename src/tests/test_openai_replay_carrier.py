@@ -799,6 +799,16 @@ def test_openai_replay_carrier_persists_response_metadata_in_raw_log_and_trace(
     assert trace_row["decision_trace"]["prefix_cache_key"] == "tenant-a:incident-summary:v1"
     assert trace_row["prefix_cache_key"] == "tenant-a:incident-summary:v1"
     assert trace_row["decision_trace"]["response_metadata"] == raw_row["response_metadata"]
+    certificate = trace_row["decision_trace"]["certificate"]
+    assert certificate["schema_version"] == "vamos.decision-certificate.v1"
+    assert certificate["record_index"] == 0
+    assert certificate["policy_identity"] == "baseline:fifo"
+    assert summary["audit_chain"]["record_count"] == 1
+    assert summary["audit_chain"]["root_digest"] == certificate["record_digest"]
+    assert trace_row["decision_trace"]["policy_constraints"] == {
+        "admission_control": False,
+        "max_deferral_sec": 0.0,
+    }
     assert len(captured_request_inputs) == 1
     assert getattr(captured_request_inputs[0], "extra_body") == {
         "priority": -100,
