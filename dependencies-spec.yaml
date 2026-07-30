@@ -23,7 +23,7 @@ isage-flow: ">=0.1.1"  # historical stream package; do not expand as separate lo
 flutty: ">=0.1.0"  # primary optional distributed runtime backend
 isage-refiner: ">=0.1.0"
 isage-neuromem: ">=0.2.1.1"
-isagellm: ">=0.5.1.2"
+isagellm: ">=0.5.4.3"
 isage-anns: ">=0.1.0"
 isage-amms: ">=0.1.0"
 
