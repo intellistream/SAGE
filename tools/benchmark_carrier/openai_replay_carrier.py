@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
+import hashlib
 import json
 import math
 import platform
@@ -99,6 +100,28 @@ def _load_json(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"Expected JSON object in {path}")
     return payload
+
+
+def _sha256_bytes(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _canonical_sha256(payload: Any) -> str:
+    rendered = json.dumps(
+        payload,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    return _sha256_bytes(rendered.encode("utf-8"))
 
 
 def _load_vllm_benchmark_deps() -> tuple[Any, Any, Any]:
@@ -465,10 +488,12 @@ async def _wait_for_endpoint(base_url: str, model_name: str, timeout_seconds: in
     async with aiohttp.ClientSession(timeout=aiohttp_timeout, connector=connector) as session:
         while time.perf_counter() < deadline:
             try:
-                await _discover_served_model(base_url, session)
-                return
+                served_model = await _discover_served_model(base_url, session)
+                if served_model == model_name:
+                    return
             except Exception:
-                await asyncio.sleep(5)
+                pass
+            await asyncio.sleep(5)
     raise TimeoutError(f"Endpoint {base_url} did not become ready for model {model_name}")
 
 
@@ -691,14 +716,23 @@ async def _run_one_request(
     if sleep_for > 0:
         await asyncio.sleep(sleep_for)
 
-    policy_trace = await _await_policy_dispatch_window(event, base_url, variant_policy, current_load)
-    _controller_decision_end = time.perf_counter()
-    _controller_decision_us = (_controller_decision_end - (start_perf + scheduled_at_s + max(0, sleep_for))) * 1e6
+    controller_started = time.perf_counter()
+    policy_trace = await _await_policy_dispatch_window(
+        event,
+        base_url,
+        variant_policy,
+        current_load,
+    )
+    controller_finished = time.perf_counter()
+    controller_decision_us = (controller_finished - controller_started) * 1e6
     control_snapshot = dict(policy_trace.get("observed_load") or {})
     if not control_snapshot:
         control_snapshot = _live_load_snapshot(current_load, base_url)
     # Record controller overhead in the policy trace
-    policy_trace["controller_decision_latency_us"] = round(_controller_decision_us, 1)
+    policy_trace["controller_decision_latency_us"] = round(
+        controller_decision_us,
+        1,
+    )
     deadline_class_max_tokens, deadline_class_cap_profile = _deadline_class_max_tokens_for_request(
         variant_policy,
         deadline_class_token_controller,
@@ -718,6 +752,12 @@ async def _run_one_request(
         serving_context,
         deadline_class_max_tokens,
     )
+    request_event_sha256 = _canonical_sha256(event)
+    prompt = str(
+        ((event.get("payload") or {}).get("input_payload") or {}).get("prompt")
+        or ""
+    )
+    prompt_sha256 = _sha256_bytes(prompt.encode("utf-8"))
 
     scheduled_start_s = round(scheduled_at_s + float(policy_trace["dispatch_delay_s"]), 6)
     if str(policy_trace.get("policy_action") or "dispatch") == "reject":
@@ -755,6 +795,10 @@ async def _run_one_request(
             "ttft_ms": None,
             "e2e_ms": None,
             "output_tokens": 0,
+            "generated_text": "",
+            "generated_text_sha256": _sha256_bytes(b""),
+            "request_event_sha256": request_event_sha256,
+            "prompt_sha256": prompt_sha256,
             "prompt_len": int(serving_context.get("prompt_len") or 0),
             "target_ttft_ms": serving_context.get("target_ttft_ms"),
             "target_e2e_ms": serving_context.get("target_e2e_ms"),
@@ -764,7 +808,6 @@ async def _run_one_request(
             "trace_tags": trace_tags,
         }
 
-    prompt = str(((event.get("payload") or {}).get("input_payload") or {}).get("prompt") or "")
     if not prompt:
         raise ValueError(f"Replay event {request_id} missing payload.input_payload.prompt")
 
@@ -811,6 +854,7 @@ async def _run_one_request(
     # request was dispatched by policy; labelling it "rejected" would falsely
     # attribute an execution-path failure to admission control.
     decision = "completed" if output.success else "execution_failed"
+    generated_text = str(getattr(output, "generated_text", "") or "")
     return {
         "request_id": request_id,
         "variant_kind": None,
@@ -845,6 +889,10 @@ async def _run_one_request(
         "ttft_ms": ttft_ms,
         "e2e_ms": e2e_ms,
         "output_tokens": output.output_tokens,
+        "generated_text": generated_text,
+        "generated_text_sha256": _sha256_bytes(generated_text.encode("utf-8")),
+        "request_event_sha256": request_event_sha256,
+        "prompt_sha256": prompt_sha256,
         "prompt_len": output.prompt_len,
         "target_ttft_ms": target_ttft_ms,
         "target_e2e_ms": target_e2e_ms,
@@ -1114,6 +1162,13 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
             base_url: await _discover_served_model(base_url, session)
             for base_url in sorted(set(endpoint_map.values()))
         }
+        for model_id, base_url in endpoint_map.items():
+            served_model = served_model_map[base_url]
+            if served_model != model_id:
+                raise ValueError(
+                    f"Endpoint {base_url} advertised {served_model!r}, "
+                    f"expected exact model ID {model_id!r}"
+                )
         peak_load: dict[str, float | None] = {
             "running_requests": None,
             "waiting_requests": None,
@@ -1214,6 +1269,9 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
                 "ttft_ms": row["ttft_ms"],
                 "e2e_ms": row["e2e_ms"],
                 "output_tokens": row["output_tokens"],
+                "generated_text_sha256": row["generated_text_sha256"],
+                "request_event_sha256": row["request_event_sha256"],
+                "prompt_sha256": row["prompt_sha256"],
                 "response_metadata": row["response_metadata"],
                 "policy_constraints": {
                     "admission_control": bool(
@@ -1258,8 +1316,11 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
         },
         "inputs": {
             "experiment_manifest": str(experiment_manifest),
+            "experiment_manifest_sha256": _sha256_file(experiment_manifest),
             "run_plan": str(run_plan_path),
+            "run_plan_sha256": _sha256_file(run_plan_path),
             "workload_replay": str(replay_path),
+            "workload_replay_sha256": _sha256_file(replay_path),
             "seed": args.seed,
             "planned_run_id": str(variant.get("run_id") or ""),
         },
@@ -1315,15 +1376,18 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
         },
     }
 
-    raw_log_output.write_text(
-        "\n".join(json.dumps(row, sort_keys=True) for row in rows) + ("\n" if rows else ""),
-        encoding="utf-8",
-    )
-    trace_output.write_text(
+    raw_log_bytes = (
+        "\n".join(json.dumps(row, sort_keys=True) for row in rows)
+        + ("\n" if rows else "")
+    ).encode("utf-8")
+    trace_bytes = (
         "\n".join(json.dumps(row, sort_keys=True) for row in trace_rows)
-        + ("\n" if trace_rows else ""),
-        encoding="utf-8",
-    )
+        + ("\n" if trace_rows else "")
+    ).encode("utf-8")
+    summary["artifacts"]["raw_log_sha256"] = _sha256_bytes(raw_log_bytes)
+    summary["artifacts"]["trace_sha256"] = _sha256_bytes(trace_bytes)
+    raw_log_output.write_bytes(raw_log_bytes)
+    trace_output.write_bytes(trace_bytes)
     summary_output.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return {
         "summary_output": str(summary_output),

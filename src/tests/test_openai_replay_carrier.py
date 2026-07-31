@@ -37,6 +37,8 @@ def _run_fake_replay_with_response_metadata(
     policy_trace_override: dict[str, object] | None = None,
     request_success: bool = True,
     request_error: str = "",
+    request_scheduled_at_s: float = 0.0,
+    generated_text: str = "answer text",
 ) -> tuple[dict[str, str], dict[str, object], dict[str, object], dict[str, object], list[object]]:
     replay_path = tmp_path / "replay.jsonl"
     run_plan_path = tmp_path / "run-plan.json"
@@ -49,7 +51,10 @@ def _run_fake_replay_with_response_metadata(
         json.dumps(
             {
                 "request_id": "req-1",
-                "metadata": {"phase": "overload-burst", "scheduled_at_s": 0.0},
+                "metadata": {
+                    "phase": "overload-burst",
+                    "scheduled_at_s": request_scheduled_at_s,
+                },
                 "serving_context": {
                     "model_id": "test-model",
                     "deadline_class": request_deadline_class,
@@ -84,7 +89,7 @@ def _run_fake_replay_with_response_metadata(
         return None
 
     async def _fake_discover_served_model(base_url: str, session: object) -> str:
-        return "served-test-model"
+        return "test-model"
 
     async def _noop_poll_metrics(
         base_urls: set[str],
@@ -124,6 +129,7 @@ def _run_fake_replay_with_response_metadata(
             output_tokens=8 if request_success else 0,
             prompt_len=4,
             error=request_error,
+            generated_text=generated_text if request_success else "",
             start_time=1000.01,
             response_metadata=response_metadata,
         )
@@ -806,6 +812,14 @@ def test_openai_replay_carrier_persists_response_metadata_in_raw_log_and_trace(
     assert trace_row["decision_trace"]["success"] is True
     assert trace_row["decision_trace"]["error"] is None
     assert trace_row["decision_trace"]["output_tokens"] == 8
+    assert raw_row["generated_text"] == "answer text"
+    assert trace_row["decision_trace"]["generated_text_sha256"] == raw_row[
+        "generated_text_sha256"
+    ]
+    assert trace_row["decision_trace"]["request_event_sha256"] == raw_row[
+        "request_event_sha256"
+    ]
+    assert trace_row["decision_trace"]["prompt_sha256"] == raw_row["prompt_sha256"]
     certificate = trace_row["decision_trace"]["certificate"]
     assert certificate["schema_version"] == "vamos.decision-certificate.v1"
     assert certificate["record_index"] == 0
@@ -845,6 +859,21 @@ def test_openai_replay_carrier_keeps_execution_failure_distinct_from_policy_reje
     assert trace_row["decision_trace"]["output_tokens"] == 0
     assert summary["metrics"]["reject_rate"] == 0.0
     assert summary["metrics"]["execution_failure_rate"] == 1.0
+
+
+def test_openai_replay_carrier_controller_latency_excludes_arrival_wait(
+    tmp_path: Path,
+) -> None:
+    module = _load_module(tmp_path)
+    _, _, raw_row, trace_row, _ = _run_fake_replay_with_response_metadata(
+        module,
+        tmp_path,
+        {},
+        request_scheduled_at_s=0.01,
+    )
+
+    assert raw_row["controller_decision_latency_us"] >= 0
+    assert trace_row["decision_trace"]["controller_decision_latency_us"] >= 0
 
 
 def test_openai_replay_carrier_caps_deadline_class_max_tokens_before_dispatch(
