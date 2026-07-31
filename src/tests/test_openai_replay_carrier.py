@@ -35,6 +35,8 @@ def _run_fake_replay_with_response_metadata(
     request_max_tokens: int = 8,
     current_load_snapshot: dict[str, float | None] | None = None,
     policy_trace_override: dict[str, object] | None = None,
+    request_success: bool = True,
+    request_error: str = "",
 ) -> tuple[dict[str, str], dict[str, object], dict[str, object], dict[str, object], list[object]]:
     replay_path = tmp_path / "replay.jsonl"
     run_plan_path = tmp_path / "run-plan.json"
@@ -116,12 +118,12 @@ def _run_fake_replay_with_response_metadata(
     async def _fake_request(_request_input: object, _session: object) -> SimpleNamespace:
         captured_request_inputs.append(_request_input)
         return SimpleNamespace(
-            success=True,
+            success=request_success,
             ttft=0.012,
             latency=0.045,
-            output_tokens=8,
+            output_tokens=8 if request_success else 0,
             prompt_len=4,
-            error="",
+            error=request_error,
             start_time=1000.01,
             response_metadata=response_metadata,
         )
@@ -799,6 +801,11 @@ def test_openai_replay_carrier_persists_response_metadata_in_raw_log_and_trace(
     assert trace_row["decision_trace"]["prefix_cache_key"] == "tenant-a:incident-summary:v1"
     assert trace_row["prefix_cache_key"] == "tenant-a:incident-summary:v1"
     assert trace_row["decision_trace"]["response_metadata"] == raw_row["response_metadata"]
+    assert raw_row["decision"] == "completed"
+    assert trace_row["decision_trace"]["decision"] == "completed"
+    assert trace_row["decision_trace"]["success"] is True
+    assert trace_row["decision_trace"]["error"] is None
+    assert trace_row["decision_trace"]["output_tokens"] == 8
     certificate = trace_row["decision_trace"]["certificate"]
     assert certificate["schema_version"] == "vamos.decision-certificate.v1"
     assert certificate["record_index"] == 0
@@ -810,11 +817,34 @@ def test_openai_replay_carrier_persists_response_metadata_in_raw_log_and_trace(
         "max_deferral_sec": 0.0,
     }
     assert len(captured_request_inputs) == 1
-    assert getattr(captured_request_inputs[0], "extra_body") == {
+    assert captured_request_inputs[0].extra_body == {
         "priority": -100,
         "cache_salt": "tenant-a:incident-summary:v1",
         "prefix_cache_key": "tenant-a:incident-summary:v1",
     }
+
+
+def test_openai_replay_carrier_keeps_execution_failure_distinct_from_policy_rejection(
+    tmp_path: Path,
+) -> None:
+    module = _load_module(tmp_path)
+    _, summary, raw_row, trace_row, _ = _run_fake_replay_with_response_metadata(
+        module,
+        tmp_path,
+        {},
+        request_success=False,
+        request_error="endpoint timeout",
+    )
+
+    assert raw_row["policy_action"] == "dispatch"
+    assert raw_row["decision"] == "execution_failed"
+    assert raw_row["error"] == "endpoint timeout"
+    assert trace_row["decision_trace"]["decision"] == "execution_failed"
+    assert trace_row["decision_trace"]["success"] is False
+    assert trace_row["decision_trace"]["error"] == "endpoint timeout"
+    assert trace_row["decision_trace"]["output_tokens"] == 0
+    assert summary["metrics"]["reject_rate"] == 0.0
+    assert summary["metrics"]["execution_failure_rate"] == 1.0
 
 
 def test_openai_replay_carrier_caps_deadline_class_max_tokens_before_dispatch(
@@ -839,7 +869,7 @@ def test_openai_replay_carrier_caps_deadline_class_max_tokens_before_dispatch(
     assert trace_row["decision_trace"]["requested_max_tokens"] == 8
     assert trace_row["decision_trace"]["effective_max_tokens"] == 4
     assert len(captured_request_inputs) == 1
-    assert getattr(captured_request_inputs[0], "output_len") == 4
+    assert captured_request_inputs[0].output_len == 4
 
 
 def test_openai_replay_carrier_variant_policy_caps_deadline_class_max_tokens_before_dispatch(
@@ -871,7 +901,7 @@ def test_openai_replay_carrier_variant_policy_caps_deadline_class_max_tokens_bef
     assert trace_row["decision_trace"]["requested_max_tokens"] == 512
     assert trace_row["decision_trace"]["effective_max_tokens"] == 256
     assert len(captured_request_inputs) == 1
-    assert getattr(captured_request_inputs[0], "output_len") == 256
+    assert captured_request_inputs[0].output_len == 256
 
 
 def test_openai_replay_carrier_rejects_cli_caps_when_variant_policy_already_defines_them(
@@ -934,7 +964,7 @@ def test_openai_replay_carrier_adaptive_controller_uses_default_cap_profile_belo
     assert trace_row["decision_trace"]["deadline_class_cap_profile"] == "default"
     assert trace_row["decision_trace"]["deadline_class_cap_source"] == "variant_policy"
     assert len(captured_request_inputs) == 1
-    assert getattr(captured_request_inputs[0], "output_len") == 384
+    assert captured_request_inputs[0].output_len == 384
 
 
 def test_openai_replay_carrier_adaptive_controller_uses_overload_cap_profile_under_load(
@@ -970,7 +1000,7 @@ def test_openai_replay_carrier_adaptive_controller_uses_overload_cap_profile_und
     assert raw_row["effective_max_tokens"] == 256
     assert trace_row["decision_trace"]["deadline_class_cap_profile"] == "overload"
     assert len(captured_request_inputs) == 1
-    assert getattr(captured_request_inputs[0], "output_len") == 256
+    assert captured_request_inputs[0].output_len == 256
 
 
 def test_openai_replay_carrier_adaptive_controller_recomputes_cap_profile_at_dispatch_time(
@@ -1017,7 +1047,7 @@ def test_openai_replay_carrier_adaptive_controller_recomputes_cap_profile_at_dis
     assert trace_row["decision_trace"]["deadline_class_cap_profile"] == "overload"
     assert raw_row["effective_max_tokens"] == 256
     assert len(captured_request_inputs) == 1
-    assert getattr(captured_request_inputs[0], "output_len") == 256
+    assert captured_request_inputs[0].output_len == 256
 
 
 def test_openai_replay_carrier_derives_spillover_rate_from_response_metadata(

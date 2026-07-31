@@ -16,10 +16,8 @@ from pathlib import Path
 from typing import Any
 
 import aiohttp
-
-from sage.serving.integrations.audit import build_decision_certificate_chain
 from sage.serving.integrations import policy as runtime_policy
-
+from sage.serving.integrations.audit import build_decision_certificate_chain
 
 SUPPORTED_DIRECT_ENDPOINT_VARIANTS = runtime_policy.SUPPORTED_DIRECT_ENDPOINT_VARIANTS
 _DIRECT_ENDPOINT_VARIANT_POLICIES = runtime_policy.DIRECT_ENDPOINT_VARIANT_POLICIES
@@ -742,7 +740,7 @@ async def _run_one_request(
             "effective_max_tokens": effective_output_len,
             "deadline_class_cap_profile": deadline_class_cap_profile,
             "deadline_class_cap_source": deadline_class_max_tokens_source,
-            "decision": "rejected",
+            "decision": "policy_rejected",
             "policy_action": policy_trace["policy_action"],
             "used_spillover": False,
             "policy_mode": policy_trace["policy_mode"],
@@ -809,7 +807,10 @@ async def _run_one_request(
 
     phase = str(metadata.get("phase") or trace_tags.get("phase") or "unknown")
     deadline_class = str(serving_context.get("deadline_class") or "unknown")
-    decision = "admitted" if output.success else "rejected"
+    # Keep controller disposition separate from endpoint execution.  A failed
+    # request was dispatched by policy; labelling it "rejected" would falsely
+    # attribute an execution-path failure to admission control.
+    decision = "completed" if output.success else "execution_failed"
     return {
         "request_id": request_id,
         "variant_kind": None,
@@ -908,7 +909,9 @@ def _build_metrics(
     ]
     degradation_deltas = [
         requested - effective
-        for requested, effective in zip(requested_budgets, effective_budgets)
+        for requested, effective in zip(
+            requested_budgets, effective_budgets, strict=True
+        )
     ]
     controller_latencies = [
         float(row.get("controller_decision_latency_us") or 0.0) for row in rows
@@ -1207,8 +1210,10 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
                 "target_ttft_ms": row["target_ttft_ms"],
                 "target_e2e_ms": row["target_e2e_ms"],
                 "success": row["success"],
+                "error": row["error"],
                 "ttft_ms": row["ttft_ms"],
                 "e2e_ms": row["e2e_ms"],
+                "output_tokens": row["output_tokens"],
                 "response_metadata": row["response_metadata"],
                 "policy_constraints": {
                     "admission_control": bool(
