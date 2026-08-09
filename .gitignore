@@ -278,3 +278,5 @@ FUNDING_INFO.md
 benchmark/experiments/exp1_single_vs_multi/results/*
 SAGE.code-workspace
 .qoder/
+# Independent runtime repositories checked out for local integration work.
+/external/
