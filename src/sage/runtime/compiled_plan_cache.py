@@ -32,8 +32,7 @@ def _canonical(value: Any) -> Any:
         normalized = [_canonical(item) for item in value]
         return sorted(normalized, key=lambda item: json.dumps(item, sort_keys=True))
     raise TypeError(
-        "plan fingerprint values must be JSON-like structural data; "
-        f"got {type(value).__name__}"
+        f"plan fingerprint values must be JSON-like structural data; got {type(value).__name__}"
     )
 
 

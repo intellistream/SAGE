@@ -60,7 +60,9 @@ def test_twenty_concurrent_misses_are_single_flight() -> None:
         return object()
 
     with ThreadPoolExecutor(max_workers=20) as pool:
-        futures = [pool.submit(cache.get_or_compile, _fingerprint(), compile_plan) for _ in range(20)]
+        futures = [
+            pool.submit(cache.get_or_compile, _fingerprint(), compile_plan) for _ in range(20)
+        ]
         wait_deadline = time.monotonic() + 2.0
         while cache.stats().waits < 19 and time.monotonic() < wait_deadline:
             time.sleep(0.001)
