@@ -1,0 +1,36 @@
+# Compiled workflow plans
+
+`sage.runtime.CompiledPlanCache` separates immutable workflow construction from
+per-request binding. Use it for interactive workloads that repeatedly execute
+the same operator DAG under different inputs, identities, deadlines, evidence,
+or cancellation tokens.
+
+```python
+from sage.runtime import CompiledPlanCache, PlanFingerprint, bind_compiled_plan
+
+cache = CompiledPlanCache(max_entries=128, ttl_seconds=900)
+fingerprint = PlanFingerprint.build(
+    operator_dag=[{"id": "load"}, {"id": "transform", "after": ["load"]}],
+    schema={"input": "Record", "output": "Result"},
+    policy_version="2026-08",
+    capabilities={"transform": "v2"},
+    retrieval_contract={"kind": "none"},
+    resource_class="interactive",
+)
+plan = cache.get_or_compile(fingerprint, compile_static_dag)
+run = bind_compiled_plan(plan, request_context, bind_request)
+result = run.execute()
+```
+
+Only structural data belongs in `PlanFingerprint`. Request input, user identity,
+trace ID, deadline, retrieved evidence, and cancellation tokens must be passed
+to `bind_compiled_plan` and must not be captured by `compile_static_dag`.
+
+The cache provides bounded LRU capacity, positive and negative TTLs,
+single-flight compilation, and a `stats()` snapshot. A policy, schema,
+capability, retrieval-contract, resource-class, or compiler-version change
+produces a different digest and therefore invalidates the old plan naturally.
+
+This API is the cache foundation. Runtime-specific compiler integration should
+wrap an immutable compiled artifact and keep execution handles or request state
+outside the cached object.
