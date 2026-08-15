@@ -34,3 +34,24 @@ produces a different digest and therefore invalidates the old plan naturally.
 This API is the cache foundation. Runtime-specific compiler integration should
 wrap an immutable compiled artifact and keep execution handles or request state
 outside the cached object.
+
+Flow declarations provide that integration directly:
+
+```python
+bound = declared_flow.bind_reusable(
+    "structural-stage-variant",
+    in_=request_input_topic,
+    out=request_output_topic,
+    schema={"input": "Record", "output": "Result"},
+    policy_version="2026-08",
+    capabilities={"transform": "v2"},
+    retrieval_contract={"kind": "none"},
+    resource_class="interactive",
+)
+```
+
+The structural arguments participate in the fingerprint. The IO bindings do
+not: each returned `BoundFlowDeclaration` points to the same immutable
+`FlowProgram` while retaining its own request topics. Use
+`compiled_plan_cache_stats()` for hit/miss/compile telemetry and
+`clear_compiled_plan_cache()` for explicit operational invalidation.
