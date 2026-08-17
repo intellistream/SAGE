@@ -627,7 +627,7 @@ show_usage_tips() {
     echo -e "${BLUE}独立包（按需安装）：${NC}"
     echo -e "  pip install isage-benchmark             # 性能基准测试"
     echo -e "  pip install isagellm                    # LLM 推理引擎"
-    echo -e "  git clone https://github.com/SAGE-Research/sage-examples # 示例代码"
+    echo -e "  git clone https://github.com/RIDE-Lab/sage-examples # 示例代码"
     echo ""
 
     if [ "$mode" = "dev" ] || [ "$mode" = "standard" ]; then

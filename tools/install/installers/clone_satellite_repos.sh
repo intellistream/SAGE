@@ -57,9 +57,9 @@ for index, item in enumerate(repositories):
         raise SystemExit(
             f"invalid satellite repository manifest: {name} clone_by_default must be boolean"
         )
-    if not full_name.startswith("SAGE-Research/") or full_name.count("/") != 1:
+    if not full_name.startswith("RIDE-Lab/") or full_name.count("/") != 1:
         raise SystemExit(
-            f"invalid satellite repository manifest: {name} must belong to SAGE-Research"
+            f"invalid satellite repository manifest: {name} must belong to RIDE-Lab"
         )
     if full_name.rsplit("/", 1)[1] != name:
         raise SystemExit(
@@ -250,7 +250,7 @@ interactive_clone_repos() {
     echo ""
     echo -e "${YELLOW}💡 提示：${NC}"
     echo -e "${DIM}  如果不克隆，可以稍后手动克隆：${NC}"
-    echo -e "${DIM}  git clone https://github.com/SAGE-Research/sage-examples.git${NC}"
+    echo -e "${DIM}  git clone https://github.com/RIDE-Lab/sage-examples.git${NC}"
     echo ""
 
     read -p "是否现在克隆附属仓库？[y/N]: " -r response

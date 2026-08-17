@@ -107,7 +107,7 @@ SAGE 提供了自动诊断和修复工具，可以帮您解决大部分环境问
   ./quickstart.sh --doctor --fix
 
 💡 了解更多：
-  https://github.com/SAGE-Research/SAGE/wiki/Installation-Troubleshooting
+  https://github.com/RIDE-Lab/SAGE/wiki/Installation-Troubleshooting
 ```
 
 ## 架构设计

@@ -50,7 +50,7 @@ sage-dev quality check --all-files --readme
 
 ```bash
 # 克隆仓库（若已 fork，请替换为你的 fork 地址）
-git clone https://github.com/SAGE-Research/SAGE.git
+git clone https://github.com/RIDE-Lab/SAGE.git
 cd SAGE
 
 # 切换默认分支并更新
@@ -111,7 +111,7 @@ git rebase origin/main   # 有冲突时解决后: git add <files> && git rebase 
 ./quickstart.sh --core --yes
 
 # 运行测试（当前推荐方式）
-# 注意：示例已迁移到独立仓库 https://github.com/SAGE-Research/sage-examples
+# 注意：示例已迁移到独立仓库 https://github.com/RIDE-Lab/sage-examples
 sage-dev project test --coverage
 
 # 运行全部 pytest （如需要更广覆盖）
@@ -288,7 +288,7 @@ Reduce flakiness via timeout + category filtering.
    ```bash
    ./quickstart.sh --core --yes                # 安装/环境相关改动
    sage-dev project test --coverage            # 核心功能测试
-   # 注意：示例已迁移到 https://github.com/SAGE-Research/sage-examples
+   # 注意：示例已迁移到 https://github.com/RIDE-Lab/sage-examples
    ```
 
 1. **集成测试**
@@ -483,7 +483,7 @@ pre-commit run cross-repo-dedup-check --all-files
 | 单个测试       | `pytest src/tests/test_cli_main.py -v`                                  | 直接运行指定测试文件                             |
 | 版本查看       | `python -c "from sage._version import __version__; print(__version__)"` | 确认当前安装版本                                 |
 
-**注意**: 示例和应用已迁移到独立仓库: <https://github.com/SAGE-Research/sage-examples>
+**注意**: 示例和应用已迁移到独立仓库: <https://github.com/RIDE-Lab/sage-examples>
 
 > 任何命令失败，请附上一行重现命令与终端输出前 50 行发至 Issue。
 

@@ -245,7 +245,7 @@ show_numpy_error_help() {
     echo -e "     ${DIM}./quickstart.sh${NC}\n"
 
     echo -e "${BLUE}💡 了解更多：${NC}"
-    echo -e "  ${DIM}https://github.com/SAGE-Research/SAGE/wiki/Installation-Troubleshooting${NC}\n"
+    echo -e "  ${DIM}https://github.com/RIDE-Lab/SAGE/wiki/Installation-Troubleshooting${NC}\n"
 
     log_info "已显示numpy错误帮助信息" "NumpyFix"
 }
