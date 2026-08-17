@@ -27,10 +27,10 @@ if printf '%s\n' "$repos" | grep -qE 'neuromem|FlowRAG|private-materials'; then
 fi
 
 for expected in \
-    "SAGE-Docs|https://github.com/SAGE-Research/SAGE-Docs.git" \
-    "sage-examples|https://github.com/SAGE-Research/sage-examples.git" \
-    "sage-rag|https://github.com/SAGE-Research/sage-rag.git" \
-    "sage-studio|https://github.com/SAGE-Research/sage-studio.git"
+    "SAGE-Docs|https://github.com/RIDE-Lab/SAGE-Docs.git" \
+    "sage-examples|https://github.com/RIDE-Lab/sage-examples.git" \
+    "sage-rag|https://github.com/RIDE-Lab/sage-rag.git" \
+    "sage-studio|https://github.com/RIDE-Lab/sage-studio.git"
 do
     if ! printf '%s\n' "$repos" | grep -Fxq "$expected"; then
         echo "Missing canonical repository entry: $expected" >&2

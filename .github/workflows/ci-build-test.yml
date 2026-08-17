@@ -257,7 +257,7 @@ jobs:
           echo "✅ 目录创建完成"
 
       # Note: sage-studio has been moved to an independent repository
-      # (https://github.com/SAGE-Research/sage-studio)
+      # (https://github.com/RIDE-Lab/sage-studio)
       # Frontend checks are no longer part of the main SAGE CI pipeline
 
       - name: Run installation validation suite

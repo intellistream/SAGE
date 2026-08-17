@@ -40,7 +40,7 @@ ______________________________________________________________________
 
 ```bash
 # Clone repository
-git clone https://github.com/SAGE-Research/SAGE.git
+git clone https://github.com/RIDE-Lab/SAGE.git
 cd SAGE
 
 # Use canonical branch
@@ -77,7 +77,7 @@ git checkout main
 - `sage chat --ask "Hello, SAGE!"`
 - `sage index ingest --source ./docs --index local-docs`
 
-> 💡 **注意**: 用户文档已迁移到独立的 [SAGE-Docs](https://github.com/SAGE-Research/SAGE-Docs) 仓库。
+> 💡 **注意**: 用户文档已迁移到独立的 [SAGE-Docs](https://github.com/RIDE-Lab/SAGE-Docs) 仓库。
 
 ### Runtime Parallelism Contract
 
@@ -95,7 +95,7 @@ git checkout main
 1. Clone and switch to canonical branch
 
    ```bash
-   git clone https://github.com/SAGE-Research/SAGE.git && cd SAGE
+   git clone https://github.com/RIDE-Lab/SAGE.git && cd SAGE
    git checkout main
    ```
 
@@ -763,7 +763,7 @@ We follow [Semantic Versioning](https://semver.org/):
 ## Getting Help
 
 - **Documentation**: Check `docs/`, `README.md`, and `CONTRIBUTING.md`
-- **Examples**: See [sage-examples](https://github.com/SAGE-Research/sage-examples) repository
+- **Examples**: See [sage-examples](https://github.com/RIDE-Lab/sage-examples) repository
 - **Issues**: Search existing issues or create new one
 - **Community**: Join our
   [Slack](https://join.slack.com/t/intellistream/shared_invite/zt-2qayp8bs7-v4F71ge0RkO_rn34hBDWQg)

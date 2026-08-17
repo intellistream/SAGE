@@ -50,7 +50,7 @@ fi
 # 检查 publisher 是否存在
 if [ ! -d "$PUBLISHER_PATH" ]; then
     echo "⚠️  sagepypi not found at $PUBLISHER_PATH"
-    echo "   Clone it: git clone https://github.com/SAGE-Research/sagepypi.git ~/sagepypi"
+    echo "   Clone it: git clone https://github.com/RIDE-Lab/sagepypi.git ~/sagepypi"
     exit 0
 fi
 

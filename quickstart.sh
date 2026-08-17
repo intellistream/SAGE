@@ -272,10 +272,10 @@ _init_sage_workspace() {
 
     if [ ${#SAGE_REPOS[@]} -eq 0 ]; then
         SAGE_REPOS=(
-            "https://github.com/SAGE-Research/SAGE-Docs.git"
-            "https://github.com/SAGE-Research/sage-benchmark.git"
-            "https://github.com/SAGE-Research/sage-examples.git"
-            "https://github.com/SAGE-Research/sage-tutorials.git"
+            "https://github.com/RIDE-Lab/SAGE-Docs.git"
+            "https://github.com/RIDE-Lab/sage-benchmark.git"
+            "https://github.com/RIDE-Lab/sage-examples.git"
+            "https://github.com/RIDE-Lab/sage-tutorials.git"
         )
     fi
 
@@ -303,8 +303,8 @@ _init_sage_workspace() {
 
     # ── 主 SAGE meta 仓库（当前仓库）─────────────────────────────────────────
     if [ ! -d "$workspace_dir/SAGE/.git" ]; then
-        echo -e "  ${CYAN}⬇${NC} clone SAGE-Research/SAGE (meta)..."
-        git clone "https://github.com/SAGE-Research/SAGE.git" "$workspace_dir/SAGE" --depth 1 2>&1 | tail -1 && ((ok++)) || ((fail++))
+        echo -e "  ${CYAN}⬇${NC} clone RIDE-Lab/SAGE (meta)..."
+        git clone "https://github.com/RIDE-Lab/SAGE.git" "$workspace_dir/SAGE" --depth 1 2>&1 | tail -1 && ((ok++)) || ((fail++))
     else
         echo -e "  ${YELLOW}↻${NC} SAGE — 已存在，跳过"
         ((skip++))
@@ -794,7 +794,7 @@ main() {
         if [ "${SAGE_SET_SKIP_SMUDGE:-0}" = 1 ]; then
             echo -e "${DIM}提示: 已跳过 Git LFS 大文件的自动下载，以缩短初始化时间。${NC}"
             echo -e "${DIM}如需使用 LibAMM 基准数据，请在独立 benchmark 仓库执行数据初始化脚本。${NC}"
-            echo -e "  ${DIM}参考: https://github.com/SAGE-Research/sage-benchmark${NC}"
+            echo -e "  ${DIM}参考: https://github.com/RIDE-Lab/sage-benchmark${NC}"
         fi
     else
         echo ""

@@ -163,7 +163,7 @@ schedule_publish() {
 
     if ! resolve_publisher_cmd; then
         echo -e "${YELLOW}⚠ sagepypi not found, skipping auto-publish${NC}"
-        echo -e "${DIM}  Install: python -m pip install \"sagepypi @ git+https://github.com/SAGE-Research/sagepypi.git@main\"${NC}"
+        echo -e "${DIM}  Install: python -m pip install \"sagepypi @ git+https://github.com/RIDE-Lab/sagepypi.git@main\"${NC}"
         return
     fi
 
