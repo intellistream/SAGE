@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from typing import Any
-
 
 SUPPORTED_DIRECT_ENDPOINT_VARIANTS = frozenset(
     {
@@ -504,7 +504,7 @@ def risk_aware_shaping_caps(
     serving_context = dict(event.get("serving_context") or {})
     deadline_class = str(serving_context.get("deadline_class") or "unknown")
     target_e2e_ms = float(serving_context.get("target_e2e_ms") or 0.0)
-    running = float((snapshot.get("num_requests_running") or 0.0))
+    running = float(snapshot.get("num_requests_running") or 0.0)
     base_decode = float(risk_config.get("base_decode_ms_per_token") or 25.0)
     load_factor = float(risk_config.get("load_factor_per_running") or 0.5)
     base_ttft = float(risk_config.get("base_ttft_ms") or 150.0)
@@ -737,39 +737,53 @@ async def await_policy_dispatch_window(
 ) -> dict[str, Any]:
     total_delay_s = 0.0
     deferral_count = 0
+    controller_compute_ns = 0
+    controller_evaluations = 0
+
+    def result_with_compute_metrics(payload: dict[str, Any]) -> dict[str, Any]:
+        payload["controller_compute_latency_us"] = round(
+            controller_compute_ns / 1_000.0,
+            1,
+        )
+        payload["controller_evaluations"] = controller_evaluations
+        return payload
+
     while True:
         snapshot = live_load_snapshot(current_load, base_url)
+        compute_started_ns = time.perf_counter_ns()
         decision = policy_dispatch_decision(policy, event, snapshot, elapsed_delay_s=total_delay_s)
+        controller_compute_ns += time.perf_counter_ns() - compute_started_ns
+        controller_evaluations += 1
         if decision["action"] == "dispatch":
-            return {
+            return result_with_compute_metrics({
                 "policy_action": "dispatch",
                 "policy_mode": decision["mode"],
                 "policy_reason": decision["reason"],
                 "dispatch_delay_s": round(total_delay_s, 6),
                 "deferral_count": deferral_count,
                 "observed_load": decision["observed_load"],
-            }
+            })
 
         defer_interval_s = float(policy.get("defer_interval_sec") or 0.0)
         max_deferral_s = float(policy.get("max_deferral_sec") or 0.0)
         if defer_interval_s <= 0 or total_delay_s + defer_interval_s > max_deferral_s:
             if bool(policy.get("admission_control", False)):
-                return {
+                return result_with_compute_metrics({
                     "policy_action": "reject",
                     "policy_mode": decision["mode"],
                     "policy_reason": "admission_control_reject",
                     "dispatch_delay_s": round(total_delay_s, 6),
                     "deferral_count": deferral_count,
                     "observed_load": decision["observed_load"],
-                }
-            return {
+                })
+            return result_with_compute_metrics({
                 "policy_action": "dispatch",
                 "policy_mode": decision["mode"],
                 "policy_reason": "max_deferral_elapsed",
                 "dispatch_delay_s": round(total_delay_s, 6),
                 "deferral_count": deferral_count,
                 "observed_load": decision["observed_load"],
-            }
+            })
 
         await asyncio.sleep(defer_interval_s)
         total_delay_s += defer_interval_s

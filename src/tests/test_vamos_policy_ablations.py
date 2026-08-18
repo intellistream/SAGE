@@ -10,7 +10,6 @@ from sage.serving.integrations.policy import (
     policy_dispatch_decision,
 )
 
-
 EVENT = {
     "serving_context": {
         "deadline_class": "batch-standard",
@@ -72,4 +71,6 @@ def test_admission_only_rejects_residual_overload_without_shaping() -> None:
         )
     )
     assert result["policy_action"] == "reject"
+    assert result["controller_compute_latency_us"] >= 0
+    assert result["controller_evaluations"] == 1
     assert effective_output_len(EVENT["serving_context"], {}) == (256, 256)

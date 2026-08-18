@@ -874,6 +874,12 @@ def test_openai_replay_carrier_controller_latency_excludes_arrival_wait(
 
     assert raw_row["controller_decision_latency_us"] >= 0
     assert trace_row["decision_trace"]["controller_decision_latency_us"] >= 0
+    assert raw_row["controller_compute_latency_us"] >= 0
+    assert raw_row["controller_wait_latency_us"] >= 0
+    assert raw_row["controller_evaluations"] >= 1
+    assert trace_row["decision_trace"]["controller_compute_latency_us"] >= 0
+    assert trace_row["decision_trace"]["controller_wait_latency_us"] >= 0
+    assert trace_row["decision_trace"]["controller_evaluations"] >= 1
 
 
 def test_openai_replay_carrier_caps_deadline_class_max_tokens_before_dispatch(

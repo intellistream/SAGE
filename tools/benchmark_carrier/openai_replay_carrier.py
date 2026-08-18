@@ -733,6 +733,22 @@ async def _run_one_request(
         controller_decision_us,
         1,
     )
+    controller_compute_us = float(
+        policy_trace.get("controller_compute_latency_us", controller_decision_us)
+    )
+    controller_compute_us = min(
+        max(controller_compute_us, 0.0),
+        controller_decision_us,
+    )
+    policy_trace["controller_compute_latency_us"] = round(controller_compute_us, 1)
+    policy_trace["controller_wait_latency_us"] = round(
+        max(controller_decision_us - controller_compute_us, 0.0),
+        1,
+    )
+    policy_trace["controller_evaluations"] = max(
+        int(policy_trace.get("controller_evaluations") or 1),
+        1,
+    )
     deadline_class_max_tokens, deadline_class_cap_profile = _deadline_class_max_tokens_for_request(
         variant_policy,
         deadline_class_token_controller,
@@ -791,6 +807,13 @@ async def _run_one_request(
             "controller_decision_latency_us": policy_trace[
                 "controller_decision_latency_us"
             ],
+            "controller_compute_latency_us": policy_trace[
+                "controller_compute_latency_us"
+            ],
+            "controller_wait_latency_us": policy_trace[
+                "controller_wait_latency_us"
+            ],
+            "controller_evaluations": policy_trace["controller_evaluations"],
             "success": False,
             "ttft_ms": None,
             "e2e_ms": None,
@@ -885,6 +908,13 @@ async def _run_one_request(
         "controller_decision_latency_us": policy_trace[
             "controller_decision_latency_us"
         ],
+        "controller_compute_latency_us": policy_trace[
+            "controller_compute_latency_us"
+        ],
+        "controller_wait_latency_us": policy_trace[
+            "controller_wait_latency_us"
+        ],
+        "controller_evaluations": policy_trace["controller_evaluations"],
         "success": output.success,
         "ttft_ms": ttft_ms,
         "e2e_ms": e2e_ms,
@@ -963,6 +993,15 @@ def _build_metrics(
     ]
     controller_latencies = [
         float(row.get("controller_decision_latency_us") or 0.0) for row in rows
+    ]
+    controller_compute_latencies = [
+        float(row.get("controller_compute_latency_us") or 0.0) for row in rows
+    ]
+    controller_wait_latencies = [
+        float(row.get("controller_wait_latency_us") or 0.0) for row in rows
+    ]
+    controller_evaluations = [
+        int(row.get("controller_evaluations") or 0) for row in rows
     ]
     per_class: dict[str, dict[str, Any]] = {}
     for deadline_class in sorted(
@@ -1117,6 +1156,32 @@ def _build_metrics(
         "controller_decision_latency_us_p95": _quantile(
             controller_latencies, 95.0
         ),
+        "controller_compute_latency_us_mean": round(
+            sum(controller_compute_latencies) / total_requests,
+            6,
+        )
+        if total_requests
+        else None,
+        "controller_compute_latency_us_p95": _quantile(
+            controller_compute_latencies,
+            95.0,
+        ),
+        "controller_wait_latency_us_mean": round(
+            sum(controller_wait_latencies) / total_requests,
+            6,
+        )
+        if total_requests
+        else None,
+        "controller_wait_latency_us_p95": _quantile(
+            controller_wait_latencies,
+            95.0,
+        ),
+        "controller_evaluations_mean": round(
+            sum(controller_evaluations) / total_requests,
+            6,
+        )
+        if total_requests
+        else None,
         "per_class": per_class,
     }
     for metric_name in _metric_names(run_plan):
@@ -1255,6 +1320,13 @@ async def _run_replay(args: argparse.Namespace) -> dict[str, Any]:
                 "controller_decision_latency_us": row[
                     "controller_decision_latency_us"
                 ],
+                "controller_compute_latency_us": row[
+                    "controller_compute_latency_us"
+                ],
+                "controller_wait_latency_us": row[
+                    "controller_wait_latency_us"
+                ],
+                "controller_evaluations": row["controller_evaluations"],
                 "priority": row["priority"],
                 "prefix_cache_key": row.get("prefix_cache_key"),
                 "execution_priority": row["execution_priority"],
