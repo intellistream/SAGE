@@ -3,10 +3,14 @@ from __future__ import annotations
 import json
 from dataclasses import replace
 
+import pytest
+
 import sage.workloads.semantic_merge_analysis as sma
 from sage.workloads.semantic_merge_analysis import (
     SCENARIOS,
     ConstrainedAgglomerativeMergeReducer,
+    HybridHintMergeReducer,
+    IncrementalHybridHintMergeReducer,
     OpenAIHybridMergeReducer,
     OpenAIHybridValidatedMergeReducer,
     OpenAIPairwiseActionValidatedMergeReducer,
@@ -78,6 +82,37 @@ def test_hybrid_hint_reducer_repairs_partial_evidence_root_hints() -> None:
 
     assert sum(hybrid_scores) / len(hybrid_scores) > (sum(semantic_scores) / len(semantic_scores))
     assert min(hybrid_scores) >= min(semantic_scores)
+
+
+def test_incremental_hybrid_hint_matches_batch_for_monotonic_prefixes() -> None:
+    dataset = generate_semantic_merge_dataset(
+        seed=17, shard_count=8, scenario="ambiguous-overmerge"
+    )
+    ordered = sorted(dataset.evidence, key=lambda item: item.start_minute)
+    incremental = IncrementalHybridHintMergeReducer()
+
+    for end in range(1, len(ordered) + 1):
+        observed = incremental.update([ordered[end - 1]])
+        batch = HybridHintMergeReducer()
+        expected = batch.reduce(ordered[:end])
+        assert observed == expected
+        assert batch.work_counters["group_comparisons"] >= incremental.work_counters[
+            "group_comparisons"
+        ]
+
+
+def test_incremental_hybrid_hint_rejects_late_or_duplicate_evidence() -> None:
+    dataset = generate_semantic_merge_dataset(
+        seed=19, shard_count=8, scenario="ambiguous-overmerge"
+    )
+    ordered = sorted(dataset.evidence, key=lambda item: item.start_minute)
+    incremental = IncrementalHybridHintMergeReducer()
+    incremental.update([ordered[-1]])
+
+    with pytest.raises(ValueError, match="not monotonic"):
+        incremental.update([ordered[0]])
+    with pytest.raises(ValueError, match="already contains"):
+        incremental.update([ordered[-1]])
 
 
 def test_constrained_agglomerative_ignores_hidden_incident_ids() -> None:

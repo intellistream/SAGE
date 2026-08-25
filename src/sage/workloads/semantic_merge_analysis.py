@@ -866,8 +866,11 @@ class SemanticGraphMergeReducer:
     name = "semantic-graph"
     include_root_hint_in_affected = False
 
+    def __init__(self) -> None:
+        self.work_counters: dict[str, Any] = {}
+
     def reduce(self, evidence: list[EvidenceObject]) -> list[dict[str, Any]]:
-        groups = _semantic_graph_groups(evidence)
+        groups = _semantic_graph_groups(evidence, stats=self.work_counters)
         hypotheses = [
             _hypothesis_from_evidence_group(
                 group,
@@ -889,6 +892,85 @@ class HybridHintMergeReducer(SemanticGraphMergeReducer):
             {**item, "hybrid_rule": "include-upstream-root-hint"}
             for item in super().reduce(evidence)
         ]
+
+
+class IncrementalHybridHintMergeReducer:
+    """Incrementally maintain the exact ``hybrid-hint`` grouping state.
+
+    The batch reducer orders evidence by ``start_minute`` before greedily
+    assigning each item to the first compatible group. This implementation
+    exposes that state transition directly. It accepts only monotonic event
+    time because admitting late data without replay could silently diverge
+    from the batch contract.
+    """
+
+    name = "hybrid-hint-incremental"
+
+    def __init__(self) -> None:
+        self._groups: list[list[EvidenceObject]] = []
+        self._seen_ids: set[str] = set()
+        self._last_start_minute: int | None = None
+        self.work_counters: dict[str, Any] = {}
+
+    def update(self, evidence: list[EvidenceObject]) -> list[dict[str, Any]]:
+        ordered = sorted(evidence, key=lambda item: item.start_minute)
+        if len({item.evidence_id for item in ordered}) != len(ordered):
+            raise ValueError("incremental batch contains duplicate evidence IDs")
+        duplicates = self._seen_ids.intersection(item.evidence_id for item in ordered)
+        if duplicates:
+            raise ValueError(
+                f"incremental state already contains evidence IDs: {sorted(duplicates)}"
+            )
+        if (
+            ordered
+            and self._last_start_minute is not None
+            and ordered[0].start_minute < self._last_start_minute
+        ):
+            raise ValueError("incremental evidence is not monotonic in start_minute")
+
+        comparisons = 0
+        admitted = 0
+        for item in ordered:
+            self._seen_ids.add(item.evidence_id)
+            self._last_start_minute = item.start_minute
+            if item.score < 0.34:
+                continue
+            admitted += 1
+            target_group = None
+            for group in self._groups:
+                comparisons += 1
+                if _can_semantically_merge(item, group):
+                    target_group = group
+                    break
+            if target_group is None:
+                self._groups.append([item])
+            else:
+                target_group.append(item)
+
+        self.work_counters = {
+            "input_count": len(ordered),
+            "admitted_count": admitted,
+            "state_evidence_count": len(self._seen_ids),
+            "state_group_count": len(self._groups),
+            "group_comparisons": comparisons,
+            "monotonic_event_time": True,
+        }
+        return self.snapshot()
+
+    def snapshot(self) -> list[dict[str, Any]]:
+        hypotheses = [
+            {
+                **_hypothesis_from_evidence_group(
+                    group,
+                    reducer="hybrid-hint",
+                    include_root_hint_in_affected=True,
+                ),
+                "hybrid_rule": "include-upstream-root-hint",
+            }
+            for group in self._groups
+            if max(item.score for item in group) >= 0.5
+        ]
+        return sorted(hypotheses, key=lambda item: item["score"], reverse=True)
 
 
 class LLMStubMergeReducer(SemanticGraphMergeReducer):
@@ -2774,12 +2856,16 @@ def _clusters_from_groups(
     return sorted(hypotheses, key=lambda item: item["score"], reverse=True)
 
 
-def _semantic_graph_groups(evidence: list[EvidenceObject]) -> list[list[EvidenceObject]]:
+def _semantic_graph_groups(
+    evidence: list[EvidenceObject], *, stats: dict[str, Any] | None = None
+) -> list[list[EvidenceObject]]:
     candidates = [item for item in evidence if item.score >= 0.34]
     groups: list[list[EvidenceObject]] = []
+    comparisons = 0
     for item in sorted(candidates, key=lambda ev: ev.start_minute):
         target_group = None
         for group in groups:
+            comparisons += 1
             if _can_semantically_merge(item, group):
                 target_group = group
                 break
@@ -2787,6 +2873,15 @@ def _semantic_graph_groups(evidence: list[EvidenceObject]) -> list[list[Evidence
             groups.append([item])
         else:
             target_group.append(item)
+    if stats is not None:
+        stats.update(
+            {
+                "input_count": len(evidence),
+                "admitted_count": len(candidates),
+                "state_group_count": len(groups),
+                "group_comparisons": comparisons,
+            }
+        )
     return groups
 
 
