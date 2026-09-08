@@ -18,7 +18,11 @@ COMMON_INSTRUCTION = (
     'do not edit a produced candidate within the same batch. Merge only within one region. '
     'Use at most two MERGE/SPLIT edits. A split must have at least two nonempty disjoint parts '
     'whose union is exactly the source candidate evidence. Unchanged H0 candidates carry forward. '
-    'Choose no edits when there is insufficient observational support. Return only JSON, no prose.'
+    'Choose no edits when there is insufficient observational support. Return only JSON, no prose. '
+    'The catalog is a menu, not a to-do list. Choose at most two compatible state-changing edits '
+    'instead of copying all entries. KEEP/ABSTAIN need not be listed because unselected H0 '
+    'candidates carry forward. Return the interface JSON object without catalog metadata, '
+    'explanation, arrays at the top level or Markdown fences.'
 )
 INTERFACES = {
     'T-ID': 'Return {"proposal_ids":["<catalog proposal ID>", ...]}. Use only IDs in system_catalog; an empty list preserves H0.',
