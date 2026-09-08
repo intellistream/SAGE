@@ -94,10 +94,12 @@ class RevisionAdapter:
     def __init__(self,arm):
         if arm not in ('full','versioned','plain-index'): raise ValueError(arm)
         self.arm=arm;self.index=PublicEvidenceIndex();self.graph=VersionedDependencyState(evaluate)
-        self.outputs={};self.versions={};self.state_version=0
+        self.outputs={};self.versions={};self.state_version=0;self.as_of_ns=None
 
     def apply(self,items,as_of_ns):
         started=time.perf_counter_ns()
+        if type(as_of_ns) is not int or as_of_ns<0 or (self.as_of_ns is not None and as_of_ns<self.as_of_ns):
+            raise ValueError('decision cutoff must not move backward')
         base=PublicEvidenceIndex() if self.arm=='full' else self.index
         staged,changes,admitted=base.stage(items,as_of_ns)
         ingest_ns=time.perf_counter_ns()-started;maintenance_started=time.perf_counter_ns()
@@ -133,7 +135,7 @@ class RevisionAdapter:
                 'semantic_changed_targets':semantic,'evidence_changed_targets':evidence,'reused_targets':sorted(set(outputs)-dirty),
                 'dependency_reads':reads,'records_read':count,'evaluation_ns':evaluation_ns,
                 'dependency_maintenance_ns':time.perf_counter_ns()-maintenance_started-evaluation_ns}
-        self.index=staged
+        self.index=staged;self.as_of_ns=as_of_ns
         trace.update({'ingest_index_ns':ingest_ns,'arm':self.arm,'received_records':len(items),'admitted_records':len(admitted),
             'retained_public_records':len(staged.events),'index_buckets':len(staged.buckets),
             'staged_event_map_entries':len(staged.events)})
@@ -141,7 +143,7 @@ class RevisionAdapter:
 
     def checkpoint(self):
         value={'arm':self.arm,'events':self.index.events,'graph':self.graph.checkpoint() if self.arm=='versioned' else None,
-            'outputs':self.outputs,'versions':self.versions,'state_version':self.state_version}
+            'outputs':self.outputs,'versions':self.versions,'state_version':self.state_version,'as_of_ns':self.as_of_ns}
         return {'state':deepcopy(value),'sha256':stable_digest(value)}
 
     @classmethod
@@ -151,6 +153,8 @@ class RevisionAdapter:
         result=cls(value['arm']);items=list(value['events'].values())
         result.index,_,_=result.index.stage(items,max((i['event']['available_time_ns'] for i in items),default=0))
         if result.arm=='versioned': result.graph=VersionedDependencyState.restore(value['graph'],evaluate)
-        result.outputs=value['outputs'];result.versions=value['versions'];result.state_version=value['state_version']
+        result.outputs=value['outputs'];result.versions=value['versions'];result.state_version=value['state_version'];result.as_of_ns=value['as_of_ns']
+        if items and (type(result.as_of_ns) is not int or max(i['event']['available_time_ns'] for i in items)>result.as_of_ns):
+            raise ValueError('checkpoint cutoff excludes retained evidence')
         if result.arm=='versioned' and result.outputs!=result.graph.snapshot(): raise ValueError('checkpoint output mismatch')
         return result
