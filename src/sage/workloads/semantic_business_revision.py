@@ -95,11 +95,23 @@ class RevisionAdapter:
         if arm not in ('full','versioned','plain-index'): raise ValueError(arm)
         self.arm=arm;self.index=PublicEvidenceIndex();self.graph=VersionedDependencyState(evaluate)
         self.outputs={};self.versions={};self.state_version=0;self.as_of_ns=None
+        self.episode_id=None;self.identity_digests={}
 
     def apply(self,items,as_of_ns):
         started=time.perf_counter_ns()
         if type(as_of_ns) is not int or as_of_ns<0 or (self.as_of_ns is not None and as_of_ns<self.as_of_ns):
             raise ValueError('decision cutoff must not move backward')
+        # Full recomputation discards computational indexes, not input identity.
+        # Stage the same immutable-ID ledger for every arm before any commit.
+        episode_id=self.episode_id;identity_digests=dict(self.identity_digests)
+        for item in items:
+            event=item['event'];eid=event['evidence_id']
+            if episode_id is None: episode_id=event['episode_id']
+            if event['episode_id']!=episode_id: raise ValueError('cross-episode evidence')
+            digest=stable_digest(item)
+            if eid in identity_digests and identity_digests[eid]!=digest:
+                raise ValueError('conflicting duplicate evidence ID')
+            identity_digests[eid]=digest
         base=PublicEvidenceIndex() if self.arm=='full' else self.index
         staged,changes,admitted=base.stage(items,as_of_ns)
         ingest_ns=time.perf_counter_ns()-started;maintenance_started=time.perf_counter_ns()
@@ -136,6 +148,7 @@ class RevisionAdapter:
                 'dependency_reads':reads,'records_read':count,'evaluation_ns':evaluation_ns,
                 'dependency_maintenance_ns':time.perf_counter_ns()-maintenance_started-evaluation_ns}
         self.index=staged;self.as_of_ns=as_of_ns
+        self.episode_id=episode_id;self.identity_digests=identity_digests
         trace.update({'ingest_index_ns':ingest_ns,'arm':self.arm,'received_records':len(items),'admitted_records':len(admitted),
             'retained_public_records':len(staged.events),'index_buckets':len(staged.buckets),
             'staged_event_map_entries':len(staged.events)})
@@ -143,7 +156,8 @@ class RevisionAdapter:
 
     def checkpoint(self):
         value={'arm':self.arm,'events':self.index.events,'graph':self.graph.checkpoint() if self.arm=='versioned' else None,
-            'outputs':self.outputs,'versions':self.versions,'state_version':self.state_version,'as_of_ns':self.as_of_ns}
+            'outputs':self.outputs,'versions':self.versions,'state_version':self.state_version,'as_of_ns':self.as_of_ns,
+            'episode_id':self.episode_id,'identity_digests':self.identity_digests}
         return {'state':deepcopy(value),'sha256':stable_digest(value)}
 
     @classmethod
@@ -152,6 +166,15 @@ class RevisionAdapter:
         if stable_digest(value)!=checkpoint['sha256']: raise ValueError('adapter checkpoint hash mismatch')
         result=cls(value['arm']);items=list(value['events'].values())
         result.index,_,_=result.index.stage(items,max((i['event']['available_time_ns'] for i in items),default=0))
+        # Valid pre-fix checkpoints have the retained public events needed to
+        # reconstruct identity. Never rewrite the archived checkpoint itself.
+        retained_ids={item['event']['evidence_id']:stable_digest(item) for item in items}
+        retained_episode=items[0]['event']['episode_id'] if items else None
+        result.episode_id=value.get('episode_id',retained_episode)
+        result.identity_digests=value.get('identity_digests',retained_ids)
+        if (retained_episode is not None and result.episode_id!=retained_episode) or any(
+            result.identity_digests.get(eid)!=digest for eid,digest in retained_ids.items()):
+            raise ValueError('checkpoint identity disagrees with retained evidence')
         if result.arm=='versioned': result.graph=VersionedDependencyState.restore(value['graph'],evaluate)
         result.outputs=value['outputs'];result.versions=value['versions'];result.state_version=value['state_version'];result.as_of_ns=value['as_of_ns']
         if items and (type(result.as_of_ns) is not int or max(i['event']['available_time_ns'] for i in items)>result.as_of_ns):
