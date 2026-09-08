@@ -68,3 +68,24 @@ def test_free_payload_keeps_explicit_outside_catalog_permission():
     assert free.trace['commit_outcome']=='committed-edits'
     assert ids.trace['validator_reason_code']=='unknown_proposal_id'
     assert free.catalog.proposals[0].generator=='model-payload-untrusted'
+
+
+def test_deep_or_oversized_response_is_rejected_without_exception():
+    adapter,c=context()
+    for response,reason in [('['*2000+'0'+']'*2000,'response_nesting_exceeded'),(' '*131073,'response_size_or_type')]:
+        for arm in ['T-ID','B-validated']:
+            r=adapter.commit(arm=arm,response=response,**c)
+            assert r.h1.digest==c['h0'].digest
+            assert r.trace['validator_reason_code']==reason
+
+
+def test_duplicate_catalog_identity_is_rejected_for_both_interfaces():
+    from dataclasses import replace
+    adapter,c=context();catalog=c['system_catalog']
+    assert len(catalog.proposals)>1
+    conflicting=replace(catalog.proposals[1],proposal_id=catalog.proposals[0].proposal_id)
+    c['system_catalog']=replace(catalog,proposals=(catalog.proposals[0],conflicting))
+    for arm,response in [('T-ID',json.dumps({'proposal_ids':[conflicting.proposal_id]})),('B-validated','{"edits":[]}')]:
+        r=adapter.commit(arm=arm,response=response,**c)
+        assert r.h1.digest==c['h0'].digest
+        assert r.trace['validator_reason_code']=='duplicate_catalog_id'

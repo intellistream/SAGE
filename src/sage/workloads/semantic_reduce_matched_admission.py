@@ -40,6 +40,11 @@ class MatchedEditAdmission:
             return self.runtime._preserved_result(
                 h0=h0, catalog=catalog, selected=(), selector_name=arm,
                 outcome='rolled-back-invalid-selection', reason_code=reason)
+        catalog_ids = [p.proposal_id for p in system_catalog.proposals]
+        if any(not isinstance(i, str) or not i for i in catalog_ids):
+            return reject('malformed_catalog_id')
+        if len(catalog_ids) != len(set(catalog_ids)):
+            return reject('duplicate_catalog_id')
         if expected_h0_digest != h0.digest:
             return reject('stale_h0_version')
         try:
@@ -95,6 +100,8 @@ class MatchedEditAdmission:
                     raise ValueError('unknown_candidate_id')
                 if p.action == 'MERGE' and len({candidates[i].hypothesis['region'] for i in p.candidate_ids}) != 1:
                     raise ValueError('cross_region_merge')
+        except RecursionError:
+            return reject('response_nesting_exceeded')
         except (ValueError, TypeError, KeyError) as exc:
             return reject(str(exc))
         return self.runtime.commit_selection(evidence=evidence,h0=h0,catalog=catalog,
