@@ -16,6 +16,10 @@ Source: `https://pypi.org/pypi/isage/json` (checked on 2026-02-14, UTC).
 
 ### Changed
 
+- Added opt-in observable inference tracing with a default no-op path, bounded asynchronous private NDJSON spool, sampling, retention, sanitized metadata and explicit cross-process context carriers.
+- Instrumented high-level runtime, Packet/executor/FlowNet queues, operator execution, adapter boundaries and chat model calls using the TraceLoom inference v1 contract; added live/finished CLI timelines and atomic snapshots for TraceLoom HTML/Perfetto import.
+- Keep hidden reasoning and raw credentials/content out of traces, and label dependency-path analysis as partial observed evidence rather than a global critical path.
+
 - Added a typed, versioned compiled-workflow plan cache with bounded LRU/TTL, failure recovery, single-flight compilation, metrics, and real `FlowDeclaration.compile_reusable()` / `bind_reusable()` integration that keeps request IO outside static plans.
 - Promoted the main repository to the `0.3` product line after the stream/runtime/serving consolidation.
 - Reworked the owned `sage` CLI surface around the in-tree core boundary: `version`, `status`, `doctor`, `verify`, `runtime nodes`, `serve gateway`, `chat`, and `index ingest`.
