@@ -6,6 +6,8 @@ from collections.abc import Mapping
 from threading import RLock
 from typing import Any
 
+from sage.tracing import traced
+
 from . import policy as serving_policy
 from .contracts import (
     ImportedWorkflow,
@@ -156,6 +158,7 @@ class WorkflowIntegrationRegistry:
     def inspect(self) -> dict[str, Any]:
         return self.snapshot()
 
+    @traced("sage.adapter.import")
     def import_workflow(self, request: WorkflowImportRequest) -> WorkflowImportResponse:
         adapter = self.require_adapter(request.integration_type)
         response = adapter.import_workflow(request)
@@ -167,6 +170,7 @@ class WorkflowIntegrationRegistry:
         )
         return response
 
+    @traced("sage.adapter.submit")
     def submit_job(self, request: WorkflowJobSubmitRequest) -> WorkflowJobSubmitResponse:
         adapter = self.require_adapter(request.integration_type)
         _validate_imported_workflow(
@@ -252,6 +256,7 @@ class WorkflowIntegrationRegistry:
             serving_context=WorkflowServingRequestContext(**base_context),
         )
 
+    @traced("sage.adapter.poll")
     def poll_status(self, request: WorkflowJobStatusPollRequest) -> WorkflowJobStatusPollResponse:
         adapter = self.require_adapter(request.integration_type)
         response = adapter.poll_status(request)
@@ -263,6 +268,7 @@ class WorkflowIntegrationRegistry:
         )
         return response
 
+    @traced("sage.adapter.collect")
     def collect_result(
         self,
         request: WorkflowJobResultCollectRequest,

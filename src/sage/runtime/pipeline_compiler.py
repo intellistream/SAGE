@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import concurrent.futures
+import contextvars
 import hashlib
 import logging
 import threading
@@ -13,6 +14,7 @@ from typing import Any
 
 from sage.foundation import Collector, CustomLogger, FlatMapFunction
 from sage.stream._runtime_kernel_types import Packet
+from sage.tracing import get_tracer, submit_traced, traced
 
 from .actor_wrappers import (
     FilterActorWrapper,
@@ -233,6 +235,7 @@ class _LightweightServiceRuntime:
                 self._services[service_name] = self._create_service(service_name)
             return self._services[service_name]
 
+    @traced("sage.runtime.service")
     def _invoke_service(
         self,
         service_name: str,
@@ -276,7 +279,8 @@ class _LightweightServiceRuntime:
         method: str | None = None,
         **kwargs: Any,
     ) -> _LightweightServiceFuture:
-        future = self._executor.submit(
+        future = submit_traced(
+            self._executor,
             self._invoke_service,
             service_name,
             *args,
@@ -367,6 +371,10 @@ class CompiledActorGraph:
     _finalized: bool = field(default=False, init=False, repr=False)
     _closed_sources: set[str] = field(default_factory=set, init=False, repr=False)
     _replica_round_robin: dict[str, int] = field(default_factory=dict, init=False, repr=False)
+    _trace_root: Any = field(default=None, init=False, repr=False)
+    _trace_remaining: int = field(default=0, init=False, repr=False)
+    _trace_lock: Any = field(default_factory=threading.Lock, init=False, repr=False)
+    _trace_packets: dict[int, Any] = field(default_factory=dict, init=False, repr=False)
 
     def _start_worker_runtime(self) -> None:
         """Legacy compatibility hook retained for tests guarding the actor-stage path."""
@@ -462,6 +470,14 @@ class CompiledActorGraph:
             forwarded = packet.copy()
             forwarded.input_index = input_index
             queue.append((downstream, forwarded))
+            if self._trace_root is not None and self._trace_root.enabled:
+                tracer = get_tracer()
+                if len(self._trace_packets) < tracer.config.queue_capacity:
+                    self._trace_packets[id(forwarded)] = tracer.start_span(
+                        "sage.runtime.packet_queue"
+                    )
+                else:
+                    tracer._increment("dropped_events")
 
     def _normalize_outputs(
         self,
@@ -666,9 +682,45 @@ class CompiledActorGraph:
             self._service_runtime.close()
 
     def submit(self, autostop: bool = False) -> Any:
+        tracer = get_tracer()
+        if not tracer.enabled:
+            return self._submit_batch() if autostop else self._submit_streaming()
+        for _, method_ref in self.stage_ops:
+            enable = getattr(method_ref, "enable_tracing", None)
+            if callable(enable):
+                enable()
+        process_packet = self._process_packet
+
+        def observe_packet(transformation, packet, instances, pending):
+            queued = self._trace_packets.pop(id(packet), None)
+            if queued is not None:
+                queued.end()
+            links = [queued.span_id] if queued is not None else []
+            with tracer.span(
+                "sage.runtime.operator",
+                links=links,
+                attributes={"operation": transformation.function_class.__name__},
+            ) as span:
+                span.summarize(packet.payload)
+                return process_packet(transformation, packet, instances, pending)
+
+        self._process_packet = observe_packet
+        self._poll_source = traced("sage.runtime.source", kind="data")(self._poll_source)
+        self._trace_root = tracer.start_span("sage.runtime.pipeline", kind="pipeline")
+        with self._trace_root.activate():
+            try:
+                result = self._submit_batch() if autostop else self._submit_streaming()
+            except BaseException as exc:
+                self._trace_root.record_error(exc)
+                self._trace_root.end()
+                raise
         if autostop:
-            return self._submit_batch()
-        return self._submit_streaming()
+            self._trace_root.end()
+        return result
+
+    @property
+    def trace_id(self) -> str | None:
+        return self._trace_root.trace_id if self._trace_root is not None else None
 
     def _execute_chain(self, items: list[Any], ops: list[tuple[str, Any]]) -> list[Any]:
         if not ops or not items:
@@ -796,17 +848,25 @@ class CompiledActorGraph:
         stop_event = threading.Event()
         instances = self._build_instances()
         source_threads: list[threading.Thread] = []
+        self._trace_remaining = len(self.source_transformations)
 
         for transformation in self.source_transformations:
+            target = self._run_source_thread
+            args = (transformation, instances, stop_event)
+            if get_tracer().enabled:
+                context = contextvars.copy_context()
+                target, args = context.run, (target, *args)
             source_thread = threading.Thread(
-                target=self._run_source_thread,
-                args=(transformation, instances, stop_event),
+                target=target,
+                args=args,
                 daemon=True,
                 name=f"sage-source-{transformation.basename}",
             )
             source_thread.start()
             source_threads.append(source_thread)
 
+        if not source_threads and self._trace_root is not None:
+            self._trace_root.end()
         return _StreamingFlowHandle(source_threads, stop_event=stop_event)
 
     def _run_source_thread(
@@ -825,12 +885,25 @@ class CompiledActorGraph:
                     continue
                 with self._dispatch_lock:
                     self._dispatch_from_source(transformation, item, instances)
-        except Exception:
+        except Exception as exc:
+            if self._trace_root is not None:
+                self._trace_root.record_error(exc)
             logger.exception(
                 "Source function '%s' raised an exception in streaming mode.",
                 transformation.function_class.__name__,
             )
         finally:
+            if self._trace_root is not None:
+                with self._trace_lock:
+                    self._trace_remaining -= 1
+                    last_source = self._trace_remaining == 0
+                if last_source:
+                    status = (
+                        "cancelled"
+                        if stop_event.is_set() and self._trace_root.status == "ok"
+                        else None
+                    )
+                    self._trace_root.end(status)
             logger.debug(
                 "Source thread for '%s' exiting.",
                 transformation.function_class.__name__,

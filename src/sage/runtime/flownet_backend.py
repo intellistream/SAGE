@@ -5,10 +5,12 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures
 import hashlib
+from functools import partial
 from threading import Lock
 from typing import Any
 
 from sage.foundation import CustomLogger
+from sage.tracing import get_tracer, submit_traced, traced
 
 from .backend_protocol import (
     ActorHandleProtocol,
@@ -72,12 +74,13 @@ class _FlowNetMethodCallFuture(MethodCallFuture):
 
 
 class _FlowNetMethodRef(MethodRefProtocol):
-    __slots__ = ("_actor_api", "_actor_id", "_method_name")
+    __slots__ = ("_actor_api", "_actor_id", "_method_name", "_submit")
 
     def __init__(self, actor_api: Any, actor_id: str, method_name: str) -> None:
         self._actor_api = actor_api
         self._actor_id = actor_id
         self._method_name = method_name
+        self._submit = None
 
     def call(self, *args: Any, **kwargs: Any) -> Any:
         return _run_actor_api_call(
@@ -88,8 +91,12 @@ class _FlowNetMethodRef(MethodRefProtocol):
             **kwargs,
         )
 
+    def enable_tracing(self) -> None:
+        self._submit = partial(submit_traced, _get_async_executor())
+
     def async_call(self, *args: Any, **kwargs: Any) -> MethodCallFuture:
-        fut = _get_async_executor().submit(self.call, *args, **kwargs)
+        submit = self._submit or _get_async_executor().submit
+        fut = submit(self.call, *args, **kwargs)
         return _FlowNetMethodCallFuture(fut)
 
     def cancel(self) -> bool:
@@ -195,16 +202,28 @@ def _build_flow_actor_instance(
             parallel_index=replica_index,
             parallelism=replica_count,
         )
+    if function is not None and get_tracer().enabled:
+        function.execute = traced(
+            "sage.runtime.operator", input_index=0, operation=type(function).__name__
+        )(function.execute)
     return instance
 
 
 class _FlowNetReplicaPoolMethodRef(MethodRefProtocol):
-    __slots__ = ("_actor_api", "_actor_ids", "_method_name", "_selection_lock", "_rr_cursor")
+    __slots__ = (
+        "_actor_api",
+        "_actor_ids",
+        "_method_name",
+        "_selection_lock",
+        "_rr_cursor",
+        "_submit",
+    )
 
     def __init__(self, actor_api: Any, actor_ids: tuple[str, ...], method_name: str) -> None:
         self._actor_api = actor_api
         self._actor_ids = actor_ids
         self._method_name = method_name
+        self._submit = None
         self._selection_lock = Lock()
         self._rr_cursor = 0
 
@@ -228,8 +247,12 @@ class _FlowNetReplicaPoolMethodRef(MethodRefProtocol):
             **kwargs,
         )
 
+    def enable_tracing(self) -> None:
+        self._submit = partial(submit_traced, _get_async_executor())
+
     def async_call(self, *args: Any, **kwargs: Any) -> MethodCallFuture:
-        fut = _get_async_executor().submit(self.call, *args, **kwargs)
+        submit = self._submit or _get_async_executor().submit
+        fut = submit(self.call, *args, **kwargs)
         return _FlowNetMethodCallFuture(fut)
 
     def cancel(self) -> bool:

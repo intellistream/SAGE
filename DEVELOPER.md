@@ -90,6 +90,86 @@ git checkout main
 - `FlowNetEnvironment` 会把相同的 `parallelism` hint 编译到 FlowNet actor replica 配置中；本地与 FlowNet
   的用户侧并行语义保持一致。
 
+### Observable inference traces
+
+Tracing is disabled by default and uses only standard-library dependencies. Enable it explicitly:
+
+```python
+from sage.tracing import NDJSONExporter, TraceConfig, Tracer, use_tracer
+
+exporter = NDJSONExporter("/tmp/sage-traces", retention_seconds=3600)
+tracer = Tracer(exporter, TraceConfig(sample_rate=1.0, queue_capacity=1024))
+try:
+    with use_tracer(tracer):
+        env.submit(autostop=True)
+finally:
+    tracer.close(timeout=1.0)
+print(tracer.stats())
+```
+
+For streaming jobs, keep the tracer alive until the job's source threads finish or the job is
+stopped. High-level Local and FlowNet runs get a stable trace ID (also exposed in local job status).
+Runtime source/operator/service calls, local executor queues, FlowNet actor queues and execution,
+workflow adapter calls, and chat model calls provide spans. Adapter submit spans describe receipt
+of an accepted reference, not completion of an external job. Direct `sagellm` subprocess calls are
+opaque model boundaries; optional RAG/tool packages and remote services must instrument their own
+steps to provide inner observations.
+
+Use `tracer.span("app.retrieve", kind="retrieval")` and `kind="tool"` or `kind="model"` for owned
+extensions. `span.annotate(retrieved_count=2)`, model/token counts, `span.evidence("opaque-doc-id")`,
+and `span.summarize(value)` add bounded safe metadata. Retries use new spans, `attempt`, and links
+to completed previous attempts. `inject_context()` / `use_trace_context(carrier)` propagate only
+validated IDs and sampling decisions across an explicit RPC contract; they do not imply clock
+synchronization. Internal thread and executor boundaries propagate context automatically.
+
+The wire contract is TraceLoom observable inference v1: integer `schema_version=1`, OTel-compatible
+trace/span IDs, parent IDs, producer and monotonic clock domains, per-producer sequence, wall and
+monotonic timestamps, `span_start`/`span_end`/`trace_end`/`metrics`, and allowlisted scalar metadata.
+Component names are bounded span-name prefixes. Endpoint references and input/output references
+are HMACs using an ephemeral tracer-local key. Value hashes cover only a bounded builtin-value
+representation (default 4096 bytes, 64 visited values), not a claimed complete-content digest;
+unsupported objects are never repr-serialized. Sensitive mapping fields are excluded.
+
+Raw prompts, model responses, reasoning, authentication headers, exception messages/stacks, URLs,
+and arbitrary attribute dictionaries are not exported. There is no raw-content persistence mode.
+Public, producer-authored `decision_summary` text requires `TraceConfig(allow_summaries=True,
+summary_redactor=...)`, is capped at 256 bytes, and must already exclude private reasoning and
+sensitive content. View/export commands omit summaries unless explicitly requested. This redactor
+is an application policy hook, not an assurance that regexes can sanitize arbitrary model prose.
+
+The exporter uses a bounded nonblocking queue (default 1024, maximum 4096), drops on overflow and
+isolates exporter failures. `stats()` exposes drops, export failures, queue depth and instrumentation
+errors; root metrics are best-effort receipts, so a missing receipt never proves zero loss. Spool
+segments are at most 16 MiB and total spool size at most 64 MiB; retention is at most 24 hours.
+Files are mode 0600. Use a dedicated directory: rotation/purge only touches `trace-*.ndjson` there.
+Retention is enforced on export or `exporter.purge()`; after the producer exits, operators must
+purge expired artifacts. `close(timeout=...)` is bounded even if an exporter stalls. Finish the
+workload before closing its tracer; closing early intentionally leaves incomplete evidence.
+
+```bash
+sage --trace-dir /tmp/sage-traces chat --ask "Hello"
+sage trace show --source /tmp/sage-traces --json
+sage trace show --source /tmp/sage-traces --follow
+sage trace export --source /tmp/sage-traces --output /tmp/sage-trace-snapshot.ndjson --follow
+# In a separate terminal with a compatible TraceLoom build:
+traceloom import-inference /tmp/sage-trace-snapshot.ndjson --output /tmp/analysis.db \
+  --html-out /tmp/inference.html --perfetto-out /tmp/inference.json --follow
+```
+
+The stable snapshot aggregates rotated segments and replaces its output atomically. Snapshot/DB/
+HTML retention is controlled separately by their operator; source spool expiration does not erase
+previously imported databases. `sage.tracing.view.timeline()` is the JSON timeline interface for
+live or finished observed spans. Parentage is scope, while `links` are explicit
+completion-before-start dependencies. The displayed path is the **longest observed dependency
+path**, always marked with partial `dependency_completeness`; missing events, unresolved links,
+and uncalibrated clocks never become a claim of a global critical path. No deployment or network
+listener is needed for these views.
+
+The producer fixture and privacy/concurrency/failure tests live in
+`src/tests/fixtures/inference_trace_v1.ndjson`, `test_inference_trace.py`, and
+`test_inference_trace_integration.py`. Disabled tracing leaves inference return values and errors
+unchanged; instrumentation does not fix unrelated runtime lifecycle or scheduling semantics.
+
 ### Initial Setup
 
 1. Clone and switch to canonical branch

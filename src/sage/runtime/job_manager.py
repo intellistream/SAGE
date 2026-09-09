@@ -47,6 +47,7 @@ class JobRecord:
         return {
             "success": self.status != "failed",
             "uuid": self.uuid,
+            "trace_id": self.compiled_graph.trace_id,
             "status": self.status,
             "env_name": self.env_name,
             "pipeline_size": self.pipeline_size,

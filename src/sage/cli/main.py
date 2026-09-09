@@ -10,6 +10,7 @@ from importlib.metadata import entry_points
 
 from sage._version import __version__
 from sage.cli.commands.apps.chat import add_chat_parser, add_index_parser
+from sage.cli.commands.trace import add_trace_parser
 from sage.foundation import SagePorts, get_user_paths
 from sage.runtime import get_runtime_backend
 from sage.serving import (
@@ -18,6 +19,7 @@ from sage.serving import (
     infer_module_availability,
     probe_gateway,
 )
+from sage.tracing import NDJSONExporter, TraceConfig, Tracer, use_tracer
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -25,6 +27,8 @@ def _build_parser() -> argparse.ArgumentParser:
         prog="sage",
         description="SAGE — stream-first inference service system",
     )
+    parser.add_argument("--trace-dir", help="Opt in to a private, bounded inference trace spool")
+    parser.add_argument("--trace-sample-rate", type=float, default=1.0)
     sub = parser.add_subparsers(dest="command")
 
     sub.add_parser("version", help="Show SAGE version information")
@@ -47,6 +51,7 @@ def _build_parser() -> argparse.ArgumentParser:
     gateway.add_argument("--probe", action="store_true")
     gateway.add_argument("--json", action="store_true")
 
+    add_trace_parser(sub)
     add_chat_parser(sub)
     add_index_parser(sub)
     _load_cli_plugins(sub)
@@ -174,6 +179,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     parsed_argv = list(argv) if argv is not None else None
     args, unknown = parser.parse_known_args(parsed_argv)
 
+    if args.trace_dir:
+        try:
+            config = TraceConfig(sample_rate=args.trace_sample_rate)
+        except ValueError:
+            parser.error("invalid trace configuration")
+        tracer = Tracer(NDJSONExporter(args.trace_dir), config)
+        try:
+            with use_tracer(tracer):
+                return _dispatch(parser, args, unknown)
+        finally:
+            tracer.close()
+    return _dispatch(parser, args, unknown)
+
+
+def _dispatch(parser, args, unknown):
     if args.command is None:
         return _print_status()
     if args.command == "version":

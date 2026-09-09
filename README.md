@@ -133,6 +133,8 @@ python sage-tutorials/L1-common/hello_world.py
 - `sage status`
 - `sage doctor`
 - `sage verify`
+- `sage --trace-dir /tmp/sage-traces chat --ask "Hello"`
+- `sage trace show --source /tmp/sage-traces --json`
 - `sage runtime nodes`
 - `sage serve gateway --json`
 - `sage serve gateway --probe --json`
