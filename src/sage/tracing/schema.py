@@ -56,12 +56,22 @@ def normalize_record(record, *, include_summaries=False):
             raise ValueError("invalid trace clock or sequence")
     if record["event_type"] not in {"span_start", "span_end", "span_event", "trace_end", "metrics"}:
         raise ValueError("unsupported trace event type")
+    for key, allowed in [
+        ("kind", {"pipeline", "model", "retrieval", "tool", "data", "step"}),
+        ("status", {"ok", "error", "cancelled"}),
+    ]:
+        if key in record and (type(record[key]) is not str or record[key] not in allowed):
+            raise ValueError("invalid trace kind or status")
     for key in ["name", "kind", "status"]:
         if key in record:
             result[key] = safe_label(record[key])
     if "parent_span_id" in record:
         parent = record["parent_span_id"]
-        if type(parent) is not str or not re.fullmatch("[0-9a-f]{16}", parent):
+        if (
+            type(parent) is not str
+            or not re.fullmatch("[0-9a-f]{16}", parent)
+            or not int(parent, 16)
+        ):
             raise ValueError("invalid trace parent")
         result["parent_span_id"] = parent
     attrs = record.get("attributes", {})
@@ -78,7 +88,10 @@ def normalize_record(record, *, include_summaries=False):
         if type(values) is not list or len(values) > 16:
             raise ValueError("invalid trace references")
         if key == "links":
-            if any(type(v) is not str or not re.fullmatch("[0-9a-f]{16}", v) for v in values):
+            if any(
+                type(v) is not str or not re.fullmatch("[0-9a-f]{16}", v) or not int(v, 16)
+                for v in values
+            ):
                 raise ValueError("invalid dependency identity")
             result[key] = values
         else:

@@ -125,10 +125,20 @@ class Span:
         self.kind = (
             kind if kind in {"pipeline", "model", "retrieval", "tool", "data", "step"} else "step"
         )
+        if type(links) not in {list, tuple}:
+            raise TypeError("trace links must be a bounded sequence")
         self.links = [
-            value for value in links if type(value) is str and re.fullmatch(r"[0-9a-f]{16}", value)
-        ][:16]
-        self.attributes = dict(attributes or {})
+            value
+            for value in links[:16]
+            if type(value) is str and re.fullmatch(r"[0-9a-f]{16}", value) and int(value, 16)
+        ]
+        if attributes is not None and type(attributes) is not dict:
+            raise TypeError("trace attributes must be a dictionary")
+        self.attributes = {
+            key: attributes[key]
+            for key in _LABELS | _COUNTS
+            if attributes is not None and key in attributes
+        }
         self.evidence_refs: list[str] = []
         self.decision_summary: str | None = None
         self.status = "ok"
@@ -145,13 +155,16 @@ class Span:
 
     def record_error(self, error: BaseException):
         if self.enabled:
-            self.status = (
-                "cancelled"
-                if isinstance(error, (KeyboardInterrupt, GeneratorExit))
-                or type(error).__name__ == "CancelledError"
-                else "error"
-            )
-            self.annotate(error_type=type(error).__name__)
+            with self._lock:
+                if self._ended:
+                    return
+                self.status = (
+                    "cancelled"
+                    if isinstance(error, (KeyboardInterrupt, GeneratorExit))
+                    or type(error).__name__ == "CancelledError"
+                    else "error"
+                )
+                self.attributes["error_type"] = type(error).__name__
 
     def summarize(self, value: Any, *, output=False):
         """HMAC a bounded builtin-value representation; never repr custom objects."""
@@ -179,16 +192,21 @@ class Span:
 
     def endpoint(self, endpoint: str):
         if self.enabled and type(endpoint) is str:
-            # Endpoint bodies/URLs/auth/query strings never enter the wire contract.
-            digest = hmac.new(
-                self.tracer._hash_key, endpoint[:4096].encode(), hashlib.sha256
-            ).hexdigest()
-            self.evidence("endpoint-hmac-" + digest)
+            try:
+                # Endpoint bodies/URLs/auth/query strings never enter the wire contract.
+                digest = hmac.new(
+                    self.tracer._hash_key, endpoint[:4096].encode(), hashlib.sha256
+                ).hexdigest()
+                self.evidence("endpoint-hmac-" + digest)
+            except Exception:
+                self.tracer._increment("instrumentation_errors")
 
     def summary(self, text: str):
         if self.enabled and self.tracer.config.allow_summaries:
             try:
                 redacted = self.tracer.config.summary_redactor(text[:1024])
+                if type(redacted) is str:
+                    redacted = redacted[:1024]
                 if type(redacted) is str and not _SECRET.search(redacted):
                     self.decision_summary = (
                         "".join(ch if ch.isprintable() else " " for ch in redacted)
@@ -223,11 +241,11 @@ class Span:
         with self._lock:
             if self._ended:
                 return
+            if type(status) is str and status in {"ok", "error", "cancelled"}:
+                self.status = status
             self._ended = True
         if not self.enabled:
             return
-        if status in {"ok", "error", "cancelled"}:
-            self.status = status
         self.tracer._emit(self, "span_end")
         if self.parent_span_id is None:
             self.tracer._emit(
@@ -376,14 +394,18 @@ class Tracer:
             if span.decision_summary is not None:
                 record["decision_summary"] = span.decision_summary
             encoded = (json.dumps(record, separators=(",", ":"), ensure_ascii=True) + "\n").encode()
-            if len(encoded) > self.config.max_record_bytes or self._closed.is_set():
+            if len(encoded) > self.config.max_record_bytes:
                 self._increment("dropped_events")
                 return
-            try:
-                self._queue.put_nowait(encoded)
-                self._increment("accepted_events")
-            except queue.Full:
-                self._increment("dropped_events")
+            with self._lock:
+                if self._closed.is_set():
+                    self._counts["dropped_events"] += 1
+                    return
+                try:
+                    self._queue.put_nowait(encoded)
+                    self._counts["accepted_events"] += 1
+                except queue.Full:
+                    self._counts["dropped_events"] += 1
         except Exception:
             self._increment("instrumentation_errors")
 
@@ -403,7 +425,8 @@ class Tracer:
                 self._queue.task_done()
 
     def close(self, timeout=1.0):
-        self._closed.set()
+        with self._lock:
+            self._closed.set()
         self._worker.join(timeout=max(0, timeout))
         return not self._worker.is_alive()
 
@@ -446,6 +469,8 @@ def traced(name, *, kind="step", input_index=None, operation=None):
                 with tracer.span(
                     name, kind=kind, attributes={"operation": operation} if operation else None
                 ) as span:
+                    if input_index is not None and len(args) > input_index:
+                        span.summarize(args[input_index])
                     result = await function(*args, **kwargs)
                     span.summarize(result, output=True)
                     return result

@@ -13,9 +13,16 @@ def read_events(source, *, max_bytes=64 * 1024**2, max_events=100_000, include_s
     paths = sorted(source.glob("trace-*.ndjson")) if source.is_dir() else [source]
     events = []
     seen = {}
+    lifecycle = set()
     consumed = 0
     for path in paths:
-        with path.open("rb") as stream:
+        try:
+            stream = path.open("rb")
+        except FileNotFoundError:
+            if source.is_dir():
+                continue  # A concurrent spool purge removed this segment.
+            raise
+        with stream:
             while line := stream.readline(16385):
                 consumed += len(line)
                 if consumed > max_bytes or len(line) > 16384:
@@ -27,6 +34,16 @@ def read_events(source, *, max_bytes=64 * 1024**2, max_events=100_000, include_s
                 if key in seen and seen[key] != record:
                     raise ValueError("conflicting trace event identity")
                 if key not in seen:
+                    kind = record["event_type"]
+                    lifecycle_key = None
+                    if kind in {"span_start", "span_end"}:
+                        lifecycle_key = record["trace_id"], record["span_id"], kind
+                    elif kind == "trace_end":
+                        lifecycle_key = record["trace_id"], kind
+                    if lifecycle_key is not None:
+                        if lifecycle_key in lifecycle:
+                            raise ValueError("conflicting trace lifecycle")
+                        lifecycle.add(lifecycle_key)
                     seen[key] = record
                     events.append(record)
                 if len(events) > max_events:
@@ -41,14 +58,16 @@ def timeline(events, trace_id=None):
         if trace_id and key != trace_id:
             continue
         trace = traces.setdefault(
-            key, {"trace_id": key, "spans": {}, "receipt": False, "dropped_events": 0}
+            key, {"trace_id": key, "spans": {}, "receipt": None, "producer_drops": {}}
         )
         kind = event["event_type"]
         if kind == "trace_end":
-            trace["receipt"] = True
+            trace["receipt"] = event
         elif kind == "metrics":
-            trace["dropped_events"] = max(
-                trace["dropped_events"], event.get("attributes", {}).get("dropped_events", 0)
+            producer = event["producer_id"]
+            trace["producer_drops"][producer] = max(
+                trace["producer_drops"].get(producer, 0),
+                event.get("attributes", {}).get("dropped_events", 0),
             )
         elif kind in {"span_start", "span_end"}:
             trace["spans"].setdefault(event["span_id"], {})[kind] = event
@@ -86,14 +105,22 @@ def timeline(events, trace_id=None):
                 }
             )
         spans.sort(key=lambda span: (span["clock_id"], span["start_ns"] or 0))
-        complete = trace["receipt"] and all(span["complete"] for span in spans)
+        receipt = trace["receipt"]
+        root_observed = receipt is not None and any(
+            span["span_id"] == receipt["span_id"]
+            and span["parent_span_id"] is None
+            and span["complete"]
+            for span in spans
+        )
+        complete = root_observed and all(span["complete"] for span in spans)
+        dropped = sum(trace["producer_drops"].values())
         result.append(
             {
                 "trace_id": trace["trace_id"],
                 "state": "finished_observed" if complete else "live_or_incomplete",
-                "dropped_events": trace["dropped_events"],
+                "dropped_events": dropped,
                 "spans": spans,
-                "critical_path": longest_observed_path(spans, dropped=trace["dropped_events"]),
+                "critical_path": longest_observed_path(spans, dropped=dropped),
             }
         )
     return {"schema_version": 1, "traces": result}

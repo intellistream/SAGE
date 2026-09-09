@@ -6,6 +6,7 @@ import os
 import secrets
 import threading
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -39,6 +40,23 @@ class NDJSONExporter:
         self._segment = 0
         self._lock = threading.Lock()
 
+    @contextmanager
+    def _directory_lock(self):
+        # A per-instance lock cannot protect the shared byte budget across tracers
+        # or processes. Nonblocking flock also avoids exporter shutdown stalls.
+        import fcntl
+
+        descriptor = os.open(
+            self.directory / ".sage-trace.lock",
+            os.O_WRONLY | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0),
+            0o600,
+        )
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            yield
+        finally:
+            os.close(descriptor)
+
     def _purge(self, reserve=0):
         files = sorted(
             (p for p in self.directory.glob("trace-*.ndjson") if not p.is_symlink()),
@@ -60,22 +78,26 @@ class NDJSONExporter:
     def purge(self):
         with self._lock:
             if self.directory.exists():
-                self._purge()
+                with self._directory_lock():
+                    self._purge()
 
     def export(self, record: bytes):
         if len(record) > 16384 or not record.endswith(b"\n"):
             raise ValueError("invalid trace record size/framing")
         with self._lock:
             self.directory.mkdir(parents=True, mode=0o700, exist_ok=True)
-            self._purge(reserve=len(record))
-            if (
-                self._path is None
-                or not self._path.exists()
-                or self._path.stat().st_size + len(record) > self.segment_bytes
-            ):
-                self._segment += 1
-                self._path = self.directory / f"trace-{self._session}-{self._segment:06d}.ndjson"
-            flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND | getattr(os, "O_NOFOLLOW", 0)
-            descriptor = os.open(self._path, flags, 0o600)
-            with os.fdopen(descriptor, "ab") as stream:
-                stream.write(record)
+            with self._directory_lock():
+                self._purge(reserve=len(record))
+                if (
+                    self._path is None
+                    or not self._path.exists()
+                    or self._path.stat().st_size + len(record) > self.segment_bytes
+                ):
+                    self._segment += 1
+                    self._path = (
+                        self.directory / f"trace-{self._session}-{self._segment:06d}.ndjson"
+                    )
+                flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND | getattr(os, "O_NOFOLLOW", 0)
+                descriptor = os.open(self._path, flags, 0o600)
+                with os.fdopen(descriptor, "ab") as stream:
+                    stream.write(record)

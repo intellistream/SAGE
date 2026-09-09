@@ -142,9 +142,15 @@ isolates exporter failures. `stats()` exposes drops, export failures, queue dept
 errors; root metrics are best-effort receipts, so a missing receipt never proves zero loss. Spool
 segments are at most 16 MiB and total spool size at most 64 MiB; retention is at most 24 hours.
 Files are mode 0600. Use a dedicated directory: rotation/purge only touches `trace-*.ndjson` there.
+The local spool uses POSIX file locks to serialize shared-directory budget checks across
+exporters/processes. Lock contention is counted as export failure/loss rather than blocking the
+inference path; use separate spool directories to avoid contention. Other platforms can install
+a supported exporter; an unavailable spool exporter remains isolated from inference.
 Retention is enforced on export or `exporter.purge()`; after the producer exits, operators must
 purge expired artifacts. `close(timeout=...)` is bounded even if an exporter stalls. Finish the
 workload before closing its tracer; closing early intentionally leaves incomplete evidence.
+Process crashes or forced exits can lose queued records and final counters. Process-local stats
+and exported receipts are lower-bound evidence, not a durable accounting guarantee across crashes.
 
 ```bash
 sage --trace-dir /tmp/sage-traces chat --ask "Hello"
@@ -164,6 +170,32 @@ completion-before-start dependencies. The displayed path is the **longest observ
 path**, always marked with partial `dependency_completeness`; missing events, unresolved links,
 and uncalibrated clocks never become a claim of a global critical path. No deployment or network
 listener is needed for these views.
+
+SAGE does not add a browser frontend. The visual timeline belongs to TraceLoom; SAGE provides
+trace IDs, the spool path selected by the caller, and CLI/JSON inspection. For local jobs use
+`env.jobmanager.get_job_status(job_id)["trace_id"]`; for owned scopes use `span.trace_id`.
+`sage trace show --follow` polls once per second and prints changed snapshots. `trace export
+--follow` atomically refreshes a stable file; incomplete last records wait for a later poll.
+Keep the producer/tracer alive while a streaming job runs. TraceLoom's follow mode owns HTML
+refresh; an accepted job ID alone never establishes workflow completion.
+
+CPU-only joint acceptance can be reproduced without a model service:
+
+```bash
+PYTHONPATH=src python src/tests/inference_trace_workload.py --output /tmp/sage-trace-acceptance
+PYTHONPATH=src python src/tests/check_inference_trace_import.py \
+  --fixture /tmp/sage-trace-acceptance/workflow.ndjson \
+  --output /tmp/sage-trace-import --traceloom /path/to/traceloom
+PYTHONPATH=src python tools/benchmark_carrier/benchmark_inference_trace.py \
+  --output /tmp/sage-trace-benchmark.json
+```
+
+Use fresh acceptance/import directories. The workflow invokes real LocalEnvironment and chat
+code with a deterministic fake HTTP transport, verifies original outputs/errors in memory, and
+writes only sanitized events and an assertion manifest. Derived importer fault probes are labeled
+separately from the original workflow. Microbenchmark allocation probes run separately from timing;
+all modes report event loss alongside timings. Trace UI privacy does not suppress the original
+chat response or change application exception behavior.
 
 The producer fixture and privacy/concurrency/failure tests live in
 `src/tests/fixtures/inference_trace_v1.ndjson`, `test_inference_trace.py`, and
