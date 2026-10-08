@@ -111,3 +111,47 @@ def test_request_context_is_not_retained_after_bind() -> None:
     del context
     gc.collect()
     assert context_ref() is None
+
+
+def test_interrupted_compiler_releases_single_flight_waiter_without_negative_cache() -> None:
+    class CompileInterrupted(BaseException):
+        pass
+
+    cache = CompiledPlanCache[str]()
+    entered, release, waiter_done = threading.Event(), threading.Event(), threading.Event()
+    owner_errors = []
+    results = []
+
+    def interrupted_compile():
+        entered.set()
+        release.wait(timeout=3)
+        raise CompileInterrupted()
+
+    def owner():
+        try:
+            cache.get_or_compile(_fingerprint(), interrupted_compile)
+        except CompileInterrupted as exc:
+            owner_errors.append(exc)
+
+    def waiter():
+        results.append(cache.get_or_compile(_fingerprint(), lambda: "recovered").artifact)
+        waiter_done.set()
+
+    owner_thread = threading.Thread(target=owner, daemon=True)
+    waiter_thread = threading.Thread(target=waiter, daemon=True)
+    owner_thread.start()
+    assert entered.wait(3)
+    waiter_thread.start()
+    try:
+        deadline = time.monotonic() + 3
+        while cache.stats().waits < 1 and time.monotonic() < deadline:
+            time.sleep(0.001)
+        assert cache.stats().waits == 1
+    finally:
+        release.set()
+    owner_thread.join(timeout=3)
+    assert waiter_done.wait(3)
+    waiter_thread.join(timeout=3)
+    assert len(owner_errors) == 1
+    assert results == ["recovered"]
+    assert cache.stats().negative_entries == 0

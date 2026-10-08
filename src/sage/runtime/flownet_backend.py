@@ -229,7 +229,10 @@ class _FlowNetReplicaPoolMethodRef(MethodRefProtocol):
         )
 
     def async_call(self, *args: Any, **kwargs: Any) -> MethodCallFuture:
-        fut = _get_async_executor().submit(self.call, *args, **kwargs)
+        actor_id = self._select_actor_id(*args, **kwargs)
+        fut = _get_async_executor().submit(
+            _run_actor_api_call, self._actor_api, actor_id, self._method_name, *args, **kwargs
+        )
         return _FlowNetMethodCallFuture(fut)
 
     def cancel(self) -> bool:

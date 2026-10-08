@@ -170,18 +170,23 @@ class CompiledPlanCache(Generic[PlanT]):
                 artifact=artifact,
                 compile_duration_ms=max(0.0, (self._clock() - started_at) * 1000.0),
             )
-        except Exception as exc:
+        except BaseException as exc:
             with self._lock:
                 self._compile_failures += 1
-                self._insert(
-                    key,
-                    _Entry(
-                        plan=None,
-                        error=f"compiled plan failed for {key[:12]}: {exc}",
-                        expires_at=self._clock() + self._negative_ttl_seconds,
-                    ),
-                )
-                self._inflight.pop(key).set()
+                try:
+                    # Interruptions must release single-flight waiters, but are
+                    # not invalid plans and must not enter the negative cache.
+                    if isinstance(exc, Exception):
+                        self._insert(
+                            key,
+                            _Entry(
+                                plan=None,
+                                error=f"compiled plan failed for {key[:12]}: {exc}",
+                                expires_at=self._clock() + self._negative_ttl_seconds,
+                            ),
+                        )
+                finally:
+                    self._inflight.pop(key).set()
             raise
 
         with self._lock:

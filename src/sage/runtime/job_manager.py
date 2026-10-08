@@ -44,6 +44,11 @@ class JobRecord:
         self.completed_at = time.time()
 
     def get_status(self) -> dict[str, Any]:
+        if self.handle is not None and not self.handle.is_running:
+            if self.handle.error is not None and self.status != "failed":
+                self.mark_failed(self.handle.error)
+            elif self.status == "running":
+                self.mark_stopped()
         return {
             "success": self.status != "failed",
             "uuid": self.uuid,
@@ -92,7 +97,7 @@ class JobManager:
 
         compiler = PipelineCompiler()
         adapter = get_local_runtime_backend()
-        compiled_graph = compiler.compile(env.pipeline, adapter)
+        compiled_graph = compiler.compile(env.pipeline, adapter, autostop=autostop)
         record = JobRecord(
             uuid=job_uuid,
             env_name=env.name,
@@ -124,11 +129,11 @@ class JobManager:
 
         if record.handle is not None and record.handle.is_running:
             record.handle.stop()
-        record.mark_stopped()
+        status = record.get_status()["status"]
         return {
             "uuid": env_uuid,
-            "status": "stopped",
-            "message": "Job stopped successfully",
+            "status": status,
+            "message": "Job stopped successfully" if status == "stopped" else f"Job is {status}",
         }
 
     def get_job_status(self, env_uuid: str) -> dict[str, Any]:
@@ -140,12 +145,6 @@ class JobManager:
                 "status": "not_found",
                 "message": f"Job with UUID {env_uuid} not found",
             }
-        if (
-            record.handle is not None
-            and not record.handle.is_running
-            and record.status == "running"
-        ):
-            record.mark_stopped()
         return record.get_status()
 
     def receive_node_stop_signal(self, env_uuid: str, node_name: str) -> dict[str, Any]:

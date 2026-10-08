@@ -157,7 +157,7 @@ class FlowNetEnvironment(BaseEnvironment):
         self.logger.info(
             f"[FlowNetEnvironment:{self.name}] Compiling pipeline with {len(self.pipeline)} stage(s)…"
         )
-        self._compiled_graph = compiler.compile(self.pipeline, adapter)
+        self._compiled_graph = compiler.compile(self.pipeline, adapter, autostop=autostop)
 
         self.logger.info(
             f"[FlowNetEnvironment:{self.name}] Submitting "

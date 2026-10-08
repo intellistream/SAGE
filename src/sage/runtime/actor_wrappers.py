@@ -42,9 +42,14 @@ class FlatMapActorWrapper:
             self._fn.insert_collector(collector)
 
         result = self._fn.execute(item)
+        outputs = []
         if result is not None:
-            return list(result)
-        return collector.get_collected_data()
+            if hasattr(result, "__iter__") and not isinstance(result, (str, bytes, dict)):
+                outputs.extend(result)
+            else:
+                outputs.append(result)
+        outputs.extend(collector.get_collected_data())
+        return outputs
 
 
 class FilterActorWrapper:
@@ -61,6 +66,11 @@ class SinkActorWrapper:
 
     def consume(self, item: Any) -> None:
         self._fn.execute(item)
+
+    def close(self) -> None:
+        close = getattr(self._fn, "close", None)
+        if callable(close):
+            close()
 
 
 class ServiceActorWrapper:

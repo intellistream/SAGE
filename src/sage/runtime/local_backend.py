@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import hashlib
-from threading import Lock
+from threading import Lock, RLock
 from typing import Any
 
 from sage.foundation import CustomLogger
@@ -113,14 +113,21 @@ class _LocalMethodCallFuture(MethodCallFuture):
 
 class _LocalMethodRef(MethodRefProtocol):
     def __init__(
-        self, target: Any, method_name: str, executor: concurrent.futures.Executor
+        self,
+        target: Any,
+        method_name: str,
+        executor: concurrent.futures.Executor,
+        *,
+        lock: Any = None,
     ) -> None:
         self._target = target
         self._method_name = method_name
         self._executor = executor
+        self._lock = lock if lock is not None else RLock()
 
     def call(self, *args: Any, **kwargs: Any) -> Any:
-        return getattr(self._target, self._method_name)(*args, **kwargs)
+        with self._lock:
+            return getattr(self._target, self._method_name)(*args, **kwargs)
 
     def async_call(self, *args: Any, **kwargs: Any) -> MethodCallFuture:
         future = self._executor.submit(self.call, *args, **kwargs)
@@ -136,10 +143,16 @@ class _LocalReplicaPoolMethodRef(MethodRefProtocol):
         targets: tuple[Any, ...],
         method_name: str,
         executor: concurrent.futures.Executor,
+        *,
+        locks: tuple[Any, ...] | None = None,
     ) -> None:
         self._targets = targets
         self._method_name = method_name
         self._executor = executor
+        replica_locks = locks if locks is not None else tuple(RLock() for _ in targets)
+        self._locks = {
+            id(target): lock for target, lock in zip(targets, replica_locks, strict=True)
+        }
         self._selection_lock = Lock()
         self._rr_cursor = 0
 
@@ -155,10 +168,16 @@ class _LocalReplicaPoolMethodRef(MethodRefProtocol):
 
     def call(self, *args: Any, **kwargs: Any) -> Any:
         target = self._select_target(*args, **kwargs)
-        return getattr(target, self._method_name)(*args, **kwargs)
+        return self._call_target(target, *args, **kwargs)
+
+    def _call_target(self, target: Any, *args: Any, **kwargs: Any) -> Any:
+        with self._locks[id(target)]:
+            return getattr(target, self._method_name)(*args, **kwargs)
 
     def async_call(self, *args: Any, **kwargs: Any) -> MethodCallFuture:
-        future = self._executor.submit(self.call, *args, **kwargs)
+        # Route in submission order, independent of executor thread scheduling.
+        target = self._select_target(*args, **kwargs)
+        future = self._executor.submit(self._call_target, target, *args, **kwargs)
         return _LocalMethodCallFuture(future)
 
     def cancel(self) -> bool:
@@ -176,11 +195,12 @@ class _LocalActorHandle(ActorHandleProtocol):
         else:
             self._targets = (target,)
         self._executor = executor
+        self._locks = tuple(RLock() for _ in self._targets)
 
     def get_method(self, name: str) -> MethodRefProtocol:
         if len(self._targets) == 1:
-            return _LocalMethodRef(self._targets[0], name, self._executor)
-        return _LocalReplicaPoolMethodRef(self._targets, name, self._executor)
+            return _LocalMethodRef(self._targets[0], name, self._executor, lock=self._locks[0])
+        return _LocalReplicaPoolMethodRef(self._targets, name, self._executor, locks=self._locks)
 
     @property
     def replica_count(self) -> int:

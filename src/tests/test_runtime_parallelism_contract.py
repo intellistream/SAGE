@@ -186,3 +186,45 @@ def test_keyed_parallel_map_keeps_stable_replica_across_runtime_environments(
     finally:
         if environment_cls is FlowNetEnvironment:
             get_runtime_backend().stop()
+
+
+@pytest.mark.parametrize("backend_kind", ["local", "flownet"])
+def test_async_round_robin_routing_follows_submission_not_worker_order(monkeypatch, backend_kind):
+    from concurrent.futures import Future
+
+    from sage.runtime.flownet_backend import _FlowNetReplicaPoolMethodRef
+    from sage.runtime.local_backend import _LocalReplicaPoolMethodRef
+
+    class ReversingExecutor:
+        def __init__(self):
+            self.pending = []
+
+        def submit(self, function, *args, **kwargs):
+            future = Future()
+            self.pending.append((future, function, args, kwargs))
+            return future
+
+        def run(self):
+            for future, function, args, kwargs in reversed(self.pending):
+                future.set_result(function(*args, **kwargs))
+
+    class Replica:
+        def __init__(self, index):
+            self.index = index
+
+        def process(self, value):
+            return value, self.index
+
+    class ActorAPI:
+        async def call_local(self, actor_id, method, value):
+            return value, int(actor_id)
+
+    executor = ReversingExecutor()
+    if backend_kind == "local":
+        method = _LocalReplicaPoolMethodRef((Replica(0), Replica(1)), "process", executor)
+    else:
+        monkeypatch.setattr("sage.runtime.flownet_backend._get_async_executor", lambda: executor)
+        method = _FlowNetReplicaPoolMethodRef(ActorAPI(), ("0", "1"), "process")
+    futures = [method.async_call(i) for i in range(4)]
+    executor.run()
+    assert [future.result() for future in futures] == [(0, 0), (1, 1), (2, 0), (3, 1)]

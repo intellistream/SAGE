@@ -1,0 +1,2 @@
+# Progress
+Read rejection-response documents, current TeX, August design notes, September conditional gate, endpoint helper, current concurrent runner and independent validator. Verified nearby primary papers online. No tests/experiments executed and no runtime, paper, submodule or existing user changes modified. Analysis ready for discussion; raw reviews would permit more precise reviewer-by-reviewer mapping but are not needed to identify current blockers.

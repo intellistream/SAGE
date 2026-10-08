@@ -90,6 +90,53 @@ git checkout main
 - `FlowNetEnvironment` 会把相同的 `parallelism` hint 编译到 FlowNet actor replica 配置中；本地与 FlowNet
   的用户侧并行语义保持一致。
 
+### Pipeline compilation and plan reuse
+
+`LocalEnvironment.submit()` and `FlowNetEnvironment.submit()` automatically use the process-wide
+`PipelineCompiler` plan cache. Its defaults are 128 entries, a 900-second TTL, LRU eviction, and
+single-flight compilation for concurrent requests with the same structure.
+
+The cached artifact contains only transformation kinds, replica counts, indexed edges, source
+indices, and a validated linear execution order. User function classes, constructor arguments,
+source data, environment names, services, actor handles, and execution state remain outside the
+cache. Every `compile()` binds a fresh `CompiledActorGraph`; the graph is single-use. Submit the
+environment again, or compile again, to create a new run. Caller-owned mutable arguments and
+iterators are not copied or rewound.
+
+Changing topology, transformation kinds, parallelism, or the presence of registered services
+selects a different plan. Changing user functions or their arguments reuses structural analysis
+and binds the new functions: this cache does not compile user code. Backend selection and
+batch/streaming mode are also binding decisions. Future optimizations that specialize by schema,
+function implementation, or backend must extend the fingerprint and compiler version accordingly.
+
+Advanced callers can inject a cache or bypass reuse:
+
+```python
+from sage.runtime import CompiledPlanCache, PipelineCompiler
+
+cache = CompiledPlanCache(max_entries=64, ttl_seconds=300)
+compiler = PipelineCompiler(plan_cache=cache)
+graph = compiler.compile(env.pipeline, adapter, autostop=True)
+graph.submit(autostop=True)
+print(cache.stats())
+
+uncached_compiler = PipelineCompiler(use_cache=False)
+```
+
+`PipelineCompiler().plan_cache.stats()` inspects the shared default cache; `clear()` clears its
+stored entries. `compile_duration_ms` measures structural compilation only, excluding fingerprint
+construction, cache waiting, runtime binding, and execution. Cache hits do not eliminate actor
+creation or guarantee an end-to-end speedup for small pipelines.
+
+Linear batch execution is selected only for a single batch source connected through an actual
+chain of supported operators. Branching, keyed, multi-input, service-backed, and streaming
+pipelines use graph dispatch. Passing `autostop=False` to `compile()` avoids creating unused batch
+actors. Streaming handles expose `error`; local job status reports failed streaming execution.
+Sink close hooks run once per replica when a run finishes, including empty input and failures.
+Local actor calls are serialized within each replica, matching FlowNet's state isolation, while
+different replicas can execute concurrently. Round-robin assignment follows submission order;
+concurrent execution does not imply a global completion order.
+
 ### Initial Setup
 
 1. Clone and switch to canonical branch

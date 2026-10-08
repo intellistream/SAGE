@@ -22,6 +22,7 @@ from .actor_wrappers import (
     SinkActorWrapper,
     SourceActorWrapper,
 )
+from .compiled_plan_cache import CompiledPlanCache, CompiledWorkflowPlan, PlanFingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,10 @@ def _transformation_name(t: Any) -> str:
 
 
 def _classify(t: Any) -> tuple[type, str, str]:
-    name = _transformation_name(t)
+    return _classify_kind(_transformation_name(t))
+
+
+def _classify_kind(name: str) -> tuple[type, str, str]:
     if name == "SourceTransformation":
         return (SourceActorWrapper, "source", "run")
     if name == "BatchTransformation":
@@ -54,13 +58,24 @@ def _classify(t: Any) -> tuple[type, str, str]:
     return (ServiceActorWrapper, _OP_MAP, "process")
 
 
-def _uses_legacy_linear_wrapper(t: Any) -> bool:
-    return _transformation_name(t) in {
-        "MapTransformation",
-        "FlatMapTransformation",
-        "FilterTransformation",
-        "SinkTransformation",
-    }
+@dataclass(frozen=True, slots=True)
+class _PipelineStructure:
+    """Only execution structure: never user functions, names, arguments or environments."""
+
+    kinds: tuple[str, ...]
+    parallelism: tuple[int, ...]
+    edges: tuple[tuple[int, int, int], ...]
+    has_services: bool
+
+
+@dataclass(frozen=True, slots=True)
+class _PipelinePlan:
+    structure: _PipelineStructure
+    source_indices: tuple[int, ...]
+    linear_order: tuple[int, ...]
+
+
+_DEFAULT_PLAN_CACHE: CompiledPlanCache[_PipelinePlan] = CompiledPlanCache()
 
 
 def _replica_count_for(transformation: Any) -> int:
@@ -332,6 +347,14 @@ class _StreamingFlowHandle:
         else:
             self._threads = [source_threads]
         self._stop_event = stop_event
+        self.error: str | None = None
+        self._error_lock = threading.Lock()
+
+    def record_error(self, exc: BaseException) -> None:
+        with self._error_lock:
+            if self.error is None:
+                self.error = f"{type(exc).__name__}: {exc}"
+        self._stop_event.set()
 
     def stop(self, timeout: float = 30.0) -> None:
         self._stop_event.set()
@@ -359,6 +382,7 @@ class CompiledActorGraph:
     source_transformations: list[Any] = field(default_factory=list)
     pipeline: list[Any] = field(default_factory=list)
     downstream_edges: dict[str, list[tuple[Any, int]]] = field(default_factory=dict)
+    compiled_plan: CompiledWorkflowPlan[_PipelinePlan] | None = None
     _instances: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
     _dispatch_lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
     _service_runtime: _LightweightServiceRuntime | None = field(
@@ -367,6 +391,9 @@ class CompiledActorGraph:
     _finalized: bool = field(default=False, init=False, repr=False)
     _closed_sources: set[str] = field(default_factory=set, init=False, repr=False)
     _replica_round_robin: dict[str, int] = field(default_factory=dict, init=False, repr=False)
+    _lifecycle_lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
+    _remaining_sources: int = field(default=0, init=False, repr=False)
+    _submitted: bool = field(default=False, init=False, repr=False)
 
     def _start_worker_runtime(self) -> None:
         """Legacy compatibility hook retained for tests guarding the actor-stage path."""
@@ -393,15 +420,19 @@ class CompiledActorGraph:
             return False
         return self._pump_stream_sources_once(self._instances)
 
-    def _build_instances(self) -> dict[str, Any]:
+    def _build_instances(self, *, sources_only: bool = False) -> dict[str, Any]:
         if self._instances:
             return self._instances
 
         instances: dict[str, Any] = {}
+        self._instances = instances
         service_runtime = self._get_service_runtime()
         for transformation in self.pipeline:
+            if sources_only and transformation not in self.source_transformations:
+                continue
             replica_count = _replica_count_for(transformation)
             replica_group: list[Any] = []
+            instances[transformation.basename] = replica_group
             for replica_index in range(replica_count):
                 function = transformation.function_class(
                     *transformation.function_args,
@@ -417,8 +448,6 @@ class CompiledActorGraph:
                     parallelism=replica_count,
                 )
                 replica_group.append(function)
-            instances[transformation.basename] = replica_group
-        self._instances = instances
         return instances
 
     def _replicas_for(self, transformation: Any, instances: dict[str, Any]) -> list[Any]:
@@ -625,7 +654,7 @@ class CompiledActorGraph:
         return progressed
 
     def _collect_source_items(self) -> list[tuple[Any, Any]]:
-        instances = self._build_instances()
+        instances = self._build_instances(sources_only=True)
         active_sources = list(self.source_transformations)
         items: list[tuple[Any, Any]] = []
 
@@ -650,74 +679,108 @@ class CompiledActorGraph:
         return items
 
     def _finalize_functions(self, instances: dict[str, Any]) -> None:
-        if self._finalized:
-            return
-        self._finalized = True
+        with self._lifecycle_lock:
+            if self._finalized:
+                return
+            self._finalized = True
 
+        errors: list[Exception] = []
         for transformation in self.pipeline:
-            if type(transformation).__name__ != "SinkTransformation":
+            if (
+                type(transformation).__name__ != "SinkTransformation"
+                or transformation.basename not in instances
+            ):
                 continue
             for function in self._replicas_for(transformation, instances):
                 close = getattr(function, "close", None)
                 if callable(close):
-                    close()
-
+                    try:
+                        close()
+                    except Exception as exc:
+                        errors.append(exc)
+        for (op_type, _), handle in zip(self.stage_ops, self.actor_handles, strict=True):
+            try:
+                if op_type == _OP_SINK:
+                    close = handle.get_method("close")
+                    for _ in range(getattr(handle, "replica_count", 1)):
+                        try:
+                            close.call()
+                        except Exception as exc:
+                            errors.append(exc)
+            except Exception as exc:
+                errors.append(exc)
+            finally:
+                handle.cancel()
         if self._service_runtime is not None:
-            self._service_runtime.close()
+            try:
+                self._service_runtime.close()
+            except Exception as exc:
+                errors.append(exc)
+        if errors:
+            raise errors[0]
 
     def submit(self, autostop: bool = False) -> Any:
+        with self._lifecycle_lock:
+            if self._submitted:
+                raise RuntimeError(
+                    "CompiledActorGraph is single-use; compile again to bind a new run"
+                )
+            self._submitted = True
+        try:
+            result = self._submit_batch() if autostop else self._submit_streaming()
+        except BaseException:
+            try:
+                self._finalize_functions(self._instances)
+            except Exception:
+                logger.exception("Pipeline cleanup failed after execution error")
+            raise
         if autostop:
-            return self._submit_batch()
-        return self._submit_streaming()
+            self._finalize_functions(self._instances)
+        return result
 
     def _execute_chain(self, items: list[Any], ops: list[tuple[str, Any]]) -> list[Any]:
-        if not ops or not items:
-            return items
+        for op_type, method_ref in ops:
+            if not items:
+                break
+            if op_type == _OP_SINK:
+                for item in items:
+                    method_ref.call(item)
+                return []
 
-        op_type, method_ref = ops[0]
-        remaining = ops[1:]
-
-        if op_type == _OP_SINK:
-            for item in items:
-                method_ref.call(item)
-            return []
-
-        if op_type == _OP_FLATMAP:
-            next_items: list[Any] = []
-            futures = [method_ref.async_call(item) for item in items]
+            futures = []
+            results = []
+            failure: BaseException | None = None
+            try:
+                for item in items:
+                    futures.append(method_ref.async_call(item))
+            except BaseException as exc:
+                failure = exc
+            # Drain every submitted call before closing actors on failure.
             for future in futures:
-                result = future.result()
-                if result is None:
-                    continue
-                if hasattr(result, "__iter__") and not isinstance(result, (str, bytes)):
-                    next_items.extend(result)
-                else:
-                    next_items.append(result)
-            return self._execute_chain(next_items, remaining)
+                try:
+                    results.append(future.result())
+                except BaseException as exc:
+                    if failure is None:
+                        failure = exc
+            if failure is not None:
+                raise failure
 
-        if op_type == _OP_FILTER:
-            futures = [method_ref.async_call(item) for item in items]
-            next_items = [
-                item for item, future in zip(items, futures, strict=False) if future.result()
-            ]
-            return self._execute_chain(next_items, remaining)
-
-        futures = [method_ref.async_call(item) for item in items]
-        next_items = [future.result() for future in futures]
-        return self._execute_chain(next_items, remaining)
+            if op_type == _OP_FLATMAP:
+                items = [
+                    item
+                    for result in results
+                    for item in self._normalize_outputs(result, flatten=True)
+                ]
+            elif op_type == _OP_FILTER:
+                items = [item for item, accepted in zip(items, results, strict=True) if accepted]
+            else:
+                items = [result for result in results if result is not None]
+        return items
 
     def _can_execute_linear_actor_batch(self) -> bool:
-        if not self.stage_ops or len(self.source_transformations) != 1:
-            return False
-
-        linear_ops = {
-            "BatchTransformation",
-            "MapTransformation",
-            "FlatMapTransformation",
-            "FilterTransformation",
-            "SinkTransformation",
-        }
-        return all(type(transformation).__name__ in linear_ops for transformation in self.pipeline)
+        return bool(
+            self.stage_ops and self.compiled_plan and self.compiled_plan.artifact.linear_order
+        )
 
     def _submit_linear_actor_batch(self) -> None:
         source_items = [item for _, item in self._collect_source_items()]
@@ -789,34 +852,43 @@ class CompiledActorGraph:
             processed_items,
             len(self.source_transformations),
         )
-        self._finalize_functions(instances)
         return None
 
     def _submit_streaming(self) -> _StreamingFlowHandle:
         stop_event = threading.Event()
+        # compile(..., autostop=False) avoids these actors. Direct callers may
+        # leave the execution mode undecided until submit().
+        for handle in self.actor_handles:
+            handle.cancel()
+        self.actor_handles.clear()
+        self.stage_ops.clear()
         instances = self._build_instances()
         source_threads: list[threading.Thread] = []
+        handle = _StreamingFlowHandle(source_threads, stop_event=stop_event)
+        self._remaining_sources = len(self.source_transformations)
 
         for transformation in self.source_transformations:
             source_thread = threading.Thread(
                 target=self._run_source_thread,
-                args=(transformation, instances, stop_event),
+                args=(transformation, instances, handle),
                 daemon=True,
                 name=f"sage-source-{transformation.basename}",
             )
-            source_thread.start()
             source_threads.append(source_thread)
-
-        return _StreamingFlowHandle(source_threads, stop_event=stop_event)
+        for source_thread in source_threads:
+            source_thread.start()
+        if not source_threads:
+            self._finalize_functions(instances)
+        return handle
 
     def _run_source_thread(
         self,
         transformation: Any,
         instances: dict[str, Any],
-        stop_event: threading.Event,
+        handle: _StreamingFlowHandle,
     ) -> None:
         try:
-            while not stop_event.is_set():
+            while not handle._stop_event.is_set():
                 status, item = self._poll_source(transformation, instances)
                 if status == "closed":
                     break
@@ -825,7 +897,8 @@ class CompiledActorGraph:
                     continue
                 with self._dispatch_lock:
                     self._dispatch_from_source(transformation, item, instances)
-        except Exception:
+        except BaseException as exc:
+            handle.record_error(exc)
             logger.exception(
                 "Source function '%s' raised an exception in streaming mode.",
                 transformation.function_class.__name__,
@@ -835,78 +908,175 @@ class CompiledActorGraph:
                 "Source thread for '%s' exiting.",
                 transformation.function_class.__name__,
             )
-            if not any(
-                thread.is_alive()
-                for thread in threading.enumerate()
-                if thread.name.startswith("sage-source-")
-            ):
-                self._finalize_functions(instances)
+            with self._lifecycle_lock:
+                self._remaining_sources -= 1
+                last_source = self._remaining_sources == 0
+            if last_source:
+                try:
+                    self._finalize_functions(instances)
+                except BaseException as exc:
+                    handle.record_error(exc)
+                    logger.exception("Streaming pipeline finalization failed")
 
 
 class PipelineCompiler:
-    def compile(self, pipeline: list[Any], adapter: Any) -> CompiledActorGraph:
+    """Cache immutable topology plans and bind fresh execution state on every compile.
+
+    Functions and constructor arguments are opaque runtime bindings, not compiled
+    code. Changing them reuses the topology but never reuses a function instance.
+    The default cache is process-wide; inject a cache to control TTL/capacity or
+    set use_cache=False to bypass lookup. No actor creation happens inside the
+    single-flight compiler, so runtime failures cannot poison the plan cache.
+    """
+
+    def __init__(
+        self,
+        plan_cache: CompiledPlanCache[_PipelinePlan] | None = None,
+        *,
+        use_cache: bool = True,
+    ) -> None:
+        self.plan_cache = plan_cache if plan_cache is not None else _DEFAULT_PLAN_CACHE
+        self.use_cache = use_cache
+
+    @staticmethod
+    def _snapshot(pipeline: list[Any]) -> _PipelineStructure:
         if not pipeline:
             raise ValueError(
                 "PipelineCompiler.compile() received an empty pipeline. "
-                "Build a pipeline with env.from_source(...).map(...).sink(...) before calling env.submit()."
+                "Build a pipeline before calling env.submit()."
             )
-
-        source_trans: Any | None = None
-        source_transforms: list[Any] = []
-        proc_transformations: list[Any] = []
-
-        for t in pipeline:
-            _, op_type, _ = _classify(t)
-            if op_type == "source":
-                source_transforms.append(t)
-                if source_trans is None:
-                    source_trans = t
-            else:
-                proc_transformations.append(t)
-
-        actor_handles: list[Any] = []
-        stage_ops: list[tuple[str, Any]] = []
-        downstream_edges: dict[str, list[tuple[Any, int]]] = {t.basename: [] for t in pipeline}
-
-        for downstream in pipeline:
+        indices = {id(t): index for index, t in enumerate(pipeline)}
+        names = [t.basename for t in pipeline]
+        if len(indices) != len(pipeline) or len(set(names)) != len(names):
+            raise ValueError("Pipeline transformations must have unique identities and names")
+        edges = []
+        for index, downstream in enumerate(pipeline):
             for upstream in getattr(downstream, "upstreams", []):
+                if id(upstream) not in indices:
+                    raise ValueError("Pipeline contains an upstream from outside this environment")
                 input_index = upstream.downstreams.get(downstream.basename, 0)
-                downstream_edges.setdefault(upstream.basename, []).append((downstream, input_index))
-
-        for t in proc_transformations:
-            wrapper_cls, op_type, method_name = _classify(t)
-            if not _uses_legacy_linear_wrapper(t):
-                logger.debug(
-                    "Compiled DAG-native stage %s [%s] without legacy linear wrapper.",
-                    t.basename,
-                    _transformation_name(t),
-                )
-                continue
-            handle = adapter.create(
-                wrapper_cls,
-                t.function_class,
-                *t.function_args,
-                actor_config={"parallelism": _replica_count_for(t)},
-                **t.function_kwargs,
-            )
-            actor_handles.append(handle)
-            method_ref = handle.get_method(method_name)
-            stage_ops.append((op_type, method_ref))
-
-            logger.debug(
-                "Compiled stage %s → %s.%s() [op=%s]",
-                t.basename,
-                wrapper_cls.__name__,
-                method_name,
-                op_type,
-            )
-
-        return CompiledActorGraph(
-            stage_ops=stage_ops,
-            source_transformation=source_trans,
-            actor_handles=actor_handles,
-            adapter=adapter,
-            source_transformations=source_transforms,
-            pipeline=list(pipeline),
-            downstream_edges=downstream_edges,
+                edges.append((indices[id(upstream)], index, input_index))
+        return _PipelineStructure(
+            kinds=tuple(_transformation_name(t) for t in pipeline),
+            parallelism=tuple(_replica_count_for(t) for t in pipeline),
+            edges=tuple(edges),
+            has_services=bool(getattr(getattr(pipeline[0], "env", None), "service_factories", {})),
         )
+
+    @staticmethod
+    def _compile_structure(structure: _PipelineStructure) -> _PipelinePlan:
+        sources = tuple(
+            i for i, kind in enumerate(structure.kinds) if _classify_kind(kind)[1] == "source"
+        )
+        linear_order: list[int] = []
+        allowed = {
+            "BatchTransformation",
+            "MapTransformation",
+            "FlatMapTransformation",
+            "FilterTransformation",
+            "SinkTransformation",
+        }
+        if (
+            len(sources) == 1
+            and not structure.has_services
+            and all(kind in allowed for kind in structure.kinds)
+            and len(structure.edges) == len(structure.kinds) - 1
+        ):
+            outgoing: dict[int, list[tuple[int, int]]] = {}
+            for upstream, downstream, port in structure.edges:
+                outgoing.setdefault(upstream, []).append((downstream, port))
+            current = sources[0]
+            visited: set[int] = set()
+            while current not in visited:
+                visited.add(current)
+                linear_order.append(current)
+                successors = outgoing.get(current, [])
+                if not successors:
+                    break
+                if (
+                    len(successors) != 1
+                    or successors[0][1] != 0
+                    or structure.kinds[current] == "SinkTransformation"
+                ):
+                    break
+                current = successors[0][0]
+            if len(visited) != len(structure.kinds):
+                linear_order = []
+        return _PipelinePlan(structure, sources, tuple(linear_order))
+
+    def compile(
+        self, pipeline: list[Any], adapter: Any, *, autostop: bool | None = None
+    ) -> CompiledActorGraph:
+        pipeline = list(pipeline)
+        structure = self._snapshot(pipeline)
+        fingerprint = PlanFingerprint.build(
+            operator_dag={
+                "kinds": structure.kinds,
+                "parallelism": structure.parallelism,
+                "edges": structure.edges,
+            },
+            schema=None,
+            policy_version="pipeline-routing-v1",
+            capabilities={"services": structure.has_services},
+            retrieval_contract=None,
+            resource_class="backend-neutral",
+            compiler_version="sage-pipeline-topology-v1",
+        )
+        if self.use_cache:
+            plan = self.plan_cache.get_or_compile(
+                fingerprint, lambda: self._compile_structure(structure)
+            )
+        else:
+            started_at = time.monotonic()
+            artifact = self._compile_structure(structure)
+            plan = CompiledWorkflowPlan(
+                fingerprint, artifact, (time.monotonic() - started_at) * 1000.0
+            )
+        return self._bind(plan, pipeline, adapter, autostop=autostop)
+
+    @staticmethod
+    def _bind(
+        plan: CompiledWorkflowPlan[_PipelinePlan],
+        pipeline: list[Any],
+        adapter: Any,
+        *,
+        autostop: bool | None,
+    ) -> CompiledActorGraph:
+        artifact = plan.artifact
+        downstream_edges: dict[str, list[tuple[Any, int]]] = {t.basename: [] for t in pipeline}
+        for upstream, downstream, port in artifact.structure.edges:
+            downstream_edges[pipeline[upstream].basename].append((pipeline[downstream], port))
+        graph = CompiledActorGraph(
+            stage_ops=[],
+            source_transformation=(
+                pipeline[artifact.source_indices[0]] if artifact.source_indices else None
+            ),
+            adapter=adapter,
+            source_transformations=[pipeline[i] for i in artifact.source_indices],
+            pipeline=pipeline,
+            downstream_edges=downstream_edges,
+            compiled_plan=plan,
+        )
+        # Graph and service execution bind their own contexts. Do not construct
+        # unused actor replicas for those paths or for known streaming jobs.
+        if artifact.linear_order and autostop is not False:
+            try:
+                for index in artifact.linear_order[1:]:
+                    t = pipeline[index]
+                    wrapper_cls, op_type, method_name = _classify_kind(
+                        artifact.structure.kinds[index]
+                    )
+                    handle = adapter.create(
+                        wrapper_cls,
+                        t.function_class,
+                        *t.function_args,
+                        actor_config={"parallelism": artifact.structure.parallelism[index]},
+                        **t.function_kwargs,
+                    )
+                    graph.actor_handles.append(handle)
+                    graph.stage_ops.append((op_type, handle.get_method(method_name)))
+            except BaseException:
+                for handle in graph.actor_handles:
+                    handle.cancel()
+                raise
+        return graph

@@ -16,6 +16,9 @@ Source: `https://pypi.org/pypi/isage/json` (checked on 2026-02-14, UTC).
 
 ### Changed
 
+- Connected `PipelineCompiler`, `LocalEnvironment`, and `FlowNetEnvironment` to a shared bounded topology-plan cache while binding fresh functions, inputs, actors, and service state for each run; added injectable caches, bypass, and single-use execution graphs.
+- Corrected linear batch selection to follow graph edges, removed duplicate or unused downstream construction, aligned flatmap/None output semantics, made asynchronous replica routing follow submission order, and serialized local calls within each stateful replica while preserving concurrency across replicas.
+- Finalize batch and streaming sinks on completion, empty input, and failure; drain in-flight actor calls before cleanup and expose streaming failures in local job status. Interrupted plan compilation now releases single-flight waiters without caching the interruption.
 - Added a typed, versioned compiled-workflow plan cache with bounded LRU/TTL, failure recovery, single-flight compilation, metrics, and real `FlowDeclaration.compile_reusable()` / `bind_reusable()` integration that keeps request IO outside static plans.
 - Promoted the main repository to the `0.3` product line after the stream/runtime/serving consolidation.
 - Reworked the owned `sage` CLI surface around the in-tree core boundary: `version`, `status`, `doctor`, `verify`, `runtime nodes`, `serve gateway`, `chat`, and `index ingest`.
