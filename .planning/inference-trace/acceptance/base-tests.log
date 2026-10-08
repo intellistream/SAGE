@@ -1,0 +1,51 @@
+..s..................................................................... [ 50%]
+..........................................F............................  [100%]
+=================================== FAILURES ===================================
+_______ test_local_environment_round_robins_unkeyed_parallel_map_locally _______
+
+    def test_local_environment_round_robins_unkeyed_parallel_map_locally() -> None:
+        CollectReplicaAssignments.collected = []
+        JobManager().cleanup_all_jobs()
+    
+        env = LocalEnvironment(name="local-parallel-map-round-robin")
+        env.from_batch([0, 1, 2, 3]).map(RecordReplicaIndex, parallelism=2).sink(
+            CollectReplicaAssignments
+        )
+    
+        env_uuid = env.submit(autostop=True)
+        status = env.jobmanager.get_job_status(env_uuid)
+    
+>       assert CollectReplicaAssignments.collected == [
+            {"value": 0, "replica": 0},
+            {"value": 1, "replica": 1},
+            {"value": 2, "replica": 0},
+            {"value": 3, "replica": 1},
+        ]
+E       AssertionError: assert [{'replica': ..., 'value': 3}] == [{'replica': ..., 'value': 3}]
+E         
+E         At index 1 diff: {'value': 1, 'replica': 0} != {'value': 1, 'replica': 1}
+E         Use -v to get more diff
+
+src/tests/test_runtime_local_consolidation.py:294: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Batch collection source created with 4 items
+Processing batch of 4 item(s) through actor stage pipeline from 1 source(s).
+=============================== warnings summary ===============================
+../miniconda3/lib/python3.13/site-packages/fastapi/testclient.py:1
+  /home/shuhao/miniconda3/lib/python3.13/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+src/tests/test_flownet_connector_checkpoint_fault_tolerance.py::test_start_source_auto_injects_checkpoint_runtime_options
+src/tests/test_flownet_connector_checkpoint_fault_tolerance.py::test_source_failure_auto_restart_reuses_checkpoint_resume_offset
+src/tests/test_flownet_connector_checkpoint_fault_tolerance.py::test_source_failure_auto_restart_reuses_checkpoint_resume_offset
+src/tests/test_flownet_connector_checkpoint_fault_tolerance.py::test_source_failure_restart_policy_does_not_restore_checkpoint_state
+src/tests/test_flownet_connector_checkpoint_fault_tolerance.py::test_source_failure_restart_policy_does_not_restore_checkpoint_state
+src/tests/test_flownet_connector_checkpoint_fault_tolerance.py::test_source_checkpoint_restore_requires_checkpoint_capable_declaration
+  /home/shuhao/SAGE-trace-base/src/sage/runtime/flownet/client/runtime_client.py:2259: DeprecationWarning: source_start_without_egress_binding_deprecated: provide out_topic or publish_targets.
+    instance = self.instantiate(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] src/tests/test_cli_main.py:40: CI-only sagellm detection check
+FAILED src/tests/test_runtime_local_consolidation.py::test_local_environment_round_robins_unkeyed_parallel_map_locally
+1 failed, 141 passed, 1 skipped, 7 warnings in 4.60s

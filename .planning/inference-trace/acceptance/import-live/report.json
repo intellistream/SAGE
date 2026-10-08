@@ -1,0 +1,144 @@
+{
+  "fixture": "/home/shuhao/SAGE-trace/src/tests/fixtures/inference_workflow_v1.ndjson",
+  "sha256": "8175cb564eb651432576c46f52b671445e476ffc462d4ce669eb467f719b07ee",
+  "binary": "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+  "runs": {
+    "original": {
+      "command": [
+        "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+        "import-inference",
+        ".planning/inference-trace/acceptance/import-live/original.ndjson",
+        "--output",
+        ".planning/inference-trace/acceptance/import-live/original.db",
+        "--html-out",
+        ".planning/inference-trace/acceptance/import-live/original.html",
+        "--perfetto-out",
+        ".planning/inference-trace/acceptance/import-live/original.perfetto.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "inference snapshot: inserted=82 duplicates=0 discarded_attributes=0 pending_tail_bytes=0"
+    },
+    "original_repeat": {
+      "command": [
+        "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+        "import-inference",
+        ".planning/inference-trace/acceptance/import-live/original.ndjson",
+        "--output",
+        ".planning/inference-trace/acceptance/import-live/original.db",
+        "--html-out",
+        ".planning/inference-trace/acceptance/import-live/original.html",
+        "--perfetto-out",
+        ".planning/inference-trace/acceptance/import-live/original.perfetto.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "inference snapshot: inserted=0 duplicates=82 discarded_attributes=0 pending_tail_bytes=0"
+    },
+    "reversed": {
+      "command": [
+        "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+        "import-inference",
+        ".planning/inference-trace/acceptance/import-live/reversed.ndjson",
+        "--output",
+        ".planning/inference-trace/acceptance/import-live/reversed.db",
+        "--html-out",
+        ".planning/inference-trace/acceptance/import-live/reversed.html",
+        "--perfetto-out",
+        ".planning/inference-trace/acceptance/import-live/reversed.perfetto.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "inference snapshot: inserted=82 duplicates=0 discarded_attributes=0 pending_tail_bytes=0"
+    },
+    "incomplete": {
+      "command": [
+        "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+        "import-inference",
+        ".planning/inference-trace/acceptance/import-live/incomplete.ndjson",
+        "--output",
+        ".planning/inference-trace/acceptance/import-live/incomplete.db",
+        "--html-out",
+        ".planning/inference-trace/acceptance/import-live/incomplete.html",
+        "--perfetto-out",
+        ".planning/inference-trace/acceptance/import-live/incomplete.perfetto.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "inference snapshot: inserted=81 duplicates=0 discarded_attributes=0 pending_tail_bytes=19"
+    },
+    "cross-clock": {
+      "command": [
+        "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+        "import-inference",
+        ".planning/inference-trace/acceptance/import-live/cross-clock.ndjson",
+        "--output",
+        ".planning/inference-trace/acceptance/import-live/cross-clock.db",
+        "--html-out",
+        ".planning/inference-trace/acceptance/import-live/cross-clock.html",
+        "--perfetto-out",
+        ".planning/inference-trace/acceptance/import-live/cross-clock.perfetto.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "inference snapshot: inserted=82 duplicates=0 discarded_attributes=0 pending_tail_bytes=0"
+    },
+    "future-version": {
+      "command": [
+        "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+        "import-inference",
+        ".planning/inference-trace/acceptance/import-live/future-version.ndjson",
+        "--output",
+        ".planning/inference-trace/acceptance/import-live/future-version.db",
+        "--html-out",
+        ".planning/inference-trace/acceptance/import-live/future-version.html",
+        "--perfetto-out",
+        ".planning/inference-trace/acceptance/import-live/future-version.perfetto.json"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: inference line 1: unsupported inference wire version\nusage: /home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom <profile.db-or-profile-dir> [--threads N] [--output ANALYSIS.db] [--perfetto-out TIMELINE.json[.gz]] [--loop-tree-out PATH|-] [--timings]\n\nWrites a self-contained queryable database timeline under a neighboring traceloom/ directory by default.\nQuery its traceloom_projection_recipe catalog to select a scope and compose analytical projections.\nUse traceloom_analysis_surface to discover the underlying hierarchy, cost, replay, and evidence relations.\nUse --loop-tree-out only when a Markdown projection is needed for a human reader. It defaults to a compact grammar summary; select the exact expanded tree with --loop-tree-view expanded.\nExport an existing queryable database timeline with '/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom export-perfetto analysis.db [--output timeline.json.gz]'.\nAdd one '--distributed-rank RANK=TIMELINE.db' per rank to align compressed TraceLoom event lanes at each rank's first event.\nFor collective comparison, explicitly opt into an auditable end-affine display with '--distributed-clock-model MODELS.jsonl'.\nImport observable inference NDJSON with '/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom import-inference events.ndjson --html-out view.html'.\nUse 'import-inference --help' for live snapshots and inference exports.\nUse --help-advanced for compatibility and debug options."
+    }
+  },
+  "follow": {
+    "commands": [
+      [
+        "/home/shuhao/miniconda3/bin/python",
+        "-m",
+        "sage.cli.main",
+        "trace",
+        "export",
+        "--source",
+        ".planning/inference-trace/acceptance/import-live/live-spool",
+        "--output",
+        ".planning/inference-trace/acceptance/import-live/live-snapshot.ndjson",
+        "--follow"
+      ],
+      [
+        "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+        "import-inference",
+        ".planning/inference-trace/acceptance/import-live/live-snapshot.ndjson",
+        "--output",
+        ".planning/inference-trace/acceptance/import-live/live.db",
+        "--html-out",
+        ".planning/inference-trace/acceptance/import-live/live.html",
+        "--follow"
+      ]
+    ],
+    "first_events": 41,
+    "final_events": 82,
+    "html_refresh": true
+  },
+  "checks": [
+    "v1",
+    "idempotent",
+    "reversed",
+    "incomplete",
+    "partial-tail",
+    "retry-path-exact",
+    "cross-clock-no-sum",
+    "future-version-rejected",
+    "privacy-files-html-perfetto",
+    "sage-atomic-snapshot-to-traceloom-live-refresh"
+  ]
+}

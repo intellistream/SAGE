@@ -1,0 +1,111 @@
+OpenAI Codex v0.153.4
+--------
+workdir: /home/shuhao/SAGE-trace
+model: Qwen/Qwen3.8-27B
+provider: sage_qwen38
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: medium
+reasoning summaries: none
+session id: 01a083fc-2a93-71b1-844d-1d7b927ba040
+--------
+user
+Bounded read-only architecture review. Use only this evidence, no tools or file reads. Give a concise final answer now (under 800 words), identifying missing risks and a test matrix. No code edits or credentials. This follows a Qwen review that read 28 batches of code without concluding; this retry is intentionally small.
+
+Verified SAGE base dd8658b code:
+- LocalEnvironment.submit delegates JobManager.submit_job, which compiles and calls CompiledActorGraph.submit; FlowNetEnvironment uses the same compiler directly.
+- CompiledActorGraph.submit(True) runs batch synchronously. False creates one threading.Thread per source and returns a handle; root completion cannot be inferred from submit return. _run_source_thread catches exceptions and logs them; finally checks globally enumerated source threads (a pre-existing lifecycle issue, out of this trace-only scope).
+- Generic DAG path: _dispatch_from_source creates a deque[(transformation,Packet)]; _process_packet directly invokes function.execute, with key/input index handling for join/comap. User payload is arbitrary and may contain credentials or reasoning.
+- Linear batch path: _execute_chain async_calls map/filter/flatmap actor method refs and waits future.result; sink uses synchronous calls. local_backend and flownet_backend submit self.call to ThreadPoolExecutor without copy_context. Actor wrappers directly invoke user functions.
+- FlowNet ActorInvoker._call_sync_target executes sync target through run_in_executor_with_context. A record.lock guards normal actors; queue timing before executor submit includes waiting for this lock, execution starts after acquiring it.
+- WorkflowIntegrationRegistry import_workflow/submit_job/poll_status/collect_result dispatch adapters and validate responses. submit returns accepted job reference; synchronous method span is not external job completion. RAG/tool implementations are optional external packages.
+- Chat _request_openai_chat sends OpenAI-compatible urllib Request including Authorization and prompt messages; SSE prints only delta.content, ignores reasoning. Usage comes from response. Direct sagellm is a subprocess, inner spans unavailable unless it participates.
+- TraceLoom contract integer schema_version=1 NDJSON: IDs, parent_span_id, producer/clock_id, sequence, wall_time_ns and monotonic_ns, start/end/event/trace_end/metrics; scalar metadata allowlist only. Parentage != dependencies; links only completion-before-start. Longest observed dependency path must be marked partial, not global critical path. Whole-trace sampling, bounded async spool, failure-isolation, no raw content/keys/errors by default. Public summaries need explicit redactor and opt-in. Endpoint and input/output digest references can be opaque evidence_refs. Request context across remote processes needs an explicit validated carrier; no implicit assumption ContextVars propagate over RPC.
+
+codex
+
+
+Scope: read-only, evidence-only; no tools/files used. Below are the risks the 28-batch pass left unpinned, then a test matrix to close them.
+
+**Missing risks**
+
+1. **Completion-contract ambiguity (highest).** Two independent paths conflate "submit returned" with "job done": `CompiledActorGraph.submit(False)` returns a handle while sources still run, and `_run_source_thread` *catches* exceptions and only logs them; `WorkflowIntegrationRegistry.submit` returns an *accepted reference*, not completion. So (a) a raised error yields silent partial success, and (b) no single status distinguishes accepted / span-completed / job-completed / failed. Same root cause in three places — the main thing to pin down.
+
+2. **Context loss at the local thread boundary.** `local_backend`/`flownet_backend` submit `self.call` to a `ThreadPoolExecutor` **without `copy_context`**, so `ContextVar`s (span id, tenant, auth) are dropped on the linear batch path. FlowNet's `ActorInvoker._call_sync_target` uses `run_in_executor_with_context` — the paths are inconsistent, and the contract's "explicit validated carrier" is honored on only one. The linear path silently produces disconnected / mis-parented spans.
+
+3. **Cross-job lifecycle coupling.** `_run_source_thread`'s `finally` enumerates *globally* enumerated source threads. Under concurrent submits this can see another job's threads → premature/incorrect completion. Marked out-of-scope, but any multi-job use inherits it.
+
+4. **Raw-content leak on the DAG path.** `_process_packet` handles arbitrary payloads (possibly creds/reasoning). The "no raw content/keys/errors by default" guarantee lives in the TraceLoom writer, but there's no redaction boundary *at the deque/packet path* before any span event is built.
+
+5. **Cross-clock invalidity.** `producer/clock_id` + dual wall/monotonic timestamps are present, but there's no rule/flag preventing wall_time subtraction across divergent producers. Naive analysis yields bogus durations/orderings.
+
+6. **Silent partiality.** Bounded spool + whole-trace sampling + failure isolation all produce partial traces, yet there's no `events_dropped`/completeness flag, and "longest dependency path" must be marked *partial*, not global critical path. Without a flag an incomplete trace reads as complete.
+
+7. **Opaque subprocess boundary.** `sagellm` is a subprocess; inner spans are unavailable unless it participates. The unexplained time is real but invisible — must be an explicit boundary, not zero.
+
+(Fidelity note: SSE prints only `delta.content`, ignoring reasoning — a real signal is dropped from the observables.)
+
+**Test matrix**
+
+| # | Test | Setup | Expected |
+|---|------|-------|----------|
+| T1 | async-not-complete | `submit(False)`, multi-source | handle ≠ completion; explicit join/await exists |
+| T2 | failure propagation | one source raises | job reports failure, not silent success |
+| T3 | cross-job race | two concurrent submits | `finally` enumeration doesn't see the other job |
+| T4 | local context loss | set ContextVar, run linear path | expect LOST; then run FlowNet (preserved) to expose the gap |
+| T5 | lock timing | measure `_call_sync_target` span | start = execution after lock; queue-wait excluded |
+| T6 | DAG redaction | Packet w/ fake cred + reasoning | NDJSON shows only evidence_refs; no raw content by default |
+| T7 | chat leak | fake key + sensitive prompt | no auth/prompt logged by default; SSE = content only |
+| T8 | parentage≠dependency | links differ from data deps | no global critical path derivable; path flagged `partial` |
+| T9 | cross-clock | two producers, divergent clocks | no cross-producer wall_time subtraction; durations per clock_id |
+| T10 | spool drop + isolation | overflow spool; crash one producer | `events_dropped` counted, trace marked partial; others still emit |
+| T11 | workflow boundary | `submit` then `poll`/`collect` | span ends at accepted-ref, not job-done |
+| T12 | optional adapter | remove RAG/tool pkg | explicit typed availability error, not silent no-op |
+| T13 | subprocess boundary | invoke sagellm | marked opaque boundary w/ wall-clock; no fake inner spans |
+| T14 | remote carrier | context across RPC | travels only via validated carrier; drop ⇒ absent, not wrong |
+
+Must-haves: T1–T3 (completion), T4 (context parity), T6/T7 (secrets). Those are exactly the gaps the long review read but never closed.
+tokens used
+12,082
+
+
+Scope: read-only, evidence-only; no tools/files used. Below are the risks the 28-batch pass left unpinned, then a test matrix to close them.
+
+**Missing risks**
+
+1. **Completion-contract ambiguity (highest).** Two independent paths conflate "submit returned" with "job done": `CompiledActorGraph.submit(False)` returns a handle while sources still run, and `_run_source_thread` *catches* exceptions and only logs them; `WorkflowIntegrationRegistry.submit` returns an *accepted reference*, not completion. So (a) a raised error yields silent partial success, and (b) no single status distinguishes accepted / span-completed / job-completed / failed. Same root cause in three places — the main thing to pin down.
+
+2. **Context loss at the local thread boundary.** `local_backend`/`flownet_backend` submit `self.call` to a `ThreadPoolExecutor` **without `copy_context`**, so `ContextVar`s (span id, tenant, auth) are dropped on the linear batch path. FlowNet's `ActorInvoker._call_sync_target` uses `run_in_executor_with_context` — the paths are inconsistent, and the contract's "explicit validated carrier" is honored on only one. The linear path silently produces disconnected / mis-parented spans.
+
+3. **Cross-job lifecycle coupling.** `_run_source_thread`'s `finally` enumerates *globally* enumerated source threads. Under concurrent submits this can see another job's threads → premature/incorrect completion. Marked out-of-scope, but any multi-job use inherits it.
+
+4. **Raw-content leak on the DAG path.** `_process_packet` handles arbitrary payloads (possibly creds/reasoning). The "no raw content/keys/errors by default" guarantee lives in the TraceLoom writer, but there's no redaction boundary *at the deque/packet path* before any span event is built.
+
+5. **Cross-clock invalidity.** `producer/clock_id` + dual wall/monotonic timestamps are present, but there's no rule/flag preventing wall_time subtraction across divergent producers. Naive analysis yields bogus durations/orderings.
+
+6. **Silent partiality.** Bounded spool + whole-trace sampling + failure isolation all produce partial traces, yet there's no `events_dropped`/completeness flag, and "longest dependency path" must be marked *partial*, not global critical path. Without a flag an incomplete trace reads as complete.
+
+7. **Opaque subprocess boundary.** `sagellm` is a subprocess; inner spans are unavailable unless it participates. The unexplained time is real but invisible — must be an explicit boundary, not zero.
+
+(Fidelity note: SSE prints only `delta.content`, ignoring reasoning — a real signal is dropped from the observables.)
+
+**Test matrix**
+
+| # | Test | Setup | Expected |
+|---|------|-------|----------|
+| T1 | async-not-complete | `submit(False)`, multi-source | handle ≠ completion; explicit join/await exists |
+| T2 | failure propagation | one source raises | job reports failure, not silent success |
+| T3 | cross-job race | two concurrent submits | `finally` enumeration doesn't see the other job |
+| T4 | local context loss | set ContextVar, run linear path | expect LOST; then run FlowNet (preserved) to expose the gap |
+| T5 | lock timing | measure `_call_sync_target` span | start = execution after lock; queue-wait excluded |
+| T6 | DAG redaction | Packet w/ fake cred + reasoning | NDJSON shows only evidence_refs; no raw content by default |
+| T7 | chat leak | fake key + sensitive prompt | no auth/prompt logged by default; SSE = content only |
+| T8 | parentage≠dependency | links differ from data deps | no global critical path derivable; path flagged `partial` |
+| T9 | cross-clock | two producers, divergent clocks | no cross-producer wall_time subtraction; durations per clock_id |
+| T10 | spool drop + isolation | overflow spool; crash one producer | `events_dropped` counted, trace marked partial; others still emit |
+| T11 | workflow boundary | `submit` then `poll`/`collect` | span ends at accepted-ref, not job-done |
+| T12 | optional adapter | remove RAG/tool pkg | explicit typed availability error, not silent no-op |
+| T13 | subprocess boundary | invoke sagellm | marked opaque boundary w/ wall-clock; no fake inner spans |
+| T14 | remote carrier | context across RPC | travels only via validated carrier; drop ⇒ absent, not wrong |
+
+Must-haves: T1–T3 (completion), T4 (context parity), T6/T7 (secrets). Those are exactly the gaps the long review read but never closed.

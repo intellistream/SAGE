@@ -1,0 +1,12 @@
+{
+  "start_span_p95_us": 30.74,
+  "median_us": 28.27,
+  "stats": {
+    "accepted_events": 3068,
+    "exported_events": 3068,
+    "dropped_events": 936,
+    "export_errors": 0,
+    "instrumentation_errors": 0,
+    "queue_depth": 0
+  }
+}

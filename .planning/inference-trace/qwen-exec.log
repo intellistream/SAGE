@@ -1,0 +1,3080 @@
+Reading additional input from stdin...
+OpenAI Codex v0.153.4
+--------
+workdir: /home/shuhao/SAGE-trace
+model: Qwen/Qwen3.8-27B
+provider: sage_qwen38
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: medium
+reasoning summaries: none
+session id: 01a083ed-6120-7d01-a52e-71db511aabce
+--------
+user
+Read-only bounded review of SAGE code in /home/shuhao/SAGE-trace. Do not edit any file, run services, contact model endpoints, inspect .env/auth/config credential files, or use NPUs. Inspect only src/sage/runtime/pipeline_compiler.py, actor_wrappers.py, job_manager.py, environments.py, flownet/runtime/actors/invoker.py, serving/integrations/{registry,contracts}.py, cli/commands/apps/chat.py, and relevant tests. Identify minimal-intrusion observable tracing span boundaries, parent/context propagation hazards across threads and actors, queue versus execution timing, privacy hazards, and a concrete test matrix for tracing. No hidden chain-of-thought collection. Output concise findings with exact file/function references; max 2000 words; stay within 32K context. Use existing command-backed authentication unchanged.
+exec
+/bin/bash -lc "find /home/shuhao/SAGE-trace -type f -name '*.py' | grep -E '(pipeline_compiler|actor_wrappers|job_manager|environments|invoker|registry|contracts|chat)' | head -50; echo ---; ls /home/shuhao/SAGE-trace" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+/home/shuhao/SAGE-trace/src/sage/serving/integrations/contracts.py
+/home/shuhao/SAGE-trace/src/sage/serving/integrations/registry.py
+/home/shuhao/SAGE-trace/src/sage/foundation/model_registry/sagellm_registry.py
+/home/shuhao/SAGE-trace/src/sage/foundation/model_registry/__init__.py
+/home/shuhao/SAGE-trace/src/sage/cli/commands/apps/chat.py
+/home/shuhao/SAGE-trace/src/sage/runtime/job_manager.py
+/home/shuhao/SAGE-trace/src/sage/runtime/environments.py
+/home/shuhao/SAGE-trace/src/sage/runtime/actor_wrappers.py
+/home/shuhao/SAGE-trace/src/sage/runtime/pipeline_compiler.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/contracts/flow_program_submit_contract.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/contracts/runtime_telemetry_contract.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/contracts/runtime_state_query_contract.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/contracts/shared_state_contract.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/contracts/__init__.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/contracts/flow_run_observation_contract.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/contracts/recovery_contract.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/contracts/endpoint_plane_contract.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/topics/exception_invoker.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/topics/coordinator_registry.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/topics/subscriber_registry.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/actors/registry.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/actors/invoker.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/actors/callback_registry.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/flowengine/actor_cursor_invoker.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/endpoint_registry.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/shared_state_registry.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/collective/contracts.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/collective/registry.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/backend_container/contracts.py
+/home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/backend_container/registry.py
+---
+CHANGELOG.md
+CONTRIBUTING.md
+DEVELOPER.md
+GOVERNANCE.md
+LICENSE
+Makefile
+README.md
+SAGE.code-workspace
+codecov.yml
+config
+dependencies-spec.yaml
+docs
+hooks
+llm-serving-research-topics.md
+manage.sh
+pyproject.toml
+pytest.ini
+quickstart.sh
+src
+tools
+
+exec
+/bin/bash -lc 'wc -l /home/shuhao/SAGE-trace/src/sage/runtime/pipeline_compiler.py /home/shuhao/SAGE-trace/src/sage/runtime/actor_wrappers.py /home/shuhao/SAGE-trace/src/sage/runtime/job_manager.py /home/shuhao/SAGE-trace/src/sage/runtime/environments.py /home/shuhao/SAGE-trace/src/sage/flownet/runtime/actors/invoker.py /home/shuhao/SAGE-trace/src/sage/serving/integrations/registry.py /home/shuhao/SAGE-trace/src/sage/serving/integrations/contracts.py /home/shuhao/SAGE-trace/src/sage/cli/commands/apps/chat.py 2>/dev/null' in /home/shuhao/SAGE-trace
+ exited 1 in 0ms:
+   912 /home/shuhao/SAGE-trace/src/sage/runtime/pipeline_compiler.py
+    71 /home/shuhao/SAGE-trace/src/sage/runtime/actor_wrappers.py
+   223 /home/shuhao/SAGE-trace/src/sage/runtime/job_manager.py
+   223 /home/shuhao/SAGE-trace/src/sage/runtime/environments.py
+   431 /home/shuhao/SAGE-trace/src/sage/serving/integrations/registry.py
+  1054 /home/shuhao/SAGE-trace/src/sage/serving/integrations/contracts.py
+   330 /home/shuhao/SAGE-trace/src/sage/cli/commands/apps/chat.py
+  3244 total
+
+exec
+/bin/bash -lc 'wc -l /home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/actors/invoker.py; echo ===INVOKER===; cat /home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/actors/invoker.py' in /home/shuhao/SAGE-trace
+ succeeded in 29ms:
+307 /home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/actors/invoker.py
+===INVOKER===
+from __future__ import annotations
+
+import asyncio
+from collections.abc import Mapping
+from threading import Lock
+from typing import Any
+
+from sage.runtime.flownet.runtime.actors.error_codes import (
+    ACTOR_POLICY_MAX_PENDING_EXCEEDED,
+    build_error_message,
+)
+from sage.runtime.flownet.runtime.actors.execution_context import bind_actor_execution_context
+from sage.runtime.flownet.runtime.actors.executor_lanes import (
+    ExecutorLanes,
+    run_in_executor_with_context,
+)
+from sage.runtime.flownet.runtime.actors.registry import LocalActorRegistry
+from sage.runtime.flownet.runtime.actors.task_runtime import (
+    ActorTaskResult,
+    ActorTaskRuntime,
+    EventDispatcher,
+)
+
+
+class ActorInvoker:
+    """Local actor invoker with stable serial/lockfree semantics."""
+
+    def __init__(
+        self,
+        *,
+        registry: LocalActorRegistry,
+        executor_lanes: ExecutorLanes,
+        task_runtime: ActorTaskRuntime | None = None,
+        runtime_host: Any | None = None,
+    ) -> None:
+        self._registry = registry
+        self._executor_lanes = executor_lanes
+        self._task_runtime = task_runtime or ActorTaskRuntime()
+        self._runtime_host = runtime_host
+        self._pending_counts: dict[str, int] = {}
+        self._running_counts: dict[str, int] = {}
+        self._pending_lock = Lock()
+
+    def set_event_dispatcher(self, event_dispatcher: EventDispatcher | None) -> None:
+        self._task_runtime.set_event_dispatcher(event_dispatcher)
+
+    def set_runtime_host(self, runtime_host: Any | None) -> None:
+        self._runtime_host = runtime_host
+
+    async def call_local(self, actor_id: str, method: str, *args, **kwargs) -> Any:
+        outcome = await self.call_local_with_protocol(actor_id, method, *args, **kwargs)
+        return outcome.result
+
+    async def call_local_with_protocol(
+        self,
+        actor_id: str,
+        method: str,
+        *args,
+        **kwargs,
+    ) -> ActorTaskResult:
+        record = self._registry.resolve_local_actor(actor_id)
+        method_name = str(method or "").strip()
+        if not method_name:
+            raise ValueError("method must be non-empty.")
+        target = getattr(record.object, method_name, None)
+        if target is None:
+            raise ValueError(f"actor_method_not_found:{record.actor_id}.{method_name}")
+        if asyncio.iscoroutinefunction(target):
+            raise RuntimeError(
+                f"actor_main_entry_sync_only_violation:{record.actor_id}.{method_name}",
+            )
+        no_lock = bool(getattr(target, "__flownet_no_lock__", False))
+        task_policy = _resolve_task_policy(record.config)
+        lane = self._executor_lanes.lane_for(actor_config=record.config)
+        max_pending = _resolve_positive_optional_int(task_policy, "max_pending")
+        task_timeout_ms = _resolve_positive_optional_int(task_policy, "task_timeout_ms")
+        max_parallel_tools = _resolve_positive_optional_int(
+            task_policy,
+            "max_parallel_tools",
+        )
+
+        self._acquire_pending_slot(
+            actor_id=record.actor_id,
+            lane=lane,
+            max_pending=max_pending,
+        )
+        try:
+            with bind_actor_execution_context(
+                actor_id=record.actor_id,
+                actor_config=record.config,
+                runtime_host=self._runtime_host,
+            ):
+                with self._task_runtime.open_task_event_scope(
+                    task_policy=task_policy
+                ) as event_buffer:
+                    main_entry_return = await self._call_sync_target(
+                        target,
+                        actor_id=record.actor_id,
+                        actor_config=record.config,
+                        lane=lane,
+                        no_lock=no_lock,
+                        lock=record.lock,
+                        args=args,
+                        kwargs=kwargs,
+                    )
+                    return await self._task_runtime.resolve_main_entry_return(
+                        main_entry_return,
+                        event_buffer=event_buffer,
+                        task_timeout_ms=task_timeout_ms,
+                        max_parallel_tools=max_parallel_tools,
+                        max_pending=max_pending,
+                    )
+        finally:
+            self._release_pending_slot(record.actor_id, lane=lane)
+
+    async def _call_sync_target(
+        self,
+        target: Any,
+        *,
+        actor_id: str,
+        actor_config: Any,
+        lane: str,
+        no_lock: bool,
+        lock,
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+    ) -> Any:
+        loop = asyncio.get_running_loop()
+        executor = self._executor_lanes.executor_for(
+            actor_id=actor_id,
+            actor_config=actor_config,
+        )
+
+        if no_lock:
+            self._record_running_start(actor_id=actor_id, lane=lane)
+            try:
+                return await run_in_executor_with_context(
+                    loop,
+                    target,
+                    *args,
+                    executor=executor,
+                    **kwargs,
+                )
+            finally:
+                self._record_running_end(actor_id=actor_id, lane=lane)
+
+        def _locked_call(*inner_args, **inner_kwargs):
+            with lock:
+                return target(*inner_args, **inner_kwargs)
+
+        self._record_running_start(actor_id=actor_id, lane=lane)
+        try:
+            return await run_in_executor_with_context(
+                loop,
+                _locked_call,
+                *args,
+                executor=executor,
+                **kwargs,
+            )
+        finally:
+            self._record_running_end(actor_id=actor_id, lane=lane)
+
+    def _acquire_pending_slot(self, *, actor_id: str, lane: str, max_pending: int | None) -> None:
+        with self._pending_lock:
+            current = int(self._pending_counts.get(actor_id, 0))
+            if max_pending is not None and current >= max_pending:
+                raise RuntimeError(
+                    build_error_message(
+                        ACTOR_POLICY_MAX_PENDING_EXCEEDED,
+                        actor_id=actor_id,
+                        current_pending=current,
+                        max_pending=max_pending,
+                    )
+                )
+            self._pending_counts[actor_id] = current + 1
+
+    def _release_pending_slot(self, actor_id: str, *, lane: str) -> None:
+        with self._pending_lock:
+            current = int(self._pending_counts.get(actor_id, 0))
+            if current <= 1:
+                self._pending_counts.pop(actor_id, None)
+                return
+            self._pending_counts[actor_id] = current - 1
+
+    def _record_running_start(self, *, actor_id: str, lane: str) -> None:
+        del lane
+        with self._pending_lock:
+            self._running_counts[actor_id] = int(self._running_counts.get(actor_id, 0)) + 1
+
+    def _record_running_end(self, *, actor_id: str, lane: str) -> None:
+        del lane
+        with self._pending_lock:
+            current = int(self._running_counts.get(actor_id, 0))
+            if current <= 1:
+                self._running_counts.pop(actor_id, None)
+                return
+            self._running_counts[actor_id] = current - 1
+
+    def observability_snapshot(self) -> dict[str, Any]:
+        with self._pending_lock:
+            pending_counts = dict(self._pending_counts)
+            running_counts = dict(self._running_counts)
+
+        lane_rows: dict[str, dict[str, Any]] = {}
+        for record in self._registry.list_local_actors():
+            lane = self._executor_lanes.lane_for(actor_config=record.config)
+            lane_row = lane_rows.setdefault(
+                lane,
+                {
+                    "lane": lane,
+                    "actor_count": 0,
+                    "pending": 0,
+                    "running": 0,
+                    "queued": 0,
+                },
+            )
+            lane_row["actor_count"] = int(lane_row["actor_count"]) + 1
+            actor_pending = int(pending_counts.get(record.actor_id, 0))
+            actor_running = int(running_counts.get(record.actor_id, 0))
+            lane_row["pending"] = int(lane_row["pending"]) + actor_pending
+            lane_row["running"] = int(lane_row["running"]) + actor_running
+
+        rows: list[dict[str, Any]] = []
+        pending_total = 0
+        running_total = 0
+        queued_total = 0
+        for lane, row in sorted(lane_rows.items()):
+            pending = int(row["pending"])
+            running = int(row["running"])
+            queued = max(0, pending - running)
+            pending_total += pending
+            running_total += running
+            queued_total += queued
+            rows.append(
+                {
+                    "lane": lane,
+                    "actor_count": int(row["actor_count"]),
+                    "pending": pending,
+                    "running": running,
+                    "queued": queued,
+                }
+            )
+
+        return {
+            "records": rows,
+            "pending": pending_total,
+            "running": running_total,
+            "queued": queued_total,
+        }
+
+
+def _resolve_task_policy(actor_config: Any | None) -> dict[str, Any] | None:
+    if actor_config is None:
+        return None
+    direct = _extract_mapping(actor_config, "task_policy")
+    if direct is not None:
+        return direct
+
+    policies = _extract_mapping(actor_config, "policies")
+    if policies is not None:
+        nested = _extract_nested_mapping(policies, "task")
+        if nested is not None:
+            return nested
+
+    execution_policy = _extract_mapping(actor_config, "execution_policy")
+    if execution_policy is not None:
+        nested = _extract_nested_mapping(execution_policy, "task")
+        if nested is not None:
+            return nested
+
+    return None
+
+
+def _extract_mapping(container: Any, key: str) -> dict[str, Any] | None:
+    if isinstance(container, Mapping):
+        value = container.get(key)
+    else:
+        value = getattr(container, key, None)
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise TypeError(f"{key} must be a mapping when provided.")
+    return dict(value)
+
+
+def _extract_nested_mapping(container: Mapping[str, Any], key: str) -> dict[str, Any] | None:
+    value = container.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise TypeError(f"{key} must be a mapping when provided.")
+    return dict(value)
+
+
+def _resolve_positive_optional_int(policy: dict[str, Any] | None, key: str) -> int | None:
+    if policy is None:
+        return None
+    raw_value = policy.get(key)
+    if raw_value is None:
+        return None
+    value = int(raw_value)
+    if value <= 0:
+        raise ValueError(f"{key} must be > 0 when provided.")
+    return value
+
+
+__all__ = ["ActorInvoker"]
+
+exec
+/bin/bash -lc 'echo ===ACTOR_WRAPPERS===; cat /home/shuhao/SAGE-trace/src/sage/runtime/actor_wrappers.py; echo ===JOB_MANAGER===; cat /home/shuhao/SAGE-trace/src/sage/runtime/job_manager.py' in /home/shuhao/SAGE-trace
+ succeeded in 10ms:
+exec
+/bin/bash -lc "sed -n '95,160p' /home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/actors/invoker.py" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+                ) as event_buffer:
+                    main_entry_return = await self._call_sync_target(
+                        target,
+                        actor_id=record.actor_id,
+                        actor_config=record.config,
+                        lane=lane,
+                        no_lock=no_lock,
+                        lock=record.lock,
+                        args=args,
+                        kwargs=kwargs,
+                    )
+                    return await self._task_runtime.resolve_main_entry_return(
+                        main_entry_return,
+                        event_buffer=event_buffer,
+                        task_timeout_ms=task_timeout_ms,
+                        max_parallel_tools=max_parallel_tools,
+                        max_pending=max_pending,
+                    )
+        finally:
+            self._release_pending_slot(record.actor_id, lane=lane)
+
+    async def _call_sync_target(
+        self,
+        target: Any,
+        *,
+        actor_id: str,
+        actor_config: Any,
+        lane: str,
+        no_lock: bool,
+        lock,
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+    ) -> Any:
+        loop = asyncio.get_running_loop()
+        executor = self._executor_lanes.executor_for(
+            actor_id=actor_id,
+            actor_config=actor_config,
+        )
+
+        if no_lock:
+            self._record_running_start(actor_id=actor_id, lane=lane)
+            try:
+                return await run_in_executor_with_context(
+                    loop,
+                    target,
+                    *args,
+                    executor=executor,
+                    **kwargs,
+                )
+            finally:
+                self._record_running_end(actor_id=actor_id, lane=lane)
+
+        def _locked_call(*inner_args, **inner_kwargs):
+            with lock:
+                return target(*inner_args, **inner_kwargs)
+
+        self._record_running_start(actor_id=actor_id, lane=lane)
+        try:
+            return await run_in_executor_with_context(
+                loop,
+                _locked_call,
+                *args,
+                executor=executor,
+                **kwargs,
+            )
+        finally:
+
+exec
+/bin/bash -lc "cd /home/shuhao/SAGE-trace; grep -n -E 'Thread|thread|Queue|queue|lock|Lock|submit|executor|Executor|span|trace|Trace|contextvar|Context|copy_context|time\\.|timeit' src/sage/runtime/pipeline_compiler.py | head -80" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+8:import threading
+92:        deadline = None if timeout is None else time.monotonic() + timeout
+101:            if deadline is not None and time.monotonic() >= deadline:
+105:                time.sleep(0.01)
+115:class _LightweightExecutionContext:
+149:        return self._service_runtime.get_service(service_name)
+163:        return self._service_runtime.call_service(
+183:        return self._service_runtime.call_service_async(
+201:        self._lock = threading.RLock()
+203:        self._executor = concurrent.futures.ThreadPoolExecutor(
+205:            thread_name_prefix="sage_local_service",
+213:        service_ctx = _LightweightExecutionContext(service_name, self)
+231:        with self._lock:
+279:        future = self._executor.submit(
+289:        with self._lock:
+306:        self._executor.shutdown(wait=True)
+324:        source_threads: list[threading.Thread] | threading.Thread | None,
+326:        stop_event: threading.Event,
+328:        if source_threads is None:
+329:            self._threads: list[threading.Thread] = []
+330:        elif isinstance(source_threads, list):
+331:            self._threads = source_threads
+333:            self._threads = [source_threads]
+338:        if not self._threads:
+341:        deadline = time.monotonic() + timeout
+342:        for thread in self._threads:
+343:            if not thread.is_alive():
+345:            remaining = max(0.0, deadline - time.monotonic())
+346:            thread.join(timeout=remaining)
+350:        return any(thread.is_alive() for thread in self._threads)
+363:    _dispatch_lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
+413:                function.ctx = _LightweightExecutionContext(
+455:    def _enqueue_downstreams(
+457:        queue: deque[tuple[Any, Packet]],
+464:            queue.append((downstream, forwarded))
+492:        queue: deque[tuple[Any, Packet]],
+507:                self._enqueue_downstreams(
+508:                    queue,
+516:                    self._enqueue_downstreams(queue, transformation, packet)
+525:                    self._enqueue_downstreams(
+526:                        queue, transformation, packet.inherit_partition_info(item)
+539:                    self._enqueue_downstreams(
+540:                        queue, transformation, packet.inherit_partition_info(item)
+548:                    self._enqueue_downstreams(
+549:                        queue, transformation, packet.inherit_partition_info(item)
+559:                self._enqueue_downstreams(
+560:                    queue, transformation, packet.inherit_partition_info(item)
+572:        queue: deque[tuple[Any, Packet]] = deque()
+574:        self._enqueue_downstreams(queue, source_transformation, source_packet)
+576:        while queue:
+577:            transformation, packet = queue.popleft()
+578:            self._process_packet(transformation, packet, instances, queue)
+623:            with self._dispatch_lock:
+666:            self._service_runtime.close()
+668:    def submit(self, autostop: bool = False) -> Any:
+670:            return self._submit_batch()
+671:        return self._submit_streaming()
+722:    def _submit_linear_actor_batch(self) -> None:
+736:    def _submit_batch(self) -> None:
+742:            return self._submit_linear_actor_batch()
+781:            time.sleep(0.01)
+795:    def _submit_streaming(self) -> _StreamingFlowHandle:
+796:        stop_event = threading.Event()
+798:        source_threads: list[threading.Thread] = []
+801:            source_thread = threading.Thread(
+802:                target=self._run_source_thread,
+807:            source_thread.start()
+808:            source_threads.append(source_thread)
+810:        return _StreamingFlowHandle(source_threads, stop_event=stop_event)
+812:    def _run_source_thread(
+816:        stop_event: threading.Event,
+824:                    time.sleep(getattr(transformation, "delay", 0.01))
+826:                with self._dispatch_lock:
+835:                "Source thread for '%s' exiting.",
+839:                thread.is_alive()
+840:                for thread in threading.enumerate()
+841:                if thread.name.startswith("sage-source-")
+851:                "Build a pipeline with env.from_source(...).map(...).sink(...) before calling env.submit()."
+
+exec
+/bin/bash -lc "sed -n '1,230p' /home/shuhao/SAGE-trace/src/sage/runtime/pipeline_compiler.py" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+"""Main-repo owned lightweight pipeline compiler for runtime-backed execution."""
+
+from __future__ import annotations
+
+import concurrent.futures
+import hashlib
+import logging
+import threading
+import time
+from collections import deque
+from dataclasses import dataclass, field
+from typing import Any
+
+from sage.foundation import Collector, CustomLogger, FlatMapFunction
+from sage.stream._runtime_kernel_types import Packet
+
+from .actor_wrappers import (
+    FilterActorWrapper,
+    FlatMapActorWrapper,
+    MapActorWrapper,
+    ServiceActorWrapper,
+    SinkActorWrapper,
+    SourceActorWrapper,
+)
+
+logger = logging.getLogger(__name__)
+
+__all__ = ["PipelineCompiler", "CompiledActorGraph", "_StreamingFlowHandle"]
+
+_OP_MAP = "map"
+_OP_FLATMAP = "flatmap"
+_OP_FILTER = "filter"
+_OP_SINK = "sink"
+
+
+def _transformation_name(t: Any) -> str:
+    return type(t).__name__
+
+
+def _classify(t: Any) -> tuple[type, str, str]:
+    name = _transformation_name(t)
+    if name == "SourceTransformation":
+        return (SourceActorWrapper, "source", "run")
+    if name == "BatchTransformation":
+        return (SourceActorWrapper, "source", "run")
+    if name == "MapTransformation":
+        return (MapActorWrapper, _OP_MAP, "process")
+    if name == "FlatMapTransformation":
+        return (FlatMapActorWrapper, _OP_FLATMAP, "process")
+    if name == "FilterTransformation":
+        return (FilterActorWrapper, _OP_FILTER, "accepts")
+    if name == "SinkTransformation":
+        return (SinkActorWrapper, _OP_SINK, "consume")
+    return (ServiceActorWrapper, _OP_MAP, "process")
+
+
+def _uses_legacy_linear_wrapper(t: Any) -> bool:
+    return _transformation_name(t) in {
+        "MapTransformation",
+        "FlatMapTransformation",
+        "FilterTransformation",
+        "SinkTransformation",
+    }
+
+
+def _replica_count_for(transformation: Any) -> int:
+    if _classify(transformation)[1] == "source":
+        return 1
+    return max(1, int(getattr(transformation, "parallelism", 1) or 1))
+
+
+def _stable_partition_index(key: Any, replica_count: int) -> int:
+    if replica_count <= 1:
+        return 0
+    digest = hashlib.blake2b(repr(key).encode("utf-8"), digest_size=8).digest()
+    return int.from_bytes(digest, byteorder="big", signed=False) % replica_count
+
+
+class _LightweightServiceFuture:
+    def __init__(
+        self,
+        future: concurrent.futures.Future,
+        progress_callback: Any | None = None,
+    ) -> None:
+        self._future = future
+        self._progress_callback = progress_callback
+
+    def result(self, timeout: float | None = None) -> Any:
+        if self._progress_callback is None:
+            return self._future.result(timeout=timeout)
+
+        deadline = None if timeout is None else time.monotonic() + timeout
+        while True:
+            if self._future.done():
+                return self._future.result()
+
+            progressed = bool(self._progress_callback())
+            if self._future.done():
+                return self._future.result()
+
+            if deadline is not None and time.monotonic() >= deadline:
+                raise TimeoutError("Local service call did not complete before timeout.")
+
+            if not progressed:
+                time.sleep(0.01)
+
+    def cancel(self) -> bool:
+        return self._future.cancel()
+
+    @property
+    def done(self) -> bool:
+        return self._future.done()
+
+
+class _LightweightExecutionContext:
+    def __init__(
+        self,
+        name: str,
+        service_runtime: _LightweightServiceRuntime | None,
+        *,
+        parallel_index: int = 0,
+        parallelism: int = 1,
+    ) -> None:
+        self.name = name
+        self._service_runtime = service_runtime
+        self._logger = CustomLogger(name=name)
+        self._current_key: Any = None
+        self.parallel_index = parallel_index
+        self.parallelism = parallelism
+
+    @property
+    def logger(self) -> CustomLogger:
+        return self._logger
+
+    def set_current_key(self, key: Any) -> None:
+        self._current_key = key
+
+    def clear_key(self) -> None:
+        self._current_key = None
+
+    def get_key(self) -> Any:
+        return self._current_key
+
+    def get_service(self, service_name: str) -> Any:
+        if self._service_runtime is None:
+            raise RuntimeError(
+                f"Service '{service_name}' is not available in the lightweight context"
+            )
+        return self._service_runtime.get_service(service_name)
+
+    def call_service(
+        self,
+        service_name: str,
+        *args: Any,
+        timeout: float | None = None,
+        method: str | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        if self._service_runtime is None:
+            raise RuntimeError(
+                f"Service '{service_name}' is not available in the lightweight context"
+            )
+        return self._service_runtime.call_service(
+            service_name,
+            *args,
+            timeout=timeout,
+            method=method,
+            **kwargs,
+        )
+
+    def call_service_async(
+        self,
+        service_name: str,
+        *args: Any,
+        timeout: float | None = None,
+        method: str | None = None,
+        **kwargs: Any,
+    ) -> concurrent.futures.Future:
+        if self._service_runtime is None:
+            raise RuntimeError(
+                f"Service '{service_name}' is not available in the lightweight context"
+            )
+        return self._service_runtime.call_service_async(
+            service_name,
+            *args,
+            timeout=timeout,
+            method=method,
+            **kwargs,
+        )
+
+
+class _LightweightServiceRuntime:
+    def __init__(
+        self,
+        service_factories: dict[str, Any],
+        *,
+        progress_callback: Any | None = None,
+    ) -> None:
+        self._service_factories = dict(service_factories)
+        self._services: dict[str, Any] = {}
+        self._lock = threading.RLock()
+        self._progress_callback = progress_callback
+        self._executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=max(4, len(service_factories) or 1),
+            thread_name_prefix="sage_local_service",
+        )
+
+    def _create_service(self, service_name: str) -> Any:
+        factory = self._service_factories.get(service_name)
+        if factory is None:
+            raise RuntimeError(f"Service '{service_name}' is not registered in this environment")
+
+        service_ctx = _LightweightExecutionContext(service_name, self)
+        service = factory.create_service(service_ctx)
+
+        setup = getattr(service, "setup", None)
+        if callable(setup):
+            setup()
+
+        start = getattr(service, "start", None)
+        if callable(start):
+            start()
+        else:
+            start_running = getattr(service, "start_running", None)
+            if callable(start_running):
+                start_running()
+
+        return service
+
+    def get_service(self, service_name: str) -> Any:
+
+exec
+/bin/bash -lc "sed -n '230,470p' /home/shuhao/SAGE-trace/src/sage/runtime/pipeline_compiler.py" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+    def get_service(self, service_name: str) -> Any:
+        with self._lock:
+            if service_name not in self._services:
+                self._services[service_name] = self._create_service(service_name)
+            return self._services[service_name]
+
+    def _invoke_service(
+        self,
+        service_name: str,
+        *args: Any,
+        method: str | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        service = self.get_service(service_name)
+        candidate_methods = [method] if method else ["process", "execute", "call"]
+        for method_name in candidate_methods:
+            if method_name is None:
+                continue
+            target = getattr(service, method_name, None)
+            if callable(target):
+                return target(*args, **kwargs)
+        raise AttributeError(
+            f"Service '{service_name}' does not expose a callable method for {candidate_methods}."
+        )
+
+    def call_service(
+        self,
+        service_name: str,
+        *args: Any,
+        timeout: float | None = None,
+        method: str | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        return self.call_service_async(
+            service_name,
+            *args,
+            timeout=timeout,
+            method=method,
+            **kwargs,
+        ).result(timeout=timeout)
+
+    def call_service_async(
+        self,
+        service_name: str,
+        *args: Any,
+        timeout: float | None = None,
+        method: str | None = None,
+        **kwargs: Any,
+    ) -> _LightweightServiceFuture:
+        future = self._executor.submit(
+            self._invoke_service,
+            service_name,
+            *args,
+            method=method,
+            **kwargs,
+        )
+        return _LightweightServiceFuture(future, self._progress_callback)
+
+    def close(self) -> None:
+        with self._lock:
+            services = list(self._services.values())
+            self._services.clear()
+
+        for service in services:
+            stop = getattr(service, "stop", None)
+            if callable(stop):
+                stop()
+            else:
+                terminate = getattr(service, "terminate", None)
+                if callable(terminate):
+                    terminate()
+
+            cleanup = getattr(service, "cleanup", None)
+            if callable(cleanup):
+                cleanup()
+
+        self._executor.shutdown(wait=True)
+
+
+def _is_stop_signal(item: Any) -> bool:
+    return item is None or type(item).__name__ == "StopSignal"
+
+
+def _is_batch_source(transformation: Any) -> bool:
+    return _transformation_name(transformation) == "BatchTransformation"
+
+
+def _is_stream_source(transformation: Any) -> bool:
+    return _transformation_name(transformation) == "SourceTransformation"
+
+
+class _StreamingFlowHandle:
+    def __init__(
+        self,
+        source_threads: list[threading.Thread] | threading.Thread | None,
+        *,
+        stop_event: threading.Event,
+    ) -> None:
+        if source_threads is None:
+            self._threads: list[threading.Thread] = []
+        elif isinstance(source_threads, list):
+            self._threads = source_threads
+        else:
+            self._threads = [source_threads]
+        self._stop_event = stop_event
+
+    def stop(self, timeout: float = 30.0) -> None:
+        self._stop_event.set()
+        if not self._threads:
+            return
+
+        deadline = time.monotonic() + timeout
+        for thread in self._threads:
+            if not thread.is_alive():
+                continue
+            remaining = max(0.0, deadline - time.monotonic())
+            thread.join(timeout=remaining)
+
+    @property
+    def is_running(self) -> bool:
+        return any(thread.is_alive() for thread in self._threads)
+
+
+@dataclass
+class CompiledActorGraph:
+    stage_ops: list[tuple[str, Any]]
+    source_transformation: Any | None
+    actor_handles: list[Any] = field(default_factory=list)
+    adapter: Any = None
+    source_transformations: list[Any] = field(default_factory=list)
+    pipeline: list[Any] = field(default_factory=list)
+    downstream_edges: dict[str, list[tuple[Any, int]]] = field(default_factory=dict)
+    _instances: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
+    _dispatch_lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
+    _service_runtime: _LightweightServiceRuntime | None = field(
+        default=None, init=False, repr=False
+    )
+    _finalized: bool = field(default=False, init=False, repr=False)
+    _closed_sources: set[str] = field(default_factory=set, init=False, repr=False)
+    _replica_round_robin: dict[str, int] = field(default_factory=dict, init=False, repr=False)
+
+    def _start_worker_runtime(self) -> None:
+        """Legacy compatibility hook retained for tests guarding the actor-stage path."""
+
+        return None
+
+    def _get_service_runtime(self) -> _LightweightServiceRuntime | None:
+        if self._service_runtime is not None:
+            return self._service_runtime
+        if not self.pipeline:
+            return None
+        env = getattr(self.pipeline[0], "env", None)
+        service_factories = getattr(env, "service_factories", {})
+        if not service_factories:
+            return None
+        self._service_runtime = _LightweightServiceRuntime(
+            service_factories,
+            progress_callback=self._cooperative_service_pump,
+        )
+        return self._service_runtime
+
+    def _cooperative_service_pump(self) -> bool:
+        if not self._instances:
+            return False
+        return self._pump_stream_sources_once(self._instances)
+
+    def _build_instances(self) -> dict[str, Any]:
+        if self._instances:
+            return self._instances
+
+        instances: dict[str, Any] = {}
+        service_runtime = self._get_service_runtime()
+        for transformation in self.pipeline:
+            replica_count = _replica_count_for(transformation)
+            replica_group: list[Any] = []
+            for replica_index in range(replica_count):
+                function = transformation.function_class(
+                    *transformation.function_args,
+                    **transformation.function_kwargs,
+                )
+                context_name = transformation.basename
+                if replica_count > 1:
+                    context_name = f"{transformation.basename}_r{replica_index}"
+                function.ctx = _LightweightExecutionContext(
+                    context_name,
+                    service_runtime,
+                    parallel_index=replica_index,
+                    parallelism=replica_count,
+                )
+                replica_group.append(function)
+            instances[transformation.basename] = replica_group
+        self._instances = instances
+        return instances
+
+    def _replicas_for(self, transformation: Any, instances: dict[str, Any]) -> list[Any]:
+        replica_group = instances[transformation.basename]
+        if isinstance(replica_group, list):
+            return replica_group
+        return [replica_group]
+
+    def _select_replica_index(
+        self, transformation: Any, packet: Packet | None, replica_count: int
+    ) -> int:
+        if replica_count <= 1:
+            return 0
+        if packet is not None and packet.is_keyed():
+            return _stable_partition_index(packet.partition_key, replica_count)
+
+        current = int(self._replica_round_robin.get(transformation.basename, 0))
+        selected = current % replica_count
+        self._replica_round_robin[transformation.basename] = current + 1
+        return selected
+
+    def _select_function(
+        self,
+        transformation: Any,
+        packet: Packet | None,
+        instances: dict[str, Any],
+    ) -> Any:
+        replicas = self._replicas_for(transformation, instances)
+        return replicas[self._select_replica_index(transformation, packet, len(replicas))]
+
+    def _downstreams_for(self, transformation: Any) -> list[tuple[Any, int]]:
+        return self.downstream_edges.get(transformation.basename, [])
+
+    def _enqueue_downstreams(
+        self,
+        queue: deque[tuple[Any, Packet]],
+        transformation: Any,
+        packet: Packet,
+    ) -> None:
+        for downstream, input_index in self._downstreams_for(transformation):
+            forwarded = packet.copy()
+            forwarded.input_index = input_index
+            queue.append((downstream, forwarded))
+
+    def _normalize_outputs(
+        self,
+        result: Any,
+        collector: Collector | None = None,
+        *,
+
+exec
+/bin/bash -lc "sed -n '470,660p' /home/shuhao/SAGE-trace/src/sage/runtime/pipeline_compiler.py" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+        *,
+        flatten: bool = False,
+    ) -> list[Any]:
+        outputs: list[Any] = []
+        if result is not None:
+            if (
+                flatten
+                and hasattr(result, "__iter__")
+                and not isinstance(result, (str, bytes, dict))
+            ):
+                outputs.extend(list(result))
+            else:
+                outputs.append(result)
+        if collector is not None:
+            outputs.extend(collector.get_collected_data())
+        return outputs
+
+    def _process_packet(
+        self,
+        transformation: Any,
+        packet: Packet,
+        instances: dict[str, Any],
+        queue: deque[tuple[Any, Packet]],
+    ) -> None:
+        function = self._select_function(transformation, packet, instances)
+        transformation_name = type(transformation).__name__
+        function_ctx = getattr(function, "ctx", None)
+
+        if packet.payload is None:
+            return
+
+        if function_ctx is not None and hasattr(function_ctx, "set_current_key"):
+            function_ctx.set_current_key(packet.partition_key)
+
+        try:
+            if transformation_name == "KeyByTransformation":
+                key = function.execute(packet.payload)
+                self._enqueue_downstreams(
+                    queue,
+                    transformation,
+                    packet.update_key(key, getattr(transformation, "partition_strategy", None)),
+                )
+                return
+
+            if transformation_name == "FilterTransformation":
+                if function.execute(packet.payload):
+                    self._enqueue_downstreams(queue, transformation, packet)
+                return
+
+            if transformation_name == "FlatMapTransformation":
+                collector = Collector(logger=getattr(function, "logger", None))
+                if isinstance(function, FlatMapFunction):
+                    function.insert_collector(collector)
+                result = function.execute(packet.payload)
+                for item in self._normalize_outputs(result, collector, flatten=True):
+                    self._enqueue_downstreams(
+                        queue, transformation, packet.inherit_partition_info(item)
+                    )
+                return
+
+            if transformation_name == "JoinTransformation":
+                if not packet.is_keyed():
+                    logger.warning(
+                        "JoinTransformation '%s' received non-keyed packet; dropping payload.",
+                        transformation.basename,
+                    )
+                    return
+                result = function.execute(packet.payload, packet.partition_key, packet.input_index)
+                for item in self._normalize_outputs(result, flatten=True):
+                    self._enqueue_downstreams(
+                        queue, transformation, packet.inherit_partition_info(item)
+                    )
+                return
+
+            if transformation_name == "CoMapTransformation":
+                method = getattr(function, f"map{packet.input_index}")
+                result = method(packet.payload)
+                for item in self._normalize_outputs(result):
+                    self._enqueue_downstreams(
+                        queue, transformation, packet.inherit_partition_info(item)
+                    )
+                return
+
+            if transformation_name == "SinkTransformation":
+                function.execute(packet.payload)
+                return
+
+            result = function.execute(packet.payload)
+            for item in self._normalize_outputs(result):
+                self._enqueue_downstreams(
+                    queue, transformation, packet.inherit_partition_info(item)
+                )
+        finally:
+            if function_ctx is not None and hasattr(function_ctx, "clear_key"):
+                function_ctx.clear_key()
+
+    def _dispatch_from_source(
+        self,
+        source_transformation: Any,
+        item: Any,
+        instances: dict[str, Any],
+    ) -> None:
+        queue: deque[tuple[Any, Packet]] = deque()
+        source_packet = Packet(payload=item)
+        self._enqueue_downstreams(queue, source_transformation, source_packet)
+
+        while queue:
+            transformation, packet = queue.popleft()
+            self._process_packet(transformation, packet, instances, queue)
+
+    def _poll_source(
+        self,
+        transformation: Any,
+        instances: dict[str, Any],
+    ) -> tuple[str, Any | None]:
+        if transformation.basename in self._closed_sources:
+            return ("closed", None)
+
+        function = self._replicas_for(transformation, instances)[0]
+        try:
+            item = function.execute()
+        except StopIteration:
+            self._closed_sources.add(transformation.basename)
+            return ("closed", None)
+
+        if _is_batch_source(transformation):
+            if _is_stop_signal(item):
+                self._closed_sources.add(transformation.basename)
+                return ("closed", None)
+            return ("item", item)
+
+        if _is_stream_source(transformation):
+            if type(item).__name__ == "StopSignal":
+                self._closed_sources.add(transformation.basename)
+                return ("closed", None)
+            if item is None:
+                return ("idle", None)
+            return ("item", item)
+
+        if _is_stop_signal(item):
+            self._closed_sources.add(transformation.basename)
+            return ("closed", None)
+        return ("item", item)
+
+    def _pump_stream_sources_once(self, instances: dict[str, Any]) -> bool:
+        progressed = False
+        for transformation in self.source_transformations:
+            if not _is_stream_source(transformation):
+                continue
+            status, item = self._poll_source(transformation, instances)
+            if status != "item" or item is None:
+                continue
+            progressed = True
+            with self._dispatch_lock:
+                self._dispatch_from_source(transformation, item, instances)
+        return progressed
+
+    def _collect_source_items(self) -> list[tuple[Any, Any]]:
+        instances = self._build_instances()
+        active_sources = list(self.source_transformations)
+        items: list[tuple[Any, Any]] = []
+
+        while active_sources:
+            next_active: list[Any] = []
+            for transformation in active_sources:
+                status, item = self._poll_source(transformation, instances)
+                if status == "closed":
+                    continue
+                if status == "idle":
+                    next_active.append(transformation)
+                    continue
+                items.append((transformation, item))
+                next_active.append(transformation)
+            active_sources = next_active
+
+        logger.debug(
+            "Collected %d source item(s) from %d source(s).",
+            len(items),
+            len(self.source_transformations),
+        )
+        return items
+
+    def _finalize_functions(self, instances: dict[str, Any]) -> None:
+        if self._finalized:
+            return
+        self._finalized = True
+
+        for transformation in self.pipeline:
+            if type(transformation).__name__ != "SinkTransformation":
+                continue
+            for function in self._replicas_for(transformation, instances):
+
+exec
+/bin/bash -lc "sed -n '660,912p' /home/shuhao/SAGE-trace/src/sage/runtime/pipeline_compiler.py" in /home/shuhao/SAGE-trace
+ succeeded in 19ms:
+codex
+
+
+Now the remaining target files and the context-binding helpers:
+
+
+codex
+
+
+exec
+/bin/bash -lc "cat /home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/actors/execution_context.py; echo ===LANES===; sed -n '1,120p' /home/shuhao/SAGE-trace/src/sage/runtime/flownet/runtime/actors/executor_lanes.py" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+from __future__ import annotations
+
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar, Token
+from dataclasses import dataclass
+from typing import Any
+
+
+@dataclass(frozen=True)
+class ActorExecutionContext:
+    actor_id: str
+    actor_config: Any | None
+    runtime_host: Any | None
+
+
+_CURRENT_ACTOR_EXECUTION_CONTEXT: ContextVar[ActorExecutionContext | None] = ContextVar(
+    "flownet_actor_execution_context",
+    default=None,
+)
+
+
+@contextmanager
+def bind_actor_execution_context(
+    *,
+    actor_id: str,
+    actor_config: Any | None,
+    runtime_host: Any | None,
+) -> Iterator[ActorExecutionContext]:
+    context = ActorExecutionContext(
+        actor_id=str(actor_id),
+        actor_config=actor_config,
+        runtime_host=runtime_host,
+    )
+    token: Token[ActorExecutionContext | None] = _CURRENT_ACTOR_EXECUTION_CONTEXT.set(context)
+    try:
+        yield context
+    finally:
+        _CURRENT_ACTOR_EXECUTION_CONTEXT.reset(token)
+
+
+def current_actor_execution_context() -> ActorExecutionContext | None:
+    return _CURRENT_ACTOR_EXECUTION_CONTEXT.get()
+
+
+def require_actor_execution_context() -> ActorExecutionContext:
+    context = current_actor_execution_context()
+    if context is None:
+        raise RuntimeError("actor_execution_context_not_available")
+    return context
+
+
+def current_actor_runtime_host() -> Any | None:
+    context = current_actor_execution_context()
+    if context is None:
+        return None
+    return context.runtime_host
+
+
+def require_actor_runtime_host() -> Any:
+    runtime_host = current_actor_runtime_host()
+    if runtime_host is None:
+        raise RuntimeError("actor_runtime_host_not_available")
+    return runtime_host
+
+
+__all__ = [
+    "ActorExecutionContext",
+    "bind_actor_execution_context",
+    "current_actor_execution_context",
+    "require_actor_execution_context",
+    "current_actor_runtime_host",
+    "require_actor_runtime_host",
+]
+===LANES===
+from __future__ import annotations
+
+import contextvars
+from concurrent.futures import Executor, ThreadPoolExecutor
+from functools import partial
+from threading import Lock
+from typing import Any
+
+DEFAULT_SYNC_LANE = "default_cpu"
+TORCH_DEDICATED_SYNC_LANE = "torch_dedicated"
+SUPPORTED_SYNC_LANES = frozenset({DEFAULT_SYNC_LANE, TORCH_DEDICATED_SYNC_LANE})
+
+
+def resolve_sync_lane(actor_config: Any | None) -> str:
+    lane = None
+    execution = _extract_execution_config(actor_config)
+    if isinstance(execution, dict):
+        lane = execution.get("sync_lane")
+    elif execution is not None:
+        lane = getattr(execution, "sync_lane", None)
+
+    if lane is None:
+        if isinstance(actor_config, dict):
+            lane = actor_config.get("sync_lane")
+        elif actor_config is not None:
+            lane = getattr(actor_config, "sync_lane", None)
+
+    if lane is None:
+        return DEFAULT_SYNC_LANE
+
+    normalized_lane = str(lane).strip().lower()
+    if normalized_lane not in SUPPORTED_SYNC_LANES:
+        raise ValueError(f"unsupported_sync_lane:{normalized_lane}")
+    return normalized_lane
+
+
+def resolve_policy_max_workers(actor_config: Any | None) -> int | None:
+    task_policy = _extract_task_policy(actor_config)
+    if task_policy is None:
+        return None
+    raw_value = task_policy.get("max_workers")
+    if raw_value is None:
+        return None
+    max_workers = int(raw_value)
+    if max_workers <= 0:
+        raise ValueError("max_workers must be > 0 when provided.")
+    return max_workers
+
+
+def run_in_executor_with_context(
+    loop: Any,
+    func,
+    *args,
+    executor: Executor | None = None,
+    **kwargs,
+):
+    ctx = contextvars.copy_context()
+    bound = partial(func, *args, **kwargs)
+    return loop.run_in_executor(executor, ctx.run, bound)
+
+
+class ExecutorLanes:
+    """Executor lane registry for v1 sync actor execution."""
+
+    def __init__(
+        self,
+        *,
+        default_cpu_max_workers: int | None = None,
+        thread_name_prefix: str = "flownet-v1",
+    ) -> None:
+        if default_cpu_max_workers is not None and int(default_cpu_max_workers) <= 0:
+            raise ValueError("default_cpu_max_workers must be > 0 when provided.")
+        self._default_cpu_max_workers = (
+            int(default_cpu_max_workers) if default_cpu_max_workers is not None else None
+        )
+        self._thread_name_prefix = str(thread_name_prefix)
+        self._default_cpu_executor: ThreadPoolExecutor | None = None
+        self._policy_cpu_executors: dict[str, ThreadPoolExecutor] = {}
+        self._torch_dedicated_executors: dict[str, ThreadPoolExecutor] = {}
+        self._shutdown = False
+        self._lock = Lock()
+
+    def lane_for(self, *, actor_config: Any | None) -> str:
+        return resolve_sync_lane(actor_config)
+
+    def executor_for(self, *, actor_id: str, actor_config: Any | None = None) -> ThreadPoolExecutor:
+        normalized_actor_id = _normalize_actor_id(actor_id)
+        lane = resolve_sync_lane(actor_config)
+        policy_max_workers = resolve_policy_max_workers(actor_config)
+
+        with self._lock:
+            if self._shutdown:
+                raise RuntimeError("executor_lanes_already_shutdown")
+
+            if lane == DEFAULT_SYNC_LANE:
+                if policy_max_workers is not None:
+                    executor = self._policy_cpu_executors.get(normalized_actor_id)
+                    if executor is None:
+                        executor = ThreadPoolExecutor(
+                            max_workers=policy_max_workers,
+                            thread_name_prefix=(
+                                f"{self._thread_name_prefix}-cpu-policy-"
+                                f"{_executor_actor_suffix(normalized_actor_id)}"
+                            ),
+                        )
+                        self._policy_cpu_executors[normalized_actor_id] = executor
+                    return executor
+                if self._default_cpu_executor is None:
+                    self._default_cpu_executor = ThreadPoolExecutor(
+                        max_workers=self._default_cpu_max_workers,
+                        thread_name_prefix=f"{self._thread_name_prefix}-cpu",
+                    )
+                return self._default_cpu_executor
+
+            executor = self._torch_dedicated_executors.get(normalized_actor_id)
+            if executor is None:
+                executor = ThreadPoolExecutor(
+                    max_workers=policy_max_workers or 1,
+                    thread_name_prefix=(
+                        f"{self._thread_name_prefix}-torch-{_executor_actor_suffix(normalized_actor_id)}"
+
+exec
+/bin/bash -lc "cd /home/shuhao/SAGE-trace; grep -n -E 'class |def |Thread|thread|Queue|queue|token|credential|secret|api_key|prompt|payload|logger\\.|logging' src/sage/serving/integrations/registry.py | head -60; echo ===CHAT===; grep -n -E 'class |def |Thread|thread|token|credential|api_key|logger\\.|print|prompt|user' src/sage/cli/commands/apps/chat.py | head -50" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+6:from threading import RLock
+32:class WorkflowIntegrationRegistry:
+33:    def __init__(
+79:    def register_adapter(self, adapter: WorkflowProductAdapter) -> WorkflowProductAdapterDescriptor:
+99:    def unregister_adapter(self, integration_type: str) -> bool:
+107:    def get_adapter(self, integration_type: str) -> WorkflowProductAdapter | None:
+115:    def require_adapter(self, integration_type: str) -> WorkflowProductAdapter:
+121:    def list_adapter_descriptors(self) -> tuple[WorkflowProductAdapterDescriptor, ...]:
+134:    def snapshot(self) -> dict[str, Any]:
+156:    def inspect(self) -> dict[str, Any]:
+159:    def import_workflow(self, request: WorkflowImportRequest) -> WorkflowImportResponse:
+170:    def submit_job(self, request: WorkflowJobSubmitRequest) -> WorkflowJobSubmitResponse:
+188:    def _prepare_submit_request_with_policy(
+207:        controller, source = serving_policy.resolve_deadline_class_max_tokens(
+208:            type("_Args", (), {"deadline_class_max_tokens": None})(),
+211:        caps, cap_profile = serving_policy.deadline_class_max_tokens_for_request(
+218:        requested_max_tokens = base_context.get("max_tokens")
+219:        effective_max_tokens = requested_max_tokens
+220:        if requested_max_tokens is not None:
+222:            base_context["max_tokens"] = effective
+223:            requested_max_tokens = requested
+224:            effective_max_tokens = effective
+236:            "deadline_class_max_tokens": caps,
+238:            "requested_max_tokens": requested_max_tokens,
+239:            "effective_max_tokens": effective_max_tokens,
+248:            input_payload=request.input_payload,
+255:    def poll_status(self, request: WorkflowJobStatusPollRequest) -> WorkflowJobStatusPollResponse:
+266:    def collect_result(
+281:def build_workflow_integration_registry_from_env(
+312:def validate_workflow_product_adapter(
+329:def _validate_adapter_response(
+351:def _validate_imported_workflow(
+361:def _normalize_non_empty(value: Any, *, field_name: str) -> str:
+368:def _normalize_optional_non_empty(raw_value: Any) -> str | None:
+377:def _coerce_optional_float(raw_value: Any) -> float | None:
+383:def _parse_policy_load_snapshot_from_env(env_map: Mapping[str, str]) -> dict[str, float | None]:
+393:            payload = json.loads(raw_json)
+396:        if not isinstance(payload, Mapping):
+399:            payload.get("num_requests_running")
+402:            payload.get("num_requests_waiting")
+404:        snapshot["kv_cache_usage_perc"] = _coerce_optional_float(payload.get("kv_cache_usage_perc"))
+===CHAT===
+16:from sage.foundation import SagePorts, get_user_paths
+20:def resolve_index_root(index_name: str | None) -> Path:
+22:    base = get_user_paths().data_dir / "chat" / "indexes"
+30:def _default_model_for_engine(engine: str) -> str:
+39:def _env_value(*names: str) -> str | None:
+47:def _has_real_api_key(args: Any) -> bool:
+49:        os.environ.get(args.api_key_env),
+59:def _sagellm_executable() -> str | None:
+63:def _detect_backend(args: Any) -> tuple[str | None, str | None]:
+87:    if configured_base_url and _has_real_api_key(args):
+89:    if _has_real_api_key(args):
+99:def _chat_base_url(args: Any) -> str:
+105:    if _has_real_api_key(args):
+110:def _api_key_for_request(args: Any) -> str:
+111:    return _env_value(args.api_key_env, "SAGE_CHAT_API_KEY", "OPENAI_API_KEY") or "EMPTY"
+114:def _run_direct_sagellm(prompt: str | None, args: Any) -> int:
+117:        print("未找到 `sagellm` 可执行文件，无法直接调用真实推理引擎。", file=sys.stderr)
+121:    if prompt is None:
+124:        command.extend(["run", "-p", prompt])
+132:    if args.max_tokens is not None:
+133:        command.extend(["--max-tokens", str(args.max_tokens)])
+149:def _request_openai_chat(prompt: str, args: Any) -> int:
+153:        "messages": [{"role": "user", "content": prompt}],
+163:            "Authorization": f"Bearer {_api_key_for_request(args)}",
+174:                print(message)
+177:        print(f"chat 请求失败: {exc}", file=sys.stderr)
+180:        print(f"chat 响应解析失败: {exc}", file=sys.stderr)
+184:def _stream_sse_response(response: Any) -> None:
+205:def run_chat(args: Any) -> int:
+209:        print(note, file=sys.stderr)
+215:        prompt = args.ask
+218:            return _run_direct_sagellm(prompt, args)
+219:        return _request_openai_chat(prompt, args)
+223:            print(note)
+227:    print(f"SAGE chat ({backend}, model={model})")
+229:        print(note)
+230:    print("输入 exit / quit 退出")
+233:            prompt = input("sage chat> ").strip()
+235:            print("")
+238:            print("\n已退出")
+241:        if not prompt:
+243:        if prompt.lower() in {"exit", "quit"}:
+246:        status = _request_openai_chat(prompt, args)
+251:def run_index_ingest(args: Any) -> int:
+269:        print(f"已写入轻量索引元数据: {index_root}")
+270:        print(
+276:def add_chat_parser(subparsers: Any) -> None:
+292:    chat.add_argument("--ask", default=None, help="Single-shot prompt")
+306:    chat.add_argument("--max-tokens", type=int, default=None, help="Max output tokens")
+314:def add_index_parser(subparsers: Any) -> None:
+
+context compacted
+warning: Heads up: Long threads and multiple compactions can cause the model to be less accurate. Start a new thread when possible to keep threads small and targeted.
+exec
+/bin/bash -lc 'wc -l src/sage/runtime/environments.py src/sage/serving/integrations/contracts.py src/sage/flownet/runtime/actors/executor_lanes.py src/sage/flownet/runtime/task_runtime.py 2>/dev/null; ls src/sage' in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+  223 src/sage/runtime/environments.py
+ 1054 src/sage/serving/integrations/contracts.py
+ 1277 total
+__pycache__
+_version.py
+cli
+edge
+foundation
+runtime
+serving
+stream
+tools
+tracing
+workloads
+
+exec
+/bin/bash -lc "find . -path ./.git -prune -o -name 'test_*.py' -print 2>/dev/null | head -50" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+./src/tests/test_openai_replay_carrier.py
+./src/tests/test_flownet_endpoint_plane_contract.py
+./src/tests/test_flownet_shared_state_service_contract.py
+./src/tests/test_runtime_parallelism_contract.py
+./src/tests/test_benchmark_carrier_stub.py
+./src/tests/test_flownet_backend_container_plane_contract.py
+./src/tests/test_flownet_runtime_state_query.py
+./src/tests/test_workflow_product_integration_contract.py
+./src/tests/test_edge_core.py
+./src/tests/test_flownet_collective_executor_contract.py
+./src/tests/test_runtime_local_consolidation.py
+./src/tests/test_flownet_service_lifecycle_runner.py
+./src/tests/test_flownet_connector_checkpoint_fault_tolerance.py
+./src/tests/test_large_scale_analysis_workload.py
+./src/tests/test_edge_app.py
+./src/tests/test_compiled_plan_cache.py
+./src/tests/test_edge_server.py
+./src/tests/test_cli_main.py
+./src/tests/test_flownet_compiled_plan_integration.py
+
+exec
+/bin/bash -lc "ls src/sage/flownet/runtime/ src/sage/flownet/runtime/actors/ src/sage/tracing/ 2>/dev/null; find src/sage -name 'executor_lanes.py' -o -name 'task_runtime.py' | head" in /home/shuhao/SAGE-trace
+ succeeded in 16ms:
+exec
+/bin/bash -lc 'cat src/sage/runtime/environments.py' in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+"""Main-repo owned runtime environment entrypoints."""
+
+from __future__ import annotations
+
+import time
+from typing import TYPE_CHECKING, Any
+
+from sage.runtime import backend as runtime_backend
+
+from .base_environment import BaseEnvironment
+from .job_manager import JobManager
+from .pipeline_compiler import PipelineCompiler
+
+if TYPE_CHECKING:
+    from .pipeline_compiler import CompiledActorGraph, _StreamingFlowHandle
+
+
+class LocalEnvironment(BaseEnvironment):
+    """Local execution environment."""
+
+    def __init__(
+        self,
+        name: str = "localenvironment",
+        config: dict | None = None,
+        scheduler=None,
+        enable_monitoring: bool = False,
+    ):
+        super().__init__(
+            name,
+            config,
+            platform="local",
+            scheduler=scheduler,
+            enable_monitoring=enable_monitoring,
+        )
+        self._engine_client = None
+
+    def submit(self, autostop: bool = False):
+        env_uuid = self.jobmanager.submit_job(self, autostop=autostop)
+        self.env_uuid = env_uuid
+        return env_uuid
+
+    def _wait_for_completion(self):
+        if not self.env_uuid:
+            self.logger.warning("No environment UUID found, cannot wait for completion")
+            return
+
+        self.logger.info("Waiting for batch processing to complete...")
+        self.logger.info(
+            "⏳ Strategy: Wait for all data to be processed (not just source completion)"
+        )
+
+        max_wait_time = 12000.0
+        start_time = time.time()
+        check_interval = 1.0
+
+        try:
+            while time.time() - start_time < max_wait_time:
+                status = self.jobmanager.get_job_status(self.env_uuid)
+                if status["status"] in ["stopped", "failed", "not_found"]:
+                    self.logger.info(
+                        f"✅ Batch processing completed with status: {status['status']}"
+                    )
+                    break
+
+                time.sleep(check_interval)
+
+            else:
+                self.logger.warning(
+                    f"Timeout waiting for batch processing to complete after {max_wait_time}s"
+                )
+                try:
+                    self.stop()
+                except Exception as stop_error:  # noqa: BLE001
+                    self.logger.error(f"Error stopping timed out job: {stop_error}")
+
+        except KeyboardInterrupt:
+            self.logger.info("Received interrupt signal, stopping batch processing...")
+            self.stop()
+        except Exception as exc:  # noqa: BLE001
+            self.logger.error(f"Error waiting for completion: {exc}")
+            try:
+                self.stop()
+            except Exception as stop_error:  # noqa: BLE001
+                self.logger.error(f"Error stopping job after wait error: {stop_error}")
+        finally:
+            self.is_running = False
+
+    @property
+    def jobmanager(self) -> JobManager:
+        if self._jobmanager is None:
+            self._jobmanager = JobManager()
+
+        return self._jobmanager
+
+    def stop(self):
+        if not self.env_uuid:
+            self.logger.warning("Environment not submitted, nothing to stop")
+            return
+
+        self.logger.info("Stopping pipeline...")
+        try:
+            response = self.jobmanager.pause_job(self.env_uuid)
+            if response.get("status") in {"success", "stopped"}:
+                self.is_running = False
+                self.logger.info("Pipeline stopped successfully")
+            else:
+                self.logger.warning(f"Failed to stop pipeline: {response.get('message')}")
+        except Exception as exc:  # noqa: BLE001
+            self.logger.error(f"Error stopping pipeline: {exc}")
+
+    def close(self):
+        if not self.env_uuid:
+            self.logger.warning("Environment not submitted, nothing to close")
+            return
+
+        self.logger.info("Closing environment...")
+        try:
+            response = self.jobmanager.pause_job(self.env_uuid)
+            if response.get("status") in {"success", "stopped"}:
+                self.logger.info("Environment closed successfully")
+            else:
+                self.logger.warning(f"Failed to close environment: {response.get('message')}")
+        except Exception as exc:  # noqa: BLE001
+            self.logger.error(f"Error closing environment: {exc}")
+        finally:
+            self.is_running = False
+            self.env_uuid = None
+            self.pipeline.clear()
+
+
+class FlowNetEnvironment(BaseEnvironment):
+    """Optional distributed execution environment backed by FlowNet."""
+
+    def __init__(
+        self,
+        name: str = "flownet_environment",
+        config: dict | None = None,
+        scheduler=None,
+        placement_policy: str | None = None,
+        enable_monitoring: bool = False,
+    ) -> None:
+        super().__init__(
+            name,
+            config,
+            platform="flownet",
+            scheduler=scheduler,
+            enable_monitoring=enable_monitoring,
+        )
+        self._placement_policy: str | None = placement_policy
+        self._compiled_graph: CompiledActorGraph | None = None
+        self._streaming_handle: _StreamingFlowHandle | None = None
+
+    def submit(self, autostop: bool = False) -> Any:
+        adapter = runtime_backend.get_runtime_backend()
+        compiler = PipelineCompiler()
+
+        self.logger.info(
+            f"[FlowNetEnvironment:{self.name}] Compiling pipeline with {len(self.pipeline)} stage(s)…"
+        )
+        self._compiled_graph = compiler.compile(self.pipeline, adapter)
+
+        self.logger.info(
+            f"[FlowNetEnvironment:{self.name}] Submitting "
+            f"({'batch/autostop' if autostop else 'streaming'})…"
+        )
+        result = self._compiled_graph.submit(autostop=autostop)
+
+        if not autostop:
+            self._streaming_handle = result
+
+        return result
+
+    def stop(self) -> None:
+        if self._streaming_handle is not None:
+            self.logger.info(f"[FlowNetEnvironment:{self.name}] Stopping streaming pipeline…")
+            self._streaming_handle.stop()
+            self._streaming_handle = None
+        else:
+            self.logger.info(
+                f"[FlowNetEnvironment:{self.name}] stop() called but no active streaming handle found — nothing to stop."
+            )
+
+    def close(self) -> None:
+        self.stop()
+        self._compiled_graph = None
+        self.logger.info(f"[FlowNetEnvironment:{self.name}] Closed.")
+
+    def health_check(self) -> list[dict[str, Any]]:
+        try:
+            adapter = runtime_backend.get_runtime_backend()
+            return adapter.list_nodes()
+        except Exception as exc:  # noqa: BLE001
+            self.logger.warning(f"[FlowNetEnvironment:{self.name}] health_check failed: {exc}")
+            return []
+
+    @property
+    def is_running(self) -> bool:
+        if self._streaming_handle is None:
+            return False
+        return self._streaming_handle.is_running
+
+    @property
+    def placement_policy(self) -> str | None:
+        return self._placement_policy
+
+    @placement_policy.setter
+    def placement_policy(self, value: str | None) -> None:
+        self._placement_policy = value
+
+    def __repr__(self) -> str:
+        state = "running" if self.is_running else "idle"
+        return (
+            f"FlowNetEnvironment(name={self.name!r}, stages={len(self.pipeline)}, state={state!r})"
+        )
+
+    def __enter__(self) -> FlowNetEnvironment:
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.close()
+
+
+__all__ = ["LocalEnvironment", "FlowNetEnvironment"]
+
+exec
+/bin/bash -lc "wc -l src/sage/tracing/core.py src/sage/runtime/flownet/runtime/actors/task_runtime.py src/sage/runtime/flownet/runtime/actors/executor_lanes.py src/sage/runtime/flownet/runtime/actors/invoker.py src/sage/runtime/flownet/runtime/actors/execution_context.py; grep -rn \"from.*tracing\\|import tracing\\|trace_span\\|span\" src/sage --include='*.py' -l | head -20" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+  350 src/sage/tracing/core.py
+  230 src/sage/runtime/flownet/runtime/actors/task_runtime.py
+  251 src/sage/runtime/flownet/runtime/actors/executor_lanes.py
+  307 src/sage/runtime/flownet/runtime/actors/invoker.py
+   74 src/sage/runtime/flownet/runtime/actors/execution_context.py
+ 1212 total
+src/sage/tracing/core.py
+
+exec
+/bin/bash -lc "sed -n '1,200p' src/sage/tracing/core.py" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+"""Fail-open, context-local tracing of observable work, never model reasoning."""
+from __future__ import annotations
+
+import contextvars
+import functools
+import hashlib
+import hmac
+import json
+import math
+import queue
+import re
+import secrets
+import threading
+import time
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass
+from typing import Any, Protocol
+
+SCHEMA_VERSION = 1
+_LABEL = re.compile(r"[A-Za-z0-9_.:/-]{1,128}\Z")
+_SECRET = re.compile(r"(?i)(bearer|sk-|api.?key|password|authorization|chain.of.thought|reasoning)")
+_COUNTS = frozenset({"attempt", "input_bytes", "output_bytes", "input_tokens", "output_tokens", "retrieved_count", "dropped_events"})
+_LABELS = frozenset({"operation", "model", "provider", "error_type"})
+_CURRENT: contextvars.ContextVar[Span | None] = contextvars.ContextVar("sage_trace_span", default=None)
+_TRACER: contextvars.ContextVar[Tracer | None] = contextvars.ContextVar("sage_tracer", default=None)
+
+
+class Exporter(Protocol):
+    def export(self, record: bytes) -> None:
+        """Receive one sanitized, size-bounded NDJSON record on a daemon worker."""
+
+
+@dataclass(frozen=True)
+class TraceConfig:
+    sample_rate: float = 1.0
+    queue_capacity: int = 1024
+    max_record_bytes: int = 16 * 1024
+    max_hash_bytes: int = 4096
+    allow_summaries: bool = False
+    summary_redactor: Callable[[str], str] | None = None
+
+    def __post_init__(self):
+        if not math.isfinite(self.sample_rate) or not 0 <= self.sample_rate <= 1:
+            raise ValueError("sample_rate must be in [0, 1]")
+        if not 1 <= self.queue_capacity <= 4096 or not 512 <= self.max_record_bytes <= 16384:
+            raise ValueError("trace buffer/record bounds exceeded")
+        if not 0 <= self.max_hash_bytes <= 65536:
+            raise ValueError("max_hash_bytes must be in [0, 65536]")
+        if self.allow_summaries and self.summary_redactor is None:
+            raise ValueError("public summaries require an explicit summary_redactor")
+
+
+def safe_label(value: Any, default: str = "redacted") -> str:
+    if type(value) is str and _LABEL.fullmatch(value) and not _SECRET.search(value):
+        return value
+    return default
+
+
+class Span:
+    def __init__(self, tracer, name, kind, *, parent=None, links=(), attributes=None, enabled=True):
+        self.tracer = tracer
+        self.enabled = enabled
+        self.trace_id = parent.trace_id if parent else secrets.token_hex(16)
+        self.span_id = secrets.token_hex(8)
+        self.parent_span_id = parent.span_id if parent else None
+        self.name = safe_label(name)
+        self.kind = kind if kind in {"pipeline", "model", "retrieval", "tool", "data", "step"} else "step"
+        self.links = [value for value in links if type(value) is str and re.fullmatch(r"[0-9a-f]{16}", value)][:16]
+        self.attributes = dict(attributes or {})
+        self.evidence_refs: list[str] = []
+        self.decision_summary: str | None = None
+        self.status = "ok"
+        self._ended = False
+        self._lock = threading.Lock()
+        self.started_ns = time.monotonic_ns()
+        if enabled:
+            tracer._emit(self, "span_start")
+
+    def annotate(self, **attributes):
+        if self.enabled:
+            self.attributes.update({k: v for k, v in attributes.items() if k in _LABELS | _COUNTS})
+        return self
+
+    def record_error(self, error: BaseException):
+        if self.enabled:
+            self.status = "cancelled" if isinstance(error, (KeyboardInterrupt, GeneratorExit)) or type(error).__name__ == "CancelledError" else "error"
+            self.annotate(error_type=type(error).__name__)
+
+    def summarize(self, value: Any, *, output=False):
+        """Hash only a bounded prefix of bytes/str. Never repr/serialize arbitrary objects."""
+        if not self.enabled:
+            return
+        try:
+            prefix = "output" if output else "input"
+            if type(value) is str:
+                raw = value[:self.tracer.config.max_hash_bytes].encode("utf-8")[:self.tracer.config.max_hash_bytes]
+            elif type(value) is bytes:
+                raw = value[:self.tracer.config.max_hash_bytes]
+            else:
+                return
+            # Count only the observed bounded prefix, not an expensive full-content scan.
+            self.annotate(**{prefix + "_bytes": len(raw)})
+            digest = hmac.new(self.tracer._hash_key, raw, hashlib.sha256).hexdigest()
+            self.evidence_refs.append(prefix + "-prefix-hmac-" + digest)
+        except Exception:
+            self.tracer._increment("instrumentation_errors")
+
+    def evidence(self, reference: str):
+        if self.enabled and len(self.evidence_refs) < 16:
+            self.evidence_refs.append(safe_label(reference))
+
+    def endpoint(self, endpoint: str):
+        if self.enabled and type(endpoint) is str:
+            # Endpoint bodies/URLs/auth/query strings never enter the wire contract.
+            digest = hmac.new(self.tracer._hash_key, endpoint[:4096].encode(), hashlib.sha256).hexdigest()
+            self.evidence("endpoint-hmac-" + digest)
+
+    def summary(self, text: str):
+        if self.enabled and self.tracer.config.allow_summaries:
+            try:
+                redacted = self.tracer.config.summary_redactor(text[:1024])
+                if type(redacted) is str and not _SECRET.search(redacted):
+                    self.decision_summary = redacted.encode()[:256].decode(errors="ignore")
+            except Exception:
+                self.tracer._increment("instrumentation_errors")
+
+    @contextmanager
+    def activate(self):
+        token = _CURRENT.set(self)
+        try:
+            yield self
+        finally:
+            _CURRENT.reset(token)
+
+    def __enter__(self):
+        self._activation = self.activate()
+        self._activation.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        try:
+            if exc is not None:
+                self.record_error(exc)
+            self.end()
+        finally:
+            self._activation.__exit__(exc_type, exc, tb)
+
+    def end(self, status=None):
+        with self._lock:
+            if self._ended:
+                return
+            self._ended = True
+        if not self.enabled:
+            return
+        if status in {"ok", "error", "cancelled"}:
+            self.status = status
+        self.tracer._emit(self, "span_end")
+        if self.parent_span_id is None:
+            self.tracer._emit(self, "metrics", attributes={"dropped_events": self.tracer.stats()["dropped_events"]})
+            self.tracer._emit(self, "trace_end")
+
+
+class _NoopSpan:
+    enabled = False
+    trace_id = span_id = parent_span_id = None
+    status = "ok"
+    started_ns = 0
+
+    def __enter__(self): return self
+    def __exit__(self, *args): return None
+    def activate(self): return self
+    def end(self, *args, **kwargs): pass
+    def annotate(self, **kwargs): return self
+    def record_error(self, *args): pass
+    def summarize(self, *args, **kwargs): pass
+    def summary(self, *args): pass
+    def endpoint(self, *args): pass
+    def evidence(self, *args): pass
+
+
+NOOP_SPAN = _NoopSpan()
+
+
+class _NoopTracer:
+    enabled = False
+    def start_span(self, *args, **kwargs): return NOOP_SPAN
+    span = start_span
+
+
+NOOP_TRACER = _NoopTracer()
+
+
+class Tracer:
+    enabled = True
+
+    def __init__(self, exporter: Exporter, config: TraceConfig | None = None):
+        self.config = config or TraceConfig()
+        self.exporter = exporter
+        self.producer_id = secrets.token_hex(16)
+
+exec
+/bin/bash -lc "sed -n '200,350p' src/sage/tracing/core.py" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+        self.producer_id = secrets.token_hex(16)
+        self.clock_id = secrets.token_hex(16)
+        self._hash_key = secrets.token_bytes(32)
+        self._queue = queue.Queue(maxsize=self.config.queue_capacity)
+        self._lock = threading.Lock()
+        self._counts = {"accepted_events": 0, "exported_events": 0, "dropped_events": 0, "export_errors": 0, "instrumentation_errors": 0}
+        self._sequence = 0
+        self._closed = threading.Event()
+        self._worker = threading.Thread(target=self._drain, name="sage-trace-export", daemon=True)
+        self._worker.start()
+
+    def _increment(self, key):
+        with self._lock:
+            self._counts[key] += 1
+
+    def stats(self):
+        with self._lock:
+            return {**self._counts, "queue_depth": self._queue.qsize()}
+
+    def start_span(self, name, *, kind="step", links=(), attributes=None):
+        parent = _CURRENT.get()
+        enabled = parent.enabled if parent is not None else secrets.randbelow(1_000_000) < self.config.sample_rate * 1_000_000
+        return Span(self, name, kind, parent=parent, links=links, attributes=attributes, enabled=enabled)
+
+    span = start_span
+
+    def _emit(self, span, event_type, *, attributes=None):
+        try:
+            attrs = {}
+            for key, value in (span.attributes if attributes is None else attributes).items():
+                if key in _COUNTS and type(value) is int and 0 <= value < 2**63:
+                    attrs[key] = value
+                elif key in _LABELS:
+                    attrs[key] = safe_label(value)
+            with self._lock:
+                sequence = self._sequence
+                self._sequence += 1
+            record = {
+                "schema_version": 1, "event_id": secrets.token_hex(16),
+                "trace_id": span.trace_id, "span_id": span.span_id,
+                "producer_id": self.producer_id, "clock_id": self.clock_id,
+                "sequence": sequence, "event_type": event_type,
+                "wall_time_ns": time.time_ns(), "monotonic_ns": time.monotonic_ns(),
+                "name": span.name, "kind": span.kind, "attributes": attrs,
+            }
+            if span.parent_span_id:
+                record["parent_span_id"] = span.parent_span_id
+            if span.links:
+                record["links"] = span.links
+            if event_type in {"span_end", "trace_end"}:
+                record["status"] = span.status
+            if span.evidence_refs:
+                record["evidence_refs"] = span.evidence_refs[:16]
+            if span.decision_summary is not None:
+                record["decision_summary"] = span.decision_summary
+            encoded = (json.dumps(record, separators=(",", ":"), ensure_ascii=True) + "\n").encode()
+            if len(encoded) > self.config.max_record_bytes or self._closed.is_set():
+                self._increment("dropped_events")
+                return
+            try:
+                self._queue.put_nowait(encoded)
+                self._increment("accepted_events")
+            except queue.Full:
+                self._increment("dropped_events")
+        except Exception:
+            self._increment("instrumentation_errors")
+
+    def _drain(self):
+        while not self._closed.is_set() or not self._queue.empty():
+            try:
+                record = self._queue.get(timeout=0.05)
+            except queue.Empty:
+                continue
+            try:
+                self.exporter.export(record)
+                self._increment("exported_events")
+            except Exception:
+                self._increment("export_errors")
+                self._increment("dropped_events")
+            finally:
+                self._queue.task_done()
+
+    def close(self, timeout=1.0):
+        self._closed.set()
+        self._worker.join(timeout=max(0, timeout))
+        return not self._worker.is_alive()
+
+    def flush(self, timeout=1.0):
+        deadline = time.monotonic() + timeout
+        while self._queue.unfinished_tasks and time.monotonic() < deadline:
+            time.sleep(0.001)
+        return self._queue.unfinished_tasks == 0
+
+
+@contextmanager
+def use_tracer(tracer: Tracer) -> Iterator[Tracer]:
+    token = _TRACER.set(tracer)
+    # Isolate roots when switching tracers inside another trace.
+    span_token = _CURRENT.set(None)
+    try:
+        yield tracer
+    finally:
+        _CURRENT.reset(span_token)
+        _TRACER.reset(token)
+
+
+def get_tracer():
+    return _TRACER.get() or NOOP_TRACER
+
+
+def current_span():
+    return _CURRENT.get() or NOOP_SPAN
+
+
+def traced(name, *, kind="step", input_index=None):
+    def decorate(function):
+        @functools.wraps(function)
+        def run(*args, **kwargs):
+            tracer = get_tracer()
+            if not tracer.enabled:
+                return function(*args, **kwargs)
+            with tracer.span(name, kind=kind) as span:
+                if input_index is not None and len(args) > input_index:
+                    span.summarize(args[input_index])
+                result = function(*args, **kwargs)
+                span.summarize(result, output=True)
+                return result
+        return run
+    return decorate
+
+
+def submit_traced(executor, function, *args, **kwargs):
+    tracer = get_tracer()
+    if not tracer.enabled:
+        return executor.submit(function, *args, **kwargs)
+    context = contextvars.copy_context()
+    queued = tracer.start_span("sage.runtime.queue", kind="step")
+
+    def run():
+        queued.end()
+        with tracer.span("sage.runtime.execute", kind="step", links=[queued.span_id]):
+            return function(*args, **kwargs)
+
+    try:
+        future = executor.submit(context.run, run)
+    except BaseException as exc:
+        queued.record_error(exc)
+        queued.end()
+        raise
+    future.add_done_callback(lambda f: queued.end("cancelled") if f.cancelled() else None)
+    return future
+
+exec
+/bin/bash -lc "sed -n '120,251p' src/sage/runtime/flownet/runtime/actors/executor_lanes.py" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+                        f"{self._thread_name_prefix}-torch-{_executor_actor_suffix(normalized_actor_id)}"
+                    ),
+                )
+                self._torch_dedicated_executors[normalized_actor_id] = executor
+            return executor
+
+    def shutdown(self, *, wait: bool = True, cancel_futures: bool = False) -> None:
+        with self._lock:
+            if self._shutdown:
+                return
+            self._shutdown = True
+            default_executor = self._default_cpu_executor
+            policy_executors = list(self._policy_cpu_executors.values())
+            dedicated_executors = list(self._torch_dedicated_executors.values())
+            self._default_cpu_executor = None
+            self._policy_cpu_executors = {}
+            self._torch_dedicated_executors = {}
+
+        executors = dedicated_executors + policy_executors
+        if default_executor is not None:
+            executors.append(default_executor)
+
+        for executor in executors:
+            executor.shutdown(wait=wait, cancel_futures=cancel_futures)
+
+    def observability_snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            default_executor = self._default_cpu_executor
+            policy_cpu_executors = dict(self._policy_cpu_executors)
+            torch_dedicated_executors = dict(self._torch_dedicated_executors)
+            default_cpu_max_workers = self._default_cpu_max_workers
+
+        return {
+            "default_cpu": {
+                "configured_max_workers": default_cpu_max_workers,
+                "executor_max_workers": _executor_max_workers(
+                    default_executor, default_cpu_max_workers
+                ),
+                "active_executor": default_executor is not None,
+                "policy_executor_max_workers": {
+                    actor_id: _executor_max_workers(executor, None)
+                    for actor_id, executor in sorted(policy_cpu_executors.items())
+                },
+            },
+            "torch_dedicated": {
+                "executor_max_workers": {
+                    actor_id: _executor_max_workers(executor, None)
+                    for actor_id, executor in sorted(torch_dedicated_executors.items())
+                },
+            },
+        }
+
+
+def _normalize_actor_id(actor_id: str) -> str:
+    normalized = str(actor_id).strip()
+    if not normalized:
+        raise ValueError("actor_id must be non-empty.")
+    return normalized
+
+
+def _extract_execution_config(actor_config: Any | None) -> Any | None:
+    if actor_config is None:
+        return None
+    if isinstance(actor_config, dict):
+        execution = actor_config.get("execution")
+        if execution is not None:
+            return execution
+        return None
+    return getattr(actor_config, "execution", None)
+
+
+def _extract_task_policy(actor_config: Any | None) -> dict[str, Any] | None:
+    if actor_config is None:
+        return None
+    if isinstance(actor_config, dict):
+        task_policy = actor_config.get("task_policy")
+        if task_policy is None:
+            policies = actor_config.get("policies")
+            if isinstance(policies, dict):
+                task_policy = policies.get("task")
+        if task_policy is None:
+            execution_policy = actor_config.get("execution_policy")
+            if isinstance(execution_policy, dict):
+                task_policy = execution_policy.get("task")
+    else:
+        task_policy = getattr(actor_config, "task_policy", None)
+        if task_policy is None:
+            policies = getattr(actor_config, "policies", None)
+            if isinstance(policies, dict):
+                task_policy = policies.get("task")
+        if task_policy is None:
+            execution_policy = getattr(actor_config, "execution_policy", None)
+            if isinstance(execution_policy, dict):
+                task_policy = execution_policy.get("task")
+    if task_policy is None:
+        return None
+    if not isinstance(task_policy, dict):
+        raise TypeError("task_policy must be a mapping when provided.")
+    return dict(task_policy)
+
+
+def _executor_actor_suffix(actor_id: str) -> str:
+    compact = actor_id.replace("/", "_").replace(":", "_")
+    if len(compact) > 12:
+        return compact[-12:]
+    return compact
+
+
+def _executor_max_workers(executor: ThreadPoolExecutor | None, fallback: int | None) -> int | None:
+    if executor is None:
+        return fallback
+    raw = getattr(executor, "_max_workers", None)
+    if raw is None:
+        return fallback
+    try:
+        normalized = int(raw)
+    except (TypeError, ValueError):
+        return fallback
+    if normalized <= 0:
+        return fallback
+    return normalized
+
+
+__all__ = [
+    "DEFAULT_SYNC_LANE",
+    "TORCH_DEDICATED_SYNC_LANE",
+    "SUPPORTED_SYNC_LANES",
+    "resolve_sync_lane",
+    "resolve_policy_max_workers",
+    "run_in_executor_with_context",
+    "ExecutorLanes",
+]
+
+exec
+/bin/bash -lc "grep -rn \"sage.tracing\\|from.*tracing\" src/sage src/tests --include='*.py' | grep -v \"tracing/core.py\"; echo ---; ls src/tests/ | grep -i \"trace\\|pipeline\\|invoker\\|lane\\|chat\\|registry\\|contract\" ; echo ---; grep -rln \"run_in_executor_with_context\\|call_local_with_protocol\\|observability_snapshot\" src/tests --include='*.py'" in /home/shuhao/SAGE-trace
+ exited 1 in 0ms:
+---
+test_flownet_backend_container_plane_contract.py
+test_flownet_collective_executor_contract.py
+test_flownet_endpoint_plane_contract.py
+test_flownet_shared_state_service_contract.py
+test_runtime_parallelism_contract.py
+test_workflow_product_integration_contract.py
+---
+
+exec
+/bin/bash -lc "grep -n \"def \\|"'^class '"\\|dataclass\" src/sage/serving/integrations/contracts.py | head -60" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+4:from dataclasses import dataclass, field
+28:def _normalize_mapping(raw_value: Any, *, field_name: str) -> dict[str, Any]:
+36:def _normalize_non_empty(raw_value: Any, *, field_name: str) -> str:
+43:def _normalize_optional_non_empty(raw_value: Any) -> str | None:
+52:def _normalize_choice(raw_value: Any, *, field_name: str, allowed: Sequence[str]) -> str:
+59:def _normalize_string_sequence(raw_value: Any, *, field_name: str) -> tuple[str, ...]:
+75:def _normalize_choice_sequence(
+88:def _coerce_int(raw_value: Any, *, field_name: str) -> int:
+95:def _coerce_optional_int(
+109:def _coerce_optional_float(
+126:def _coerce_optional_bool(raw_value: Any, *, field_name: str) -> bool | None:
+134:def _normalize_string_mapping(raw_value: Any, *, field_name: str) -> dict[str, str]:
+147:@dataclass(frozen=True)
+148:class WorkflowServingRequestContext:
+163:    def __post_init__(self) -> None:
+216:    def to_dict(self) -> dict[str, Any]:
+234:def _normalize_serving_context(
+246:@dataclass(frozen=True)
+247:class WorkflowIntegrationExtensionPoint:
+254:    def __post_init__(self) -> None:
+276:    def to_dict(self) -> dict[str, Any]:
+304:def default_workflow_product_extension_points() -> tuple[WorkflowIntegrationExtensionPoint, ...]:
+308:@dataclass(frozen=True)
+309:class WorkflowProductAdapterDescriptor:
+326:    def __post_init__(self) -> None:
+371:    def to_dict(self) -> dict[str, Any]:
+383:@dataclass(frozen=True)
+384:class WorkflowIntegrationRequest:
+393:    def __post_init__(self) -> None:
+432:    def to_dict(self) -> dict[str, Any]:
+446:@dataclass(frozen=True)
+447:class WorkflowIntegrationResponse:
+458:    def __post_init__(self) -> None:
+500:    def to_dict(self) -> dict[str, Any]:
+514:@dataclass(frozen=True)
+515:class WorkflowExecutionTarget:
+521:    def __post_init__(self) -> None:
+544:    def to_dict(self) -> dict[str, Any]:
+555:@dataclass(frozen=True)
+556:class ImportedWorkflow:
+565:    def __post_init__(self) -> None:
+595:    def to_dict(self) -> dict[str, Any]:
+607:@dataclass(frozen=True)
+608:class WorkflowImportRequest:
+617:    def __post_init__(self) -> None:
+656:    def to_integration_request(self) -> WorkflowIntegrationRequest:
+671:@dataclass(frozen=True)
+672:class WorkflowImportResponse:
+679:    def __post_init__(self) -> None:
+703:    def to_integration_response(self) -> WorkflowIntegrationResponse:
+717:@dataclass(frozen=True)
+718:class WorkflowJobSubmitRequest:
+727:    def __post_init__(self) -> None:
+758:    def to_integration_request(self) -> WorkflowIntegrationRequest:
+773:@dataclass(frozen=True)
+774:class WorkflowJobSubmitResponse:
+783:    def __post_init__(self) -> None:
+811:    def to_integration_response(self) -> WorkflowIntegrationResponse:
+827:@dataclass(frozen=True)
+828:class WorkflowJobStatusPollRequest:
+
+exec
+/bin/bash -lc "sed -n '147,235p' src/sage/serving/integrations/contracts.py; echo ====; sed -n '718,830p' src/sage/serving/integrations/contracts.py" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+@dataclass(frozen=True)
+class WorkflowServingRequestContext:
+    tenant_id: str | None = None
+    model_id: str | None = None
+    prefix_cache_key: str | None = None
+    prompt_len: int | None = None
+    max_tokens: int | None = None
+    priority: int | None = None
+    deadline_class: str | None = None
+    target_ttft_ms: float | None = None
+    target_e2e_ms: float | None = None
+    accelerator_affinity: str | None = None
+    cost_class: str | None = None
+    streaming: bool | None = None
+    trace_tags: dict[str, str] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "tenant_id", _normalize_optional_non_empty(self.tenant_id))
+        object.__setattr__(self, "model_id", _normalize_optional_non_empty(self.model_id))
+        object.__setattr__(
+            self, "prefix_cache_key", _normalize_optional_non_empty(self.prefix_cache_key)
+        )
+        object.__setattr__(
+            self,
+            "prompt_len",
+            _coerce_optional_int(self.prompt_len, field_name="prompt_len", minimum=0),
+        )
+        object.__setattr__(
+            self,
+            "max_tokens",
+            _coerce_optional_int(self.max_tokens, field_name="max_tokens", minimum=0),
+        )
+        object.__setattr__(
+            self,
+            "priority",
+            _coerce_optional_int(self.priority, field_name="priority", minimum=0),
+        )
+        object.__setattr__(
+            self,
+            "deadline_class",
+            _normalize_optional_non_empty(self.deadline_class),
+        )
+        object.__setattr__(
+            self,
+            "target_ttft_ms",
+            _coerce_optional_float(self.target_ttft_ms, field_name="target_ttft_ms", minimum=0.0),
+        )
+        object.__setattr__(
+            self,
+            "target_e2e_ms",
+            _coerce_optional_float(self.target_e2e_ms, field_name="target_e2e_ms", minimum=0.0),
+        )
+        object.__setattr__(
+            self,
+            "accelerator_affinity",
+            _normalize_optional_non_empty(self.accelerator_affinity),
+        )
+        object.__setattr__(self, "cost_class", _normalize_optional_non_empty(self.cost_class))
+        object.__setattr__(
+            self,
+            "streaming",
+            _coerce_optional_bool(self.streaming, field_name="streaming"),
+        )
+        object.__setattr__(
+            self,
+            "trace_tags",
+            _normalize_string_mapping(self.trace_tags, field_name="trace_tags"),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "tenant_id": self.tenant_id,
+            "model_id": self.model_id,
+            "prefix_cache_key": self.prefix_cache_key,
+            "prompt_len": self.prompt_len,
+            "max_tokens": self.max_tokens,
+            "priority": self.priority,
+            "deadline_class": self.deadline_class,
+            "target_ttft_ms": self.target_ttft_ms,
+            "target_e2e_ms": self.target_e2e_ms,
+            "accelerator_affinity": self.accelerator_affinity,
+            "cost_class": self.cost_class,
+            "streaming": self.streaming,
+            "trace_tags": dict(self.trace_tags),
+        }
+
+
+def _normalize_serving_context(
+    raw_value: WorkflowServingRequestContext | Mapping[str, Any] | None,
+====
+class WorkflowJobSubmitRequest:
+    integration_type: str
+    imported_workflow: ImportedWorkflow
+    input_payload: Any = None
+    submit_mode: WorkflowSubmitMode = "async"
+    request_id: str = "workflow-submit"
+    metadata: dict[str, Any] = field(default_factory=dict)
+    serving_context: WorkflowServingRequestContext | Mapping[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "integration_type",
+            _normalize_non_empty(self.integration_type, field_name="integration_type"),
+        )
+        if not isinstance(self.imported_workflow, ImportedWorkflow):
+            raise TypeError("imported_workflow must be an ImportedWorkflow.")
+        object.__setattr__(
+            self,
+            "submit_mode",
+            _normalize_choice(
+                self.submit_mode,
+                field_name="submit_mode",
+                allowed=_WORKFLOW_SUBMIT_MODES,
+            ),
+        )
+        object.__setattr__(
+            self,
+            "request_id",
+            _normalize_non_empty(self.request_id, field_name="request_id"),
+        )
+        object.__setattr__(
+            self,
+            "metadata",
+            _normalize_mapping(self.metadata, field_name="metadata"),
+        )
+        object.__setattr__(
+            self, "serving_context", _normalize_serving_context(self.serving_context)
+        )
+
+    def to_integration_request(self) -> WorkflowIntegrationRequest:
+        return WorkflowIntegrationRequest(
+            operation="job_submit",
+            integration_type=self.integration_type,
+            request_id=self.request_id,
+            payload={
+                "imported_workflow": self.imported_workflow.to_dict(),
+                "input_payload": self.input_payload,
+                "submit_mode": self.submit_mode,
+            },
+            metadata=dict(self.metadata),
+            serving_context=self.serving_context,
+        )
+
+
+@dataclass(frozen=True)
+class WorkflowJobSubmitResponse:
+    integration_type: str
+    request_id: str
+    job_id: str
+    status: WorkflowJobStatus = "accepted"
+    accepted: bool = True
+    submit_payload: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "integration_type",
+            _normalize_non_empty(self.integration_type, field_name="integration_type"),
+        )
+        object.__setattr__(
+            self,
+            "request_id",
+            _normalize_non_empty(self.request_id, field_name="request_id"),
+        )
+        object.__setattr__(self, "job_id", _normalize_non_empty(self.job_id, field_name="job_id"))
+        object.__setattr__(
+            self,
+            "status",
+            _normalize_choice(self.status, field_name="status", allowed=_WORKFLOW_JOB_STATUSES),
+        )
+        object.__setattr__(
+            self,
+            "submit_payload",
+            _normalize_mapping(self.submit_payload, field_name="submit_payload"),
+        )
+        object.__setattr__(
+            self,
+            "metadata",
+            _normalize_mapping(self.metadata, field_name="metadata"),
+        )
+
+    def to_integration_response(self) -> WorkflowIntegrationResponse:
+        return WorkflowIntegrationResponse(
+            operation="job_submit",
+            integration_type=self.integration_type,
+            request_id=self.request_id,
+            success=bool(self.accepted),
+            payload={
+                "job_id": self.job_id,
+                "status": self.status,
+                "accepted": bool(self.accepted),
+                "submit_payload": dict(self.submit_payload),
+            },
+            metadata=dict(self.metadata),
+        )
+
+
+@dataclass(frozen=True)
+class WorkflowJobStatusPollRequest:
+    integration_type: str
+    job_id: str
+
+exec
+/bin/bash -lc "grep -n \"threading.Thread\\|_executor.submit\\|copy_context\\|def submit\\|def _submit_batch\\|def _submit_streaming\\|def _run_source_thread\\|def _process_packet\\|def _dispatch_from_source\\|def _execute_chain\\|def call_service_async\\|def _invoke_service\\|def result\\|time.sleep\" src/sage/runtime/pipeline_compiler.py" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+90:    def result(self, timeout: float | None = None) -> Any:
+107:                time.sleep(0.01)
+173:    def call_service_async(
+239:    def _invoke_service(
+274:    def call_service_async(
+327:        source_threads: list[threading.Thread] | threading.Thread | None,
+332:            self._threads: list[threading.Thread] = []
+494:    def _process_packet(
+573:    def _dispatch_from_source(
+676:    def submit(self, autostop: bool = False) -> Any:
+696:    def _execute_chain(self, items: list[Any], ops: list[tuple[str, Any]]) -> list[Any]:
+759:    def _submit_batch(self) -> None:
+804:            time.sleep(0.01)
+818:    def _submit_streaming(self) -> _StreamingFlowHandle:
+821:        source_threads: list[threading.Thread] = []
+828:                context = contextvars.copy_context()
+830:            source_thread = threading.Thread(
+843:    def _run_source_thread(
+855:                    time.sleep(getattr(transformation, "delay", 0.01))
+
+exec
+/bin/bash -lc "sed -n '676,760p' src/sage/runtime/pipeline_compiler.py; echo ====; sed -n '815,912p' src/sage/runtime/pipeline_compiler.py" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+    def submit(self, autostop: bool = False) -> Any:
+        tracer = get_tracer()
+        if not tracer.enabled:
+            return self._submit_batch() if autostop else self._submit_streaming()
+        self._trace_root = tracer.start_span("sage.runtime.pipeline", kind="pipeline")
+        with self._trace_root.activate():
+            try:
+                result = self._submit_batch() if autostop else self._submit_streaming()
+            except BaseException as exc:
+                self._trace_root.record_error(exc)
+                self._trace_root.end()
+                raise
+        if autostop:
+            self._trace_root.end()
+        return result
+
+    @property
+    def trace_id(self) -> str | None:
+        return self._trace_root.trace_id if self._trace_root is not None else None
+
+    def _execute_chain(self, items: list[Any], ops: list[tuple[str, Any]]) -> list[Any]:
+        if not ops or not items:
+            return items
+
+        op_type, method_ref = ops[0]
+        remaining = ops[1:]
+
+        if op_type == _OP_SINK:
+            for item in items:
+                method_ref.call(item)
+            return []
+
+        if op_type == _OP_FLATMAP:
+            next_items: list[Any] = []
+            futures = [method_ref.async_call(item) for item in items]
+            for future in futures:
+                result = future.result()
+                if result is None:
+                    continue
+                if hasattr(result, "__iter__") and not isinstance(result, (str, bytes)):
+                    next_items.extend(result)
+                else:
+                    next_items.append(result)
+            return self._execute_chain(next_items, remaining)
+
+        if op_type == _OP_FILTER:
+            futures = [method_ref.async_call(item) for item in items]
+            next_items = [
+                item for item, future in zip(items, futures, strict=False) if future.result()
+            ]
+            return self._execute_chain(next_items, remaining)
+
+        futures = [method_ref.async_call(item) for item in items]
+        next_items = [future.result() for future in futures]
+        return self._execute_chain(next_items, remaining)
+
+    def _can_execute_linear_actor_batch(self) -> bool:
+        if not self.stage_ops or len(self.source_transformations) != 1:
+            return False
+
+        linear_ops = {
+            "BatchTransformation",
+            "MapTransformation",
+            "FlatMapTransformation",
+            "FilterTransformation",
+            "SinkTransformation",
+        }
+        return all(type(transformation).__name__ in linear_ops for transformation in self.pipeline)
+
+    def _submit_linear_actor_batch(self) -> None:
+        source_items = [item for _, item in self._collect_source_items()]
+        if not source_items:
+            logger.info("Source produced no items; batch pipeline skipped.")
+            return None
+
+        logger.info(
+            "Processing batch of %d item(s) through actor stage pipeline from %d source(s).",
+            len(source_items),
+            len(self.source_transformations),
+        )
+        self._execute_chain(source_items, self.stage_ops)
+        return None
+
+    def _submit_batch(self) -> None:
+        if not self.source_transformations:
+====
+        self._finalize_functions(instances)
+        return None
+
+    def _submit_streaming(self) -> _StreamingFlowHandle:
+        stop_event = threading.Event()
+        instances = self._build_instances()
+        source_threads: list[threading.Thread] = []
+        self._trace_remaining = len(self.source_transformations)
+
+        for transformation in self.source_transformations:
+            target = self._run_source_thread
+            args = (transformation, instances, stop_event)
+            if get_tracer().enabled:
+                context = contextvars.copy_context()
+                target, args = context.run, (target, *args)
+            source_thread = threading.Thread(
+                target=target,
+                args=args,
+                daemon=True,
+                name=f"sage-source-{transformation.basename}",
+            )
+            source_thread.start()
+            source_threads.append(source_thread)
+
+        if not source_threads and self._trace_root is not None:
+            self._trace_root.end()
+        return _StreamingFlowHandle(source_threads, stop_event=stop_event)
+
+    def _run_source_thread(
+        self,
+        transformation: Any,
+        instances: dict[str, Any],
+        stop_event: threading.Event,
+    ) -> None:
+        try:
+            while not stop_event.is_set():
+                status, item = self._poll_source(transformation, instances)
+                if status == "closed":
+                    break
+                if status == "idle":
+                    time.sleep(getattr(transformation, "delay", 0.01))
+                    continue
+                with self._dispatch_lock:
+                    self._dispatch_from_source(transformation, item, instances)
+        except Exception as exc:
+            if self._trace_root is not None:
+                self._trace_root.record_error(exc)
+            logger.exception(
+                "Source function '%s' raised an exception in streaming mode.",
+                transformation.function_class.__name__,
+            )
+        finally:
+            if self._trace_root is not None:
+                with self._trace_lock:
+                    self._trace_remaining -= 1
+                    last_source = self._trace_remaining == 0
+                if last_source:
+                    status = "cancelled" if stop_event.is_set() and self._trace_root.status == "ok" else None
+                    self._trace_root.end(status)
+            logger.debug(
+                "Source thread for '%s' exiting.",
+                transformation.function_class.__name__,
+            )
+            if not any(
+                thread.is_alive()
+                for thread in threading.enumerate()
+                if thread.name.startswith("sage-source-")
+            ):
+                self._finalize_functions(instances)
+
+
+class PipelineCompiler:
+    def compile(self, pipeline: list[Any], adapter: Any) -> CompiledActorGraph:
+        if not pipeline:
+            raise ValueError(
+                "PipelineCompiler.compile() received an empty pipeline. "
+                "Build a pipeline with env.from_source(...).map(...).sink(...) before calling env.submit()."
+            )
+
+        source_trans: Any | None = None
+        source_transforms: list[Any] = []
+        proc_transformations: list[Any] = []
+
+        for t in pipeline:
+            _, op_type, _ = _classify(t)
+            if op_type == "source":
+                source_transforms.append(t)
+                if source_trans is None:
+                    source_trans = t
+            else:
+                proc_transformations.append(t)
+
+        actor_handles: list[Any] = []
+        stage_ops: list[tuple[str, Any]] = []
+        downstream_edges: dict[str, list[tuple[Any, int]]] = {t.basename: [] for t in pipeline}
+
+        for downstream in pipeline:
+            for upstream in getattr(downstream, "upstreams", []):
+
+exec
+/bin/bash -lc "sed -n '85,170p' src/sage/runtime/pipeline_compiler.py; echo ====; sed -n '270,320p' src/sage/runtime/pipeline_compiler.py" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+        progress_callback: Any | None = None,
+    ) -> None:
+        self._future = future
+        self._progress_callback = progress_callback
+
+    def result(self, timeout: float | None = None) -> Any:
+        if self._progress_callback is None:
+            return self._future.result(timeout=timeout)
+
+        deadline = None if timeout is None else time.monotonic() + timeout
+        while True:
+            if self._future.done():
+                return self._future.result()
+
+            progressed = bool(self._progress_callback())
+            if self._future.done():
+                return self._future.result()
+
+            if deadline is not None and time.monotonic() >= deadline:
+                raise TimeoutError("Local service call did not complete before timeout.")
+
+            if not progressed:
+                time.sleep(0.01)
+
+    def cancel(self) -> bool:
+        return self._future.cancel()
+
+    @property
+    def done(self) -> bool:
+        return self._future.done()
+
+
+class _LightweightExecutionContext:
+    def __init__(
+        self,
+        name: str,
+        service_runtime: _LightweightServiceRuntime | None,
+        *,
+        parallel_index: int = 0,
+        parallelism: int = 1,
+    ) -> None:
+        self.name = name
+        self._service_runtime = service_runtime
+        self._logger = CustomLogger(name=name)
+        self._current_key: Any = None
+        self.parallel_index = parallel_index
+        self.parallelism = parallelism
+
+    @property
+    def logger(self) -> CustomLogger:
+        return self._logger
+
+    def set_current_key(self, key: Any) -> None:
+        self._current_key = key
+
+    def clear_key(self) -> None:
+        self._current_key = None
+
+    def get_key(self) -> Any:
+        return self._current_key
+
+    def get_service(self, service_name: str) -> Any:
+        if self._service_runtime is None:
+            raise RuntimeError(
+                f"Service '{service_name}' is not available in the lightweight context"
+            )
+        return self._service_runtime.get_service(service_name)
+
+    def call_service(
+        self,
+        service_name: str,
+        *args: Any,
+        timeout: float | None = None,
+        method: str | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        if self._service_runtime is None:
+            raise RuntimeError(
+                f"Service '{service_name}' is not available in the lightweight context"
+            )
+        return self._service_runtime.call_service(
+            service_name,
+            *args,
+            timeout=timeout,
+            method=method,
+            **kwargs,
+====
+            method=method,
+            **kwargs,
+        ).result(timeout=timeout)
+
+    def call_service_async(
+        self,
+        service_name: str,
+        *args: Any,
+        timeout: float | None = None,
+        method: str | None = None,
+        **kwargs: Any,
+    ) -> _LightweightServiceFuture:
+        future = submit_traced(
+            self._executor, self._invoke_service,
+            service_name,
+            *args,
+            method=method,
+            **kwargs,
+        )
+        return _LightweightServiceFuture(future, self._progress_callback)
+
+    def close(self) -> None:
+        with self._lock:
+            services = list(self._services.values())
+            self._services.clear()
+
+        for service in services:
+            stop = getattr(service, "stop", None)
+            if callable(stop):
+                stop()
+            else:
+                terminate = getattr(service, "terminate", None)
+                if callable(terminate):
+                    terminate()
+
+            cleanup = getattr(service, "cleanup", None)
+            if callable(cleanup):
+                cleanup()
+
+        self._executor.shutdown(wait=True)
+
+
+def _is_stop_signal(item: Any) -> bool:
+    return item is None or type(item).__name__ == "StopSignal"
+
+
+def _is_batch_source(transformation: Any) -> bool:
+    return _transformation_name(transformation) == "BatchTransformation"
+
+
+def _is_stream_source(transformation: Any) -> bool:
+
+exec
+/bin/bash -lc "grep -rn \"get_tracer\\|start_span\\|submit_traced\\|traced(\\|use_tracer\\|current_span\\|NOOP\" src/sage --include='*.py' | grep -v \"src/sage/tracing/core.py\"" in /home/shuhao/SAGE-trace
+ succeeded in 17ms:
+exec
+/bin/bash -lc "sed -n '476,600p' src/sage/runtime/pipeline_compiler.py" in /home/shuhao/SAGE-trace
+ succeeded in 0ms:
+        *,
+        flatten: bool = False,
+    ) -> list[Any]:
+        outputs: list[Any] = []
+        if result is not None:
+            if (
+                flatten
+                and hasattr(result, "__iter__")
+                and not isinstance(result, (str, bytes, dict))
+            ):
+                outputs.extend(list(result))
+            else:
+                outputs.append(result)
+        if collector is not None:
+            outputs.extend(collector.get_collected_data())
+        return outputs
+
+    @traced("sage.runtime.operator")
+    def _process_packet(
+        self,
+        transformation: Any,
+        packet: Packet,
+        instances: dict[str, Any],
+        queue: deque[tuple[Any, Packet]],
+    ) -> None:
+        function = self._select_function(transformation, packet, instances)
+        transformation_name = type(transformation).__name__
+        function_ctx = getattr(function, "ctx", None)
+
+        if packet.payload is None:
+            return
+
+        if function_ctx is not None and hasattr(function_ctx, "set_current_key"):
+            function_ctx.set_current_key(packet.partition_key)
+
+        try:
+            if transformation_name == "KeyByTransformation":
+                key = function.execute(packet.payload)
+                self._enqueue_downstreams(
+                    queue,
+                    transformation,
+                    packet.update_key(key, getattr(transformation, "partition_strategy", None)),
+                )
+                return
+
+            if transformation_name == "FilterTransformation":
+                if function.execute(packet.payload):
+                    self._enqueue_downstreams(queue, transformation, packet)
+                return
+
+            if transformation_name == "FlatMapTransformation":
+                collector = Collector(logger=getattr(function, "logger", None))
+                if isinstance(function, FlatMapFunction):
+                    function.insert_collector(collector)
+                result = function.execute(packet.payload)
+                for item in self._normalize_outputs(result, collector, flatten=True):
+                    self._enqueue_downstreams(
+                        queue, transformation, packet.inherit_partition_info(item)
+                    )
+                return
+
+            if transformation_name == "JoinTransformation":
+                if not packet.is_keyed():
+                    logger.warning(
+                        "JoinTransformation '%s' received non-keyed packet; dropping payload.",
+                        transformation.basename,
+                    )
+                    return
+                result = function.execute(packet.payload, packet.partition_key, packet.input_index)
+                for item in self._normalize_outputs(result, flatten=True):
+                    self._enqueue_downstreams(
+                        queue, transformation, packet.inherit_partition_info(item)
+                    )
+                return
+
+            if transformation_name == "CoMapTransformation":
+                method = getattr(function, f"map{packet.input_index}")
+                result = method(packet.payload)
+                for item in self._normalize_outputs(result):
+                    self._enqueue_downstreams(
+                        queue, transformation, packet.inherit_partition_info(item)
+                    )
+                return
+
+            if transformation_name == "SinkTransformation":
+                function.execute(packet.payload)
+                return
+
+            result = function.execute(packet.payload)
+            for item in self._normalize_outputs(result):
+                self._enqueue_downstreams(
+                    queue, transformation, packet.inherit_partition_info(item)
+                )
+        finally:
+            if function_ctx is not None and hasattr(function_ctx, "clear_key"):
+                function_ctx.clear_key()
+
+    def _dispatch_from_source(
+        self,
+        source_transformation: Any,
+        item: Any,
+        instances: dict[str, Any],
+    ) -> None:
+        queue: deque[tuple[Any, Packet]] = deque()
+        source_packet = Packet(payload=item)
+        self._enqueue_downstreams(queue, source_transformation, source_packet)
+
+        while queue:
+            transformation, packet = queue.popleft()
+            self._process_packet(transformation, packet, instances, queue)
+
+    @traced("sage.runtime.source", kind="data")
+    def _poll_source(
+        self,
+        transformation: Any,
+        instances: dict[str, Any],
+    ) -> tuple[str, Any | None]:
+        if transformation.basename in self._closed_sources:
+            return ("closed", None)
+
+        function = self._replicas_for(transformation, instances)[0]
+        try:
+            item = function.execute()
+        except StopIteration:
+            self._closed_sources.add(transformation.basename)
+
+turn interrupted
+tokens used
+247,029

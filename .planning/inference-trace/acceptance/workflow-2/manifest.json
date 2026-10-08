@@ -1,0 +1,51 @@
+{
+  "success": {
+    "semantics_equal": true,
+    "exception_type": null
+  },
+  "retry": {
+    "semantics_equal": true,
+    "exception_type": null
+  },
+  "error": {
+    "semantics_equal": true,
+    "exception_type": "ValueError"
+  },
+  "cancel_trace_id": "3c00717d85bce7dc5ff5a8237e031aff",
+  "overflow": {
+    "accepted_events": 6,
+    "exported_events": 6,
+    "dropped_events": 51,
+    "export_errors": 0,
+    "instrumentation_errors": 0,
+    "queue_depth": 0
+  },
+  "unavailable": {
+    "accepted_events": 42,
+    "exported_events": 0,
+    "dropped_events": 42,
+    "export_errors": 42,
+    "instrumentation_errors": 0,
+    "queue_depth": 0
+  },
+  "fixture": "/home/shuhao/SAGE-trace/.planning/inference-trace/acceptance/workflow-2/workflow.ndjson",
+  "sha256": "83d76fbcf48880bb85555f78628215e011f8b33fccd4a980add392d67acf7ffd",
+  "events": 82,
+  "trace_ids": [
+    "0d9dbb29f497bc36692310f45430c537",
+    "3c00717d85bce7dc5ff5a8237e031aff",
+    "543d51c4d6bb25cfbd5e846355439751",
+    "900ae4c17c0d35218a89e658f11040ed",
+    "9cef0c4863a7fbebb0f4de291c802e7b",
+    "9db05aa79ad2e2d72ebeb4639554f7d6",
+    "bb7d69d00d75223d5eb5d8165f7389d0"
+  ],
+  "tracer": {
+    "accepted_events": 76,
+    "exported_events": 76,
+    "dropped_events": 0,
+    "export_errors": 0,
+    "instrumentation_errors": 0,
+    "queue_depth": 0
+  }
+}

@@ -1,0 +1,27 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TraceLoom · Inference</title><style>
+body{margin:0;background:#111827;color:#e5e7eb;font:15px system-ui,sans-serif}main{max-width:1280px;margin:auto;padding:30px}h1{font-size:28px}h2{font-size:18px;margin-top:28px}p{color:#aebbd0}input{background:#243247;border:1px solid #64748b;color:white;padding:10px;width: min(90%,480px);border-radius:6px}.span{border-bottom:1px solid #334155;padding:12px 0}.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.name{font-weight:600}.badge{font-size:12px;padding:3px 7px;border-radius:4px;background:#334155}.error,.cancelled{color:#fda4af}.open,.missing_start{color:#fcd34d}.lane{height:14px;background:#1e293b;margin:8px 0;border-radius:4px}.bar{height:100%;min-width:3px;background:#38bdf8;border-radius:4px}.error .bar{background:#fb7185}.cancelled .bar{background:#fbbf24}.open .bar{background:#a78bfa}summary{cursor:pointer;color:#aebbd0}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}code{font-size:12px}small{color:#94a3b8}.trace{padding:12px;background:#1e293b;margin:8px 0;border-radius:6px}
+</style><main><h1>TraceLoom · Observable inference</h1><p>Saved snapshot · 4 observed spans</p><p>Clock groups have independent origins. Bars show measured spans; open spans are points. Parentage is scope, not a dependency. Longest observed dependency paths are partial evidence, not a global critical path.</p><input id="filter" aria-label="Filter spans" placeholder="Filter by name, status, span ID or metadata"><div class="trace"><code>15f4e9cb747813e5a8535764ca6b6f27</code> · finished_observed / ok · reported dropped events: 0</div><p>Unresolved dependency links: 0 · cross-clock links with unknown timing: 0</p><section><h2>8099984f756c1d15b9f4d65418586494 / 4bd90ce243b1470a8a4b0fda14fc7a1e</h2><small>Trace 15f4e9cb747813e5a8535764ca6b6f27 · peak overlapping spans: 2 (includes nested scopes) · longest observed dependency path: unavailable</small><article class="span ok" data-span-id="39248818fbc19a69"><div class="top" style="padding-left:0px"><span class="name">sage.fixture.pipeline</span><span class="badge">pipeline</span><span>ok</span><span>0.543 ms</span><code>39248818fbc19a69</code></div><div class="lane"><div class="bar" style="margin-left:0%;width:100%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 
+Dependencies:
+Evidence refs: 
+Attributes: {&quot;operation&quot;:&quot;contract-fixture&quot;}
+Wall start ns (display only): 1788921063299182099
+Span observations:
+</pre></details></article><article class="span ok" data-span-id="f524e8ed93baab8e"><div class="top" style="padding-left:14px"><span class="name">sage.fixture.retrieval</span><span class="badge">retrieval</span><span>ok</span><span>0.055 ms</span><code>f524e8ed93baab8e</code></div><div class="lane"><div class="bar" style="margin-left:15.8388%;width:10.204%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 39248818fbc19a69
+Dependencies:
+Evidence refs: document-001
+Attributes: {&quot;retrieved_count&quot;:2}
+Wall start ns (display only): 1788921063299268100
+Span observations:
+</pre></details></article><article class="span ok" data-span-id="bc5dceb61d5136b5"><div class="top" style="padding-left:14px"><span class="name">sage.fixture.tool</span><span class="badge">tool</span><span>ok</span><span>0.045 ms</span><code>bc5dceb61d5136b5</code></div><div class="lane"><div class="bar" style="margin-left:51.9842%;width:8.31671%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 39248818fbc19a69
+Dependencies:
+Evidence refs: 
+Attributes: {&quot;attempt&quot;:1}
+Wall start ns (display only): 1788921063299464251
+Span observations:
+</pre></details></article><article class="span ok" data-span-id="9a2d584e61674d51"><div class="top" style="padding-left:14px"><span class="name">sage.fixture.model</span><span class="badge">model</span><span>ok</span><span>0.123 ms</span><code>9a2d584e61674d51</code></div><div class="lane"><div class="bar" style="margin-left:69.4008%;width:22.6513%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 39248818fbc19a69
+Dependencies:
+Evidence refs: input-prefix-hmac-2365949577fe4af9aa9b05aae9351714d9b3d69ba1001dea1f91279712ef3e32, output-prefix-hmac-d74ce4dddbf957de06e1b1818ca54de3b5ee9151cdd1a49407d790111c152106
+Attributes: {&quot;input_bytes&quot;:13,&quot;input_tokens&quot;:12,&quot;model&quot;:&quot;fixture-model&quot;,&quot;output_bytes&quot;:14,&quot;output_tokens&quot;:3}
+Wall start ns (display only): 1788921063299558832
+Span observations:
+</pre></details></article></section><script>document.getElementById('filter').addEventListener('input',e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('.span').forEach(s=>s.hidden=!s.textContent.toLowerCase().includes(q));});</script></main></html>

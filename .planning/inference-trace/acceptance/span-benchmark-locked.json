@@ -1,0 +1,364 @@
+{
+  "environment": {
+    "python": "3.13.13 | packaged by Anaconda, Inc. | (main, Apr 14 2026, 06:21:46) [GCC 14.3.0]",
+    "executable": "/home/shuhao/miniconda3/bin/python",
+    "platform": "Linux-5.15.0-25-generic-aarch64-with-glibc2.35",
+    "cpu_count": 192
+  },
+  "method": "fresh process per sample; 1000 warmup; 10000 child spans; 1024-event queue; allocation probes separate; no affinity pinning; RSS high-water KiB",
+  "summary": {
+    "off": {
+      "repeats": 5,
+      "spans_per_repeat": 10000,
+      "enqueue_wall_ns_median": 5376844,
+      "drained_wall_ns_median": 5377124,
+      "rss_peak_kib_median": 21636,
+      "rss_high_water_delta_kib_median": 0,
+      "dropped_events_each_repeat": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "memory": {
+      "repeats": 5,
+      "spans_per_repeat": 10000,
+      "enqueue_wall_ns_median": 572864591,
+      "drained_wall_ns_median": 573927178,
+      "rss_peak_kib_median": 22600,
+      "rss_high_water_delta_kib_median": 268,
+      "dropped_events_each_repeat": [
+        2670,
+        5618,
+        3110,
+        7036,
+        3674
+      ]
+    },
+    "ndjson": {
+      "repeats": 5,
+      "spans_per_repeat": 10000,
+      "enqueue_wall_ns_median": 537731001,
+      "drained_wall_ns_median": 707531566,
+      "rss_peak_kib_median": 22620,
+      "rss_high_water_delta_kib_median": 284,
+      "dropped_events_each_repeat": [
+        18973,
+        18974,
+        18974,
+        18973,
+        18973
+      ]
+    }
+  },
+  "samples": [
+    {
+      "mode": "off",
+      "spans": 10000,
+      "allocation_probe": false,
+      "enqueue_wall_ns": 5372764,
+      "drained_wall_ns": 5373114,
+      "rss_before_kib": 21636,
+      "rss_peak_kib": 21636,
+      "rss_high_water_delta_kib": 0,
+      "tracemalloc_peak_bytes": null,
+      "counts": {},
+      "spool_bytes": 0
+    },
+    {
+      "mode": "memory",
+      "spans": 10000,
+      "allocation_probe": false,
+      "enqueue_wall_ns": 600566495,
+      "drained_wall_ns": 603380932,
+      "rss_before_kib": 22336,
+      "rss_peak_kib": 22604,
+      "rss_high_water_delta_kib": 268,
+      "tracemalloc_peak_bytes": null,
+      "counts": {
+        "accepted_events": 17330,
+        "exported_events": 17330,
+        "dropped_events": 2670,
+        "export_errors": 0,
+        "instrumentation_errors": 0
+      },
+      "spool_bytes": 0
+    },
+    {
+      "mode": "ndjson",
+      "spans": 10000,
+      "allocation_probe": false,
+      "enqueue_wall_ns": 532179797,
+      "drained_wall_ns": 707531566,
+      "rss_before_kib": 22336,
+      "rss_peak_kib": 22620,
+      "rss_high_water_delta_kib": 284,
+      "tracemalloc_peak_bytes": null,
+      "counts": {
+        "accepted_events": 1027,
+        "exported_events": 1027,
+        "dropped_events": 18973,
+        "export_errors": 0,
+        "instrumentation_errors": 0
+      },
+      "spool_bytes": 909123
+    },
+    {
+      "mode": "off",
+      "spans": 10000,
+      "allocation_probe": false,
+      "enqueue_wall_ns": 5376844,
+      "drained_wall_ns": 5377124,
+      "rss_before_kib": 21636,
+      "rss_peak_kib": 21636,
+      "rss_high_water_delta_kib": 0,
+      "tracemalloc_peak_bytes": null,
+      "counts": {},
+      "spool_bytes": 0
+    },
+    {
+      "mode": "memory",
+      "spans": 10000,
+      "allocation_probe": false,
+      "enqueue_wall_ns": 572864591,
+      "drained_wall_ns": 573927178,
+      "rss_before_kib": 22332,
+      "rss_peak_kib": 22600,
+      "rss_high_water_delta_kib": 268,
+      "tracemalloc_peak_bytes": null,
+      "counts": {
+        "accepted_events": 14382,
+        "exported_events": 14382,
+        "dropped_events": 5618,
+        "export_errors": 0,
+        "instrumentation_errors": 0
+      },
+      "spool_bytes": 0
+    },
+    {
+      "mode": "ndjson",
+      "spans": 10000,
+      "allocation_probe": false,
+      "enqueue_wall_ns": 567947310,
+      "drained_wall_ns": 742838306,
+      "rss_before_kib": 22340,
+      "rss_peak_kib": 22624,
+      "rss_high_water_delta_kib": 284,
+      "tracemalloc_peak_bytes": null,
+      "counts": {
+        "accepted_events": 1026,
+        "exported_events": 1026,
+        "dropped_events": 18974,
+        "export_errors": 0,
+        "instrumentation_errors": 0
+      },
+      "spool_bytes": 908686
+    },
+    {
+      "mode": "off",
+      "spans": 10000,
+      "allocation_probe": false,
+      "enqueue_wall_ns": 5424744,
+      "drained_wall_ns": 5425024,
+      "rss_before_kib": 21636,
+      "rss_peak_kib": 21636,
+      "rss_high_water_delta_kib": 0,
+      "tracemalloc_peak_bytes": null,
+      "counts": {},
+      "spool_bytes": 0
+    },
+    {
+      "mode": "memory",
+      "spans": 10000,
+      "allocation_probe": false,
+      "enqueue_wall_ns": 568875146,
+      "drained_wall_ns": 569939233,
+      "rss_before_kib": 22328,
+      "rss_peak_kib": 22596,
+      "rss_high_water_delta_kib": 268,
+      "tracemalloc_peak_bytes": null,
+      "counts": {
+        "accepted_events": 16890,
+        "exported_events": 16890,
+        "dropped_events": 3110,
+        "export_errors": 0,
+        "instrumentation_errors": 0
+      },
+      "spool_bytes": 0
+    },
+    {
+      "mode": "ndjson",
+      "spans": 10000,
+      "allocation_probe": false,
+      "enqueue_wall_ns": 552348803,
+      "drained_wall_ns": 723794188,
+      "rss_before_kib": 22336,
+      "rss_peak_kib": 22620,
+      "rss_high_water_delta_kib": 284,
+      "tracemalloc_peak_bytes": null,
+      "counts": {
+        "accepted_events": 1026,
+        "exported_events": 1026,
+        "dropped_events": 18974,
+        "export_errors": 0,
+        "instrumentation_errors": 0
+      },
+      "spool_bytes": 908224
+    },
+    {
+      "mode": "off",
+      "spans": 10000,
+      "allocation_probe": false,
+      "enqueue_wall_ns": 5431094,
+      "drained_wall_ns": 5431394,
+      "rss_before_kib": 21636,
+      "rss_peak_kib": 21636,
+      "rss_high_water_delta_kib": 0,
+      "tracemalloc_peak_bytes": null,
+      "counts": {},
+      "spool_bytes": 0
+    },
+    {
+      "mode": "memory",
+      "spans": 10000,
+      "allocation_probe": false,
+      "enqueue_wall_ns": 586754308,
+      "drained_wall_ns": 589622236,
+      "rss_before_kib": 22056,
+      "rss_peak_kib": 22588,
+      "rss_high_water_delta_kib": 532,
+      "tracemalloc_peak_bytes": null,
+      "counts": {
+        "accepted_events": 12964,
+        "exported_events": 12964,
+        "dropped_events": 7036,
+        "export_errors": 0,
+        "instrumentation_errors": 0
+      },
+      "spool_bytes": 0
+    },
+    {
+      "mode": "ndjson",
+      "spans": 10000,
+      "allocation_probe": false,
+      "enqueue_wall_ns": 521366339,
+      "drained_wall_ns": 691634116,
+      "rss_before_kib": 22336,
+      "rss_peak_kib": 22620,
+      "rss_high_water_delta_kib": 284,
+      "tracemalloc_peak_bytes": null,
+      "counts": {
+        "accepted_events": 1027,
+        "exported_events": 1027,
+        "dropped_events": 18973,
+        "export_errors": 0,
+        "instrumentation_errors": 0
+      },
+      "spool_bytes": 909134
+    },
+    {
+      "mode": "off",
+      "spans": 10000,
+      "allocation_probe": false,
+      "enqueue_wall_ns": 5357923,
+      "drained_wall_ns": 5358203,
+      "rss_before_kib": 21636,
+      "rss_peak_kib": 21636,
+      "rss_high_water_delta_kib": 0,
+      "tracemalloc_peak_bytes": null,
+      "counts": {},
+      "spool_bytes": 0
+    },
+    {
+      "mode": "memory",
+      "spans": 10000,
+      "allocation_probe": false,
+      "enqueue_wall_ns": 555183191,
+      "drained_wall_ns": 557928568,
+      "rss_before_kib": 22332,
+      "rss_peak_kib": 22600,
+      "rss_high_water_delta_kib": 268,
+      "tracemalloc_peak_bytes": null,
+      "counts": {
+        "accepted_events": 16326,
+        "exported_events": 16326,
+        "dropped_events": 3674,
+        "export_errors": 0,
+        "instrumentation_errors": 0
+      },
+      "spool_bytes": 0
+    },
+    {
+      "mode": "ndjson",
+      "spans": 10000,
+      "allocation_probe": false,
+      "enqueue_wall_ns": 537731001,
+      "drained_wall_ns": 706980902,
+      "rss_before_kib": 22312,
+      "rss_peak_kib": 22596,
+      "rss_high_water_delta_kib": 284,
+      "tracemalloc_peak_bytes": null,
+      "counts": {
+        "accepted_events": 1027,
+        "exported_events": 1027,
+        "dropped_events": 18973,
+        "export_errors": 0,
+        "instrumentation_errors": 0
+      },
+      "spool_bytes": 909123
+    },
+    {
+      "mode": "off",
+      "spans": 10000,
+      "allocation_probe": true,
+      "enqueue_wall_ns": 50459626,
+      "drained_wall_ns": 50462256,
+      "rss_before_kib": 21636,
+      "rss_peak_kib": 21636,
+      "rss_high_water_delta_kib": 0,
+      "tracemalloc_peak_bytes": 720,
+      "counts": {},
+      "spool_bytes": 0
+    },
+    {
+      "mode": "memory",
+      "spans": 10000,
+      "allocation_probe": true,
+      "enqueue_wall_ns": 3221526635,
+      "drained_wall_ns": 3231612758,
+      "rss_before_kib": 22460,
+      "rss_peak_kib": 23008,
+      "rss_high_water_delta_kib": 548,
+      "tracemalloc_peak_bytes": 513649,
+      "counts": {
+        "accepted_events": 7826,
+        "exported_events": 7826,
+        "dropped_events": 12174,
+        "export_errors": 0,
+        "instrumentation_errors": 0
+      },
+      "spool_bytes": 0
+    },
+    {
+      "mode": "ndjson",
+      "spans": 10000,
+      "allocation_probe": true,
+      "enqueue_wall_ns": 3209532920,
+      "drained_wall_ns": 3714169443,
+      "rss_before_kib": 22508,
+      "rss_peak_kib": 23052,
+      "rss_high_water_delta_kib": 544,
+      "tracemalloc_peak_bytes": 521053,
+      "counts": {
+        "accepted_events": 1025,
+        "exported_events": 1025,
+        "dropped_events": 18975,
+        "export_errors": 0,
+        "instrumentation_errors": 0
+      },
+      "spool_bytes": 908237
+    }
+  ]
+}

@@ -1,0 +1,262 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TraceLoom · Inference</title><link rel="icon" href="data:,"><style>
+body{margin:0;background:#111827;color:#e5e7eb;font:15px system-ui,sans-serif}main{max-width:1280px;margin:auto;padding:30px}h1{font-size:28px}h2{font-size:18px;margin-top:28px}p{color:#aebbd0}input{background:#243247;border:1px solid #64748b;color:white;padding:10px;width: min(90%,480px);border-radius:6px}.span{border-bottom:1px solid #334155;padding:12px 0}.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.name{font-weight:600}.badge{font-size:12px;padding:3px 7px;border-radius:4px;background:#334155}.error,.cancelled{color:#fda4af}.open,.missing_start{color:#fcd34d}.lane{height:14px;background:#1e293b;margin:8px 0;border-radius:4px}.bar{height:100%;min-width:3px;background:#38bdf8;border-radius:4px}.error .bar{background:#fb7185}.cancelled .bar{background:#fbbf24}.open .bar{background:#a78bfa}summary{cursor:pointer;color:#aebbd0}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}code{font-size:12px}small{color:#94a3b8}.trace{padding:12px;background:#1e293b;margin:8px 0;border-radius:6px}
+</style><main><h1>TraceLoom · Observable inference</h1><p>Saved snapshot · 37 observed spans</p><p>Clock groups have independent origins. Bars show measured spans; open spans are points. Parentage is scope, not a dependency. Longest observed dependency paths are partial evidence, not a global critical path.</p><input id="filter" aria-label="Filter spans" placeholder="Filter by name, status, span ID or metadata"><div class="trace"><code>0d9dbb29f497bc36692310f45430c537</code> · finished_observed / ok · reported producer cumulative drops: 0</div><div class="trace"><code>3c00717d85bce7dc5ff5a8237e031aff</code> · finished_observed / cancelled · reported producer cumulative drops: 0</div><div class="trace"><code>543d51c4d6bb25cfbd5e846355439751</code> · finished_observed / ok · reported producer cumulative drops: 0</div><div class="trace"><code>900ae4c17c0d35218a89e658f11040ed</code> · live_or_incomplete · reported producer cumulative drops: 49</div><div class="trace"><code>9cef0c4863a7fbebb0f4de291c802e7b</code> · live_or_incomplete · reported producer cumulative drops: 0</div><div class="trace"><code>9db05aa79ad2e2d72ebeb4639554f7d6</code> · finished_observed / error · reported producer cumulative drops: 0</div><div class="trace"><code>bb7d69d00d75223d5eb5d8165f7389d0</code> · live_or_incomplete · reported producer cumulative drops: 0</div><p>Unresolved dependency links: 0 · cross-clock links with unknown timing: 0</p><section><h2>309f80bef8e7148e0eb9f446ceb926e7 / 19501290dd56c3025c5b93acbf6f74a2</h2><small>Trace 0d9dbb29f497bc36692310f45430c537 · peak overlapping spans: 4 (includes nested scopes) · longest observed dependency path: 0.620 ms</small><article class="span ok" data-trace-id="0d9dbb29f497bc36692310f45430c537" data-span-id="3308004bf2fbe416"><div class="top" style="padding-left:0px"><span class="name">sage.runtime.pipeline</span><span class="badge">pipeline</span><span>ok</span><span>1.639 ms</span><code>3308004bf2fbe416</code></div><div class="lane"><div class="bar" style="margin-left:0%;width:100%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 
+Dependencies:
+Terminal status: ok
+Evidence refs: 
+Attributes: {}
+Wall start ns (display only): 1788928833542793360
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="0d9dbb29f497bc36692310f45430c537" data-span-id="7925ea06e73d1fe8"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.source</span><span class="badge">data</span><span>ok</span><span>0.156 ms</span><code>7925ea06e73d1fe8</code></div><div class="lane"><div class="bar" style="margin-left:9.08332%;width:9.49081%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 3308004bf2fbe416
+Dependencies:
+Terminal status: ok
+Evidence refs: output-prefix-hmac-98a6b95baf0faccec363dcf6ec64dfe21fd58aa0f44cbddc6dbe00df345e94b7, output-type-tuple
+Attributes: {}
+Wall start ns (display only): 1788928833542942221
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="0d9dbb29f497bc36692310f45430c537" data-span-id="5c2168c55d653032"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.packet_queue</span><span class="badge">step</span><span>ok</span><span>0.034 ms</span><code>5c2168c55d653032</code></div><div class="lane"><div class="bar" style="margin-left:22.8217%;width:2.05578%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 3308004bf2fbe416
+Dependencies:
+Terminal status: ok
+Evidence refs: 
+Attributes: {}
+Wall start ns (display only): 1788928833543167632
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="0d9dbb29f497bc36692310f45430c537" data-span-id="a3e87b8a9133d3c3"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.operator</span><span class="badge">step</span><span>ok</span><span>0.159 ms</span><code>a3e87b8a9133d3c3</code></div><div class="lane"><div class="bar" style="margin-left:32.634%;width:9.6848%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 3308004bf2fbe416
+Dependencies: 5c2168c55d653032
+Terminal status: ok
+Evidence refs: input-prefix-hmac-d9ae346d3cf9e44465f8e2de0df8a8f0767a83a9e5abf3c3cef165ef17714f72, input-type-str
+Attributes: {&quot;operation&quot;:&quot;WrappedKeyByFunction&quot;,&quot;input_bytes&quot;:7}
+Wall start ns (display only): 1788928833543328453
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="0d9dbb29f497bc36692310f45430c537" data-span-id="bb10c78b35d7e9b0"><div class="top" style="padding-left:28px"><span class="name">sage.runtime.packet_queue</span><span class="badge">step</span><span>ok</span><span>0.080 ms</span><code>bb10c78b35d7e9b0</code></div><div class="lane"><div class="bar" style="margin-left:39.8964%;width:4.85274%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: a3e87b8a9133d3c3
+Dependencies:
+Terminal status: ok
+Evidence refs: 
+Attributes: {}
+Wall start ns (display only): 1788928833543447534
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="0d9dbb29f497bc36692310f45430c537" data-span-id="c0ba27cc31e48baa"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.operator</span><span class="badge">step</span><span>ok</span><span>0.540 ms</span><code>c0ba27cc31e48baa</code></div><div class="lane"><div class="bar" style="margin-left:47.573%;width:32.9531%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 3308004bf2fbe416
+Dependencies: bb10c78b35d7e9b0
+Terminal status: ok
+Evidence refs: input-prefix-hmac-d9ae346d3cf9e44465f8e2de0df8a8f0767a83a9e5abf3c3cef165ef17714f72, input-type-str
+Attributes: {&quot;operation&quot;:&quot;ModelStep&quot;,&quot;input_bytes&quot;:7}
+Wall start ns (display only): 1788928833543573395
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="0d9dbb29f497bc36692310f45430c537" data-span-id="ec26c8c70f2beb3c"><div class="top" style="padding-left:28px"><span class="name">acceptance.attempt</span><span class="badge">step</span><span>ok</span><span>0.365 ms</span><code>ec26c8c70f2beb3c</code></div><div class="lane"><div class="bar" style="margin-left:52.9022%;width:22.2709%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: c0ba27cc31e48baa
+Dependencies:
+Terminal status: ok
+Evidence refs: 
+Attributes: {&quot;attempt&quot;:1}
+Wall start ns (display only): 1788928833543660715
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="0d9dbb29f497bc36692310f45430c537" data-span-id="24a838c9f8c162ae"><div class="top" style="padding-left:42px"><span class="name">sage.model.http</span><span class="badge">model</span><span>ok</span><span>0.269 ms</span><code>24a838c9f8c162ae</code></div><div class="lane"><div class="bar" style="margin-left:55.9981%;width:16.3865%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: ec26c8c70f2beb3c
+Dependencies:
+Terminal status: ok
+Evidence refs: endpoint-hmac-eed19f2c7b976ed3105aa24910e06d89d9049bce8711638207b3b5fb93e5e346, input-prefix-hmac-a2e4743b9943e1e80184cf96b2071a6af7d497f9e44b82f0c7e0221efd966074, input-type-str, output-prefix-hmac-d82851626069107b88a53810fda0346b8fb95c3bcee4139c5cf6a82c73d6920b, output-prefix-hmac-eb4e24ea930762f76b515c12d46f58e0f68ba8c539d860bcf67ebfff0f307d60, output-type-int, output-type-str
+Attributes: {&quot;input_bytes&quot;:17,&quot;input_tokens&quot;:7,&quot;model&quot;:&quot;deterministic-fake&quot;,&quot;output_bytes&quot;:17,&quot;output_tokens&quot;:3,&quot;provider&quot;:&quot;openai-compatible&quot;}
+Wall start ns (display only): 1788928833543711506
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="0d9dbb29f497bc36692310f45430c537" data-span-id="b1e0d1526d94c85f"><div class="top" style="padding-left:28px"><span class="name">sage.runtime.packet_queue</span><span class="badge">step</span><span>ok</span><span>0.069 ms</span><code>b1e0d1526d94c85f</code></div><div class="lane"><div class="bar" style="margin-left:78.4319%;width:4.18659%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: c0ba27cc31e48baa
+Dependencies:
+Terminal status: ok
+Evidence refs: 
+Attributes: {}
+Wall start ns (display only): 1788928833544079258
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="0d9dbb29f497bc36692310f45430c537" data-span-id="14eb07057f48176b"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.operator</span><span class="badge">step</span><span>ok</span><span>0.076 ms</span><code>14eb07057f48176b</code></div><div class="lane"><div class="bar" style="margin-left:85.2746%;width:4.64533%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 3308004bf2fbe416
+Dependencies: b1e0d1526d94c85f
+Terminal status: ok
+Evidence refs: input-prefix-hmac-eb4e24ea930762f76b515c12d46f58e0f68ba8c539d860bcf67ebfff0f307d60, input-type-int
+Attributes: {&quot;operation&quot;:&quot;Collect&quot;}
+Wall start ns (display only): 1788928833544191429
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="0d9dbb29f497bc36692310f45430c537" data-span-id="450a20a75d5ccd65"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.source</span><span class="badge">data</span><span>ok</span><span>0.073 ms</span><code>450a20a75d5ccd65</code></div><div class="lane"><div class="bar" style="margin-left:92.7913%;width:4.45141%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 3308004bf2fbe416
+Dependencies:
+Terminal status: ok
+Evidence refs: output-prefix-hmac-b9825da9a5f2135a905f8ffc14e86e142c0762e40cb90d02fcc5ad79376d4eae, output-type-tuple
+Attributes: {}
+Wall start ns (display only): 1788928833544314639
+Span observations:
+</pre></details></article></section><section><h2>309f80bef8e7148e0eb9f446ceb926e7 / 19501290dd56c3025c5b93acbf6f74a2</h2><small>Trace 3c00717d85bce7dc5ff5a8237e031aff · peak overlapping spans: 2 (includes nested scopes) · longest observed dependency path: unavailable</small><article class="span cancelled" data-trace-id="3c00717d85bce7dc5ff5a8237e031aff" data-span-id="5e23159a8f24e575"><div class="top" style="padding-left:0px"><span class="name">sage.runtime.pipeline</span><span class="badge">pipeline</span><span>cancelled</span><span>14.651 ms</span><code>5e23159a8f24e575</code></div><div class="lane"><div class="bar" style="margin-left:0%;width:100%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 
+Dependencies:
+Terminal status: cancelled
+Evidence refs: 
+Attributes: {}
+Wall start ns (display only): 1788928833551702095
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="3c00717d85bce7dc5ff5a8237e031aff" data-span-id="5fd48a5f7fdab8b1"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.source</span><span class="badge">data</span><span>ok</span><span>14.218 ms</span><code>5fd48a5f7fdab8b1</code></div><div class="lane"><div class="bar" style="margin-left:2.59506%;width:97.042%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 5e23159a8f24e575
+Dependencies:
+Terminal status: ok
+Evidence refs: output-prefix-hmac-b9825da9a5f2135a905f8ffc14e86e142c0762e40cb90d02fcc5ad79376d4eae, output-type-tuple
+Attributes: {}
+Wall start ns (display only): 1788928833552082288
+Span observations:
+</pre></details></article></section><section><h2>309f80bef8e7148e0eb9f446ceb926e7 / 19501290dd56c3025c5b93acbf6f74a2</h2><small>Trace 543d51c4d6bb25cfbd5e846355439751 · peak overlapping spans: 4 (includes nested scopes) · longest observed dependency path: 0.924 ms</small><article class="span ok" data-trace-id="543d51c4d6bb25cfbd5e846355439751" data-span-id="469457e0ee50b744"><div class="top" style="padding-left:0px"><span class="name">sage.runtime.pipeline</span><span class="badge">pipeline</span><span>ok</span><span>1.698 ms</span><code>469457e0ee50b744</code></div><div class="lane"><div class="bar" style="margin-left:0%;width:100%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 
+Dependencies:
+Terminal status: ok
+Evidence refs: 
+Attributes: {}
+Wall start ns (display only): 1788928833546572803
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="543d51c4d6bb25cfbd5e846355439751" data-span-id="c163e389a1e1d525"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.source</span><span class="badge">data</span><span>ok</span><span>0.089 ms</span><code>c163e389a1e1d525</code></div><div class="lane"><div class="bar" style="margin-left:6.98916%;width:5.22774%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 469457e0ee50b744
+Dependencies:
+Terminal status: ok
+Evidence refs: output-prefix-hmac-33b89539e7be2c6ac2222541a298f5f232b666af90563c64ec9177f10e4b3bcc, output-type-tuple
+Attributes: {}
+Wall start ns (display only): 1788928833546691454
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="543d51c4d6bb25cfbd5e846355439751" data-span-id="009e392842a51c8a"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.packet_queue</span><span class="badge">step</span><span>ok</span><span>0.030 ms</span><code>009e392842a51c8a</code></div><div class="lane"><div class="bar" style="margin-left:15.5871%;width:1.78616%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 469457e0ee50b744
+Dependencies:
+Terminal status: ok
+Evidence refs: 
+Attributes: {}
+Wall start ns (display only): 1788928833546837435
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="543d51c4d6bb25cfbd5e846355439751" data-span-id="0f6f9b3dc462572d"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.operator</span><span class="badge">step</span><span>ok</span><span>0.132 ms</span><code>0f6f9b3dc462572d</code></div><div class="lane"><div class="bar" style="margin-left:20.0531%;width:7.79623%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 469457e0ee50b744
+Dependencies: 009e392842a51c8a
+Terminal status: ok
+Evidence refs: input-prefix-hmac-29d2dfec7243cc48e1245438aa30422353864f96f5808d038f2827d0ba80f459, input-type-str
+Attributes: {&quot;operation&quot;:&quot;WrappedKeyByFunction&quot;,&quot;input_bytes&quot;:5}
+Wall start ns (display only): 1788928833546913235
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="543d51c4d6bb25cfbd5e846355439751" data-span-id="a449c1b725b3fe78"><div class="top" style="padding-left:28px"><span class="name">sage.runtime.packet_queue</span><span class="badge">step</span><span>ok</span><span>0.081 ms</span><code>a449c1b725b3fe78</code></div><div class="lane"><div class="bar" style="margin-left:25.1854%;width:4.7759%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 0f6f9b3dc462572d
+Dependencies:
+Terminal status: ok
+Evidence refs: 
+Attributes: {}
+Wall start ns (display only): 1788928833547000376
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="543d51c4d6bb25cfbd5e846355439751" data-span-id="326012a9b879e2a4"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.operator</span><span class="badge">step</span><span>ok</span><span>0.843 ms</span><code>326012a9b879e2a4</code></div><div class="lane"><div class="bar" style="margin-left:32.5015%;width:49.6356%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 469457e0ee50b744
+Dependencies: a449c1b725b3fe78
+Terminal status: ok
+Evidence refs: input-prefix-hmac-29d2dfec7243cc48e1245438aa30422353864f96f5808d038f2827d0ba80f459, input-type-str
+Attributes: {&quot;operation&quot;:&quot;ModelStep&quot;,&quot;input_bytes&quot;:5}
+Wall start ns (display only): 1788928833547124567
+Span observations:
+</pre></details></article><article class="span error" data-trace-id="543d51c4d6bb25cfbd5e846355439751" data-span-id="ed6725b1201c0a42"><div class="top" style="padding-left:28px"><span class="name">acceptance.attempt</span><span class="badge">step</span><span>error</span><span>0.311 ms</span><code>ed6725b1201c0a42</code></div><div class="lane"><div class="bar" style="margin-left:37.2968%;width:18.3318%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 326012a9b879e2a4
+Dependencies:
+Terminal status: error
+Evidence refs: 
+Attributes: {&quot;attempt&quot;:1,&quot;error_type&quot;:&quot;RuntimeError&quot;}
+Wall start ns (display only): 1788928833547205967
+Span observations:
+</pre></details></article><article class="span error" data-trace-id="543d51c4d6bb25cfbd5e846355439751" data-span-id="01363110959ca2b7"><div class="top" style="padding-left:42px"><span class="name">sage.model.http</span><span class="badge">model</span><span>error</span><span>0.208 ms</span><code>01363110959ca2b7</code></div><div class="lane"><div class="bar" style="margin-left:40.2082%;width:12.2269%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: ed6725b1201c0a42
+Dependencies:
+Terminal status: error
+Evidence refs: endpoint-hmac-eed19f2c7b976ed3105aa24910e06d89d9049bce8711638207b3b5fb93e5e346, input-prefix-hmac-a2e4743b9943e1e80184cf96b2071a6af7d497f9e44b82f0c7e0221efd966074, input-type-str, output-prefix-hmac-cbf8da97c9be351962c3c17a8a93655be0cf9c0ac39d59ec269eb73e2d2c155b, output-type-int
+Attributes: {&quot;error_type&quot;:&quot;URLError&quot;,&quot;input_bytes&quot;:17,&quot;model&quot;:&quot;deterministic-fake&quot;,&quot;provider&quot;:&quot;openai-compatible&quot;}
+Wall start ns (display only): 1788928833547255408
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="543d51c4d6bb25cfbd5e846355439751" data-span-id="d4beafb4bed27f94"><div class="top" style="padding-left:28px"><span class="name">acceptance.attempt</span><span class="badge">step</span><span>ok</span><span>0.320 ms</span><code>d4beafb4bed27f94</code></div><div class="lane"><div class="bar" style="margin-left:58.3974%;width:18.8331%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 326012a9b879e2a4
+Dependencies: ed6725b1201c0a42
+Terminal status: ok
+Evidence refs: 
+Attributes: {&quot;attempt&quot;:2}
+Wall start ns (display only): 1788928833547564169
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="543d51c4d6bb25cfbd5e846355439751" data-span-id="5bdb30a3cbbcaec8"><div class="top" style="padding-left:42px"><span class="name">sage.model.http</span><span class="badge">model</span><span>ok</span><span>0.231 ms</span><code>5bdb30a3cbbcaec8</code></div><div class="lane"><div class="bar" style="margin-left:61.0955%;width:13.6177%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: d4beafb4bed27f94
+Dependencies:
+Terminal status: ok
+Evidence refs: endpoint-hmac-eed19f2c7b976ed3105aa24910e06d89d9049bce8711638207b3b5fb93e5e346, input-prefix-hmac-a2e4743b9943e1e80184cf96b2071a6af7d497f9e44b82f0c7e0221efd966074, input-type-str, output-prefix-hmac-d82851626069107b88a53810fda0346b8fb95c3bcee4139c5cf6a82c73d6920b, output-prefix-hmac-eb4e24ea930762f76b515c12d46f58e0f68ba8c539d860bcf67ebfff0f307d60, output-type-int, output-type-str
+Attributes: {&quot;input_bytes&quot;:17,&quot;input_tokens&quot;:7,&quot;model&quot;:&quot;deterministic-fake&quot;,&quot;output_bytes&quot;:17,&quot;output_tokens&quot;:3,&quot;provider&quot;:&quot;openai-compatible&quot;}
+Wall start ns (display only): 1788928833547609980
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="543d51c4d6bb25cfbd5e846355439751" data-span-id="a62a81c181fa26b2"><div class="top" style="padding-left:28px"><span class="name">sage.runtime.packet_queue</span><span class="badge">step</span><span>ok</span><span>0.066 ms</span><code>a62a81c181fa26b2</code></div><div class="lane"><div class="bar" style="margin-left:80.2061%;width:3.90515%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 326012a9b879e2a4
+Dependencies:
+Terminal status: ok
+Evidence refs: 
+Attributes: {}
+Wall start ns (display only): 1788928833547934362
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="543d51c4d6bb25cfbd5e846355439751" data-span-id="e1659464d06fac3b"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.operator</span><span class="badge">step</span><span>ok</span><span>0.071 ms</span><code>e1659464d06fac3b</code></div><div class="lane"><div class="bar" style="margin-left:86.6485%;width:4.16913%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 469457e0ee50b744
+Dependencies: a62a81c181fa26b2
+Terminal status: ok
+Evidence refs: input-prefix-hmac-eb4e24ea930762f76b515c12d46f58e0f68ba8c539d860bcf67ebfff0f307d60, input-type-int
+Attributes: {&quot;operation&quot;:&quot;Collect&quot;}
+Wall start ns (display only): 1788928833548043712
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="543d51c4d6bb25cfbd5e846355439751" data-span-id="c555d6d00f25c469"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.source</span><span class="badge">data</span><span>ok</span><span>0.069 ms</span><code>c555d6d00f25c469</code></div><div class="lane"><div class="bar" style="margin-left:93.4721%;width:4.05072%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 469457e0ee50b744
+Dependencies:
+Terminal status: ok
+Evidence refs: output-prefix-hmac-b9825da9a5f2135a905f8ffc14e86e142c0762e40cb90d02fcc5ad79376d4eae, output-type-tuple
+Attributes: {}
+Wall start ns (display only): 1788928833548159553
+Span observations:
+</pre></details></article></section><section><h2>80e45ec45d0ad21fb23fba873ea1502a / cc3e5809b44b6865059ae57cfddc238e</h2><small>Trace 900ae4c17c0d35218a89e658f11040ed · peak overlapping spans: 1 (includes nested scopes) · longest observed dependency path: unavailable</small><article class="span ok" data-trace-id="900ae4c17c0d35218a89e658f11040ed" data-span-id="27e2b144ae60fbaf"><div class="top" style="padding-left:0px"><span class="name">acceptance.drop_receipt</span><span class="badge">step</span><span>ok</span><span>2.183 ms</span><code>27e2b144ae60fbaf</code></div><div class="lane"><div class="bar" style="margin-left:0%;width:100%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 
+Dependencies:
+Terminal status: ok
+Evidence refs: 
+Attributes: {}
+Wall start ns (display only): 1788928833573930443
+Span observations:
+</pre></details></article></section><section><h2>80e45ec45d0ad21fb23fba873ea1502a / cc3e5809b44b6865059ae57cfddc238e</h2><small>Trace 9cef0c4863a7fbebb0f4de291c802e7b · peak overlapping spans: 0 (includes nested scopes) · longest observed dependency path: unavailable</small><article class="span open" data-trace-id="9cef0c4863a7fbebb0f4de291c802e7b" data-span-id="4cfd0c5d056a2e0a"><div class="top" style="padding-left:0px"><span class="name">sage.runtime.pipeline</span><span class="badge">pipeline</span><span>open</span><span>duration unknown</span><code>4cfd0c5d056a2e0a</code></div><div class="lane"><div class="bar" style="margin-left:0%;width:0%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 
+Dependencies:
+Terminal status: 
+Evidence refs: 
+Attributes: {}
+Wall start ns (display only): 1788928833568110927
+Span observations:
+</pre></details></article></section><section><h2>309f80bef8e7148e0eb9f446ceb926e7 / 19501290dd56c3025c5b93acbf6f74a2</h2><small>Trace 9db05aa79ad2e2d72ebeb4639554f7d6 · peak overlapping spans: 4 (includes nested scopes) · longest observed dependency path: 0.487 ms</small><article class="span error" data-trace-id="9db05aa79ad2e2d72ebeb4639554f7d6" data-span-id="4a6baa018c401923"><div class="top" style="padding-left:0px"><span class="name">sage.runtime.pipeline</span><span class="badge">pipeline</span><span>error</span><span>1.037 ms</span><code>4a6baa018c401923</code></div><div class="lane"><div class="bar" style="margin-left:0%;width:100%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 
+Dependencies:
+Terminal status: error
+Evidence refs: 
+Attributes: {&quot;error_type&quot;:&quot;ValueError&quot;}
+Wall start ns (display only): 1788928833549985385
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="9db05aa79ad2e2d72ebeb4639554f7d6" data-span-id="bebaf698584e66a2"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.source</span><span class="badge">data</span><span>ok</span><span>0.093 ms</span><code>bebaf698584e66a2</code></div><div class="lane"><div class="bar" style="margin-left:11.8603%;width:9.00959%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 4a6baa018c401923
+Dependencies:
+Terminal status: ok
+Evidence refs: output-prefix-hmac-e90401b4c7ff20df6d76fe3ed117b08ba2a768fdca29ca63e608ef4dbd967732, output-type-tuple
+Attributes: {}
+Wall start ns (display only): 1788928833550108375
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="9db05aa79ad2e2d72ebeb4639554f7d6" data-span-id="0aa71b281d13119e"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.packet_queue</span><span class="badge">step</span><span>ok</span><span>0.030 ms</span><code>0aa71b281d13119e</code></div><div class="lane"><div class="bar" style="margin-left:26.4644%;width:2.90383%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 4a6baa018c401923
+Dependencies:
+Terminal status: ok
+Evidence refs: 
+Attributes: {}
+Wall start ns (display only): 1788928833550259866
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="9db05aa79ad2e2d72ebeb4639554f7d6" data-span-id="7d6c837e4bf9e818"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.operator</span><span class="badge">step</span><span>ok</span><span>0.141 ms</span><code>7d6c837e4bf9e818</code></div><div class="lane"><div class="bar" style="margin-left:33.7419%;width:13.5712%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 4a6baa018c401923
+Dependencies: 0aa71b281d13119e
+Terminal status: ok
+Evidence refs: input-prefix-hmac-f589381c4291b115dc83481087ebde7f176fb760dbad8d32167cfdf1c14e0376, input-type-str
+Attributes: {&quot;operation&quot;:&quot;WrappedKeyByFunction&quot;,&quot;input_bytes&quot;:5}
+Wall start ns (display only): 1788928833550335287
+Span observations:
+</pre></details></article><article class="span ok" data-trace-id="9db05aa79ad2e2d72ebeb4639554f7d6" data-span-id="b8c0e14da654211d"><div class="top" style="padding-left:28px"><span class="name">sage.runtime.packet_queue</span><span class="badge">step</span><span>ok</span><span>0.072 ms</span><code>b8c0e14da654211d</code></div><div class="lane"><div class="bar" style="margin-left:43.8045%;width:6.98241%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 7d6c837e4bf9e818
+Dependencies:
+Terminal status: ok
+Evidence refs: 
+Attributes: {}
+Wall start ns (display only): 1788928833550439687
+Span observations:
+</pre></details></article><article class="span error" data-trace-id="9db05aa79ad2e2d72ebeb4639554f7d6" data-span-id="e98d78ad4fdc3d59"><div class="top" style="padding-left:14px"><span class="name">sage.runtime.operator</span><span class="badge">step</span><span>error</span><span>0.415 ms</span><code>e98d78ad4fdc3d59</code></div><div class="lane"><div class="bar" style="margin-left:54.9571%;width:39.9885%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 4a6baa018c401923
+Dependencies: b8c0e14da654211d
+Terminal status: error
+Evidence refs: input-prefix-hmac-f589381c4291b115dc83481087ebde7f176fb760dbad8d32167cfdf1c14e0376, input-type-str
+Attributes: {&quot;operation&quot;:&quot;ModelStep&quot;,&quot;error_type&quot;:&quot;ValueError&quot;,&quot;input_bytes&quot;:5}
+Wall start ns (display only): 1788928833550555228
+Span observations:
+</pre></details></article><article class="span error" data-trace-id="9db05aa79ad2e2d72ebeb4639554f7d6" data-span-id="4ed79396d53e7eb6"><div class="top" style="padding-left:28px"><span class="name">acceptance.attempt</span><span class="badge">step</span><span>error</span><span>0.291 ms</span><code>4ed79396d53e7eb6</code></div><div class="lane"><div class="bar" style="margin-left:62.576%;width:28.0769%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: e98d78ad4fdc3d59
+Dependencies:
+Terminal status: error
+Evidence refs: 
+Attributes: {&quot;attempt&quot;:1,&quot;error_type&quot;:&quot;RuntimeError&quot;}
+Wall start ns (display only): 1788928833550634289
+Span observations:
+</pre></details></article><article class="span error" data-trace-id="9db05aa79ad2e2d72ebeb4639554f7d6" data-span-id="ea379b797ba11a6e"><div class="top" style="padding-left:42px"><span class="name">sage.model.http</span><span class="badge">model</span><span>error</span><span>0.192 ms</span><code>ea379b797ba11a6e</code></div><div class="lane"><div class="bar" style="margin-left:67.3421%;width:18.5196%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 4ed79396d53e7eb6
+Dependencies:
+Terminal status: error
+Evidence refs: endpoint-hmac-eed19f2c7b976ed3105aa24910e06d89d9049bce8711638207b3b5fb93e5e346, input-prefix-hmac-a2e4743b9943e1e80184cf96b2071a6af7d497f9e44b82f0c7e0221efd966074, input-type-str, output-prefix-hmac-cbf8da97c9be351962c3c17a8a93655be0cf9c0ac39d59ec269eb73e2d2c155b, output-type-int
+Attributes: {&quot;error_type&quot;:&quot;URLError&quot;,&quot;input_bytes&quot;:17,&quot;model&quot;:&quot;deterministic-fake&quot;,&quot;provider&quot;:&quot;openai-compatible&quot;}
+Wall start ns (display only): 1788928833550683739
+Span observations:
+</pre></details></article></section><section><h2>80e45ec45d0ad21fb23fba873ea1502a / cc3e5809b44b6865059ae57cfddc238e</h2><small>Trace bb7d69d00d75223d5eb5d8165f7389d0 · peak overlapping spans: 1 (includes nested scopes) · longest observed dependency path: unavailable</small><article class="span ok" data-trace-id="bb7d69d00d75223d5eb5d8165f7389d0" data-span-id="9486bc14a0e4f655"><div class="top" style="padding-left:0px"><span class="name">acceptance.exporter_blocker</span><span class="badge">step</span><span>ok</span><span>5.229 ms</span><code>9486bc14a0e4f655</code></div><div class="lane"><div class="bar" style="margin-left:0%;width:100%"></div></div><details><summary>Metadata and evidence</summary><pre>Parent: 
+Dependencies:
+Terminal status: ok
+Evidence refs: 
+Attributes: {}
+Wall start ns (display only): 1788928833567522733
+Span observations:
+</pre></details></article></section><script>(()=>{const key=location.pathname+':traceloom',filter=document.getElementById('filter'),spans=[...document.querySelectorAll('.span')];let state={filter:'',open:[]};try{state=JSON.parse(sessionStorage.getItem(key))||state;}catch{}const save=()=>{try{sessionStorage.setItem(key,JSON.stringify({filter:filter.value,open:spans.filter(s=>s.querySelector('details').open).map(s=>s.dataset.traceId+':'+s.dataset.spanId)}));}catch{}};const apply=()=>{const q=filter.value.toLowerCase();spans.forEach(s=>s.hidden=!s.textContent.toLowerCase().includes(q));};filter.value=state.filter||'';spans.forEach(s=>{const d=s.querySelector('details');d.open=(state.open||[]).includes(s.dataset.traceId+':'+s.dataset.spanId);d.addEventListener('toggle',save);});apply();filter.addEventListener('input',()=>{apply();save();});})();</script></main></html>

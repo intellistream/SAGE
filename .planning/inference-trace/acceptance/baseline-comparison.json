@@ -1,0 +1,31 @@
+{
+  "python": "Python 3.13.13",
+  "platform": "Linux-5.15.0-25-generic-aarch64-with-glibc2.35",
+  "command": [
+    "/home/shuhao/miniconda3/bin/python",
+    "-m",
+    "pytest",
+    "src/tests",
+    "-q"
+  ],
+  "environment_overrides": {
+    "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+    "PYTHONPATH": "src"
+  },
+  "runs": {
+    "base": {
+      "head": "dd8658bd79f07828ea6b4a2b22e5053437476be0",
+      "tracked_diff": "",
+      "exit_code": 1,
+      "seconds": 5.318720497190952,
+      "result": "1 failed, 141 passed, 1 skipped, 7 warnings in 4.60s"
+    },
+    "candidate": {
+      "head": "1267a4ef287daa54025e1d81ef091d646a3dcb13",
+      "tracked_diff": "",
+      "exit_code": 1,
+      "seconds": 5.114056069403887,
+      "result": "1 failed, 163 passed, 1 skipped, 7 warnings in 4.49s"
+    }
+  }
+}

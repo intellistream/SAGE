@@ -1,0 +1,1267 @@
+"""Synthetic large-scale data analysis + LLM orchestration workload.
+
+The workload models the kind of task SAGE is good at orchestrating:
+large event streams are partitioned into shards, each shard is analyzed
+locally, then the global reducer fuses evidence into incident hypotheses.
+The default implementation is deterministic so it can run in CI without a
+live LLM. A real LLM can later replace the reducer's explanation function.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import random
+import statistics
+import time
+import urllib.error
+import urllib.request
+from abc import ABC, abstractmethod
+from collections import Counter, defaultdict
+from collections.abc import Iterable
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+
+@dataclass(frozen=True)
+class AnalysisEvent:
+    event_id: int
+    minute: int
+    service: str
+    tenant: str
+    region: str
+    latency_ms: float
+    error: bool
+    npu_util: float
+    queue_depth: float
+
+
+@dataclass(frozen=True)
+class InjectedIncident:
+    incident_id: str
+    service: str
+    region: str
+    start_minute: int
+    end_minute: int
+    kind: str
+
+
+@dataclass
+class WorkloadDataset:
+    events: list[AnalysisEvent]
+    incidents: list[InjectedIncident]
+
+
+@dataclass
+class ShardSummary:
+    shard_id: int
+    event_count: int
+    candidate_count: int
+    candidates: list[dict[str, Any]] = field(default_factory=list)
+    top_services: list[tuple[str, int]] = field(default_factory=list)
+    duration_ms: float = 0.0
+
+
+@dataclass
+class WorkloadReport:
+    event_count: int
+    shard_count: int
+    seed: int
+    top_k: int
+    map_policy: str
+    reducer_name: str
+    injected_incident_count: int
+    detected_incident_count: int
+    matched_incident_count: int
+    precision: float
+    recall: float
+    f1: float
+    evidence_coverage: float
+    map_duration_ms: float
+    reduce_duration_ms: float
+    total_duration_ms: float
+    throughput_events_per_s: float
+    injected_incidents: list[dict[str, Any]]
+    missed_incidents: list[dict[str, Any]]
+    detected_incidents: list[dict[str, Any]]
+    operator_duration_ms: dict[str, float] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "event_count": self.event_count,
+            "shard_count": self.shard_count,
+            "seed": self.seed,
+            "top_k": self.top_k,
+            "map_policy": self.map_policy,
+            "reducer_name": self.reducer_name,
+            "injected_incident_count": self.injected_incident_count,
+            "detected_incident_count": self.detected_incident_count,
+            "matched_incident_count": self.matched_incident_count,
+            "precision": round(self.precision, 4),
+            "recall": round(self.recall, 4),
+            "f1": round(self.f1, 4),
+            "evidence_coverage": round(self.evidence_coverage, 4),
+            "map_duration_ms": round(self.map_duration_ms, 2),
+            "reduce_duration_ms": round(self.reduce_duration_ms, 2),
+            "total_duration_ms": round(self.total_duration_ms, 2),
+            "throughput_events_per_s": round(self.throughput_events_per_s, 2),
+            "operator_duration_ms": {
+                name: round(self.operator_duration_ms.get(name, 0.0), 2)
+                for name in STANDARD_OPERATORS
+            },
+            "injected_incidents": self.injected_incidents,
+            "missed_incidents": self.missed_incidents,
+            "detected_incidents": self.detected_incidents,
+        }
+
+
+SERVICES = ("prefill", "decode", "kv-cache", "scheduler", "router", "embedding")
+TENANTS = tuple(f"tenant-{idx:03d}" for idx in range(64))
+REGIONS = ("npu-a", "npu-b", "npu-c")
+STANDARD_OPERATORS = (
+    "Shard",
+    "MapEvidence",
+    "Normalize",
+    "GroupEvidence",
+    "SemanticReduce",
+    "ReportTrace",
+)
+
+
+class IncidentReducer(ABC):
+    """Reducer contract for global incident hypothesis generation."""
+
+    name: str
+
+    @abstractmethod
+    def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+        """Fuse shard summaries into globally ranked incident hypotheses."""
+
+
+class DeterministicIncidentReducer(IncidentReducer):
+    """Threshold-based reducer used as the reproducible baseline."""
+
+    name = "deterministic"
+
+    def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+        return _reduce_summaries_deterministic(summaries)
+
+
+class MapOnlyIncidentReducer(IncidentReducer):
+    """Diagnostic baseline that reports shard-local candidates directly.
+
+    This approximates an alerting or dashboard workflow where each partition
+    can surface anomalies, but no global semantic reduce stage deduplicates
+    adjacent windows or merges related evidence into incident hypotheses.
+    """
+
+    name = "map-only"
+
+    def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+        detections: list[dict[str, Any]] = []
+        for summary in summaries:
+            for candidate in summary.candidates:
+                detections.append(
+                    {
+                        "service": candidate["service"],
+                        "region": candidate["region"],
+                        "window": candidate["window"],
+                        "start_minute": candidate["start_minute"],
+                        "end_minute": candidate["end_minute"],
+                        "score": candidate["score"],
+                        "evidence_count": candidate["event_count"],
+                        "signals": candidate["signals"],
+                        "p95_latency_ms": candidate["p95_latency_ms"],
+                        "error_rate": candidate["error_rate"],
+                        "mean_npu_util": candidate["mean_npu_util"],
+                        "mean_queue_depth": candidate["mean_queue_depth"],
+                        "summary": (
+                            f"[map-only shard={summary.shard_id}] {_explain_candidate(candidate)}"
+                        ),
+                    }
+                )
+        detections.sort(
+            key=lambda item: (item["score"], item["evidence_count"]),
+            reverse=True,
+        )
+        return detections
+
+
+class WindowAggregateIncidentReducer(IncidentReducer):
+    """Diagnostic baseline that aggregates windows but does not cluster incidents."""
+
+    name = "window-aggregate"
+
+    def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+        return _reduce_summaries_by_window(summaries)
+
+
+class LLMStubIncidentReducer(IncidentReducer):
+    """CI-safe placeholder for a future LLM-backed semantic reducer.
+
+    The stub deliberately delegates incident selection to the deterministic
+    baseline, then marks explanations as placeholder LLM outputs. This keeps
+    benchmark runs reproducible while making the integration point explicit.
+    """
+
+    name = "llm-stub"
+
+    def __init__(self, baseline: IncidentReducer | None = None) -> None:
+        self._baseline = baseline or DeterministicIncidentReducer()
+
+    def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+        incidents = self._baseline.reduce(summaries)
+        return [
+            {
+                **incident,
+                "reducer": self.name,
+                "summary": (
+                    f"[LLM reducer stub; deterministic evidence fusion] {incident['summary']}"
+                ),
+            }
+            for incident in incidents
+        ]
+
+
+class OpenAICompletionIncidentReducer(IncidentReducer):
+    """OpenAI-compatible LLM reducer for real semantic-reduce experiments.
+
+    The reducer sends compact window-level evidence to a live completions
+    endpoint and requires the model to return incident hypotheses as JSON. It
+    does not fall back to deterministic reduction on parse or endpoint errors.
+    """
+
+    name = "llm-openai"
+
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        model: str,
+        api_key: str,
+        max_evidence: int = 24,
+        max_tokens: int = 768,
+        temperature: float = 0.0,
+        timeout_sec: int = 180,
+        endpoint_type: str = "chat",
+        structured_output: bool = False,
+    ) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+        self.api_key = api_key
+        self.max_evidence = max_evidence
+        self.max_tokens = max_tokens
+        self.temperature = temperature
+        self.timeout_sec = timeout_sec
+        self.endpoint_type = endpoint_type
+        self.structured_output = structured_output
+        self.last_call: dict[str, Any] = {}
+
+    def reduce(self, summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+        evidence = _reduce_summaries_by_window(summaries)[: self.max_evidence]
+        prompt = _build_llm_reduce_prompt(evidence)
+        started = time.perf_counter()
+        text = self._completion(prompt)
+        latency_ms = (time.perf_counter() - started) * 1000
+        parsed = _extract_json_payload(text)
+        incidents = _normalize_llm_incidents(parsed, evidence)
+        incidents = _repair_llm_incident_coverage(incidents, evidence)
+        self.last_call = {
+            "model": self.model,
+            "base_url": self.base_url,
+            "endpoint_type": self.endpoint_type,
+            "structured_output": self.structured_output,
+            "latency_ms": round(latency_ms, 2),
+            "prompt_chars": len(prompt),
+            "response_chars": len(text),
+            "input_evidence_count": len(evidence),
+            "output_incident_count": len(incidents),
+        }
+        for incident in incidents:
+            incident["reducer"] = self.name
+            incident["llm_model"] = self.model
+            incident["llm_latency_ms"] = round(latency_ms, 2)
+        return incidents
+
+    def _completion(self, prompt: str) -> str:
+        endpoint_type = self.endpoint_type.strip().lower()
+        if endpoint_type == "chat":
+            path = "/v1/chat/completions"
+            payload: dict[str, Any] = {
+                "model": self.model,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a strict JSON generator for systems "
+                            "telemetry incident reduction."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": self.max_tokens,
+                "temperature": self.temperature,
+            }
+            if self.structured_output:
+                payload["response_format"] = {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "large_scale_analysis_incidents",
+                        "schema": _llm_incident_json_schema(),
+                    },
+                }
+        elif endpoint_type == "completion":
+            path = "/v1/completions"
+            payload = {
+                "model": self.model,
+                "prompt": prompt,
+                "max_tokens": self.max_tokens,
+                "temperature": self.temperature,
+            }
+        else:
+            raise RuntimeError(f"Unsupported LLM reducer endpoint_type: {self.endpoint_type!r}")
+        req = urllib.request.Request(
+            f"{self.base_url}{path}",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.api_key}",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout_sec) as response:
+                body = response.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(
+                f"LLM reducer endpoint returned HTTP {exc.code}: {body[:300]}"
+            ) from exc
+        parsed = json.loads(body) if body else {}
+        choices = parsed.get("choices") or []
+        if not choices:
+            raise RuntimeError("LLM reducer endpoint returned no choices.")
+        if endpoint_type == "chat":
+            message = choices[0].get("message") or {}
+            return str(message.get("content") or "")
+        return str(choices[0].get("text") or "")
+
+
+def incident_to_dict(incident: InjectedIncident) -> dict[str, Any]:
+    return {
+        "incident_id": incident.incident_id,
+        "service": incident.service,
+        "region": incident.region,
+        "start_minute": incident.start_minute,
+        "end_minute": incident.end_minute,
+        "kind": incident.kind,
+    }
+
+
+def resolve_incident_reducer(reducer: str | IncidentReducer | None) -> IncidentReducer:
+    if reducer is None:
+        return DeterministicIncidentReducer()
+    if isinstance(reducer, IncidentReducer):
+        return reducer
+
+    normalized = reducer.strip().lower()
+    if normalized == "deterministic":
+        return DeterministicIncidentReducer()
+    if normalized in {"map-only", "map_only"}:
+        return MapOnlyIncidentReducer()
+    if normalized in {"window-aggregate", "window_aggregate", "window"}:
+        return WindowAggregateIncidentReducer()
+    if normalized in {"llm-stub", "llm_stub"}:
+        return LLMStubIncidentReducer()
+    if normalized in {"llm-openai", "llm_openai", "openai"}:
+        api_key = os.environ.get("SAGE_LSA_LLM_API_KEY") or os.environ.get("VLLM_HUST_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "llm-openai reducer requires SAGE_LSA_LLM_API_KEY or "
+                "VLLM_HUST_API_KEY in the environment."
+            )
+        return OpenAICompletionIncidentReducer(
+            base_url=os.environ.get("SAGE_LSA_LLM_BASE_URL", "http://127.0.0.1:8001"),
+            model=os.environ.get("SAGE_LSA_LLM_MODEL", "Qwen2.5-14B-Instruct"),
+            api_key=api_key,
+            max_evidence=int(os.environ.get("SAGE_LSA_LLM_MAX_EVIDENCE", "24")),
+            max_tokens=int(os.environ.get("SAGE_LSA_LLM_MAX_TOKENS", "768")),
+            timeout_sec=int(os.environ.get("SAGE_LSA_LLM_TIMEOUT_SEC", "180")),
+            endpoint_type=os.environ.get("SAGE_LSA_LLM_ENDPOINT_TYPE", "chat"),
+            structured_output=os.environ.get("SAGE_LSA_LLM_STRUCTURED_OUTPUT", "").strip().lower()
+            in {"1", "true", "yes", "on"},
+        )
+    raise ValueError(
+        "Unknown reducer: "
+        f"{reducer!r}. Expected one of: deterministic, map-only, "
+        "window-aggregate, llm-stub, llm-openai."
+    )
+
+
+def generate_synthetic_events(
+    *,
+    event_count: int = 50_000,
+    seed: int = 7,
+    incident_count: int = 4,
+) -> WorkloadDataset:
+    rng = random.Random(seed)
+    max_minute = max(240, event_count // 120)
+    incidents: list[InjectedIncident] = []
+    incident_services = rng.sample(list(SERVICES), k=min(incident_count, len(SERVICES)))
+    for idx, service in enumerate(incident_services):
+        start = rng.randint(30, max_minute - 45)
+        duration = rng.randint(16, 38)
+        incidents.append(
+            InjectedIncident(
+                incident_id=f"incident-{idx + 1}",
+                service=service,
+                region=rng.choice(REGIONS),
+                start_minute=start,
+                end_minute=start + duration,
+                kind=rng.choice(("latency_spike", "npu_saturation", "queue_backlog")),
+            )
+        )
+
+    events: list[AnalysisEvent] = []
+    for event_id in range(event_count):
+        service = rng.choice(SERVICES)
+        region = rng.choice(REGIONS)
+        tenant = rng.choice(TENANTS)
+        minute = rng.randrange(max_minute)
+        base_latency = {
+            "prefill": 42,
+            "decode": 65,
+            "kv-cache": 18,
+            "scheduler": 12,
+            "router": 8,
+            "embedding": 28,
+        }[service]
+        latency = max(1.0, rng.gauss(base_latency, base_latency * 0.18))
+        queue_depth = max(0.0, rng.gauss(4.0, 1.6))
+        npu_util = min(0.98, max(0.18, rng.gauss(0.58, 0.12)))
+        error_rate = 0.006
+
+        for incident in incidents:
+            if (
+                incident.service == service
+                and incident.region == region
+                and incident.start_minute <= minute <= incident.end_minute
+            ):
+                if incident.kind == "latency_spike":
+                    latency *= rng.uniform(2.2, 3.5)
+                    error_rate = 0.035
+                elif incident.kind == "npu_saturation":
+                    npu_util = min(0.995, rng.gauss(0.94, 0.035))
+                    latency *= rng.uniform(1.5, 2.2)
+                    error_rate = 0.02
+                else:
+                    queue_depth += rng.uniform(12, 25)
+                    latency *= rng.uniform(1.7, 2.6)
+                    error_rate = 0.028
+
+        events.append(
+            AnalysisEvent(
+                event_id=event_id,
+                minute=minute,
+                service=service,
+                tenant=tenant,
+                region=region,
+                latency_ms=latency,
+                error=rng.random() < error_rate,
+                npu_util=npu_util,
+                queue_depth=queue_depth,
+            )
+        )
+
+    return WorkloadDataset(events=events, incidents=incidents)
+
+
+def _percentile(values: list[float], percentile: float) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    pos = (len(ordered) - 1) * percentile
+    low = math.floor(pos)
+    high = math.ceil(pos)
+    if low == high:
+        return ordered[int(pos)]
+    return ordered[low] * (high - pos) + ordered[high] * (pos - low)
+
+
+def partition_events(events: list[AnalysisEvent], shard_count: int) -> list[list[AnalysisEvent]]:
+    shards: list[list[AnalysisEvent]] = [[] for _ in range(shard_count)]
+    for event in events:
+        shards[event.event_id % shard_count].append(event)
+    return shards
+
+
+def operator_durations(
+    *,
+    shard_duration_ms: float = 0.0,
+    map_duration_ms: float = 0.0,
+    normalize_duration_ms: float = 0.0,
+    group_duration_ms: float = 0.0,
+    reduce_duration_ms: float = 0.0,
+    report_duration_ms: float = 0.0,
+) -> dict[str, float]:
+    """Return timings keyed by the standard Semantic MapReduce operators."""
+
+    return {
+        "Shard": shard_duration_ms,
+        "MapEvidence": map_duration_ms,
+        "Normalize": normalize_duration_ms,
+        "GroupEvidence": group_duration_ms,
+        "SemanticReduce": reduce_duration_ms,
+        "ReportTrace": report_duration_ms,
+    }
+
+
+def map_shard(
+    shard_id: int,
+    events: list[AnalysisEvent],
+    *,
+    map_policy: str = "tail-aware",
+) -> ShardSummary:
+    if map_policy not in {"tail-aware", "mean-only"}:
+        raise ValueError(f"Unknown map_policy {map_policy!r}. Expected tail-aware or mean-only.")
+    started = time.perf_counter()
+    grouped: dict[tuple[str, str, int], list[AnalysisEvent]] = defaultdict(list)
+    for event in events:
+        window = event.minute // 20
+        grouped[(event.service, event.region, window)].append(event)
+
+    candidates: list[dict[str, Any]] = []
+    for (service, region, window), bucket in grouped.items():
+        if len(bucket) < 4:
+            continue
+        latencies = [item.latency_ms for item in bucket]
+        queue_depths = [item.queue_depth for item in bucket]
+        npu_utils = [item.npu_util for item in bucket]
+        error_rate = sum(1 for item in bucket if item.error) / len(bucket)
+        p95_latency = _percentile(latencies, 0.95)
+        p95_npu = _percentile(npu_utils, 0.95)
+        mean_latency = statistics.fmean(latencies)
+        mean_queue = statistics.fmean(queue_depths)
+        mean_npu = statistics.fmean(npu_utils)
+
+        latency_anomaly = p95_latency > 135 or p95_latency > mean_latency * 1.9
+        queue_anomaly = mean_queue > 10
+        if map_policy == "tail-aware":
+            npu_anomaly = mean_npu > 0.84 or p95_npu > 0.98
+            npu_score = 0.34
+        else:
+            npu_anomaly = mean_npu > 0.84
+            npu_score = 0.22
+        error_anomaly = error_rate > 0.018
+        score = (
+            int(latency_anomaly) * 0.34
+            + int(queue_anomaly) * 0.22
+            + int(npu_anomaly) * npu_score
+            + int(error_anomaly) * 0.22
+        )
+        if score < 0.34:
+            continue
+        candidates.append(
+            {
+                "service": service,
+                "region": region,
+                "window": window,
+                "start_minute": window * 20,
+                "end_minute": window * 20 + 19,
+                "event_count": len(bucket),
+                "p95_latency_ms": round(p95_latency, 2),
+                "mean_latency_ms": round(mean_latency, 2),
+                "error_rate": round(error_rate, 4),
+                "mean_npu_util": round(mean_npu, 4),
+                "p95_npu_util": round(p95_npu, 4),
+                "mean_queue_depth": round(mean_queue, 2),
+                "score": round(score, 4),
+                "signals": [
+                    name
+                    for name, active in (
+                        ("latency", latency_anomaly),
+                        ("queue", queue_anomaly),
+                        ("npu", npu_anomaly),
+                        ("error", error_anomaly),
+                    )
+                    if active
+                ],
+            }
+        )
+
+    top_services = Counter(event.service for event in events).most_common(3)
+    return ShardSummary(
+        shard_id=shard_id,
+        event_count=len(events),
+        candidate_count=len(candidates),
+        candidates=candidates,
+        top_services=top_services,
+        duration_ms=(time.perf_counter() - started) * 1000,
+    )
+
+
+def _explain_candidate(candidate: dict[str, Any]) -> str:
+    signals = ", ".join(candidate["signals"])
+    return (
+        f"{candidate['service']} in {candidate['region']} shows {signals}; "
+        f"p95={candidate['p95_latency_ms']}ms, errors={candidate['error_rate']:.2%}, "
+        f"npu={candidate['mean_npu_util']:.2f}, queue={candidate['mean_queue_depth']}."
+    )
+
+
+def _build_llm_reduce_prompt(evidence: list[dict[str, Any]]) -> str:
+    compact_evidence = [
+        {
+            "evidence_id": idx,
+            "service": item["service"],
+            "region": item["region"],
+            "start_minute": item["start_minute"],
+            "end_minute": item["end_minute"],
+            "score": item["score"],
+            "signals": item["signals"],
+            "p95_latency_ms": item["p95_latency_ms"],
+            "error_rate": item["error_rate"],
+            "mean_npu_util": item["mean_npu_util"],
+            "p95_npu_util": item.get("p95_npu_util", item["mean_npu_util"]),
+            "mean_queue_depth": item["mean_queue_depth"],
+            "evidence_count": item["evidence_count"],
+        }
+        for idx, item in enumerate(evidence)
+    ]
+    return (
+        "You are a semantic reducer for large-scale LLM serving telemetry.\n"
+        "Group the provided evidence rows into incident-level hypotheses. "
+        "Use only the evidence provided. Return ONLY valid JSON with this schema:\n"
+        '{"incidents":[{"service":"...","region":"...",'
+        '"start_minute":0,"end_minute":0,"score":0.0,'
+        '"signals":["latency"],"evidence_ids":[0]}]}\n'
+        "Rules: every evidence_id is an input row id. Use each evidence_id at "
+        "most once across the whole output. Group adjacent evidence rows for "
+        "the same service and region into one incident. Create separate "
+        "incidents for different service/region pairs. Do not repeat the same "
+        "evidence_id to fill an array. Do not invent services, regions, or time "
+        "ranges outside the evidence. Do not generate natural-language "
+        "explanations inside the JSON; the reporting stage will do that from "
+        "the selected evidence. If uncertain, still preserve coverage by "
+        "selecting distinct high-score evidence rows instead of repeating the "
+        "first row.\n"
+        f"Evidence JSON:\n{json.dumps(compact_evidence, sort_keys=True)}"
+    )
+
+
+def _llm_incident_json_schema() -> dict[str, Any]:
+    incident_schema: dict[str, Any] = {
+        "type": "object",
+        "properties": {
+            "service": {"type": "string", "enum": list(SERVICES)},
+            "region": {"type": "string", "enum": list(REGIONS)},
+            "start_minute": {"type": "integer", "minimum": 0, "maximum": 20000},
+            "end_minute": {"type": "integer", "minimum": 0, "maximum": 20000},
+            "score": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+            "signals": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "enum": ["latency", "error", "npu", "queue"],
+                },
+                "minItems": 1,
+                "maxItems": 4,
+            },
+            "evidence_ids": {
+                "type": "array",
+                "items": {"type": "integer", "minimum": 0, "maximum": 256},
+                "minItems": 1,
+                "maxItems": 4,
+            },
+        },
+        "required": [
+            "service",
+            "region",
+            "start_minute",
+            "end_minute",
+            "score",
+            "signals",
+            "evidence_ids",
+        ],
+        "additionalProperties": False,
+    }
+    return {
+        "type": "object",
+        "properties": {
+            "incidents": {
+                "type": "array",
+                "items": incident_schema,
+                "maxItems": 4,
+            }
+        },
+        "required": ["incidents"],
+        "additionalProperties": False,
+    }
+
+
+def _extract_json_payload(text: str) -> dict[str, Any]:
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = cleaned.strip("`")
+        if cleaned.lower().startswith("json"):
+            cleaned = cleaned[4:].strip()
+    try:
+        parsed = json.loads(cleaned)
+    except json.JSONDecodeError as exc:
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start < 0 or end <= start:
+            raise RuntimeError(f"LLM reducer returned non-JSON text: {text[:300]}") from exc
+        parsed = json.loads(cleaned[start : end + 1])
+    if not isinstance(parsed, dict):
+        raise RuntimeError("LLM reducer JSON payload must be an object.")
+    return parsed
+
+
+def _normalize_llm_incidents(
+    payload: dict[str, Any], evidence: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    raw_incidents = payload.get("incidents")
+    if not isinstance(raw_incidents, list):
+        raise RuntimeError("LLM reducer JSON must contain an incidents list.")
+
+    normalized: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, int, int, tuple[int, ...]]] = set()
+    used_evidence_ids: set[int] = set()
+    for raw in raw_incidents:
+        if not isinstance(raw, dict):
+            continue
+        evidence_ids = [
+            int(idx)
+            for idx in raw.get("evidence_ids", [])
+            if isinstance(idx, int) or (isinstance(idx, str) and idx.isdigit())
+        ]
+        evidence_ids = list(dict.fromkeys(evidence_ids))
+        evidence_ids = [idx for idx in evidence_ids if idx not in used_evidence_ids]
+        if not evidence_ids:
+            continue
+        selected = [evidence[idx] for idx in evidence_ids if 0 <= idx < len(evidence)]
+        service = str((selected[0]["service"] if selected else "") or raw.get("service"))
+        region = str((selected[0]["region"] if selected else "") or raw.get("region"))
+        if not service or not region:
+            continue
+
+        start_minute = _coerce_int(
+            min((item["start_minute"] for item in selected), default=None),
+            _coerce_int(raw.get("start_minute"), 0),
+        )
+        end_minute = _coerce_int(
+            max((item["end_minute"] for item in selected), default=None),
+            _coerce_int(raw.get("end_minute"), start_minute),
+        )
+        signals = sorted({signal for item in selected for signal in item["signals"]})
+        if not signals and isinstance(raw.get("signals"), list):
+            signals = raw["signals"]
+        signals = [str(signal) for signal in signals]
+        score = max(0.0, min(1.0, _coerce_float(raw.get("score"), 0.5)))
+        evidence_count = sum(int(item.get("evidence_count", 0)) for item in selected)
+        p95 = max((float(item["p95_latency_ms"]) for item in selected), default=0.0)
+        error_rate = max((float(item["error_rate"]) for item in selected), default=0.0)
+        npu_util = max((float(item["mean_npu_util"]) for item in selected), default=0.0)
+        p95_npu_util = max(
+            (float(item.get("p95_npu_util", item["mean_npu_util"])) for item in selected),
+            default=0.0,
+        )
+        queue_depth = max((float(item["mean_queue_depth"]) for item in selected), default=0.0)
+        key = (service, region, start_minute, max(end_minute, start_minute), tuple(evidence_ids))
+        if key in seen:
+            continue
+        seen.add(key)
+        used_evidence_ids.update(evidence_ids)
+        normalized.append(
+            {
+                "service": service,
+                "region": region,
+                "window": start_minute // 20,
+                "start_minute": start_minute,
+                "end_minute": max(end_minute, start_minute),
+                "score": round(score, 4),
+                "evidence_count": evidence_count or max(1, len(selected)),
+                "signals": signals,
+                "p95_latency_ms": round(p95, 2),
+                "error_rate": round(error_rate, 4),
+                "mean_npu_util": round(npu_util, 4),
+                "p95_npu_util": round(p95_npu_util, 4),
+                "mean_queue_depth": round(queue_depth, 2),
+                "evidence_ids": evidence_ids,
+                "summary": str(raw.get("summary") or "LLM-generated incident."),
+            }
+        )
+
+    normalized.sort(key=lambda item: (item["score"], item["evidence_count"]), reverse=True)
+    return normalized
+
+
+def _repair_llm_incident_coverage(
+    incidents: list[dict[str, Any]], evidence: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Add auditable coverage repairs when an LLM repeats or drops evidence rows."""
+
+    used_ids = {
+        idx
+        for incident in incidents
+        for idx in incident.get("evidence_ids", [])
+        if isinstance(idx, int)
+    }
+    remaining = [
+        {**item, "evidence_id": idx} for idx, item in enumerate(evidence) if idx not in used_ids
+    ]
+    if not remaining:
+        return incidents
+
+    by_target: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for item in remaining:
+        by_target[(item["service"], item["region"])].append(item)
+
+    repaired = [*incidents]
+    for (service, region), items in by_target.items():
+        items.sort(key=lambda item: item["window"])
+        cluster: list[dict[str, Any]] = []
+        for item in items:
+            if not cluster or item["window"] <= cluster[-1]["window"] + 1:
+                cluster.append(item)
+                continue
+            repaired.append(_coverage_repair_incident(service, region, cluster))
+            cluster = [item]
+        if cluster:
+            repaired.append(_coverage_repair_incident(service, region, cluster))
+
+    return _consolidate_llm_incidents(repaired)
+
+
+def _coverage_repair_incident(
+    service: str, region: str, evidence: list[dict[str, Any]]
+) -> dict[str, Any]:
+    incident = _cluster_window_detections(service, region, evidence)
+    return {
+        **incident,
+        "evidence_ids": [int(item["evidence_id"]) for item in evidence],
+        "summary": f"[coverage repair] {incident['summary']}",
+        "reducer_repair": "coverage",
+    }
+
+
+def _consolidate_llm_incidents(incidents: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_target: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for incident in incidents:
+        by_target[(incident["service"], incident["region"])].append(incident)
+
+    consolidated: list[dict[str, Any]] = []
+    for (service, region), items in by_target.items():
+        items.sort(key=lambda item: item["start_minute"])
+        cluster: list[dict[str, Any]] = []
+        for item in items:
+            if not cluster or item["start_minute"] <= cluster[-1]["end_minute"] + 1:
+                cluster.append(item)
+                continue
+            consolidated.append(_merge_llm_incident_cluster(service, region, cluster))
+            cluster = [item]
+        if cluster:
+            consolidated.append(_merge_llm_incident_cluster(service, region, cluster))
+
+    consolidated.sort(
+        key=lambda item: (item["score"], item["evidence_count"]),
+        reverse=True,
+    )
+    return consolidated
+
+
+def _merge_llm_incident_cluster(
+    service: str, region: str, incidents: list[dict[str, Any]]
+) -> dict[str, Any]:
+    representative = max(
+        incidents,
+        key=lambda item: (float(item["score"]), int(item["evidence_count"])),
+    )
+    evidence_ids = sorted(
+        {
+            int(evidence_id)
+            for item in incidents
+            for evidence_id in item.get("evidence_ids", [])
+            if isinstance(evidence_id, int)
+        }
+    )
+    merged = {
+        **representative,
+        "service": service,
+        "region": region,
+        "window": min(int(item["window"]) for item in incidents),
+        "start_minute": min(int(item["start_minute"]) for item in incidents),
+        "end_minute": max(int(item["end_minute"]) for item in incidents),
+        "score": round(max(float(item["score"]) for item in incidents), 4),
+        "evidence_count": sum(int(item["evidence_count"]) for item in incidents),
+        "signals": sorted({signal for item in incidents for signal in item["signals"]}),
+        "p95_latency_ms": max(float(item["p95_latency_ms"]) for item in incidents),
+        "error_rate": max(float(item["error_rate"]) for item in incidents),
+        "mean_npu_util": max(float(item["mean_npu_util"]) for item in incidents),
+        "p95_npu_util": max(
+            float(item.get("p95_npu_util", item["mean_npu_util"])) for item in incidents
+        ),
+        "mean_queue_depth": max(float(item["mean_queue_depth"]) for item in incidents),
+        "evidence_ids": evidence_ids,
+    }
+    if any(item.get("reducer_repair") for item in incidents):
+        merged["reducer_repair"] = "coverage"
+    if len(incidents) > 1:
+        merged["summary"] = f"[consolidated] {representative['summary']}"
+    return merged
+
+
+def _coerce_int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _coerce_float(value: Any, default: float) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _load_env_file(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    if not path.exists():
+        return values
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip().strip('"').strip("'")
+    return values
+
+
+def _api_key_from_env_or_file(env_name: str, env_file: str | None) -> str:
+    if os.environ.get(env_name):
+        return os.environ[env_name]
+    if env_file:
+        values = _load_env_file(Path(env_file).expanduser())
+        if values.get(env_name):
+            return values[env_name]
+    raise RuntimeError(f"Missing API key. Set {env_name} or provide --llm-env-file.")
+
+
+def _reduce_summaries_by_window(summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+    merged: dict[tuple[str, str, int], list[dict[str, Any]]] = defaultdict(list)
+    for summary in summaries:
+        for candidate in summary.candidates:
+            key = (candidate["service"], candidate["region"], candidate["window"])
+            merged[key].append(candidate)
+
+    window_detections: list[dict[str, Any]] = []
+    for (service, region, window), candidates in merged.items():
+        evidence_count = sum(item["event_count"] for item in candidates)
+        score = statistics.fmean(item["score"] for item in candidates)
+        signals = sorted({signal for item in candidates for signal in item["signals"]})
+        p95 = max(item["p95_latency_ms"] for item in candidates)
+        error_rate = max(item["error_rate"] for item in candidates)
+        mean_npu_util = max(item["mean_npu_util"] for item in candidates)
+        p95_npu_util = max(item.get("p95_npu_util", item["mean_npu_util"]) for item in candidates)
+        mean_queue_depth = max(item["mean_queue_depth"] for item in candidates)
+        window_detections.append(
+            {
+                "service": service,
+                "region": region,
+                "window": window,
+                "start_minute": window * 20,
+                "end_minute": window * 20 + 19,
+                "score": round(score, 4),
+                "evidence_count": evidence_count,
+                "signals": signals,
+                "p95_latency_ms": p95,
+                "error_rate": error_rate,
+                "mean_npu_util": mean_npu_util,
+                "p95_npu_util": p95_npu_util,
+                "mean_queue_depth": mean_queue_depth,
+                "summary": _explain_candidate(
+                    {
+                        **candidates[0],
+                        "signals": signals,
+                        "p95_latency_ms": p95,
+                        "error_rate": error_rate,
+                    }
+                ),
+            }
+        )
+
+    window_detections.sort(
+        key=lambda item: (item["score"], item["evidence_count"]),
+        reverse=True,
+    )
+    return window_detections
+
+
+def _reduce_summaries_deterministic(summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+    window_detections = _reduce_summaries_by_window(summaries)
+
+    by_target: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for detection in window_detections:
+        by_target[(detection["service"], detection["region"])].append(detection)
+
+    incidents: list[dict[str, Any]] = []
+    for (service, region), detections in by_target.items():
+        detections.sort(key=lambda item: item["window"])
+        cluster: list[dict[str, Any]] = []
+        for detection in detections:
+            if not cluster or detection["window"] <= cluster[-1]["window"] + 1:
+                cluster.append(detection)
+                continue
+            incidents.append(_cluster_window_detections(service, region, cluster))
+            cluster = [detection]
+        if cluster:
+            incidents.append(_cluster_window_detections(service, region, cluster))
+
+    incidents.sort(key=lambda item: (item["score"], item["evidence_count"]), reverse=True)
+    return incidents
+
+
+def reduce_summaries(summaries: list[ShardSummary]) -> list[dict[str, Any]]:
+    """Backward-compatible deterministic reducer helper."""
+
+    return DeterministicIncidentReducer().reduce(summaries)
+
+
+def _cluster_window_detections(
+    service: str, region: str, detections: list[dict[str, Any]]
+) -> dict[str, Any]:
+    signals = sorted({signal for item in detections for signal in item["signals"]})
+    score = max(item["score"] for item in detections)
+    evidence_count = sum(item["evidence_count"] for item in detections)
+    p95 = max(item["p95_latency_ms"] for item in detections)
+    error_rate = max(item["error_rate"] for item in detections)
+    mean_npu_util = max(item["mean_npu_util"] for item in detections)
+    mean_queue_depth = max(item["mean_queue_depth"] for item in detections)
+    start_minute = min(item["start_minute"] for item in detections)
+    end_minute = max(item["end_minute"] for item in detections)
+    representative = max(detections, key=lambda item: (item["score"], item["evidence_count"]))
+    return {
+        "service": service,
+        "region": region,
+        "window": representative["window"],
+        "start_minute": start_minute,
+        "end_minute": end_minute,
+        "score": round(score, 4),
+        "evidence_count": evidence_count,
+        "signals": signals,
+        "p95_latency_ms": p95,
+        "error_rate": error_rate,
+        "mean_npu_util": mean_npu_util,
+        "p95_npu_util": max(item.get("p95_npu_util", item["mean_npu_util"]) for item in detections),
+        "mean_queue_depth": mean_queue_depth,
+        "summary": _explain_candidate(
+            {
+                **representative,
+                "signals": signals,
+                "p95_latency_ms": p95,
+                "error_rate": error_rate,
+                "mean_npu_util": mean_npu_util,
+                "p95_npu_util": max(
+                    item.get("p95_npu_util", item["mean_npu_util"]) for item in detections
+                ),
+                "mean_queue_depth": mean_queue_depth,
+            }
+        ),
+    }
+
+
+def _matches_incident(detection: dict[str, Any], incident: InjectedIncident) -> bool:
+    same_target = (
+        detection["service"] == incident.service and detection["region"] == incident.region
+    )
+    overlaps_time = (
+        detection["start_minute"] <= incident.end_minute
+        and detection["end_minute"] >= incident.start_minute
+    )
+    return same_target and overlaps_time
+
+
+def score_detections(
+    detections: list[dict[str, Any]], incidents: list[InjectedIncident]
+) -> tuple[int, float, float, float, float]:
+    matched_incidents, matched_detections = match_detections(detections, incidents)
+    precision = matched_detections / len(detections) if detections else 0.0
+    recall = len(matched_incidents) / len(incidents) if incidents else 1.0
+    f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+    evidence_coverage = sum(detection["evidence_count"] for detection in detections) / max(
+        1, len(detections)
+    )
+    return len(matched_incidents), precision, recall, f1, evidence_coverage
+
+
+def match_detections(
+    detections: list[dict[str, Any]], incidents: list[InjectedIncident]
+) -> tuple[set[str], int]:
+    matched_incidents: set[str] = set()
+    matched_detections = 0
+    for detection in detections:
+        detection["matched_incident_id"] = None
+        for incident in incidents:
+            if incident.incident_id in matched_incidents:
+                continue
+            if _matches_incident(detection, incident):
+                matched_incidents.add(incident.incident_id)
+                detection["matched_incident_id"] = incident.incident_id
+                matched_detections += 1
+                break
+    return matched_incidents, matched_detections
+
+
+def run_large_scale_analysis_workload(
+    *,
+    event_count: int = 50_000,
+    shard_count: int = 16,
+    seed: int = 7,
+    top_k: int = 12,
+    reducer: str | IncidentReducer | None = None,
+    map_policy: str = "tail-aware",
+) -> WorkloadReport:
+    incident_reducer = resolve_incident_reducer(reducer)
+    started = time.perf_counter()
+    dataset = generate_synthetic_events(event_count=event_count, seed=seed)
+
+    shard_started = time.perf_counter()
+    shards = partition_events(dataset.events, shard_count)
+    shard_duration_ms = (time.perf_counter() - shard_started) * 1000
+
+    map_started = time.perf_counter()
+    summaries = [
+        map_shard(shard_id, shard, map_policy=map_policy) for shard_id, shard in enumerate(shards)
+    ]
+    map_duration_ms = (time.perf_counter() - map_started) * 1000
+
+    reduce_started = time.perf_counter()
+    detections = incident_reducer.reduce(summaries)[:top_k]
+    reduce_duration_ms = (time.perf_counter() - reduce_started) * 1000
+
+    report_started = time.perf_counter()
+    matched, precision, recall, f1, coverage = score_detections(detections, dataset.incidents)
+    matched_incident_ids, _ = match_detections(detections, dataset.incidents)
+    missed_incidents = [
+        incident_to_dict(incident)
+        for incident in dataset.incidents
+        if incident.incident_id not in matched_incident_ids
+    ]
+    report_duration_ms = (time.perf_counter() - report_started) * 1000
+    total_duration_ms = (time.perf_counter() - started) * 1000
+    return WorkloadReport(
+        event_count=event_count,
+        shard_count=shard_count,
+        seed=seed,
+        top_k=top_k,
+        map_policy=map_policy,
+        reducer_name=incident_reducer.name,
+        injected_incident_count=len(dataset.incidents),
+        detected_incident_count=len(detections),
+        matched_incident_count=matched,
+        precision=precision,
+        recall=recall,
+        f1=f1,
+        evidence_coverage=coverage,
+        map_duration_ms=map_duration_ms,
+        reduce_duration_ms=reduce_duration_ms,
+        total_duration_ms=total_duration_ms,
+        throughput_events_per_s=event_count / max(total_duration_ms / 1000, 0.001),
+        injected_incidents=[incident_to_dict(incident) for incident in dataset.incidents],
+        missed_incidents=missed_incidents,
+        detected_incidents=detections,
+        operator_duration_ms=operator_durations(
+            shard_duration_ms=shard_duration_ms,
+            map_duration_ms=map_duration_ms,
+            reduce_duration_ms=reduce_duration_ms,
+            report_duration_ms=report_duration_ms,
+        ),
+    )
+
+
+def main(argv: Iterable[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Run the synthetic SAGE large-scale analysis workload."
+    )
+    parser.add_argument("--events", type=int, default=50_000)
+    parser.add_argument("--shards", type=int, default=16)
+    parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument("--top-k", type=int, default=12)
+    parser.add_argument(
+        "--map-policy",
+        choices=("tail-aware", "mean-only"),
+        default="tail-aware",
+        help="MapEvidence policy for NPU saturation candidates.",
+    )
+    parser.add_argument(
+        "--reducer",
+        choices=(
+            "deterministic",
+            "map-only",
+            "window-aggregate",
+            "llm-stub",
+            "llm-openai",
+        ),
+        default="deterministic",
+        help="Incident reducer implementation to use.",
+    )
+    parser.add_argument("--llm-base-url", default="http://127.0.0.1:8001")
+    parser.add_argument("--llm-model", default="Qwen2.5-14B-Instruct")
+    parser.add_argument("--llm-api-key-env", default="VLLM_HUST_API_KEY")
+    parser.add_argument("--llm-env-file", default="~/vllm-hust-dev-hub/.env")
+    parser.add_argument("--llm-max-evidence", type=int, default=24)
+    parser.add_argument("--llm-max-tokens", type=int, default=768)
+    parser.add_argument("--llm-timeout-sec", type=int, default=180)
+    parser.add_argument(
+        "--llm-endpoint-type",
+        choices=("chat", "completion"),
+        default="chat",
+        help="OpenAI-compatible endpoint family used by llm-openai.",
+    )
+    parser.add_argument(
+        "--llm-structured-output",
+        action="store_true",
+        help="Request an OpenAI-compatible JSON schema response for llm-openai.",
+    )
+    parser.add_argument("--output", type=Path)
+    args = parser.parse_args(list(argv) if argv is not None else None)
+
+    reducer: str | IncidentReducer
+    if args.reducer == "llm-openai":
+        reducer = OpenAICompletionIncidentReducer(
+            base_url=args.llm_base_url,
+            model=args.llm_model,
+            api_key=_api_key_from_env_or_file(args.llm_api_key_env, args.llm_env_file),
+            max_evidence=args.llm_max_evidence,
+            max_tokens=args.llm_max_tokens,
+            timeout_sec=args.llm_timeout_sec,
+            endpoint_type=args.llm_endpoint_type,
+            structured_output=args.llm_structured_output,
+        )
+    else:
+        reducer = args.reducer
+
+    report = run_large_scale_analysis_workload(
+        event_count=args.events,
+        shard_count=args.shards,
+        seed=args.seed,
+        top_k=args.top_k,
+        reducer=reducer,
+        map_policy=args.map_policy,
+    )
+    payload = report.to_dict()
+    text = json.dumps(payload, ensure_ascii=False, indent=2)
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(text + "\n", encoding="utf-8")
+    print(text)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

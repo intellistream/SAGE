@@ -1,0 +1,43 @@
+## Summary
+
+SAGE pipelines and inference calls currently lack a shared observable execution trace. Add context-local trace/span IDs, monotonic timing, statuses, queue/execution dependencies and sanitized model, retrieval and tool metadata. Tracing is disabled by default; an explicit tracer or CLI flag enables bounded asynchronous NDJSON export.
+
+The CLI shows live or finished observed timelines and exports atomic snapshots for TraceLoom's inference-trace-v1 importer. Dependency analysis reports only the longest observed dependency path: parent scopes are not causal links, clocks are not aligned across producers, and incomplete evidence remains explicitly partial. Raw prompts, responses, hidden reasoning, exception messages and endpoint URLs are not persisted. Public decision summaries require an explicit redactor and opt-in.
+
+## Scope
+
+- In scope: stdlib tracing API, bounded private spool with rotation/retention and drop counters, runtime thread/actor/packet instrumentation, chat usage metadata, serving adapter boundaries, strict reader, CLI, contract fixture and documentation.
+- Out of scope: instrumentation inside external inference/retrieval packages, automatic RPC carrier injection, deployment and NPU execution. External packages retain capability ownership; the public carrier/span API supports subsequent integration.
+
+## Boundary & Dependency Checklist (Mandatory)
+
+- [x] Change preserves strict layer direction: `L4 -> L3 -> L2 -> L1`
+- [x] No compatibility shim / re-export / fallback added
+- [x] Capability ownership is explicit for independent sub-repos (including `sagellm`); no in-repo re-embedding
+- [x] If touching capability families (`neuromem`/`sageVDB`/`sageFlownet`/`sagellm`), ownership and rollout order are explicitly stated
+- [x] Algorithm-only contracts remain separate from runtime/service-bound implementation
+- [x] No new `ray` import/dependency (Flownet-first)
+- [x] Any dependency addition is necessary for current layer responsibilities — no new dependencies
+
+## No-Compatibility-Layer Self-Check (Mandatory)
+
+- [x] No dual-path import pattern (`try new_path -> except old_path`)
+- [x] No compatibility alias wrappers kept for migration convenience
+- [x] Call sites are updated directly to canonical import path
+- [x] On missing dependency/path, behavior is fail-fast (no silent fallback). Optional telemetry exporter failures are deliberately isolated and counted; this is not dependency fallback.
+
+## Evidence
+
+- Reproducible acceptance: [report](https://github.com/RIDE-Lab/SAGE/blob/codex/inference-trace/docs/validation/inference-trace-acceptance.md), [raw commands/samples](https://github.com/RIDE-Lab/SAGE/blob/codex/inference-trace/docs/validation/inference-trace-acceptance.json), [Qwen3.8 findings and primary verification](https://github.com/RIDE-Lab/SAGE/blob/codex/inference-trace/docs/validation/inference-trace-qwen-review.md).
+- Same interpreter/environment/command on clean main `dd8658b` and initial candidate `1267a4e`: base **141 passed, 1 skipped, 1 failed**; candidate **163 passed, 1 skipped, 1 failed**. Both fail only `test_local_environment_round_robins_unkeyed_parallel_map_locally`. After remediation: **169 passed, 1 skipped, the same baseline failure**. All **28 tracing tests pass**; no new full-suite failures. Full commands/results are preserved rather than suppressing the baseline failure.
+- Ruff, diff checks and release/tools boundary validation pass.
+- Real LocalEnvironment batch/streaming workflow plus chat's HTTP code with deterministic fake transport produces **82 events**: root/operator/queue/model, success/error/cancel/retry. Disabled/enabled/unavailable-exporter runs preserve outputs, job-ID contract and original exception semantics. Buffer overflow and unavailable-exporter counters are asserted. No network inference/NPU is involved.
+- Frozen producer artifact: `src/tests/fixtures/inference_workflow_v1.ndjson`, SHA-256 `8175cb564eb651432576c46f52b671445e476ffc462d4ce669eb467f719b07ee`. TraceLoom PR #63 actual native importer passes v1, idempotence (82 duplicates/zero inserts), disorder, incomplete/tail, exact retry dependency path, cross-clock downgrade, future-version rejection and SQLite/HTML/Perfetto privacy gates. Actual SAGE snapshot-follow → TraceLoom import-follow processes refresh from 41 to 82 events.
+- Five fresh-process repeats of **10,000 child spans** per mode, with separate allocation probes: off wall median **5.44 ms**, on+discard drained median **573.94 ms**, on+NDJSON drained median **696.58 ms**. RSS medians **21,616 / 22,596 / 22,608 KiB**. The NDJSON tight loop drops about **18,970–18,973 of 20,000 attempted events** per sample; this is explicitly lossy saturation evidence, not a lossless throughput or real-inference overhead claim. Every repetition and drop count is in the raw report.
+- Acceptance fixes include terminal-status freezing, atomic close/admission, bounded metadata processing, duplicate-lifecycle/root-receipt validation, shared-directory budget locking and purge-safe reading. SAGE adds no browser UI; TraceLoom owns visualization. Keep this PR draft for joint review.
+
+## Risk & Rollback
+
+Tracing consumes CPU and bounded memory when enabled and may drop events under pressure. Root metrics are best-effort snapshots; late exporter failures remain visible through tracer statistics. Spool retention is enforced during export or explicit purge; files left after process exit require operator cleanup. Cross-process boundaries remain opaque until the owner adopts the carrier API. Disable tracing by omitting the tracer/CLI flag; revert this commit to remove the feature.
+
+The NDJSON spool uses nonblocking POSIX file locks; contention is counted as export loss. Process crashes/forced exits can lose queued records and final counters; exported receipts are lower-bound evidence, not crash-durable accounting.

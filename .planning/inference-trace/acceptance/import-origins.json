@@ -1,0 +1,10 @@
+{
+  "base": {
+    "pipeline_compiler": "/home/shuhao/SAGE-trace-base/src/sage/runtime/pipeline_compiler.py",
+    "local_backend": "/home/shuhao/SAGE-trace-base/src/sage/runtime/local_backend.py"
+  },
+  "candidate": {
+    "pipeline_compiler": "/home/shuhao/SAGE-trace/src/sage/runtime/pipeline_compiler.py",
+    "local_backend": "/home/shuhao/SAGE-trace/src/sage/runtime/local_backend.py"
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "fixture": "/home/shuhao/SAGE-trace/.planning/inference-trace/acceptance/workflow-2/workflow.ndjson",
+  "sha256": "83d76fbcf48880bb85555f78628215e011f8b33fccd4a980add392d67acf7ffd",
+  "binary": "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+  "runs": {
+    "original": {
+      "command": [
+        "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+        "import-inference",
+        ".planning/inference-trace/acceptance/import-2/original.ndjson",
+        "--output",
+        ".planning/inference-trace/acceptance/import-2/original.db",
+        "--html-out",
+        ".planning/inference-trace/acceptance/import-2/original.html",
+        "--perfetto-out",
+        ".planning/inference-trace/acceptance/import-2/original.perfetto.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "inference snapshot: inserted=82 duplicates=0 discarded_attributes=0 pending_tail_bytes=0"
+    },
+    "original_repeat": {
+      "command": [
+        "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+        "import-inference",
+        ".planning/inference-trace/acceptance/import-2/original.ndjson",
+        "--output",
+        ".planning/inference-trace/acceptance/import-2/original.db",
+        "--html-out",
+        ".planning/inference-trace/acceptance/import-2/original.html",
+        "--perfetto-out",
+        ".planning/inference-trace/acceptance/import-2/original.perfetto.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "inference snapshot: inserted=0 duplicates=82 discarded_attributes=0 pending_tail_bytes=0"
+    },
+    "reversed": {
+      "command": [
+        "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+        "import-inference",
+        ".planning/inference-trace/acceptance/import-2/reversed.ndjson",
+        "--output",
+        ".planning/inference-trace/acceptance/import-2/reversed.db",
+        "--html-out",
+        ".planning/inference-trace/acceptance/import-2/reversed.html",
+        "--perfetto-out",
+        ".planning/inference-trace/acceptance/import-2/reversed.perfetto.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "inference snapshot: inserted=82 duplicates=0 discarded_attributes=0 pending_tail_bytes=0"
+    },
+    "incomplete": {
+      "command": [
+        "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+        "import-inference",
+        ".planning/inference-trace/acceptance/import-2/incomplete.ndjson",
+        "--output",
+        ".planning/inference-trace/acceptance/import-2/incomplete.db",
+        "--html-out",
+        ".planning/inference-trace/acceptance/import-2/incomplete.html",
+        "--perfetto-out",
+        ".planning/inference-trace/acceptance/import-2/incomplete.perfetto.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "inference snapshot: inserted=81 duplicates=0 discarded_attributes=0 pending_tail_bytes=19"
+    },
+    "cross-clock": {
+      "command": [
+        "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+        "import-inference",
+        ".planning/inference-trace/acceptance/import-2/cross-clock.ndjson",
+        "--output",
+        ".planning/inference-trace/acceptance/import-2/cross-clock.db",
+        "--html-out",
+        ".planning/inference-trace/acceptance/import-2/cross-clock.html",
+        "--perfetto-out",
+        ".planning/inference-trace/acceptance/import-2/cross-clock.perfetto.json"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "inference snapshot: inserted=82 duplicates=0 discarded_attributes=0 pending_tail_bytes=0"
+    },
+    "future-version": {
+      "command": [
+        "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+        "import-inference",
+        ".planning/inference-trace/acceptance/import-2/future-version.ndjson",
+        "--output",
+        ".planning/inference-trace/acceptance/import-2/future-version.db",
+        "--html-out",
+        ".planning/inference-trace/acceptance/import-2/future-version.html",
+        "--perfetto-out",
+        ".planning/inference-trace/acceptance/import-2/future-version.perfetto.json"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: inference line 1: unsupported inference wire version\nusage: /home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom <profile.db-or-profile-dir> [--threads N] [--output ANALYSIS.db] [--perfetto-out TIMELINE.json[.gz]] [--loop-tree-out PATH|-] [--timings]\n\nWrites a self-contained queryable database timeline under a neighboring traceloom/ directory by default.\nQuery its traceloom_projection_recipe catalog to select a scope and compose analytical projections.\nUse traceloom_analysis_surface to discover the underlying hierarchy, cost, replay, and evidence relations.\nUse --loop-tree-out only when a Markdown projection is needed for a human reader. It defaults to a compact grammar summary; select the exact expanded tree with --loop-tree-view expanded.\nExport an existing queryable database timeline with '/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom export-perfetto analysis.db [--output timeline.json.gz]'.\nAdd one '--distributed-rank RANK=TIMELINE.db' per rank to align compressed TraceLoom event lanes at each rank's first event.\nFor collective comparison, explicitly opt into an auditable end-affine display with '--distributed-clock-model MODELS.jsonl'.\nImport observable inference NDJSON with '/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom import-inference events.ndjson --html-out view.html'.\nUse 'import-inference --help' for live snapshots and inference exports.\nUse --help-advanced for compatibility and debug options."
+    }
+  },
+  "checks": [
+    "v1",
+    "idempotent",
+    "reversed",
+    "incomplete",
+    "partial-tail",
+    "retry-path-exact",
+    "cross-clock-no-sum",
+    "future-version-rejected",
+    "privacy-files-html-perfetto"
+  ]
+}
