@@ -20,6 +20,7 @@ from sage.runtime.flownet.runtime.actors.task_runtime import (
     ActorTaskRuntime,
     EventDispatcher,
 )
+from sage.tracing import get_tracer, traced
 
 
 class ActorInvoker:
@@ -51,6 +52,7 @@ class ActorInvoker:
         outcome = await self.call_local_with_protocol(actor_id, method, *args, **kwargs)
         return outcome.result
 
+    @traced("sage.flownet.actor")
     async def call_local_with_protocol(
         self,
         actor_id: str,
@@ -131,12 +133,22 @@ class ActorInvoker:
             actor_config=actor_config,
         )
 
+        tracer = get_tracer()
+        queued = tracer.start_span("sage.flownet.queue")
+
+        def invoke(*inner_args, **inner_kwargs):
+            if not tracer.enabled:
+                return target(*inner_args, **inner_kwargs)
+            queued.end()
+            with tracer.span("sage.flownet.execute", links=[queued.span_id]):
+                return target(*inner_args, **inner_kwargs)
+
         if no_lock:
             self._record_running_start(actor_id=actor_id, lane=lane)
             try:
                 return await run_in_executor_with_context(
                     loop,
-                    target,
+                    invoke,
                     *args,
                     executor=executor,
                     **kwargs,
@@ -146,7 +158,7 @@ class ActorInvoker:
 
         def _locked_call(*inner_args, **inner_kwargs):
             with lock:
-                return target(*inner_args, **inner_kwargs)
+                return invoke(*inner_args, **inner_kwargs)
 
         self._record_running_start(actor_id=actor_id, lane=lane)
         try:

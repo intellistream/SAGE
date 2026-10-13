@@ -15,6 +15,7 @@ from typing import Any
 
 from sage.foundation import SagePorts, get_user_paths
 from sage.serving import SageServeConfig, gateway_openai_base_url, probe_gateway
+from sage.tracing import current_span, traced
 
 
 def resolve_index_root(index_name: str | None) -> Path:
@@ -111,6 +112,7 @@ def _api_key_for_request(args: Any) -> str:
     return _env_value(args.api_key_env, "SAGE_CHAT_API_KEY", "OPENAI_API_KEY") or "EMPTY"
 
 
+@traced("sage.model.subprocess", kind="model", input_index=0)
 def _run_direct_sagellm(prompt: str | None, args: Any) -> int:
     sagellm_bin = _sagellm_executable()
     if not sagellm_bin:
@@ -142,12 +144,19 @@ def _run_direct_sagellm(prompt: str | None, args: Any) -> int:
     if args.debug:
         command.append("--debug")
 
+    current_span().annotate(model=args.model or "default", provider="sagellm")
     completed = subprocess.run(command, check=False)
+    if completed.returncode:
+        current_span().record_error(RuntimeError())
     return int(completed.returncode)
 
 
+@traced("sage.model.http", kind="model", input_index=0)
 def _request_openai_chat(prompt: str, args: Any) -> int:
     model = args.model or _default_model_for_engine(args.engine)
+    span = current_span()
+    span.annotate(model=model, provider="openai-compatible")
+    span.endpoint(_chat_base_url(args))
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
@@ -171,14 +180,35 @@ def _request_openai_chat(prompt: str, args: Any) -> int:
             else:
                 parsed = json.loads(response.read().decode("utf-8"))
                 message = parsed.get("choices", [{}])[0].get("message", {}).get("content", "")
+                span.summarize(message, output=True)
+                _trace_usage(parsed)
                 print(message)
             return 0
     except urllib.error.URLError as exc:
+        span.record_error(exc)
         print(f"chat 请求失败: {exc}", file=sys.stderr)
         return 1
     except json.JSONDecodeError as exc:
+        span.record_error(exc)
         print(f"chat 响应解析失败: {exc}", file=sys.stderr)
         return 1
+
+
+def _trace_usage(payload: dict) -> None:
+    span = current_span()
+    if not span.enabled:
+        return
+    usage = payload.get("usage")
+    if isinstance(usage, dict):
+        counts = {
+            target: usage[source]
+            for source, target in (
+                ("prompt_tokens", "input_tokens"),
+                ("completion_tokens", "output_tokens"),
+            )
+            if type(usage.get(source)) is int and usage[source] >= 0
+        }
+        span.annotate(**counts)
 
 
 def _stream_sse_response(response: Any) -> None:
@@ -193,7 +223,9 @@ def _stream_sse_response(response: Any) -> None:
             payload = json.loads(data)
         except json.JSONDecodeError:
             continue
-        delta = payload.get("choices", [{}])[0].get("delta", {})
+        _trace_usage(payload)
+        choices = payload.get("choices") or [{}]
+        delta = choices[0].get("delta", {})
         content = delta.get("content")
         if content:
             sys.stdout.write(content)

@@ -1,0 +1,596 @@
+{
+  "baseline_comparison": {
+    "python": "Python 3.13.13",
+    "platform": "Linux-5.15.0-25-generic-aarch64-with-glibc2.35",
+    "command": [
+      "/home/shuhao/miniconda3/bin/python",
+      "-m",
+      "pytest",
+      "src/tests",
+      "-q"
+    ],
+    "environment_overrides": {
+      "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+      "PYTHONPATH": "src"
+    },
+    "runs": {
+      "base": {
+        "head": "dd8658bd79f07828ea6b4a2b22e5053437476be0",
+        "tracked_diff": "",
+        "exit_code": 1,
+        "seconds": 5.318720497190952,
+        "result": "1 failed, 141 passed, 1 skipped, 7 warnings in 4.60s"
+      },
+      "candidate": {
+        "head": "1267a4ef287daa54025e1d81ef091d646a3dcb13",
+        "tracked_diff": "",
+        "exit_code": 1,
+        "seconds": 5.114056069403887,
+        "result": "1 failed, 163 passed, 1 skipped, 7 warnings in 4.49s"
+      }
+    }
+  },
+  "workflow": {
+    "success": {
+      "semantics_equal": true,
+      "exception_type": null
+    },
+    "retry": {
+      "semantics_equal": true,
+      "exception_type": null
+    },
+    "error": {
+      "semantics_equal": true,
+      "exception_type": "ValueError"
+    },
+    "cancel_trace_id": "a6fc2a8896ed716b29ff6a649c6ea36e",
+    "overflow": {
+      "accepted_events": 6,
+      "exported_events": 6,
+      "dropped_events": 51,
+      "export_errors": 0,
+      "instrumentation_errors": 0,
+      "queue_depth": 0
+    },
+    "unavailable": {
+      "accepted_events": 42,
+      "exported_events": 0,
+      "dropped_events": 42,
+      "export_errors": 42,
+      "instrumentation_errors": 0,
+      "queue_depth": 0
+    },
+    "fixture": "/home/shuhao/SAGE-trace/.planning/inference-trace/acceptance/workflow-3/workflow.ndjson",
+    "sha256": "8175cb564eb651432576c46f52b671445e476ffc462d4ce669eb467f719b07ee",
+    "events": 82,
+    "trace_ids": [
+      "8328548faf2f65446d45918eeeee4ed5",
+      "83ae71c18651360acb1e31c856c81cf1",
+      "a59b268b6e76ca3a151a7f39957bf5b1",
+      "a6fc2a8896ed716b29ff6a649c6ea36e",
+      "b930ae6dffe6d1a38af76bc51f9d2064",
+      "c3af12396b61a299af8b6d0f3a06a732",
+      "f8dba81220a306443e77ecfda21cf138"
+    ],
+    "tracer": {
+      "accepted_events": 76,
+      "exported_events": 76,
+      "dropped_events": 0,
+      "export_errors": 0,
+      "instrumentation_errors": 0,
+      "queue_depth": 0
+    }
+  },
+  "importer": {
+    "fixture": "/home/shuhao/SAGE-trace/src/tests/fixtures/inference_workflow_v1.ndjson",
+    "sha256": "8175cb564eb651432576c46f52b671445e476ffc462d4ce669eb467f719b07ee",
+    "binary": "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+    "binary_sha256": "17f95d1f96d85faabcb2311725c8034a4c2064439b20bdd502bbe588bcf17d2c",
+    "runs": {
+      "original": {
+        "command": [
+          "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+          "import-inference",
+          ".planning/inference-trace/acceptance/import-reviewed/original.ndjson",
+          "--output",
+          ".planning/inference-trace/acceptance/import-reviewed/original.db",
+          "--html-out",
+          ".planning/inference-trace/acceptance/import-reviewed/original.html",
+          "--perfetto-out",
+          ".planning/inference-trace/acceptance/import-reviewed/original.perfetto.json"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "inference snapshot: inserted=82 duplicates=0 discarded_attributes=0 pending_tail_bytes=0"
+      },
+      "original_repeat": {
+        "command": [
+          "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+          "import-inference",
+          ".planning/inference-trace/acceptance/import-reviewed/original.ndjson",
+          "--output",
+          ".planning/inference-trace/acceptance/import-reviewed/original.db",
+          "--html-out",
+          ".planning/inference-trace/acceptance/import-reviewed/original.html",
+          "--perfetto-out",
+          ".planning/inference-trace/acceptance/import-reviewed/original.perfetto.json"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "inference snapshot: inserted=0 duplicates=82 discarded_attributes=0 pending_tail_bytes=0"
+      },
+      "reversed": {
+        "command": [
+          "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+          "import-inference",
+          ".planning/inference-trace/acceptance/import-reviewed/reversed.ndjson",
+          "--output",
+          ".planning/inference-trace/acceptance/import-reviewed/reversed.db",
+          "--html-out",
+          ".planning/inference-trace/acceptance/import-reviewed/reversed.html",
+          "--perfetto-out",
+          ".planning/inference-trace/acceptance/import-reviewed/reversed.perfetto.json"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "inference snapshot: inserted=82 duplicates=0 discarded_attributes=0 pending_tail_bytes=0"
+      },
+      "incomplete": {
+        "command": [
+          "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+          "import-inference",
+          ".planning/inference-trace/acceptance/import-reviewed/incomplete.ndjson",
+          "--output",
+          ".planning/inference-trace/acceptance/import-reviewed/incomplete.db",
+          "--html-out",
+          ".planning/inference-trace/acceptance/import-reviewed/incomplete.html",
+          "--perfetto-out",
+          ".planning/inference-trace/acceptance/import-reviewed/incomplete.perfetto.json"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "inference snapshot: inserted=81 duplicates=0 discarded_attributes=0 pending_tail_bytes=19"
+      },
+      "cross-clock": {
+        "command": [
+          "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+          "import-inference",
+          ".planning/inference-trace/acceptance/import-reviewed/cross-clock.ndjson",
+          "--output",
+          ".planning/inference-trace/acceptance/import-reviewed/cross-clock.db",
+          "--html-out",
+          ".planning/inference-trace/acceptance/import-reviewed/cross-clock.html",
+          "--perfetto-out",
+          ".planning/inference-trace/acceptance/import-reviewed/cross-clock.perfetto.json"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "inference snapshot: inserted=82 duplicates=0 discarded_attributes=0 pending_tail_bytes=0"
+      },
+      "future-version": {
+        "command": [
+          "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+          "import-inference",
+          ".planning/inference-trace/acceptance/import-reviewed/future-version.ndjson",
+          "--output",
+          ".planning/inference-trace/acceptance/import-reviewed/future-version.db",
+          "--html-out",
+          ".planning/inference-trace/acceptance/import-reviewed/future-version.html",
+          "--perfetto-out",
+          ".planning/inference-trace/acceptance/import-reviewed/future-version.perfetto.json"
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "error: inference line 1: unsupported inference wire version\nusage: /home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom <profile.db-or-profile-dir> [--threads N] [--output ANALYSIS.db] [--perfetto-out TIMELINE.json[.gz]] [--loop-tree-out PATH|-] [--timings]\n\nWrites a self-contained queryable database timeline under a neighboring traceloom/ directory by default.\nQuery its traceloom_projection_recipe catalog to select a scope and compose analytical projections.\nUse traceloom_analysis_surface to discover the underlying hierarchy, cost, replay, and evidence relations.\nUse --loop-tree-out only when a Markdown projection is needed for a human reader. It defaults to a compact grammar summary; select the exact expanded tree with --loop-tree-view expanded.\nExport an existing queryable database timeline with '/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom export-perfetto analysis.db [--output timeline.json.gz]'.\nAdd one '--distributed-rank RANK=TIMELINE.db' per rank to align compressed TraceLoom event lanes at each rank's first event.\nFor collective comparison, explicitly opt into an auditable end-affine display with '--distributed-clock-model MODELS.jsonl'.\nImport observable inference NDJSON with '/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom import-inference events.ndjson --html-out view.html'.\nUse 'import-inference --help' for live snapshots and inference exports.\nUse --help-advanced for compatibility and debug options."
+      }
+    },
+    "follow": {
+      "commands": [
+        [
+          "/home/shuhao/miniconda3/bin/python",
+          "-m",
+          "sage.cli.main",
+          "trace",
+          "export",
+          "--source",
+          ".planning/inference-trace/acceptance/import-reviewed/live-spool",
+          "--output",
+          ".planning/inference-trace/acceptance/import-reviewed/live-snapshot.ndjson",
+          "--follow"
+        ],
+        [
+          "/home/shuhao/traceloom-inference-v1/build/native-tests/native/traceloom",
+          "import-inference",
+          ".planning/inference-trace/acceptance/import-reviewed/live-snapshot.ndjson",
+          "--output",
+          ".planning/inference-trace/acceptance/import-reviewed/live.db",
+          "--html-out",
+          ".planning/inference-trace/acceptance/import-reviewed/live.html",
+          "--follow"
+        ]
+      ],
+      "first_events": 41,
+      "final_events": 82,
+      "html_refresh": true
+    },
+    "checks": [
+      "v1",
+      "idempotent",
+      "reversed",
+      "incomplete",
+      "partial-tail",
+      "retry-path-exact",
+      "cross-clock-no-sum",
+      "future-version-rejected",
+      "privacy-files-html-perfetto",
+      "sage-atomic-snapshot-to-traceloom-live-refresh"
+    ]
+  },
+  "benchmark": {
+    "environment": {
+      "python": "3.13.13 | packaged by Anaconda, Inc. | (main, Apr 14 2026, 06:21:46) [GCC 14.3.0]",
+      "executable": "/home/shuhao/miniconda3/bin/python",
+      "platform": "Linux-5.15.0-25-generic-aarch64-with-glibc2.35",
+      "cpu_count": 192
+    },
+    "method": "fresh process per sample; 1000 warmup; 10000 child spans; 1024-event queue; allocation probes separate; no affinity pinning; RSS high-water KiB",
+    "summary": {
+      "off": {
+        "repeats": 5,
+        "spans_per_repeat": 10000,
+        "enqueue_wall_ns_median": 5438074,
+        "drained_wall_ns_median": 5438394,
+        "rss_peak_kib_median": 21616,
+        "rss_high_water_delta_kib_median": 0,
+        "dropped_events_each_repeat": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "memory": {
+        "repeats": 5,
+        "spans_per_repeat": 10000,
+        "enqueue_wall_ns_median": 572477719,
+        "drained_wall_ns_median": 573940378,
+        "rss_peak_kib_median": 22596,
+        "rss_high_water_delta_kib_median": 268,
+        "dropped_events_each_repeat": [
+          5797,
+          12261,
+          9672,
+          636,
+          1118
+        ]
+      },
+      "ndjson": {
+        "repeats": 5,
+        "spans_per_repeat": 10000,
+        "enqueue_wall_ns_median": 525449994,
+        "drained_wall_ns_median": 696578767,
+        "rss_peak_kib_median": 22608,
+        "rss_high_water_delta_kib_median": 284,
+        "dropped_events_each_repeat": [
+          18970,
+          18973,
+          18973,
+          18972,
+          18972
+        ]
+      }
+    },
+    "samples": [
+      {
+        "mode": "off",
+        "spans": 10000,
+        "allocation_probe": false,
+        "enqueue_wall_ns": 5438074,
+        "drained_wall_ns": 5438394,
+        "rss_before_kib": 21620,
+        "rss_peak_kib": 21620,
+        "rss_high_water_delta_kib": 0,
+        "tracemalloc_peak_bytes": null,
+        "counts": {},
+        "spool_bytes": 0
+      },
+      {
+        "mode": "memory",
+        "spans": 10000,
+        "allocation_probe": false,
+        "enqueue_wall_ns": 603116701,
+        "drained_wall_ns": 604460029,
+        "rss_before_kib": 22332,
+        "rss_peak_kib": 22600,
+        "rss_high_water_delta_kib": 268,
+        "tracemalloc_peak_bytes": null,
+        "counts": {
+          "accepted_events": 14203,
+          "exported_events": 14203,
+          "dropped_events": 5797,
+          "export_errors": 0,
+          "instrumentation_errors": 0
+        },
+        "spool_bytes": 0
+      },
+      {
+        "mode": "ndjson",
+        "spans": 10000,
+        "allocation_probe": false,
+        "enqueue_wall_ns": 533196712,
+        "drained_wall_ns": 712197234,
+        "rss_before_kib": 22328,
+        "rss_peak_kib": 22612,
+        "rss_high_water_delta_kib": 284,
+        "tracemalloc_peak_bytes": null,
+        "counts": {
+          "accepted_events": 1030,
+          "exported_events": 1030,
+          "dropped_events": 18970,
+          "export_errors": 0,
+          "instrumentation_errors": 0
+        },
+        "spool_bytes": 910444
+      },
+      {
+        "mode": "off",
+        "spans": 10000,
+        "allocation_probe": false,
+        "enqueue_wall_ns": 5473585,
+        "drained_wall_ns": 5473945,
+        "rss_before_kib": 21612,
+        "rss_peak_kib": 21612,
+        "rss_high_water_delta_kib": 0,
+        "tracemalloc_peak_bytes": null,
+        "counts": {},
+        "spool_bytes": 0
+      },
+      {
+        "mode": "memory",
+        "spans": 10000,
+        "allocation_probe": false,
+        "enqueue_wall_ns": 543036585,
+        "drained_wall_ns": 545779632,
+        "rss_before_kib": 22332,
+        "rss_peak_kib": 22600,
+        "rss_high_water_delta_kib": 268,
+        "tracemalloc_peak_bytes": null,
+        "counts": {
+          "accepted_events": 7739,
+          "exported_events": 7739,
+          "dropped_events": 12261,
+          "export_errors": 0,
+          "instrumentation_errors": 0
+        },
+        "spool_bytes": 0
+      },
+      {
+        "mode": "ndjson",
+        "spans": 10000,
+        "allocation_probe": false,
+        "enqueue_wall_ns": 554017333,
+        "drained_wall_ns": 733882560,
+        "rss_before_kib": 22324,
+        "rss_peak_kib": 22608,
+        "rss_high_water_delta_kib": 284,
+        "tracemalloc_peak_bytes": null,
+        "counts": {
+          "accepted_events": 1027,
+          "exported_events": 1027,
+          "dropped_events": 18973,
+          "export_errors": 0,
+          "instrumentation_errors": 0
+        },
+        "spool_bytes": 909135
+      },
+      {
+        "mode": "off",
+        "spans": 10000,
+        "allocation_probe": false,
+        "enqueue_wall_ns": 5445754,
+        "drained_wall_ns": 5446114,
+        "rss_before_kib": 21616,
+        "rss_peak_kib": 21616,
+        "rss_high_water_delta_kib": 0,
+        "tracemalloc_peak_bytes": null,
+        "counts": {},
+        "spool_bytes": 0
+      },
+      {
+        "mode": "memory",
+        "spans": 10000,
+        "allocation_probe": false,
+        "enqueue_wall_ns": 580589070,
+        "drained_wall_ns": 581654167,
+        "rss_before_kib": 22312,
+        "rss_peak_kib": 22580,
+        "rss_high_water_delta_kib": 268,
+        "tracemalloc_peak_bytes": null,
+        "counts": {
+          "accepted_events": 10328,
+          "exported_events": 10328,
+          "dropped_events": 9672,
+          "export_errors": 0,
+          "instrumentation_errors": 0
+        },
+        "spool_bytes": 0
+      },
+      {
+        "mode": "ndjson",
+        "spans": 10000,
+        "allocation_probe": false,
+        "enqueue_wall_ns": 525050762,
+        "drained_wall_ns": 696578767,
+        "rss_before_kib": 22332,
+        "rss_peak_kib": 22616,
+        "rss_high_water_delta_kib": 284,
+        "tracemalloc_peak_bytes": null,
+        "counts": {
+          "accepted_events": 1027,
+          "exported_events": 1027,
+          "dropped_events": 18973,
+          "export_errors": 0,
+          "instrumentation_errors": 0
+        },
+        "spool_bytes": 909099
+      },
+      {
+        "mode": "off",
+        "spans": 10000,
+        "allocation_probe": false,
+        "enqueue_wall_ns": 5407374,
+        "drained_wall_ns": 5407604,
+        "rss_before_kib": 21608,
+        "rss_peak_kib": 21608,
+        "rss_high_water_delta_kib": 0,
+        "tracemalloc_peak_bytes": null,
+        "counts": {},
+        "spool_bytes": 0
+      },
+      {
+        "mode": "memory",
+        "spans": 10000,
+        "allocation_probe": false,
+        "enqueue_wall_ns": 572477719,
+        "drained_wall_ns": 573940378,
+        "rss_before_kib": 22064,
+        "rss_peak_kib": 22596,
+        "rss_high_water_delta_kib": 532,
+        "tracemalloc_peak_bytes": null,
+        "counts": {
+          "accepted_events": 19364,
+          "exported_events": 19364,
+          "dropped_events": 636,
+          "export_errors": 0,
+          "instrumentation_errors": 0
+        },
+        "spool_bytes": 0
+      },
+      {
+        "mode": "ndjson",
+        "spans": 10000,
+        "allocation_probe": false,
+        "enqueue_wall_ns": 522388704,
+        "drained_wall_ns": 693793179,
+        "rss_before_kib": 22308,
+        "rss_peak_kib": 22592,
+        "rss_high_water_delta_kib": 284,
+        "tracemalloc_peak_bytes": null,
+        "counts": {
+          "accepted_events": 1028,
+          "exported_events": 1028,
+          "dropped_events": 18972,
+          "export_errors": 0,
+          "instrumentation_errors": 0
+        },
+        "spool_bytes": 909547
+      },
+      {
+        "mode": "off",
+        "spans": 10000,
+        "allocation_probe": false,
+        "enqueue_wall_ns": 5430174,
+        "drained_wall_ns": 5430484,
+        "rss_before_kib": 21620,
+        "rss_peak_kib": 21620,
+        "rss_high_water_delta_kib": 0,
+        "tracemalloc_peak_bytes": null,
+        "counts": {},
+        "spool_bytes": 0
+      },
+      {
+        "mode": "memory",
+        "spans": 10000,
+        "allocation_probe": false,
+        "enqueue_wall_ns": 564431179,
+        "drained_wall_ns": 567198616,
+        "rss_before_kib": 22328,
+        "rss_peak_kib": 22596,
+        "rss_high_water_delta_kib": 268,
+        "tracemalloc_peak_bytes": null,
+        "counts": {
+          "accepted_events": 18882,
+          "exported_events": 18882,
+          "dropped_events": 1118,
+          "export_errors": 0,
+          "instrumentation_errors": 0
+        },
+        "spool_bytes": 0
+      },
+      {
+        "mode": "ndjson",
+        "spans": 10000,
+        "allocation_probe": false,
+        "enqueue_wall_ns": 525449994,
+        "drained_wall_ns": 693897340,
+        "rss_before_kib": 22304,
+        "rss_peak_kib": 22588,
+        "rss_high_water_delta_kib": 284,
+        "tracemalloc_peak_bytes": null,
+        "counts": {
+          "accepted_events": 1028,
+          "exported_events": 1028,
+          "dropped_events": 18972,
+          "export_errors": 0,
+          "instrumentation_errors": 0
+        },
+        "spool_bytes": 909559
+      },
+      {
+        "mode": "off",
+        "spans": 10000,
+        "allocation_probe": true,
+        "enqueue_wall_ns": 63417087,
+        "drained_wall_ns": 63419677,
+        "rss_before_kib": 21608,
+        "rss_peak_kib": 21608,
+        "rss_high_water_delta_kib": 0,
+        "tracemalloc_peak_bytes": 720,
+        "counts": {},
+        "spool_bytes": 0
+      },
+      {
+        "mode": "memory",
+        "spans": 10000,
+        "allocation_probe": true,
+        "enqueue_wall_ns": 3274196325,
+        "drained_wall_ns": 3284551240,
+        "rss_before_kib": 22516,
+        "rss_peak_kib": 23016,
+        "rss_high_water_delta_kib": 500,
+        "tracemalloc_peak_bytes": 513175,
+        "counts": {
+          "accepted_events": 10164,
+          "exported_events": 10164,
+          "dropped_events": 9836,
+          "export_errors": 0,
+          "instrumentation_errors": 0
+        },
+        "spool_bytes": 0
+      },
+      {
+        "mode": "ndjson",
+        "spans": 10000,
+        "allocation_probe": true,
+        "enqueue_wall_ns": 3320970299,
+        "drained_wall_ns": 3813828168,
+        "rss_before_kib": 22508,
+        "rss_peak_kib": 23048,
+        "rss_high_water_delta_kib": 540,
+        "tracemalloc_peak_bytes": 523394,
+        "counts": {
+          "accepted_events": 1026,
+          "exported_events": 1026,
+          "dropped_events": 18974,
+          "export_errors": 0,
+          "instrumentation_errors": 0
+        },
+        "spool_bytes": 908236
+      }
+    ]
+  },
+  "candidate_after_remediation": "1 failed, 169 passed, 1 skipped; identical baseline round-robin failure",
+  "importer_source_commit": "8f99ef502f7881e2d8cfabf6e946c3a12cc0ffba",
+  "qwen_review": "See inference-trace-qwen-review.md: same-profile evidence retry completed, all four findings independently verified."
+}

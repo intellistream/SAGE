@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import concurrent.futures
 import hashlib
+from functools import partial
 from threading import Lock
 from typing import Any
 
 from sage.foundation import CustomLogger
+from sage.tracing import get_tracer, submit_traced, traced
 
 from .backend_protocol import (
     ActorHandleProtocol,
@@ -81,6 +83,10 @@ def _build_local_actor_instance(
             parallel_index=replica_index,
             parallelism=replica_count,
         )
+    if function is not None and get_tracer().enabled:
+        function.execute = traced(
+            "sage.runtime.operator", input_index=0, operation=type(function).__name__
+        )(function.execute)
     return instance
 
 
@@ -118,12 +124,16 @@ class _LocalMethodRef(MethodRefProtocol):
         self._target = target
         self._method_name = method_name
         self._executor = executor
+        self._submit = executor.submit
 
     def call(self, *args: Any, **kwargs: Any) -> Any:
         return getattr(self._target, self._method_name)(*args, **kwargs)
 
+    def enable_tracing(self) -> None:
+        self._submit = partial(submit_traced, self._executor)
+
     def async_call(self, *args: Any, **kwargs: Any) -> MethodCallFuture:
-        future = self._executor.submit(self.call, *args, **kwargs)
+        future = self._submit(self.call, *args, **kwargs)
         return _LocalMethodCallFuture(future)
 
     def cancel(self) -> bool:
@@ -140,6 +150,7 @@ class _LocalReplicaPoolMethodRef(MethodRefProtocol):
         self._targets = targets
         self._method_name = method_name
         self._executor = executor
+        self._submit = executor.submit
         self._selection_lock = Lock()
         self._rr_cursor = 0
 
@@ -157,8 +168,11 @@ class _LocalReplicaPoolMethodRef(MethodRefProtocol):
         target = self._select_target(*args, **kwargs)
         return getattr(target, self._method_name)(*args, **kwargs)
 
+    def enable_tracing(self) -> None:
+        self._submit = partial(submit_traced, self._executor)
+
     def async_call(self, *args: Any, **kwargs: Any) -> MethodCallFuture:
-        future = self._executor.submit(self.call, *args, **kwargs)
+        future = self._submit(self.call, *args, **kwargs)
         return _LocalMethodCallFuture(future)
 
     def cancel(self) -> bool:
