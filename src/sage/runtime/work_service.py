@@ -27,6 +27,8 @@ class WorkService:
         self._error = None
         self._closing = False
         self._closed = False
+        self._retiring = False
+        self._on_drained = None
 
     def _check_available(self):
         if self._error is not None:
@@ -49,7 +51,47 @@ class WorkService:
             with self._lock:
                 self._error = exc
         finally:
-            self._stopped.set()
+            with self._lock:
+                try:
+                    if self._retiring:
+                        self._finish_retirement()
+                except BaseException as exc:
+                    self._error = exc
+                finally:
+                    self._stopped.set()
+
+    def retire(self, on_drained):
+        """Stop admission without joining; release resources after safe drain.
+
+        Suitable for an owner's finalizer, including one invoked by a handler.
+        The callback runs exactly once after dispatcher shutdown, never while
+        handlers or journal acknowledgements still require its resources. It
+        must only release resources (not wait for this service). Dispatch/drain
+        failure retains resources and is reported by close/wait. Queued work
+        stays durable for a replacement service. Retirement is one-shot.
+        """
+        if not callable(on_drained):
+            raise TypeError("retirement_callback_must_be_callable")
+        with self._lock:
+            if self._retiring:
+                raise RuntimeError("work_service_already_retiring")
+            self._retiring = True
+            self._on_drained = on_drained
+            self._closing = True
+            self._stop.set()
+            if self._thread is None or self._stopped.is_set():
+                self._finish_retirement()
+
+    def _finish_retirement(self):
+        # WorkDispatcher refuses shutdown if a failed supervisor still owns
+        # active work. Do not close storage in that case.
+        if self._error is not None:
+            raise RuntimeError("work_service_failed") from self._error
+        self._dispatcher.close()
+        callback, self._on_drained = self._on_drained, None
+        if callback is not None:
+            callback()
+        self._closed = True
 
     def commit(self, request_id, *, result, tasks, mutations=None):
         """Admit one atomic journal/destination commit before starting dispatch.

@@ -7,6 +7,63 @@ from sage.runtime.work_journal import WorkJournal
 from sage.runtime.work_service import WorkService
 
 
+def test_retirement_from_handler_does_not_join_its_own_work(tmp_path):
+    store = StatefulProcessRuntime(backend="sqlite", sqlite_path=str(tmp_path / "state.db"))
+    journal = WorkJournal(store, namespace="work")
+    released = Event()
+    def release():
+        assert journal.read("turn")["tasks"]["post"]["status"] == "done"
+        store.close()
+        released.set()
+    def handler(lease):
+        service.retire(release)
+        assert not released.is_set()
+        return "committed before release"
+    service = WorkService(journal, handler, poll_interval=0.01)
+    service.commit("turn", result="answer", tasks={"post": 1})
+    assert released.wait(3)
+    service.close()
+    reopened = StatefulProcessRuntime(backend="sqlite", sqlite_path=str(tmp_path / "state.db"))
+    try:
+        assert WorkJournal(reopened, namespace="work").read("turn")["tasks"]["post"]["result"] == "committed before release"
+    finally:
+        reopened.close()
+
+
+def test_retirement_before_start_is_one_shot_and_rejects_admission(tmp_path):
+    store = StatefulProcessRuntime(backend="sqlite", sqlite_path=str(tmp_path / "state.db"))
+    service = WorkService(WorkJournal(store, namespace="work"), lambda lease: None)
+    calls = []
+    service.retire(lambda: calls.append("released"))
+    with pytest.raises(RuntimeError, match="already_retiring"):
+        service.retire(lambda: calls.append("twice"))
+    with pytest.raises(RuntimeError, match="closing"):
+        service.commit("late", result=None, tasks={})
+    service.close()
+    assert calls == ["released"]
+    store.close()
+
+
+def test_failed_supervisor_does_not_release_owned_resources(tmp_path, monkeypatch):
+    store = StatefulProcessRuntime(backend="sqlite", sqlite_path=str(tmp_path / "state.db"))
+    service = WorkService(WorkJournal(store, namespace="work"), lambda lease: None)
+    def fail(stop):
+        raise OSError("journal unavailable")
+    monkeypatch.setattr(service._dispatcher, "run", fail)
+    calls = []
+    try:
+        service.start()
+        assert service._stopped.wait(3)
+        with pytest.raises(RuntimeError, match="work_service_failed"):
+            service.retire(lambda: calls.append("unsafe release"))
+        assert calls == []
+        assert store.peek(("still", "open", "state")) is None
+        with pytest.raises(RuntimeError, match="work_service_failed"):
+            service.close()
+    finally:
+        store.close()
+
+
 def test_start_recovers_existing_tasks_and_wait_returns_durable_result(tmp_path):
     path = str(tmp_path / "state.db")
     store = StatefulProcessRuntime(backend="sqlite", sqlite_path=path)
