@@ -19,6 +19,20 @@ cannot publish destination state; journal slots are reserved. No external effect
 is protected by this transaction. A lost acknowledgement after a successful commit
 leaves the task done and its event available for replay after restart.
 
+For a worker admitting a downstream journal before its own acknowledgement,
+`upstream.prepare_guard(lease)` creates a read-only lease assertion. Pass it as
+`guard=...` to downstream `WorkJournal.commit`, `WorkService.commit`, or
+`AsyncWorkService.commit`. Both journals must borrow the same state-store object.
+The source lease is checked inside the same transaction as downstream intent,
+active index, and destination mutations, before destination callbacks run.
+Preparation does not check or renew a lease; an expired, replaced, completed,
+or failed lease rejects all writes. The guard reads current renewal state, not
+the deadline at preparation. It neither acknowledges upstream work nor protects
+external side effects. Self-target overlap is rejected; use `finish` for an
+atomic acknowledgement of the source task itself. For custom same-store
+composition, include `guard.slot` and invoke `guard.apply(values)` inside the
+transaction, never as an independent check before writing.
+
 `WorkService`/`WorkDispatcher` accept `completion_mutations(lease, result)` to
 prepare these transforms on successful handler completion. The callback must be
 pure: use `EventJournal.prepare_append`, not `append` or another storage call.

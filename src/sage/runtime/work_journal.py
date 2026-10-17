@@ -95,6 +95,24 @@ class TaskLease:
 
 
 @dataclass(frozen=True)
+class PreparedLeaseGuard:
+    """Read-only lease assertion evaluated inside a same-store transaction.
+
+    Not an authorization credential or a lock. Never persist this object or
+    perform external effects in its callback. Preparation does not check a lease.
+    """
+
+    slot: tuple[str, str, str]
+    _store: StatefulProcessRuntime
+    _check: Callable[[Any], None]
+
+    def apply(self, values):
+        record = values[self.slot]
+        self._check(record)
+        return {self.slot: record}
+
+
+@dataclass(frozen=True)
 class PreparedWorkCommit:
     """Pure journal mutation for composition in one state transaction.
 
@@ -134,6 +152,7 @@ class WorkJournal:
 
     def commit(self, request_id: str, *, result: Any, tasks: dict[str, Any],
                dependencies=None, settled=None,
+               guard: PreparedLeaseGuard | None = None,
                mutations: Mapping[tuple[str, str, str], Callable[[Any], Any]] | None = None):
         """Commit intent with optional pure destination mutations in this store.
 
@@ -144,9 +163,29 @@ class WorkJournal:
         """
         prepared = self.prepare_commit(request_id, result=result, tasks=tasks, dependencies=dependencies,
                                        settled=settled)
-        return self._apply_with_destinations(prepared.slot, prepared._record_transform, mutations)
+        return self._apply_with_destinations(prepared.slot, prepared._record_transform, mutations, guard=guard)
 
-    def _apply_with_destinations(self, journal_slot, journal_transform, mutations):
+    def prepare_guard(self, lease: TaskLease) -> PreparedLeaseGuard:
+        """Fence downstream admission using this task's current lease.
+
+        The guard must participate in the destination transaction; a separate
+        check followed by a write is not safe. It does not renew or finish work.
+        """
+        if not isinstance(lease, TaskLease) or lease.namespace != self.namespace:
+            raise ValueError("task_lease_namespace_mismatch")
+
+        def check(record):
+            if record is None:
+                raise StaleTaskLeaseError("stale_task_lease")
+            self._validate(record)
+            task = record["tasks"].get(lease.task_id)
+            if (task is None or task["status"] != "running" or task["token"] != lease.token
+                    or task["lease_until"] <= self._clock()):
+                raise StaleTaskLeaseError("stale_task_lease")
+
+        return PreparedLeaseGuard(self._slot(lease.request_id), self._store, check)
+
+    def _apply_with_destinations(self, journal_slot, journal_transform, mutations, *, guard=None):
         """Fence journal state before evaluating pure destination transforms."""
         transforms = dict(mutations) if mutations is not None else {}
         for slot, transform in transforms.items():
@@ -160,13 +199,19 @@ class WorkJournal:
                 raise TypeError("destination_transform_not_callable")
         prepared = PreparedWorkCommit(journal_slot,
             ("sage-work-active-v1", journal_slot[1], journal_slot[2]), journal_transform)
+        if guard is not None:
+            if not isinstance(guard, PreparedLeaseGuard) or guard._store is not self._store:
+                raise ValueError("lease_guard_must_share_state_store")
+            if guard.slot in (*prepared.slots, *transforms):
+                raise ValueError("lease_guard_destination_overlap")
         def apply(values):
             # Evaluate journal fencing before any destination transform.
-            result = prepared.apply(values)
+            result = guard.apply(values) if guard is not None else {}
+            result.update(prepared.apply(values))
             result.update({slot: transform(values[slot]) for slot, transform in transforms.items()})
             return result
         committed = self._store.update_many(
-            (*prepared.slots, *transforms), apply,
+            (*prepared.slots, *transforms, *((guard.slot,) if guard is not None else ())), apply,
         )
         return committed[journal_slot]
 
