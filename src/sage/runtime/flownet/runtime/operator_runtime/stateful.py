@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import copy
 import os
 import pickle
 import sqlite3
@@ -35,8 +36,17 @@ class StatefulStateHandle:
     def clear(self) -> bool:
         return self._runtime.delete(self._slot)
 
+    def update(self, transform: Callable[[Any], Any], *, default: Any = None) -> Any:
+        """Atomically replace state; transform must be pure and must not reenter storage."""
+        return self._runtime.update(
+            self._slot, transform, default=default, ttl_seconds=self.ttl_seconds
+        )
+
 
 class _StateBackend:
+    def update(self, slot, transform):  # pragma: no cover - interface
+        raise NotImplementedError
+
     def get(self, slot: tuple[str, str, str]) -> _StateEntry | None:  # pragma: no cover - interface
         raise NotImplementedError
 
@@ -65,6 +75,11 @@ class _StateBackend:
 class _MemoryStateBackend(_StateBackend):
     def __init__(self) -> None:
         self._state: dict[tuple[str, str, str], _StateEntry] = {}
+
+    def update(self, slot, transform):
+        entry = transform(copy.deepcopy(self._state.get(slot)))
+        self._state[slot] = copy.deepcopy(entry)
+        return copy.deepcopy(entry)
 
     def get(self, slot: tuple[str, str, str]) -> _StateEntry | None:
         return self._state.get(slot)
@@ -142,6 +157,18 @@ class _SQLiteStateBackend(_StateBackend):
         )
         self._conn.commit()
 
+    def update(self, slot, transform):
+        # Reserve the writer before reading, including across runtime instances.
+        self._conn.execute("BEGIN IMMEDIATE")
+        try:
+            entry = transform(self.get(slot))
+            self._put_uncommitted(slot, entry)
+            self._conn.commit()
+            return entry
+        except BaseException:
+            self._conn.rollback()
+            raise
+
     def get(self, slot: tuple[str, str, str]) -> _StateEntry | None:
         stage_id, namespace, key = slot
         row = self._conn.execute(
@@ -161,6 +188,10 @@ class _SQLiteStateBackend(_StateBackend):
         )
 
     def put(self, slot: tuple[str, str, str], entry: _StateEntry) -> None:
+        self._put_uncommitted(slot, entry)
+        self._conn.commit()
+
+    def _put_uncommitted(self, slot: tuple[str, str, str], entry: _StateEntry) -> None:
         stage_id, namespace, key = slot
         value_blob = sqlite3.Binary(pickle.dumps(entry.value, protocol=pickle.HIGHEST_PROTOCOL))
         self._conn.execute(
@@ -174,7 +205,6 @@ class _SQLiteStateBackend(_StateBackend):
             """,
             (stage_id, namespace, key, float(entry.updated_at), value_blob),
         )
-        self._conn.commit()
 
     def delete(self, slot: tuple[str, str, str]) -> bool:
         stage_id, namespace, key = slot
@@ -366,6 +396,24 @@ class StatefulProcessRuntime:
         normalized_slot = _normalize_state_slot(slot)
         with self._lock:
             return self._backend.delete(normalized_slot)
+
+    def update(self, slot, transform, *, default=None, ttl_seconds=None):
+        """Atomic read/transform/write using the configured state backend.
+
+        The callback must have no external effects and must not call storage.
+        A callback or serialization failure leaves the previous state intact.
+        """
+        normalized_slot = _normalize_state_slot(slot)
+
+        def apply(entry):
+            now = self._time_fn()
+            expired = (entry is not None and ttl_seconds is not None
+                       and now - entry.updated_at >= ttl_seconds)
+            value = default if entry is None or expired else entry.value
+            return _StateEntry(value=transform(copy.deepcopy(value)), updated_at=now)
+
+        with self._lock:
+            return copy.deepcopy(self._backend.update(normalized_slot, apply).value)
 
     def query_namespace_entries(
         self,
