@@ -12,7 +12,7 @@ import json
 import math
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -70,9 +70,34 @@ class WorkJournal:
     def _slot(self, request_id):
         return ("sage-work-journal-v1", self.namespace, _name(request_id))
 
-    def commit(self, request_id: str, *, result: Any, tasks: dict[str, Any]):
+    def commit(self, request_id: str, *, result: Any, tasks: dict[str, Any],
+               mutations: Mapping[tuple[str, str, str], Callable[[Any], Any]] | None = None):
+        """Commit intent with optional pure destination mutations in this store.
+
+        Every destination owns replay/conflict checks. No callback may perform
+        external effects or re-enter storage. Journal slots are reserved so a
+        destination cannot bypass the task protocol. This is not cross-store
+        atomicity, and successful replay must not reapply non-idempotent effects.
+        """
         prepared = self.prepare_commit(request_id, result=result, tasks=tasks)
-        return self._store.update(prepared.slot, prepared.transform)
+        transforms = dict(mutations) if mutations is not None else {}
+        for slot, transform in transforms.items():
+            if not isinstance(slot, tuple) or len(slot) != 3:
+                raise ValueError("invalid_destination_slot")
+            for part in slot:
+                _name(part)
+            if slot[0] == "sage-work-journal-v1":
+                raise ValueError("destination_cannot_mutate_journal")
+            if not callable(transform):
+                raise TypeError("destination_transform_not_callable")
+        if not transforms:
+            return self._store.update(prepared.slot, prepared.transform)
+        transforms[prepared.slot] = prepared.transform
+        committed = self._store.update_many(
+            transforms, lambda values: {slot: transform(values[slot])
+                                       for slot, transform in transforms.items()},
+        )
+        return committed[prepared.slot]
 
     def prepare_commit(self, request_id: str, *, result: Any, tasks: dict[str, Any]) -> PreparedWorkCommit:
         """Capture immutable JSON inputs without writing or starting work.

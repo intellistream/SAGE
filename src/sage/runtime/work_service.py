@@ -51,10 +51,18 @@ class WorkService:
         finally:
             self._stopped.set()
 
-    def commit(self, request_id, *, result, tasks):
+    def commit(self, request_id, *, result, tasks, mutations=None):
+        """Admit one atomic journal/destination commit before starting dispatch.
+
+        The admission lock also serializes shutdown against the transaction.
+        A failure never starts a fresh dispatcher. A lost acknowledgement may
+        still have committed; replay safely or recover the journal on restart.
+        Existing workers can observe committed intents, never partial writes.
+        """
         with self._lock:
             self._check_available()
-            committed = self.journal.commit(request_id, result=result, tasks=tasks)
+            committed = self.journal.commit(request_id, result=result, tasks=tasks,
+                                            mutations=mutations)
             self.start()
             return committed
 

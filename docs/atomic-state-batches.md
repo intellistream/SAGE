@@ -60,3 +60,44 @@ identity and conflict checks; the transaction supplies all-or-nothing commit.
 Preparing or evaluating a transform is not a persistence receipt. Worker startup
 belongs after commit. `WorkJournal.commit` delegates to the same prepared
 transform, so standalone and composed commits have identical journal semantics.
+
+## Atomic work admission with destination mutations
+
+`WorkJournal.commit` and `WorkService.commit` accept an optional `mutations`
+mapping from canonical `(stage, namespace, key)` tuples to pure single-value
+transformations. The journal adds its own prepared transform and applies every
+destination plus result/task intent in **one** `update_many` transaction on its
+state store. Destination slots must be nonempty trimmed strings, and the
+`sage-work-journal-v1` stage is reserved: callers cannot overwrite any journal
+record via this interface. Invalid slots or non-callables fail before writes.
+
+```python
+service.commit(
+    "turn", result={"answer": "..."}, tasks={"post": {"turn": "turn"}},
+    mutations={destination.slot: destination.transform},
+)
+```
+
+`WorkService` holds its admission lock across the transaction and starts its
+dispatcher only after a successful acknowledgement. Shutdown takes the same
+lock: a previously admitted commit finishes before shutdown, and new mutations
+are rejected once closing begins. Already-running workers may observe the
+complete transaction as soon as it commits, not a partial destination/outbox.
+Therefore application read views must be reconstructible from committed state;
+this API does not wait for an application-side cache to be updated.
+
+Every destination must supply its own replay/conflict checks; a repeated journal
+commit does not make a non-idempotent destination safe. No model calls, external
+effects, or nested storage calls are permitted in transforms. Inputs captured by
+destination closures must be detached by their owner. This does not coordinate
+different stores or databases. An exception after persistence but before the
+acknowledgement is an uncertain outcome: replay the same identities/transforms
+or start a new service on the same store to recover committed tasks. Do not
+regenerate a turn ID and claim that the first attempt was rolled back.
+
+Acceptance covers callback failure, journal conflict, failure after the second
+SQL write, lost acknowledgement/reopen/replay, worker observation of committed
+destination state, close racing an admitted transaction, rejected post-close
+mutations, and process exit after an uncommitted SQL write or after commit but
+before dispatcher startup. This is process-crash coverage, not power-loss
+certification or application deployment acceptance.
