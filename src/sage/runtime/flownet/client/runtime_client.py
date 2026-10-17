@@ -692,6 +692,7 @@ class FlowEndpoint:
         *,
         request_id: str | None = None,
         tags: Mapping[str, str] | None = None,
+        reuse_existing: bool = True,
     ) -> FlowRequestRef:
         if self._closed:
             raise RuntimeError("flow_endpoint_closed")
@@ -704,6 +705,8 @@ class FlowEndpoint:
             resolved_request_id = _normalize_non_empty(request_id, field_name="request_id")
         with self._requests_lock:
             state = self._requests.get(resolved_request_id)
+            if state is not None and not state.released and not reuse_existing:
+                raise RuntimeError(f"flow_request_already_open:{resolved_request_id}")
             if state is None or state.released:
                 self._requests[resolved_request_id] = _EndpointRequestState(
                     request_id=resolved_request_id
@@ -734,12 +737,25 @@ class FlowEndpoint:
         request_id: str | None = None,
         tags: Mapping[str, str] | None = None,
     ) -> list[Any]:
-        request = self.submit(
-            payload,
-            request_id=request_id,
-            tags=tags,
+        """Collect a single request and release its endpoint-local buffers.
+
+        An already-open request ID is rejected without changing its owner.
+        Release is not cancellation of dispatched work or deletion of runtime
+        ledger history. Use submit() for explicit request lifetime management.
+        """
+        # This convenience API owns its request reference. Callers that need
+        # incremental reads or explicit lifecycle control use submit() instead.
+        # Include write/finish in the ownership scope: admission or publication
+        # can fail before submit() would have returned a reference to clean up.
+        request = self.open_request(
+            request_id=request_id, tags=tags, reuse_existing=False
         )
-        return request.collect(timeout=timeout)
+        try:
+            request.write(payload)
+            request.finish()
+            return request.collect(timeout=timeout)
+        finally:
+            request.release()
 
     def close(self) -> None:
         if self._closed:

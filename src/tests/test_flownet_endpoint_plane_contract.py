@@ -82,6 +82,63 @@ def _build_endpoint_inspector(bootstrap):
     )
 
 
+def test_call_releases_owned_request_after_success(runtime_client_pair):
+    _, client = runtime_client_pair
+    endpoint = endpoint_echo_flow.bind(
+        "owned-success-in", "owned-success-out"
+    ).endpoint(client=client, reuse_existing=False)
+    for index in range(20):
+        assert endpoint.call({"value": index}, request_id=f"owned-{index}") == [
+            {"value": index}
+        ]
+        assert endpoint._requests == {}
+
+
+@pytest.mark.parametrize("operation", ["write", "finish", "collect"])
+def test_call_releases_owned_request_on_failure(runtime_client_pair, monkeypatch, operation):
+    from sage.runtime.flownet import FlowRequestRef
+
+    _, client = runtime_client_pair
+    endpoint = endpoint_echo_flow.bind(
+        "owned-failure-in", "owned-failure-out"
+    ).endpoint(client=client, reuse_existing=False)
+
+    def fail(*args, **kwargs):
+        raise TimeoutError(f"failed-{operation}")
+
+    monkeypatch.setattr(FlowRequestRef, operation, fail)
+    with pytest.raises(TimeoutError, match=f"failed-{operation}"):
+        endpoint.call({"value": 1}, request_id="owned-failed")
+    assert endpoint._requests == {}
+
+
+def test_submit_preserves_caller_owned_request_until_release(runtime_client_pair):
+    _, client = runtime_client_pair
+    endpoint = endpoint_echo_flow.bind(
+        "explicit-owner-in", "explicit-owner-out"
+    ).endpoint(client=client, reuse_existing=False)
+    request = endpoint.submit({"value": 3}, request_id="caller-owned")
+    assert request.collect() == [{"value": 3}]
+    assert request.status()["request_done"]
+    assert request.release()
+    assert not request.release()
+    assert endpoint._requests == {}
+
+
+def test_call_cannot_release_an_existing_callers_request(runtime_client_pair):
+    _, client = runtime_client_pair
+    endpoint = endpoint_echo_flow.bind(
+        "ownership-conflict-in", "ownership-conflict-out"
+    ).endpoint(client=client, reuse_existing=False)
+    request = endpoint.open_request(request_id="existing-owner")
+    with pytest.raises(RuntimeError, match="flow_request_already_open"):
+        endpoint.call({"value": 9}, request_id="existing-owner")
+    request.write({"value": 4})
+    request.finish()
+    assert request.collect() == [{"value": 4}]
+    assert request.release()
+
+
 def test_published_endpoint_can_be_found_and_listed_in_inventory(runtime_client_pair) -> None:
     bootstrap, client = runtime_client_pair
 
