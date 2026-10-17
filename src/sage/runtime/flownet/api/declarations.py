@@ -609,6 +609,7 @@ class FlowDeclaration:
             policies=self.policies,
         )
         self._default_program = None
+        self._compiled_plan_cache = None
 
     def __get__(self, instance, owner):
         if instance is not None:
@@ -679,6 +680,102 @@ class FlowDeclaration:
         if not args and not kwargs:
             self._default_program = program
         return program
+
+    def compile_reusable(
+        self,
+        *,
+        structural_args: tuple[Any, ...] = (),
+        structural_kwargs: Mapping[str, Any] | None = None,
+        schema: Any,
+        policy_version: str,
+        capabilities: Any,
+        retrieval_contract: Any,
+        resource_class: str,
+        compiler_version: str = "1",
+        max_entries: int = 128,
+        ttl_seconds: float = 900.0,
+        negative_ttl_seconds: float = 2.0,
+    ):
+        """Compile or reuse one request-neutral structural flow plan.
+
+        ``structural_args`` and ``structural_kwargs`` become part of the
+        fingerprint. Runtime input, identity, evidence, deadline, trace, and
+        cancellation state belong in :meth:`bind_reusable` instead.
+        """
+
+        from sage.runtime.compiled_plan_cache import CompiledPlanCache, PlanFingerprint
+
+        resolved_args = tuple(structural_args)
+        resolved_kwargs = dict(structural_kwargs or {})
+        fingerprint = PlanFingerprint.build(
+            operator_dag={
+                "declaration_id": self.declaration_id,
+                "definition_hash": self.definition_hash,
+                "structural_args": resolved_args,
+                "structural_kwargs": resolved_kwargs,
+            },
+            schema=schema,
+            policy_version=policy_version,
+            capabilities=capabilities,
+            retrieval_contract=retrieval_contract,
+            resource_class=resource_class,
+            compiler_version=compiler_version,
+        )
+        if self._compiled_plan_cache is None:
+            self._compiled_plan_cache = CompiledPlanCache(
+                max_entries=max_entries,
+                ttl_seconds=ttl_seconds,
+                negative_ttl_seconds=negative_ttl_seconds,
+            )
+        return self._compiled_plan_cache.get_or_compile(
+            fingerprint,
+            lambda: self.compile(*resolved_args, **resolved_kwargs),
+        )
+
+    def bind_reusable(
+        self,
+        *structural_args: Any,
+        in_: Any | None = None,
+        out: Any | None = None,
+        schema: Any,
+        policy_version: str,
+        capabilities: Any,
+        retrieval_contract: Any,
+        resource_class: str,
+        compiler_version: str = "1",
+        **structural_kwargs: Any,
+    ) -> BoundFlowDeclaration:
+        """Reuse static compilation, then attach per-request IO bindings."""
+
+        plan = self.compile_reusable(
+            structural_args=tuple(structural_args),
+            structural_kwargs=structural_kwargs,
+            schema=schema,
+            policy_version=policy_version,
+            capabilities=capabilities,
+            retrieval_contract=retrieval_contract,
+            resource_class=resource_class,
+            compiler_version=compiler_version,
+        )
+        return BoundFlowDeclaration(
+            declaration=self,
+            flow_args=tuple(structural_args),
+            flow_kwargs=dict(structural_kwargs),
+            in_binding=in_,
+            out_binding=out,
+            _precompiled_flow_program=plan.artifact,
+            compiled_plan_fingerprint=plan.fingerprint.digest,
+            compiled_plan_duration_ms=plan.compile_duration_ms,
+        )
+
+    def compiled_plan_cache_stats(self):
+        if self._compiled_plan_cache is None:
+            return None
+        return self._compiled_plan_cache.stats()
+
+    def clear_compiled_plan_cache(self) -> None:
+        if self._compiled_plan_cache is not None:
+            self._compiled_plan_cache.clear()
 
     @property
     def pipeline(self) -> list[Any]:
@@ -905,6 +1002,9 @@ class BoundFlowDeclaration:
     flow_kwargs: dict[str, Any] = field(default_factory=dict)
     in_binding: Any = None
     out_binding: Any = None
+    _precompiled_flow_program: Any = field(default=None, repr=False, compare=False)
+    compiled_plan_fingerprint: str | None = None
+    compiled_plan_duration_ms: float | None = None
     _flow_program: Any = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -913,7 +1013,9 @@ class BoundFlowDeclaration:
         object.__setattr__(
             self,
             "_flow_program",
-            self.declaration.compile(*self.flow_args, **self.flow_kwargs),
+            self._precompiled_flow_program
+            if self._precompiled_flow_program is not None
+            else self.declaration.compile(*self.flow_args, **self.flow_kwargs),
         )
 
     @property

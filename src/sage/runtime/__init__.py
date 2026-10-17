@@ -14,6 +14,14 @@ from typing import Any
 from sage.stream._runtime_kernel_types import Packet, StopSignal
 
 from .backend import get_runtime_backend
+from .compiled_plan_cache import (
+    CompiledPlanCache,
+    CompiledWorkflowPlan,
+    PlanCacheStats,
+    PlanCompileError,
+    PlanFingerprint,
+    bind_compiled_plan,
+)
 from .environments import FlowNetEnvironment, LocalEnvironment
 from .job_manager import JobManager
 from .pipeline_compiler import CompiledActorGraph, PipelineCompiler
@@ -41,6 +49,12 @@ __all__ = [
     "get_runtime_backend",
     "PipelineCompiler",
     "CompiledActorGraph",
+    "CompiledPlanCache",
+    "CompiledWorkflowPlan",
+    "PlanCacheStats",
+    "PlanCompileError",
+    "PlanFingerprint",
+    "bind_compiled_plan",
 ]
 
 

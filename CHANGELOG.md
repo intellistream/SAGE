@@ -16,6 +16,7 @@ Source: `https://pypi.org/pypi/isage/json` (checked on 2026-02-14, UTC).
 
 ### Changed
 
+- Added a typed, versioned compiled-workflow plan cache with bounded LRU/TTL, failure recovery, single-flight compilation, metrics, and real `FlowDeclaration.compile_reusable()` / `bind_reusable()` integration that keeps request IO outside static plans.
 - Promoted the main repository to the `0.3` product line after the stream/runtime/serving consolidation.
 - Reworked the owned `sage` CLI surface around the in-tree core boundary: `version`, `status`, `doctor`, `verify`, `runtime nodes`, `serve gateway`, `chat`, and `index ingest`.
 - Switched `sage chat` to a `sagellm`-first integration model: direct `sagellm` CLI or external gateway, with no in-repo mock fallback.

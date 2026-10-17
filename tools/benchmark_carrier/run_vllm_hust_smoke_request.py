@@ -30,12 +30,12 @@ def _api_key(args: argparse.Namespace) -> str:
     env_values = _load_env_file(Path(args.env_file).expanduser())
     if args.api_key_env and env_values.get(args.api_key_env):
         return env_values[args.api_key_env]
-    raise RuntimeError(
-        f"Missing API key. Set {args.api_key_env} or provide it in {args.env_file}."
-    )
+    raise RuntimeError(f"Missing API key. Set {args.api_key_env} or provide it in {args.env_file}.")
 
 
-def _post_json(url: str, payload: dict[str, Any], api_key: str, timeout_sec: int) -> tuple[int, dict[str, Any]]:
+def _post_json(
+    url: str, payload: dict[str, Any], api_key: str, timeout_sec: int
+) -> tuple[int, dict[str, Any]]:
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),

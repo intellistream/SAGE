@@ -189,9 +189,7 @@ def _resolve_prefix_cache_key_backend_affinity(
     )
     candidate_backend_ids = sorted(
         backend_id
-        for backend_id in (
-            _eligible_backend_id_from_record(record) for record in candidate_records
-        )
+        for backend_id in (_eligible_backend_id_from_record(record) for record in candidate_records)
         if backend_id is not None
     )
     if not candidate_backend_ids:

@@ -2,24 +2,45 @@
 
 > A dataflow-native framework for modular, controllable, and transparent LLM-augmented reasoning.
 
-[![Build & Test](https://github.com/intellistream/SAGE/actions/workflows/ci-build-test.yml/badge.svg?branch=main)](https://github.com/intellistream/SAGE/actions/workflows/ci-build-test.yml)
-[![codecov](https://codecov.io/gh/intellistream/SAGE/branch/main/graph/badge.svg)](https://codecov.io/gh/intellistream/SAGE)
+[![Build & Test](https://github.com/RIDE-Lab/SAGE/actions/workflows/ci-build-test.yml/badge.svg?branch=main)](https://github.com/RIDE-Lab/SAGE/actions/workflows/ci-build-test.yml)
+[![codecov](https://codecov.io/gh/RIDE-Lab/SAGE/branch/main/graph/badge.svg)](https://codecov.io/gh/RIDE-Lab/SAGE)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://python.org)
 [![PyPI version](https://badge.fury.io/py/isage.svg)](https://badge.fury.io/py/isage)
-[![GitHub Issues](https://img.shields.io/github/issues/intellistream/SAGE)](https://github.com/intellistream/SAGE/issues)
-[![GitHub Stars](https://img.shields.io/github/stars/intellistream/SAGE?style=social)](https://github.com/intellistream/SAGE/stargazers)
+[![GitHub Issues](https://img.shields.io/github/issues/RIDE-Lab/SAGE)](https://github.com/RIDE-Lab/SAGE/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/RIDE-Lab/SAGE?style=social)](https://github.com/RIDE-Lab/SAGE/stargazers)
 
 **SAGE** turns LLM reasoning workflows into explicit dataflow pipelines. It is designed for
 streaming execution, transparent orchestration, controllable serving, and modular integration with
 retrieval, memory, tool-use, and inference-engine backends.
 
+SAGE is the shared flagship product and technical vision of the IntelliStream research ecosystem.
+Its name captures that vision: **Streaming-Augmented Generative Execution** applies
+streaming-computing principles—explicit dataflow, state, backpressure, and continuous execution—to
+LLM inference and agent systems. RIDE Lab is the principal engineering steward of the core
+repositories, while DataSys and vLLM-HUST retain ownership of their data-system and inference
+boundaries. See [GOVERNANCE.md](./GOVERNANCE.md) for the stewardship contract.
+
 ## News
 
 - **May 2026**: The SAGE paper was accepted to **ICML 2026**: *SAGE: A Dataflow-Native Framework for
-  Modular, Controllable, and Transparent LLM-Augmented Reasoning*. An author PDF is available from
-  the project maintainer's
-  [publication page](https://shuhaozhangtony.github.io/contents/research_papers/2026/2026_sage_icml_2026.pdf).
+  Modular, Controllable, and Transparent LLM-Augmented Reasoning*.
+  [OpenReview](https://openreview.net/forum?id=TXcFJdT7at) |
+  [author PDF](https://shuhao.sage.org.ai/contents/research_papers/2026/2026_sage_icml_2026.pdf).
+
+## ICPP 2026 Demo
+
+The CPU demo delivery includes Docker startup scripts, model-provider adapters, validation tools,
+and the printable poster. See the [deployment guide](tools/icpp-demo/README.md) and
+[poster](tools/icpp-demo/docs/poster/SAGE-ICPP-Demo-Poster.pdf).
+
+```sh
+git clone https://github.com/RIDE-Lab/SAGE.git
+cd SAGE/tools/icpp-demo
+sh scripts/start-hub.sh
+```
+
+The image includes application dependencies but not model weights, datasets, or credentials.
 
 ## Current Scope
 
@@ -108,7 +129,7 @@ env.submit(autostop=True)
 ### Try it yourself
 
 ```bash
-git clone https://github.com/intellistream/SAGE.git && cd SAGE
+git clone https://github.com/RIDE-Lab/SAGE.git && cd SAGE
 git checkout main
 ./quickstart.sh --dev --yes
 
@@ -116,7 +137,7 @@ git checkout main
 sage verify
 
 # Explore tutorials from the separate learning repo
-git clone https://github.com/intellistream/sage-tutorials.git
+git clone https://github.com/RIDE-Lab/sage-tutorials.git
 python sage-tutorials/L1-common/hello_world.py
 ```
 
@@ -178,7 +199,7 @@ capabilities), forbidden directions, and boundary refactor review checklist
 ### Quickstart (Recommended)
 
 ```bash
-git clone https://github.com/intellistream/SAGE.git && cd SAGE
+git clone https://github.com/RIDE-Lab/SAGE.git && cd SAGE
 ./quickstart.sh --dev --yes
 # or
 ./quickstart.sh --standard --yes
@@ -289,7 +310,7 @@ Tutorials live in the separate `sage-tutorials` repository so that learning mate
 without drifting the main package contract.
 
 ```bash
-git clone https://github.com/intellistream/sage-tutorials.git
+git clone https://github.com/RIDE-Lab/sage-tutorials.git
 cd sage-tutorials
 python L1-common/hello_world.py
 ```
@@ -304,7 +325,7 @@ README.
 - **Architecture**: [https://sage.org.ai/architecture/](https://sage.org.ai/architecture/)
 - **Developer guide**: [DEVELOPER.md](./DEVELOPER.md)
 - **Contribution guide**: [CONTRIBUTING.md](./CONTRIBUTING.md)
-- **Tutorials**: [intellistream/sage-tutorials](https://github.com/intellistream/sage-tutorials)
+- **Tutorials**: [RIDE-Lab/sage-tutorials](https://github.com/RIDE-Lab/sage-tutorials)
 
 ## Contributing
 
@@ -326,6 +347,8 @@ through a pull request.
 ## Citation
 
 If SAGE is useful in your research, please cite the ICML 2026 paper:
+
+Paper record: https://openreview.net/forum?id=TXcFJdT7at
 
 ```bibtex
 @inproceedings{liu2026sage,
@@ -384,10 +407,13 @@ capability boundary or migration purpose.
 
 ## Community
 
-Use [GitHub Issues](https://github.com/intellistream/SAGE/issues) for bugs and feature requests. For
-broader design discussions, use
-[GitHub Discussions](https://github.com/intellistream/SAGE/discussions) when enabled for the
-repository.
+Use [GitHub Issues](https://github.com/RIDE-Lab/SAGE/issues) for bugs and feature requests. For
+broader design discussions, use [GitHub Discussions](https://github.com/RIDE-Lab/SAGE/discussions)
+when enabled for the repository.
+
+Repository placement under `RIDE-Lab` identifies the core engineering steward; it does not make SAGE
+an exclusive product of one research organization. Cross-organization contributions follow the
+ownership boundaries documented in [GOVERNANCE.md](./GOVERNANCE.md).
 
 ## License
 

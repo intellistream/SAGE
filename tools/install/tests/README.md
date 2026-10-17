@@ -10,6 +10,7 @@
 
 - `test_environment_config.sh`: 环境检测、虚拟环境拒绝策略、CI 特殊路径
 - `test_cleanup_tools.sh`: 安装跟踪、show/info 命令、清理脚本行为
+- `test_satellite_repository_manifest.sh`: 公开附属仓库清单、所有权与私有仓库隔离
 - `test_e2e_integration.sh`: 端到端安装、跟踪、清理流程
 - `run_all_tests.sh`: 顺序执行全部测试套件并输出汇总
 
@@ -21,6 +22,7 @@
 # 单个测试套件
 bash tools/install/tests/test_environment_config.sh
 bash tools/install/tests/test_cleanup_tools.sh
+bash tools/install/tests/test_satellite_repository_manifest.sh
 bash tools/install/tests/test_e2e_integration.sh
 
 # 一次性运行全部测试
@@ -34,6 +36,7 @@ bash tools/install/tests/run_all_tests.sh
 - `SAGE_VENV_POLICY` 行为分支
 - 安装前后跟踪文件记录
 - 清理脚本的非交互行为
+- 公开附属仓库 canonical URL 与私有仓库隔离
 - 文档和脚本路径的一致性检查
 
 ## 相关环境变量
@@ -59,6 +62,8 @@ bash tools/install/tests/run_all_tests.sh
 ## 相关文件
 
 - `tools/install/installers/environment_config.sh`
+- `tools/install/installers/clone_satellite_repos.sh`
+- `tools/install/satellite-repositories.json`
 - `tools/install/cleanup/track_install.sh`
 - `tools/install/cleanup/uninstall_sage.sh`
 - `.github/workflows/util-cleanup.yml`

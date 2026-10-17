@@ -122,7 +122,7 @@ class V1CommHub:
                 reply = await wait_future
             else:
                 reply = await asyncio.wait_for(wait_future, timeout=timeout)
-        except asyncio.TimeoutError as exc:
+        except TimeoutError as exc:
             self._reply_tracker.cancel(envelope.msg_id)
             raise TimeoutError(f"comm_request_timeout:{envelope.msg_id}") from exc
         except Exception:

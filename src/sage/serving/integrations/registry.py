@@ -24,7 +24,6 @@ from .contracts import (
     default_workflow_product_extension_points,
 )
 
-
 DEFAULT_WORKFLOW_POLICY_VARIANT_KIND = "baseline"
 DEFAULT_WORKFLOW_POLICY_VARIANT_NAME = "vamos-slo-feasibility-controller"
 DEFAULT_WORKFLOW_POLICY_EXECUTION_PRIORITY_MODE = "invert-vamos"
@@ -286,12 +285,14 @@ def build_workflow_integration_registry_from_env(
 ) -> WorkflowIntegrationRegistry:
     env_map: Mapping[str, str] = env if env is not None else os.environ
 
-    variant_kind = _normalize_optional_non_empty(
-        env_map.get("SAGE_WORKFLOW_POLICY_VARIANT_KIND")
-    ) or DEFAULT_WORKFLOW_POLICY_VARIANT_KIND
-    variant_name = _normalize_optional_non_empty(
-        env_map.get("SAGE_WORKFLOW_POLICY_VARIANT_NAME")
-    ) or DEFAULT_WORKFLOW_POLICY_VARIANT_NAME
+    variant_kind = (
+        _normalize_optional_non_empty(env_map.get("SAGE_WORKFLOW_POLICY_VARIANT_KIND"))
+        or DEFAULT_WORKFLOW_POLICY_VARIANT_KIND
+    )
+    variant_name = (
+        _normalize_optional_non_empty(env_map.get("SAGE_WORKFLOW_POLICY_VARIANT_NAME"))
+        or DEFAULT_WORKFLOW_POLICY_VARIANT_NAME
+    )
     execution_priority_mode = (
         _normalize_optional_non_empty(env_map.get("SAGE_WORKFLOW_POLICY_EXECUTION_PRIORITY_MODE"))
         or DEFAULT_WORKFLOW_POLICY_EXECUTION_PRIORITY_MODE
@@ -400,9 +401,7 @@ def _parse_policy_load_snapshot_from_env(env_map: Mapping[str, str]) -> dict[str
         snapshot["num_requests_waiting"] = _coerce_optional_float(
             payload.get("num_requests_waiting")
         )
-        snapshot["kv_cache_usage_perc"] = _coerce_optional_float(
-            payload.get("kv_cache_usage_perc")
-        )
+        snapshot["kv_cache_usage_perc"] = _coerce_optional_float(payload.get("kv_cache_usage_perc"))
 
     direct_running = _normalize_optional_non_empty(
         env_map.get("SAGE_WORKFLOW_POLICY_NUM_REQUESTS_RUNNING")
@@ -416,7 +415,9 @@ def _parse_policy_load_snapshot_from_env(env_map: Mapping[str, str]) -> dict[str
     if direct_waiting is not None:
         snapshot["num_requests_waiting"] = float(direct_waiting)
 
-    direct_kv = _normalize_optional_non_empty(env_map.get("SAGE_WORKFLOW_POLICY_KV_CACHE_USAGE_PERC"))
+    direct_kv = _normalize_optional_non_empty(
+        env_map.get("SAGE_WORKFLOW_POLICY_KV_CACHE_USAGE_PERC")
+    )
     if direct_kv is not None:
         snapshot["kv_cache_usage_perc"] = float(direct_kv)
 

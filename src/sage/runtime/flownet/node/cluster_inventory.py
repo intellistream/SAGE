@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -146,7 +146,7 @@ def build_inventory_snapshot_payload(
 
     return {
         "schema_version": "flownet.phase2_cluster_inventory_snapshot.v1",
-        "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "generated_at_utc": datetime.now(UTC).replace(microsecond=0).isoformat(),
         "source_env_file": source_env_file,
         "source_inventory_yaml": source_inventory_yaml or None,
         "source_nodes_raw": source_legacy_nodes or "",

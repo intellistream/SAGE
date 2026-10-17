@@ -314,9 +314,20 @@ collect_workspace_repo_candidates() {
         return 0
     fi
 
-    # SAGE.code-workspace 可能包含注释（JSONC）：按 name/path 成对提取，再用 path 定位仓库
-    grep -oP '"name"\s*:\s*"\K[^"]+|"path"\s*:\s*"\K[^"]+' "$workspace_file" 2>/dev/null | \
-        awk 'NR % 2 == 1 {name=$0; next} {print name "|" $0}' | \
+    # SAGE.code-workspace 可能包含注释（JSONC）；使用 Python 避免依赖 macOS 不提供的 grep -P。
+    python3 - "$workspace_file" <<'PY' | \
+import re
+import sys
+from pathlib import Path
+
+text = Path(sys.argv[1]).read_text(encoding="utf-8")
+entry_re = re.compile(
+    r'\{[^{}]*?"name"\s*:\s*"([^"]+)"[^{}]*?"path"\s*:\s*"([^"]+)"[^{}]*?\}',
+    flags=re.DOTALL,
+)
+for name, rel_path in entry_re.findall(text):
+    print(f"{name}|{rel_path}")
+PY
         while IFS='|' read -r name rel_path; do
             [ -z "$rel_path" ] && continue
             [ "$rel_path" = "." ] && continue
