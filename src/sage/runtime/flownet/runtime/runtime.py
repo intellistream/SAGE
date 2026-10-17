@@ -873,6 +873,8 @@ class V1RuntimeHost:
         self._closed = True
         self._stop_idle_gc_loop()
         flow_process_execution = self._flow_process_execution
+        if flow_process_execution is not None:
+            flow_process_execution.close(wait=wait, cancel_futures=cancel_futures)
         flow_engine = getattr(flow_process_execution, "_flow_engine", None)
         close_flow_engine = getattr(flow_engine, "close", None)
         if callable(close_flow_engine):

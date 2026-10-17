@@ -4,13 +4,12 @@ import inspect
 import logging
 from collections import deque
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
-from contextvars import copy_context
 from copy import deepcopy
 from threading import Lock
 from typing import Any
 
 from sage.runtime.flownet.runtime.flowengine.cursor_ctx import bind_event_cursor
+from sage.runtime.flownet.runtime.flowengine.branch_scheduler import BranchScheduler
 from sage.runtime.flownet.runtime.flowengine.cursor_models import (
     EventCursor,
     FlowProgramRef,
@@ -92,6 +91,7 @@ class FlowProcessExecution:
         exception_terminal_policy: str = "strict_fail",
         max_cursor_steps: int = 10_000,
         max_parallel_cursor_steps: int = 4,
+        max_inflight_cursor_waves: int = 16,
     ) -> None:
         self._flow_process_catalog = flow_process_catalog
         self._flow_engine = flow_engine
@@ -114,6 +114,10 @@ class FlowProcessExecution:
         if int(max_parallel_cursor_steps) < 1:
             raise ValueError("max_parallel_cursor_steps must be positive")
         self._max_parallel_cursor_steps = int(max_parallel_cursor_steps)
+        self._branch_scheduler = BranchScheduler(
+            max_workers=self._max_parallel_cursor_steps,
+            max_inflight_waves=max_inflight_cursor_waves,
+        )
         self._process_factory_metrics_lock = Lock()
         self._process_factory_metrics = _new_process_factory_metrics_state()
 
@@ -511,24 +515,15 @@ class FlowProcessExecution:
         return getattr(transformation, "type", None) == "map"
 
     def _execute_ready_cursors(self, ready: list[EventCursor]) -> list[CursorStepResult]:
-        if len(ready) == 1:
+        if len(ready) == 1 and not self._is_parallel_map_cursor(ready[0]):
             return [self._execute_cursor_step_with_exception_handling(ready[0])]
         # Copy before dispatch: failed copying must not execute only part of a
         # wave. Stateful reducers/process transitions remain on the coordinator.
-        owned = [deepcopy(cursor) for cursor in ready]
-        with ThreadPoolExecutor(
-            max_workers=self._max_parallel_cursor_steps,
-            thread_name_prefix="sage-flow-branch",
-        ) as executor:
-            futures = [
-                executor.submit(
-                    copy_context().run, self._execute_cursor_step_with_exception_handling, cursor
-                )
-                for cursor in owned
-            ]
-            # Ordered aggregation; drain running siblings before reporting an
-            # error. Downstream stages never consume a partially successful wave.
-            return [future.result() for future in futures]
+        owned = [deepcopy(cursor) for cursor in ready] if len(ready) > 1 else ready
+        return self._branch_scheduler.run(self._execute_cursor_step_with_exception_handling, owned)
+
+    def close(self, *, wait: bool = True, cancel_futures: bool = False) -> None:
+        self._branch_scheduler.close(wait=wait, cancel_futures=cancel_futures)
 
     def _execute_cursor_step_with_exception_handling(
         self,
