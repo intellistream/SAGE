@@ -96,3 +96,48 @@ def test_reentrant_wait_fails_instead_of_deadlocking():
             scheduler.run(lambda value: value, [1, 2])
     finally:
         scheduler.close()
+
+
+def test_cancelled_queued_wave_does_not_execute(monkeypatch):
+    from sage.runtime.cancellation import (
+        RequestCancellation, RequestCancelledError, bind_request_cancellation,
+    )
+
+    scheduler = BranchScheduler(max_workers=1, max_inflight_waves=2)
+    entered, release, queued = Event(), Event(), Event()
+    cancellation = RequestCancellation()
+    calls = []
+
+    def blocked(_):
+        entered.set()
+        assert release.wait(3)
+
+    def cancelled_request():
+        with bind_request_cancellation(cancellation):
+            return scheduler.run(lambda value: calls.append(value), [2])
+
+    try:
+        with ThreadPoolExecutor(max_workers=2) as caller:
+            first = caller.submit(scheduler.run, blocked, [1])
+            try:
+                assert entered.wait(3)
+                original_submit = scheduler._executor.submit
+
+                def observed_submit(*args, **kwargs):
+                    future = original_submit(*args, **kwargs)
+                    queued.set()
+                    return future
+
+                monkeypatch.setattr(scheduler._executor, "submit", observed_submit)
+                second = caller.submit(cancelled_request)
+                assert queued.wait(3)
+                cancellation.cancel()
+            finally:
+                release.set()
+            first.result(timeout=3)
+            with pytest.raises(RequestCancelledError):
+                second.result(timeout=3)
+        assert calls == []
+    finally:
+        release.set()
+        scheduler.close()

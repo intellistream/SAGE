@@ -17,6 +17,8 @@ from threading import Lock, Thread
 from typing import Any
 from weakref import WeakKeyDictionary
 
+from sage.runtime.cancellation import RequestCancellation, bind_request_cancellation
+
 from sage.runtime.flownet.api.declarations import (
     ActorDeclaration,
     BoundFlowDeclaration,
@@ -519,6 +521,7 @@ class _SharedStateClientSurface:
 @dataclass
 class _EndpointRequestState:
     request_id: str
+    cancellation: RequestCancellation = field(default_factory=RequestCancellation)
     outputs: Queue[Any] = field(default_factory=Queue)
     finished: bool = False
     released: bool = False
@@ -648,6 +651,13 @@ class FlowRequestRef:
 
     def release(self) -> bool:
         return self._endpoint._release(self.request_id)
+
+    def cancel(self) -> None:
+        """Request cooperative cancellation; running operators must drain.
+
+        This is distinct from release(), which only discards local buffers.
+        """
+        self._endpoint._require_request_state(self.request_id).cancellation.cancel()
 
 
 class FlowEndpoint:
@@ -869,12 +879,13 @@ class FlowEndpoint:
         if tags is not None:
             normalized_tags = {str(key): str(value) for key, value in dict(tags).items()}
         self._ensure_request_admitted(state=state, tags=normalized_tags)
-        return self._topic_api.publish_event(
-            topic_uri=self.in_topic,
-            event_group_id=request_id,
-            payload=payload,
-            tags=normalized_tags,
-        )
+        with bind_request_cancellation(state.cancellation):
+            return self._topic_api.publish_event(
+                topic_uri=self.in_topic,
+                event_group_id=request_id,
+                payload=payload,
+                tags=normalized_tags,
+            )
 
     def _read(self, request_id: str, *, timeout: float) -> Any | None:
         state = self._require_request_state(request_id)
@@ -968,6 +979,7 @@ class FlowEndpoint:
             "version_count": version_count,
             "mixed_version_violation": mixed_version_violation,
             "released": bool(state.released),
+            "cancellation_requested": state.cancellation.cancelled,
         }
 
     def _release(self, request_id: str) -> bool:

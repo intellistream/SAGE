@@ -7,6 +7,8 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from contextvars import ContextVar, copy_context
 from threading import BoundedSemaphore, Lock
 
+from sage.runtime.cancellation import raise_if_request_cancelled
+
 
 _active_scheduler: ContextVar[object | None] = ContextVar("sage_branch_scheduler", default=None)
 
@@ -24,6 +26,7 @@ class BranchScheduler:
         )
 
     def run(self, function, items):
+        raise_if_request_cancelled()
         if len(items) > self.max_workers:
             raise ValueError("branch_wave_exceeds_worker_limit")
         if _active_scheduler.get() is self:
@@ -41,7 +44,9 @@ class BranchScheduler:
                     futures.append(self._executor.submit(
                         copy_context().run, self._invoke, function, item
                     ))
-            return [future.result() for future in futures]
+            results = [future.result() for future in futures]
+            raise_if_request_cancelled()
+            return results
         finally:
             # Cancellation of queued work is not cancellation of running work.
             # Never release admission or report completion while siblings run.
@@ -51,6 +56,7 @@ class BranchScheduler:
     def _invoke(self, function, item):
         token = _active_scheduler.set(self)
         try:
+            raise_if_request_cancelled()
             return function(item)
         finally:
             _active_scheduler.reset(token)

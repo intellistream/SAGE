@@ -8,6 +8,8 @@ from copy import deepcopy
 from threading import Lock
 from typing import Any
 
+from sage.runtime.cancellation import RequestCancelledError, raise_if_request_cancelled
+
 from sage.runtime.flownet.runtime.flowengine.cursor_ctx import bind_event_cursor
 from sage.runtime.flownet.runtime.flowengine.branch_scheduler import BranchScheduler
 from sage.runtime.flownet.runtime.flowengine.cursor_models import (
@@ -440,6 +442,7 @@ class FlowProcessExecution:
 
         try:
             while pending:
+                raise_if_request_cancelled()
                 ready = [pending.popleft()]
                 if self._is_parallel_map_cursor(ready[0]):
                     while (
@@ -465,6 +468,16 @@ class FlowProcessExecution:
                             "seq": None,
                             "convergence_topic_epoch": cursor.convergence_topic_epoch,
                         })
+        except RequestCancelledError:
+            return {
+                "status": "ok", "outputs": (), "event_chain_delta": 0,
+                "out_topic_epoch": root_cursor.convergence_topic_epoch,
+                "outcome_status": "aborted",
+                "outcome_error_type": "RequestCancelledError",
+                "outcome_error_message": "sage_request_cancelled",
+                "outcome_error_stage": "flow_process_execution",
+                "outcome_metadata": {"cancellation_requested": True},
+            }
         except _TerminalCursorOutcome as terminal:
             return {
                 "status": "ok",
@@ -544,6 +557,7 @@ class FlowProcessExecution:
                     resolve_process_entry_nodes=self._resolve_process_entry_nodes,
                 )
             except (
+                RequestCancelledError,
                 UnsupportedOperatorTypeError,
                 StatefulProcessContractError,
                 ShuffleOperatorContractError,
