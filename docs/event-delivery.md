@@ -48,3 +48,28 @@ and retention qualification. These primitives do not provide HTTP authorization,
 SSE framing, producer recovery, distributed cancellation, or a complete transport
 lifecycle. Applications must not claim durable final-answer delivery until their
 canonical answer and event intents share a qualified commit boundary.
+
+## Async service integration
+
+`sage.runtime.async_work_service.AsyncWorkService` adapts async handlers to the
+same `WorkService` dispatcher and journal. Construct it on the application's
+running event loop; `await start()` recovers pending work, `await commit(...)`
+admits work, and `await wait(request_id, timeout=...)` observes completion.
+Handlers run on that loop, so loop-bound model/HTTP clients can be reused.
+Worker bounds, lease renewal, retry, routing and completion mutations remain
+owned by the existing dispatcher; this does not create a second task engine.
+
+Call `await aclose()` before closing borrowed storage, async clients or the
+event loop. Cancellation of a commit or close waits for the actual blocking
+operation to finish; it cannot roll back a transaction that already committed.
+Cancellation of a waiter does not cancel the handler. Close timeout reports an
+incomplete drain and leaves resources owned; retry close after handlers finish.
+A handler cannot wait on or close its own service. Cross-loop use is rejected.
+Handlers must cooperate with the event loop; blocking async code can prevent
+shutdown. Abrupt loop destruction is not a graceful shutdown protocol.
+
+External deliveries remain at-least-once attempts, not exactly-once effects.
+Applications must provide destination idempotency and revalidate authorization,
+and must not place bearer callback URLs or credentials in task payloads. This
+adapter alone does not make a transport durable: its admission, answer and
+delivery intents still need the appropriate atomic commit boundary.

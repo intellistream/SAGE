@@ -16,6 +16,10 @@ from sage.runtime.work_dispatcher import WorkDispatcher
 from sage.runtime.work_journal import WorkJournal
 
 
+class WorkWaitTimeoutError(TimeoutError):
+    """Observer deadline, distinct from a backend storage timeout."""
+
+
 class WorkService:
     def __init__(self, journal: WorkJournal, handler, **dispatcher_options):
         self.journal = journal
@@ -126,7 +130,7 @@ class WorkService:
                     raise RuntimeError("work_service_stopped_with_pending_work")
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise TimeoutError("work_result_wait_timeout")
+                raise WorkWaitTimeoutError("work_result_wait_timeout")
             self._stopped.wait(min(remaining, self._dispatcher.poll_interval))
 
     def close(self, *, timeout: float = 30):
