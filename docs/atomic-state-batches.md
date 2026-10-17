@@ -76,8 +76,21 @@ one active-index entry; terminal-only records remove it atomically, retaining
 the canonical result/history. Older workers fail closed on v5. Stop old writers
 before upgrade and back up code and state together. The single-slot prepared
 transform is intentionally removed: callers must adopt `slots`/`apply` rather
-than silently omit the index. This change maintains the index on writes; legacy
-index rebuilding and indexed dispatcher reads are separate acceptance gates.
+than silently omit the index.
+
+Before indexed dispatch, `recover_active_index()` scans legacy journal rows in
+bounded keyset pages, re-reading each row in its own atomic index transaction.
+Only a completed sweep publishes the readiness marker. Interrupted rebuilding
+repeats safely; live pre-v5 leases reject migration without executing work.
+Old writers must be stopped before this operation; the marker cannot protect
+against an old process creating a new v1 record after migration. Retain a
+consistent code/state backup for rollback. Completed histories remain intact.
+
+`WorkDispatcher` now uses `active_records(after_key=..., limit=...)`; it no
+longer scans historical records on each poll. Canonical state is revalidated at
+claim, so concurrent completion cannot cause duplicate admission. Keys inserted
+behind the cursor are discovered on the next sweep. The initial legacy rebuild
+still costs a full scan; indexed steady-state recovery does not erase that cost.
 
 ```python
 service.commit(

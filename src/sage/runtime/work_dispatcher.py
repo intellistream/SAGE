@@ -58,7 +58,7 @@ class WorkDispatcher:
         self.page_size = page_size
         self._pool = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="sage-work")
         self._active = {}
-        self._cursor = 0
+        self._cursor = None
         self._closed = False
         self.completed = 0
         self.failed = 0
@@ -113,7 +113,7 @@ class WorkDispatcher:
                 self.completed += 1
         if not admit or len(self._active) >= self.max_workers:
             return 0
-        rows, following = self.journal.records(cursor=self._cursor, limit=self.page_size)
+        rows, following = self.journal.active_records(after_key=self._cursor, limit=self.page_size)
         active_keys = {(lease.request_id, lease.task_id) for lease in self._active.values()}
         admitted = 0
         for row in rows:
@@ -145,7 +145,7 @@ class WorkDispatcher:
                     raise
                 self._active[future] = lease
                 admitted += 1
-        self._cursor = following or 0
+        self._cursor = following
         return admitted
 
     def run(self, stop: Event) -> None:

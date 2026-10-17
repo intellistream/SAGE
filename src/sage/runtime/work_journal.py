@@ -127,6 +127,7 @@ class WorkJournal:
         self._store = store
         self.namespace = _name(namespace)
         self._clock = clock
+        self._index_ready = False
 
     def _slot(self, request_id):
         return ("sage-work-journal-v1", self.namespace, _name(request_id))
@@ -153,7 +154,7 @@ class WorkJournal:
                 raise ValueError("invalid_destination_slot")
             for part in slot:
                 _name(part)
-            if slot[0] in {"sage-work-journal-v1", "sage-work-active-v1"}:
+            if slot[0] in {"sage-work-journal-v1", "sage-work-active-v1", "sage-work-index-meta-v1"}:
                 raise ValueError("destination_cannot_mutate_journal")
             if not callable(transform):
                 raise TypeError("destination_transform_not_callable")
@@ -427,6 +428,61 @@ class WorkJournal:
             return record
 
         self._apply_with_destinations(self._slot(lease.request_id), apply, None)
+
+    def recover_active_index(self, *, page_size: int = 100):
+        """Rebuild once before indexed dispatch, with old writers stopped.
+
+        Each row is re-read and indexed transactionally. A crash before the
+        readiness marker repeats the scan safely; no task is executed here.
+        Live pre-v5 leases reject migration. A code rollback requires restoring
+        the matching state backup, not running old workers beside new ones.
+        """
+        if type(page_size) is not int or page_size <= 0:
+            raise ValueError("index_page_size_must_be_positive_integer")
+        marker = ("sage-work-index-meta-v1", self.namespace, "ready")
+        ready = self._store.peek(marker)
+        if ready is not None:
+            if ready != {"version": 1}:
+                raise ValueError("unsupported_work_index_version")
+            self._index_ready = True
+            return
+        cursor = None
+        while True:
+            rows, following = self._store.scan_stage_entries(
+                stage_id="sage-work-journal-v1", namespace=self.namespace,
+                after_key=cursor, limit=page_size)
+            for row in rows:
+                def rebuild(record):
+                    self._validate(record)
+                    if record["version"] < 5 and any(
+                        task["status"] == "running" and task["lease_until"] > self._clock()
+                        for task in record["tasks"].values()
+                    ):
+                        raise ValueError("cannot_index_legacy_work_with_live_leases")
+                    return record
+                self._apply_with_destinations(self._slot(row["key"]), rebuild, None)
+            if following is None:
+                break
+            cursor = following
+        self._store.update(marker, lambda _: {"version": 1})
+        self._index_ready = True
+
+    def active_records(self, *, after_key: str | None = None, limit: int = 100):
+        """Keyset recovery scan over pending/running records only, not history."""
+        if not self._index_ready:
+            self.recover_active_index()
+        rows, following = self._store.scan_stage_entries(
+            stage_id="sage-work-active-v1", namespace=self.namespace,
+            after_key=after_key, limit=limit)
+        result = []
+        for row in rows:
+            record = self.read(row["key"])
+            if record is None or record["version"] != 5 or row["value"] is not True:
+                raise ValueError("work_active_index_inconsistent")
+            # Concurrent completion may make this snapshot terminal; claim()
+            # rechecks the authoritative state before any handler executes.
+            result.append({**row, "stage_id": "sage-work-journal-v1", "value": record})
+        return result, following
 
     def records(self, *, cursor: int = 0, limit: int = 100):
         """Read-only paginated recovery scan; claims revalidate all eligibility.
