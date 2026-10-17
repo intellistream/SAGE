@@ -34,7 +34,7 @@ class WorkDispatcher:
     def __init__(self, journal: WorkJournal, handler, *, max_workers: int = 2,
                  lease_seconds: float = 60, retry_delay: float = 5,
                  poll_interval: float = 1, page_size: int = 100, accept_task=None,
-                 completion_mutations=None, failure_policy=None):
+                 completion_mutations=None, failure_policy=None, on_lease_lost=None):
         if max_workers < 1 or page_size < 1:
             raise ValueError("dispatcher_bounds_must_be_positive")
         if accept_task is not None and not callable(accept_task):
@@ -43,6 +43,8 @@ class WorkDispatcher:
             raise TypeError("completion_mutations_must_be_callable")
         if failure_policy is not None and not callable(failure_policy):
             raise TypeError("failure_policy_must_be_callable")
+        if on_lease_lost is not None and not callable(on_lease_lost):
+            raise TypeError("lease_loss_handler_must_be_callable")
         if (not all(math.isfinite(v) for v in (lease_seconds, retry_delay, poll_interval))
                 or not 0 < poll_interval < lease_seconds / 3 or retry_delay < 0):
             raise ValueError("invalid_dispatcher_timing")
@@ -51,6 +53,7 @@ class WorkDispatcher:
         self.accept_task = accept_task
         self.completion_mutations = completion_mutations
         self.failure_policy = failure_policy
+        self.on_lease_lost = on_lease_lost
         self.max_workers = max_workers
         self.lease_seconds = lease_seconds
         self.retry_delay = retry_delay
@@ -86,6 +89,8 @@ class WorkDispatcher:
                 except StaleTaskLeaseError:
                     self.lease_losses += 1
                     self._lost.add(future)
+                    if self.on_lease_lost is not None:
+                        self.on_lease_lost(lease)
                 continue
             failed = future.exception() is not None
             try:

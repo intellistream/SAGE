@@ -207,6 +207,16 @@ Protection slots are not changed, and missing slots remain absent.
 
 Cancellation updates the active-work index atomically and survives restart.
 It does not forcibly stop a synchronous handler or retract external effects.
-Until cooperative interruption is integrated, a running handler keeps its
-capacity slot until exit; only its protected writes and acknowledgements are
-fenced. Observer disconnects/timeouts still do not cancel admitted work.
+`AsyncWorkService` cooperatively interrupts its coroutine after the dispatcher
+observes lease loss (including cancellation from another process). It cancels
+the actual task, not the cross-thread result future, retaining capacity through
+async cleanup. A lease check after coroutine registration covers loss before
+registration. Handler code that blocks its event loop, suppresses cancellation,
+or starts external/thread work still needs its own safe cleanup contract; this
+is not forced termination. Canonical writes must still use lease guards.
+Observer disconnects/timeouts do not cancel admitted work.
+
+Synchronous dispatchers may supply `on_lease_lost(lease)` for cooperative
+notification. It is called once for a still-running execution and must return
+promptly; exceptions are supervisor failures. AsyncWorkService owns this hook
+and rejects overrides, so there is only one interruption path.

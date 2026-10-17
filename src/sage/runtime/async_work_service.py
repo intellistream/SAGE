@@ -30,8 +30,12 @@ class AsyncWorkService:
         self._loop = asyncio.get_running_loop()
         self.journal = journal
         self._handler = handler
+        self._executions = {}
+        if "on_lease_lost" in dispatcher_options:
+            raise ValueError("async_service_owns_lease_loss_handler")
         self._poll_interval = dispatcher_options.get("poll_interval", 1)
-        self._service = WorkService(journal, self._invoke, **dispatcher_options)
+        self._service = WorkService(journal, self._invoke,
+                                    on_lease_lost=self._lease_lost, **dispatcher_options)
 
     def _check_loop(self):
         if asyncio.get_running_loop() is not self._loop:
@@ -44,10 +48,26 @@ class AsyncWorkService:
 
     async def _execute(self, lease):
         token = _HANDLER_SERVICE.set(self)
+        self._executions[lease.token] = asyncio.current_task()
         try:
+            # Loss may precede coroutine registration. Check once after
+            # registration; subsequent losses arrive from the native dispatcher.
+            guard = self.journal.prepare_guard(lease)
+            record = await self._offload(self.journal.read, lease.request_id)
+            guard.apply({guard.slot: record})
             return await self._handler(lease)
         finally:
+            self._executions.pop(lease.token, None)
             _HANDLER_SERVICE.reset(token)
+
+    def _lease_lost(self, lease):
+        def interrupt():
+            task = self._executions.get(lease.token)
+            if task is not None:
+                task.cancel()
+        # Cancel the actual task, not run_coroutine_threadsafe's future:
+        # its waiting worker must retain capacity until async cleanup finishes.
+        self._loop.call_soon_threadsafe(interrupt)
 
     def _invoke(self, lease):
         coroutine = self._execute(lease)
