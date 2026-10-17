@@ -71,7 +71,7 @@ def test_finalizer_waits_for_all_parents_and_recovers_after_failure(tmp_path):
     assert journal.claim("r", "finalize", lease_seconds=30) is None
     deliver = journal.claim("r", "deliver", lease_seconds=30)
     journal.fail(deliver, code="exhausted")
-    assert journal.read("r")["version"] == 4
+    assert journal.read("r")["version"] == 5
     state.close()
     state = StatefulProcessRuntime(backend="sqlite", sqlite_path=path)
     try:

@@ -22,7 +22,7 @@ def test_terminal_failure_blocks_descendants_and_survives_restart(tmp_path):
     try:
         journal = WorkJournal(state, namespace="failure")
         record = journal.read("r")
-        assert record["version"] == 3
+        assert record["version"] == 5
         assert [record["tasks"][key]["status"] for key in ("a", "b", "c")] == ["failed", "blocked", "blocked"]
         for key in record["tasks"]:
             assert journal.claim("r", key, lease_seconds=30) is None

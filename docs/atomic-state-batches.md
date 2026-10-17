@@ -44,14 +44,14 @@ adopt the batch API before claiming atomic destination-state/outbox commits.
 ## Composing a work intent
 
 `WorkJournal.prepare_commit(request_id, result=..., tasks=...)` returns a fixed
-slot and pure transform with captured JSON inputs. It performs no write. Compose
-this transform with another replay-safe destination transform in `update_many`:
+pair of slots (journal and active index) and pure `apply(values)` with captured
+JSON inputs. It performs no write. Both slots must participate in `update_many`:
 
 ```python
 intent = journal.prepare_commit("turn", result={"answer": "..."}, tasks={"post": {}})
-runtime.update_many([destination.slot, intent.slot], lambda values: {
+runtime.update_many([destination.slot, *intent.slots], lambda values: {
     destination.slot: destination.transform(values[destination.slot]),
-    intent.slot: intent.transform(values[intent.slot]),
+    **intent.apply(values),
 })
 ```
 
@@ -68,8 +68,16 @@ mapping from canonical `(stage, namespace, key)` tuples to pure single-value
 transformations. The journal adds its own prepared transform and applies every
 destination plus result/task intent in **one** `update_many` transaction on its
 state store. Destination slots must be nonempty trimmed strings, and the
-`sage-work-journal-v1` stage is reserved: callers cannot overwrite any journal
+`sage-work-journal-v1` and `sage-work-active-v1` stages are reserved: callers cannot overwrite any journal
 record via this interface. Invalid slots or non-callables fail before writes.
+
+New and mutated journal records use version 5. Every pending/running record has
+one active-index entry; terminal-only records remove it atomically, retaining
+the canonical result/history. Older workers fail closed on v5. Stop old writers
+before upgrade and back up code and state together. The single-slot prepared
+transform is intentionally removed: callers must adopt `slots`/`apply` rather
+than silently omit the index. This change maintains the index on writes; legacy
+index rebuilding and indexed dispatcher reads are separate acceptance gates.
 
 ```python
 service.commit(

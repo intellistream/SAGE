@@ -18,7 +18,10 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from sage.runtime.flownet.runtime.operator_runtime.stateful import StatefulProcessRuntime
+from sage.runtime.flownet.runtime.operator_runtime.stateful import (
+    StatefulProcessRuntime,
+    StateMutation,
+)
 
 _UNSET = object()
 
@@ -95,13 +98,25 @@ class TaskLease:
 class PreparedWorkCommit:
     """Pure journal mutation for composition in one state transaction.
 
-    Not a persisted record or a transaction by itself. Apply the transform to
-    this slot's value inside the journal's state store. Other destinations
+    Not a persisted record or a transaction by itself. Apply all slots with
+    apply() inside the journal's state store. Other destinations
     must implement their own replay/conflict checks in the same transaction.
     """
 
     slot: tuple[str, str, str]
-    transform: Callable[[Any], Any]
+    index_slot: tuple[str, str, str]
+    _record_transform: Callable[[Any], Any]
+
+    @property
+    def slots(self):
+        return (self.slot, self.index_slot)
+
+    def apply(self, values):
+        record = self._record_transform(values[self.slot])
+        record["version"] = 5  # Index-unaware workers must fail closed.
+        active = any(task["status"] in {"pending", "running"}
+                     for task in record["tasks"].values())
+        return {self.slot: record, self.index_slot: True if active else StateMutation.DELETE}
 
 
 class WorkJournal:
@@ -128,7 +143,7 @@ class WorkJournal:
         """
         prepared = self.prepare_commit(request_id, result=result, tasks=tasks, dependencies=dependencies,
                                        settled=settled)
-        return self._apply_with_destinations(prepared.slot, prepared.transform, mutations)
+        return self._apply_with_destinations(prepared.slot, prepared._record_transform, mutations)
 
     def _apply_with_destinations(self, journal_slot, journal_transform, mutations):
         """Fence journal state before evaluating pure destination transforms."""
@@ -138,16 +153,19 @@ class WorkJournal:
                 raise ValueError("invalid_destination_slot")
             for part in slot:
                 _name(part)
-            if slot[0] == "sage-work-journal-v1":
+            if slot[0] in {"sage-work-journal-v1", "sage-work-active-v1"}:
                 raise ValueError("destination_cannot_mutate_journal")
             if not callable(transform):
                 raise TypeError("destination_transform_not_callable")
-        if not transforms:
-            return self._store.update(journal_slot, journal_transform)
-        transforms = {journal_slot: journal_transform, **transforms}
+        prepared = PreparedWorkCommit(journal_slot,
+            ("sage-work-active-v1", journal_slot[1], journal_slot[2]), journal_transform)
+        def apply(values):
+            # Evaluate journal fencing before any destination transform.
+            result = prepared.apply(values)
+            result.update({slot: transform(values[slot]) for slot, transform in transforms.items()})
+            return result
         committed = self._store.update_many(
-            transforms, lambda values: {slot: transform(values[slot])
-                                       for slot, transform in transforms.items()},
+            (*prepared.slots, *transforms), apply,
         )
         return committed[journal_slot]
 
@@ -182,13 +200,13 @@ class WorkJournal:
                 for key, value in tasks.items()
             }}
 
-        return PreparedWorkCommit(slot, apply)
+        return PreparedWorkCommit(slot, ("sage-work-active-v1", slot[1], slot[2]), apply)
 
     @staticmethod
     def _validate(record):
         if record is None:
             raise KeyError("journal_request_not_found")
-        if record.get("version") not in {1, 2, 3, 4}:
+        if record.get("version") not in {1, 2, 3, 4, 5}:
             raise ValueError("unsupported_journal_version")
         dependencies = record.get("dependencies", {})
         if record["version"] == 1 and dependencies:
@@ -232,7 +250,7 @@ class WorkJournal:
                 raise ValueError("completed_work_has_unfinished_dependencies")
             record.update(version=max(2, record["version"]), dependencies=graph)
             return record
-        return self._store.update(self._slot(request_id), upgrade)
+        return self._apply_with_destinations(self._slot(request_id), upgrade, None)
 
     def extend_tasks(self, request_id, *, tasks, dependencies=None, settled=None):
         """Offline additive migration; preserve existing payloads and graph edges.
@@ -282,7 +300,7 @@ class WorkJournal:
                         record["version"] = max(record["version"], 3)
                         changed = True
             return record
-        return self._store.update(self._slot(request_id), apply)
+        return self._apply_with_destinations(self._slot(request_id), apply, None)
 
     def claim(self, request_id: str, task_id: str, *, lease_seconds: float) -> TaskLease | None:
         _name(task_id)
@@ -307,7 +325,7 @@ class WorkJournal:
                                      _json_snapshot(task["payload"])))
             return record
 
-        self._store.update(self._slot(request_id), apply)
+        self._apply_with_destinations(self._slot(request_id), apply, None)
         return claimed[0] if claimed else None
 
     def finish(self, lease: TaskLease, *, retry: bool = False, retry_delay: float = 0.0,
@@ -390,7 +408,7 @@ class WorkJournal:
                             dependent.update(status="blocked", failure_code="dependency_failed")
                             changed = True
             return record
-        return self._store.update(self._slot(lease.request_id), apply)
+        return self._apply_with_destinations(self._slot(lease.request_id), apply, None)
 
     def renew(self, lease: TaskLease, *, lease_seconds: float) -> None:
         if lease.namespace != self.namespace:
@@ -408,7 +426,7 @@ class WorkJournal:
             task["lease_until"] = now + lease_seconds
             return record
 
-        self._store.update(self._slot(lease.request_id), apply)
+        self._apply_with_destinations(self._slot(lease.request_id), apply, None)
 
     def records(self, *, cursor: int = 0, limit: int = 100):
         """Read-only paginated recovery scan; claims revalidate all eligibility.

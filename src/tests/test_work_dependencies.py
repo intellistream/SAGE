@@ -55,10 +55,10 @@ def test_upgrade_rejects_live_leases_and_preserves_immutable_graph(tmp_path):
         journal.claim("turn", "a", lease_seconds=1)
         with pytest.raises(ValueError, match="live_leases"):
             journal.upgrade_dependencies("turn", {"b": ["a"]})
-        assert journal.read("turn")["version"] == 1
+        assert journal.read("turn")["version"] == 5
         clock[0] = 2
         journal.upgrade_dependencies("turn", {"b": ["a"]})
-        assert journal.read("turn")["version"] == 2
+        assert journal.read("turn")["version"] == 5
         assert journal.claim("turn", "b", lease_seconds=1) is None
         with pytest.raises(ValueError, match="immutable"):
             journal.upgrade_dependencies("turn", {"a": ["b"]})
@@ -74,7 +74,7 @@ def test_upgrade_rejects_already_completed_child_with_pending_parent(tmp_path):
         journal.finish(b, result=None)
         with pytest.raises(ValueError, match="unfinished_dependencies"):
             journal.upgrade_dependencies("turn", {"b": ["a"]})
-        assert journal.read("turn")["version"] == 1
+        assert journal.read("turn")["version"] == 5
     finally:
         state.close()
 

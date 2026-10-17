@@ -16,11 +16,11 @@ def test_prepare_is_detached_and_does_not_commit(tmp_path, backend):
         prepared = journal.prepare_commit("turn", result=answer, tasks=tasks)
         answer["text"].append("changed")
         tasks["post"]["input"].append(2)
-        first = prepared.transform(None)
+        first = prepared.apply(dict.fromkeys(prepared.slots))[prepared.slot]
         first["result"]["text"].append("mutated output")
         first["tasks"]["post"]["payload"]["input"].append(3)
         assert journal.read("turn") is None
-        store.update(prepared.slot, prepared.transform)
+        store.update_many(prepared.slots, prepared.apply)
         assert journal.read("turn")["result"] == {"text": ["original"]}
         assert journal.read("turn")["tasks"]["post"]["payload"] == {"input": [1]}
     finally:
@@ -41,11 +41,11 @@ def test_composed_failure_rolls_back_destination_and_intent(tmp_path, failure):
         if failure == "destination":
             raise ValueError("destination conflict")
         return {DESTINATION: (lambda: None) if failure == "serialization" else "new",
-                prepared.slot: prepared.transform(values[prepared.slot])}
+                **prepared.apply(values)}
 
     try:
         with pytest.raises((ValueError, AttributeError, TypeError)):
-            store.update_many([DESTINATION, prepared.slot], transform)
+            store.update_many([DESTINATION, *prepared.slots], transform)
         assert store.peek(DESTINATION) == "old"
         assert journal.read("turn") == before
     finally:
@@ -63,9 +63,9 @@ def test_atomic_destination_and_intent_reopen_replay_preserves_completed_work(tm
         if destination is not None and destination["receipt"] != "turn":
             raise ValueError("destination identity conflict")
         return {DESTINATION: destination or {"receipt": "turn", "training_steps": 1},
-                prepared.slot: prepared.transform(values[prepared.slot])}
+                **prepared.apply(values)}
 
-    store.update_many([DESTINATION, prepared.slot], transform)
+    store.update_many([DESTINATION, *prepared.slots], transform)
     lease = journal.claim("turn", "post", lease_seconds=30)
     journal.finish(lease, result="completed")
     store.close()
@@ -73,7 +73,7 @@ def test_atomic_destination_and_intent_reopen_replay_preserves_completed_work(tm
     journal = WorkJournal(store, namespace="tenant")
     prepared = journal.prepare_commit("turn", result="answer", tasks={"post": "payload"})
     try:
-        store.update_many([DESTINATION, prepared.slot], transform)
+        store.update_many([DESTINATION, *prepared.slots], transform)
         assert store.peek(DESTINATION)["training_steps"] == 1
         state = journal.read("turn")
         assert state["tasks"]["post"]["status"] == "done"

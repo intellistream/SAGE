@@ -138,7 +138,8 @@ consumers inspect task state for their receipts. A stopped service can leave
 pending finalizers for its successor, like any other admitted task. A finalizer
 that fails terminally remains failed and is not recursively regenerated.
 
-These admissions use version 4, failing closed on older readers. To add a
+Settled dependencies require at least version 4; current indexed admissions use
+version 5, failing closed on older readers. To add a
 finalizer to an existing record, stop old consumers and use
 `extend_tasks(request_id, tasks=..., dependencies=..., settled=...)` before
 starting the upgraded consumer. The extension is atomic and additive: existing
