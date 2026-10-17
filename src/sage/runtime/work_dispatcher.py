@@ -68,8 +68,9 @@ class WorkDispatcher:
     def run_once(self, *, admit: bool = True) -> int:
         """Maintain leases, acknowledge completed work, inspect one bounded page.
 
-        Storage/fencing failures propagate to the supervisor; they are never
-        interpreted as successful work. Handler failures persist a delayed retry.
+        Storage failures propagate to the supervisor. Lease loss retires only
+        that execution, never acknowledges it, and keeps its capacity occupied
+        until the handler exits. Handler failures persist a delayed retry.
         """
         if self._closed:
             raise RuntimeError("work_dispatcher_closed")
@@ -85,7 +86,6 @@ class WorkDispatcher:
                 except StaleTaskLeaseError:
                     self.lease_losses += 1
                     self._lost.add(future)
-                    raise
                 continue
             failed = future.exception() is not None
             try:
@@ -105,7 +105,7 @@ class WorkDispatcher:
             except StaleTaskLeaseError:
                 self.lease_losses += 1
                 del self._active[future]
-                raise
+                continue
             del self._active[future]
             if failed:
                 self.failed += 1

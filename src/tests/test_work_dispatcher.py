@@ -3,9 +3,8 @@ from threading import Event
 import pytest
 
 from sage.runtime.flownet.runtime.operator_runtime.stateful import StatefulProcessRuntime
-from sage.runtime.work_journal import WorkJournal
-from sage.runtime.work_journal import StaleTaskLeaseError
 from sage.runtime.work_dispatcher import WorkDispatcher
+from sage.runtime.work_journal import WorkJournal
 
 
 def test_bounded_dispatch_and_drain(tmp_path):
@@ -121,8 +120,7 @@ def test_lost_lease_is_reported_and_cannot_acknowledge(tmp_path):
         assert entered.wait(3)
         future = next(iter(worker._active))
         now[0] = 11.0
-        with pytest.raises(StaleTaskLeaseError):
-            worker.run_once()
+        assert worker.run_once() == 0
         assert worker.lease_losses == 1
         assert worker.run_once() == 0  # Don't duplicate our still-running stale handler.
         release.set()

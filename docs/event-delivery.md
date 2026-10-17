@@ -170,3 +170,18 @@ Identical replay is safe; changed payloads/edges and active leases reject edits.
 This migration does not requeue failed work or imply delivery has occurred.
 Subsequent admission replay must include the extended task graph and settled set.
 Back up code and state consistently before upgrading; rollback must restore both.
+
+### Lease-loss isolation
+
+A dispatcher treats `StaleTaskLeaseError` from renewal or acknowledgement as
+loss of that execution, not a failure of the whole service. It increments
+`lease_losses` once, never acknowledges or retries the stale result, and leaves
+the replacement owner's record untouched. Other work can use available capacity.
+A still-running stale handler continues to count against `max_workers` until it
+exits; shutdown must drain it. Storage failures still propagate to the supervisor.
+
+This is not forced cancellation of a handler or its external effects. Handlers
+must fence canonical writes with a same-store lease guard and use destination
+idempotency for external effects. Explicit persistent cancellation and prompt
+cooperative interruption require their own contract; lease-loss isolation alone
+does not provide them.
