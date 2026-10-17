@@ -4,6 +4,9 @@ import inspect
 import logging
 from collections import deque
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
+from copy import deepcopy
 from threading import Lock
 from typing import Any
 
@@ -88,6 +91,7 @@ class FlowProcessExecution:
         invoke_exception_handler: Callable[[Any, dict[str, Any]], Any] | None = None,
         exception_terminal_policy: str = "strict_fail",
         max_cursor_steps: int = 10_000,
+        max_parallel_cursor_steps: int = 4,
     ) -> None:
         self._flow_process_catalog = flow_process_catalog
         self._flow_engine = flow_engine
@@ -107,6 +111,9 @@ class FlowProcessExecution:
             exception_terminal_policy,
         )
         self._max_cursor_steps = max(1, int(max_cursor_steps))
+        if int(max_parallel_cursor_steps) < 1:
+            raise ValueError("max_parallel_cursor_steps must be positive")
+        self._max_parallel_cursor_steps = int(max_parallel_cursor_steps)
         self._process_factory_metrics_lock = Lock()
         self._process_factory_metrics = _new_process_factory_metrics_state()
 
@@ -429,26 +436,31 @@ class FlowProcessExecution:
 
         try:
             while pending:
-                cursor = pending.popleft()
-                step_result = self._execute_cursor_step_with_exception_handling(cursor)
-                self._observe_process_factory_step(
-                    cursor=cursor,
-                    step_result=step_result,
-                )
-                step_count += 1
-                if step_count > self._max_cursor_steps:
+                ready = [pending.popleft()]
+                if self._is_parallel_map_cursor(ready[0]):
+                    while (
+                        pending
+                        and len(ready) < self._max_parallel_cursor_steps
+                        and self._is_parallel_map_cursor(pending[0])
+                    ):
+                        ready.append(pending.popleft())
+                if step_count + len(ready) > self._max_cursor_steps:
                     raise RuntimeError(f"cursor_step_limit_exceeded:{self._max_cursor_steps}")
-                outstanding_event_chains += int(step_result.event_chain_delta)
-                pending.extend(step_result.next_cursors)
-                for terminal_payload, terminal_tags in step_result.terminal_outputs:
-                    outputs.append(
-                        {
+                results = self._execute_ready_cursors(ready)
+                for cursor, step_result in zip(ready, results, strict=True):
+                    self._observe_process_factory_step(
+                        cursor=cursor, step_result=step_result,
+                    )
+                    step_count += 1
+                    outstanding_event_chains += int(step_result.event_chain_delta)
+                    pending.extend(step_result.next_cursors)
+                    for terminal_payload, terminal_tags in step_result.terminal_outputs:
+                        outputs.append({
                             "payload": terminal_payload,
                             "tags": dict(terminal_tags),
                             "seq": None,
                             "convergence_topic_epoch": cursor.convergence_topic_epoch,
-                        }
-                    )
+                        })
         except _TerminalCursorOutcome as terminal:
             return {
                 "status": "ok",
@@ -492,6 +504,31 @@ class FlowProcessExecution:
             "outcome_error_stage": None,
             "outcome_metadata": {},
         }
+
+    def _is_parallel_map_cursor(self, cursor: EventCursor) -> bool:
+        program = self._resolve_flow_program(cursor.flow_program_ref)
+        transformation = getattr(program, "transformations", {}).get(cursor.pc_node_id)
+        return getattr(transformation, "type", None) == "map"
+
+    def _execute_ready_cursors(self, ready: list[EventCursor]) -> list[CursorStepResult]:
+        if len(ready) == 1:
+            return [self._execute_cursor_step_with_exception_handling(ready[0])]
+        # Copy before dispatch: failed copying must not execute only part of a
+        # wave. Stateful reducers/process transitions remain on the coordinator.
+        owned = [deepcopy(cursor) for cursor in ready]
+        with ThreadPoolExecutor(
+            max_workers=self._max_parallel_cursor_steps,
+            thread_name_prefix="sage-flow-branch",
+        ) as executor:
+            futures = [
+                executor.submit(
+                    copy_context().run, self._execute_cursor_step_with_exception_handling, cursor
+                )
+                for cursor in owned
+            ]
+            # Ordered aggregation; drain running siblings before reporting an
+            # error. Downstream stages never consume a partially successful wave.
+            return [future.result() for future in futures]
 
     def _execute_cursor_step_with_exception_handling(
         self,
