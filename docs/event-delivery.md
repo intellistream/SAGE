@@ -12,6 +12,19 @@ and closure are atomic; no new events may follow, but identical retries remain
 valid. Reads return detached pages with cursor, tail, closed and caught_up flags.
 An ahead-of-tail cursor fails explicitly. There is no silent truncation or TTL.
 
+`WorkJournal.finish(..., mutations=...)` joins pure destination mutations to the
+lease-fenced task acknowledgement/result transaction. A stale lease, conflicting
+event or storage failure cannot publish half a completion. Retry acknowledgements
+cannot publish destination state; journal slots are reserved. No external effect
+is protected by this transaction. A lost acknowledgement after a successful commit
+leaves the task done and its event available for replay after restart.
+
+`WorkService`/`WorkDispatcher` accept `completion_mutations(lease, result)` to
+prepare these transforms on successful handler completion. The callback must be
+pure: use `EventJournal.prepare_append`, not `append` or another storage call.
+Preparation failures propagate without acknowledging the task. Reconstruct the
+same completion policy when recovering workers; it is not serialized in the journal.
+
 `sage.runtime.event_subscription.EventSubscription` gives every asynchronous
 iterator its own cursor. It yields committed event records and `None` heartbeats.
 Reconnection supplies the last delivered sequence as `after`; clients may need

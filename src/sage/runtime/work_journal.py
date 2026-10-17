@@ -80,6 +80,10 @@ class WorkJournal:
         atomicity, and successful replay must not reapply non-idempotent effects.
         """
         prepared = self.prepare_commit(request_id, result=result, tasks=tasks)
+        return self._apply_with_destinations(prepared.slot, prepared.transform, mutations)
+
+    def _apply_with_destinations(self, journal_slot, journal_transform, mutations):
+        """Fence journal state before evaluating pure destination transforms."""
         transforms = dict(mutations) if mutations is not None else {}
         for slot, transform in transforms.items():
             if not isinstance(slot, tuple) or len(slot) != 3:
@@ -91,13 +95,13 @@ class WorkJournal:
             if not callable(transform):
                 raise TypeError("destination_transform_not_callable")
         if not transforms:
-            return self._store.update(prepared.slot, prepared.transform)
-        transforms[prepared.slot] = prepared.transform
+            return self._store.update(journal_slot, journal_transform)
+        transforms = {journal_slot: journal_transform, **transforms}
         committed = self._store.update_many(
             transforms, lambda values: {slot: transform(values[slot])
                                        for slot, transform in transforms.items()},
         )
-        return committed[prepared.slot]
+        return committed[journal_slot]
 
     def prepare_commit(self, request_id: str, *, result: Any, tasks: dict[str, Any]) -> PreparedWorkCommit:
         """Capture immutable JSON inputs without writing or starting work.
@@ -157,14 +161,22 @@ class WorkJournal:
         return claimed[0] if claimed else None
 
     def finish(self, lease: TaskLease, *, retry: bool = False, retry_delay: float = 0.0,
-               result: Any = _UNSET) -> None:
-        """Atomically acknowledge ownership and publish an optional JSON result."""
+               result: Any = _UNSET,
+               mutations: Mapping[tuple[str, str, str], Callable[[Any], Any]] | None = None) -> None:
+        """Fence ownership and atomically publish result and destination state.
+
+        Destinations follow commit's pure, same-store mutation contract. Retry
+        cannot publish destination state. A stale lease rolls back everything;
+        external effects are never protected by this transaction.
+        """
         if not math.isfinite(retry_delay) or retry_delay < 0:
             raise ValueError("retry_delay_must_be_nonnegative_and_finite")
         if lease.namespace != self.namespace:
             raise ValueError("task_lease_namespace_mismatch")
         if retry and result is not _UNSET:
             raise ValueError("retry_cannot_publish_task_result")
+        if retry and mutations:
+            raise ValueError("retry_cannot_publish_destination_state")
         snapshot = _json_snapshot(result) if result is not _UNSET else _UNSET
         def apply(record):
             self._validate(record)
@@ -178,7 +190,7 @@ class WorkJournal:
                 task["result"] = snapshot
             return record
 
-        self._store.update(self._slot(lease.request_id), apply)
+        self._apply_with_destinations(self._slot(lease.request_id), apply, mutations)
 
     def read(self, request_id: str) -> dict[str, Any] | None:
         """Read a detached committed result and task states for one request."""
