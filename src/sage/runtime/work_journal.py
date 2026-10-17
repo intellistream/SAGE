@@ -34,6 +34,19 @@ def _json_snapshot(value):
     return json.loads(json.dumps(value, allow_nan=False, sort_keys=True))
 
 
+def _block_failed_dependents(record):
+    changed = True
+    while changed:
+        changed = False
+        for child, parents in record.get("dependencies", {}).items():
+            dependent = record["tasks"][child]
+            if (child not in record.get("settled", []) and dependent["status"] == "pending"
+                    and any(record["tasks"][parent]["status"] in {"failed", "blocked"}
+                            for parent in parents)):
+                dependent.update(status="blocked", failure_code="dependency_failed")
+                changed = True
+
+
 def _name(value: str) -> str:
     if not isinstance(value, str) or not value or value != value.strip():
         raise ValueError("journal_identifier_must_be_nonempty_and_trimmed")
@@ -446,21 +459,63 @@ class WorkJournal:
                         failure_code=code, token=None, lease_until=0.0,
                         available_at=0.0 if retry_delay is None else now + retry_delay)
             if retry_delay is None:
-                changed = True
-                while changed:
-                    changed = False
-                    for child, parents in record.get("dependencies", {}).items():
-                        if child in record.get("settled", []):
-                            continue
-                        dependent = record["tasks"][child]
-                        if dependent["status"] == "pending" and any(
-                            record["tasks"][parent]["status"] in {"failed", "blocked"}
-                            for parent in parents
-                        ):
-                            dependent.update(status="blocked", failure_code="dependency_failed")
-                            changed = True
+                _block_failed_dependents(record)
             return record
         return self._apply_with_destinations(self._slot(lease.request_id), apply, None)
+
+    def cancel(self, request_id: str, task_id: str, *, protect=None) -> str:
+        """Cancel pending/running work atomically against canonical destinations.
+
+        Caller owns authorization. Optional protect maps same-store slots to
+        pure predicates: any True prevents cancellation. Predicates must not
+        perform effects or re-enter storage. Returns cancelled, terminal,
+        protected or missing. This fences writes, not external execution.
+        Settled finalizers remain runnable; ordinary dependents are blocked.
+        """
+        slot = self._slot(request_id)
+        task_id = _name(task_id)
+        index = ("sage-work-active-v1", self.namespace, request_id)
+        predicates = dict(protect or {})
+        for key, predicate in predicates.items():
+            if not isinstance(key, tuple) or len(key) != 3:
+                raise ValueError("invalid_cancellation_protection_slot")
+            for part in key:
+                _name(part)
+            if key in (slot, index) or not callable(predicate):
+                raise ValueError("invalid_cancellation_protection")
+        outcome = "missing"
+
+        def apply(values):
+            nonlocal outcome
+            record = values[slot]
+            # Read-only slots stay absent if absent before this transaction.
+            result = {key: value if value is not None else StateMutation.DELETE
+                      for key, value in values.items()}
+            if record is None:
+                return result
+            self._validate(record)
+            if task_id not in record["tasks"]:
+                return result
+            task = record["tasks"][task_id]
+            if task["status"] not in {"pending", "running"}:
+                outcome = "terminal"
+                return result
+            for key, predicate in predicates.items():
+                protected = predicate(_json_snapshot(values[key]))
+                if type(protected) is not bool:
+                    raise TypeError("cancellation_protection_must_return_bool")
+                if protected:
+                    outcome = "protected"
+                    return result
+            task.update(status="failed", failure_code="request_cancelled", token=None,
+                        lease_until=0.0, available_at=0.0)
+            _block_failed_dependents(record)
+            result.update(PreparedWorkCommit(slot, index, lambda old: record).apply(values))
+            outcome = "cancelled"
+            return result
+
+        self._store.update_many((slot, index, *predicates), apply)
+        return outcome
 
     def renew(self, lease: TaskLease, *, lease_seconds: float) -> None:
         if lease.namespace != self.namespace:

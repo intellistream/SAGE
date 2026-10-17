@@ -185,3 +185,28 @@ must fence canonical writes with a same-store lease guard and use destination
 idempotency for external effects. Explicit persistent cancellation and prompt
 cooperative interruption require their own contract; lease-loss isolation alone
 does not provide them.
+
+### Durable explicit cancellation
+
+`WorkJournal.cancel(request_id, task_id, protect=...)` and the corresponding
+`WorkService.cancel` / `AsyncWorkService.cancel` persist cancellation without
+requiring a worker lease. The application must authorize the caller and select
+the owned request; this API is not an authorization mechanism. A pending or
+running task becomes terminally failed with code `request_cancelled`, loses its
+lease, and blocks ordinary dependents. Settled finalizers remain available.
+Return values are `cancelled`, `terminal`, `missing`, and `protected`.
+
+Use `protect={canonical_slot: pure_predicate}` for answers committed separately
+from worker acknowledgement. The predicate reads that slot inside the same
+transaction as cancellation; True preserves the task. Pair this with a native
+lease guard in the canonical answer transaction. Then an answer already
+committed cannot be overwritten by cancellation, and a winning cancellation
+prevents the answer commit. A separate read/check before cancel is insufficient.
+Predicates must return bool and may not perform I/O or re-enter state storage.
+Protection slots are not changed, and missing slots remain absent.
+
+Cancellation updates the active-work index atomically and survives restart.
+It does not forcibly stop a synchronous handler or retract external effects.
+Until cooperative interruption is integrated, a running handler keeps its
+capacity slot until exit; only its protected writes and acknowledgements are
+fenced. Observer disconnects/timeouts still do not cancel admitted work.

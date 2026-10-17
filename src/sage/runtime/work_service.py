@@ -116,6 +116,15 @@ class WorkService:
             self.start()
             return committed
 
+    def cancel(self, request_id, task_id, *, protect=None):
+        """Persist cancellation before dispatching any remaining finalizers."""
+        with self._lock:
+            self._check_available()
+            outcome = self.journal.cancel(request_id, task_id, protect=protect)
+            if outcome == "cancelled":
+                self.start()
+            return outcome
+
     def wait(self, request_id, *, timeout: float):
         """Return a detached completed record, or raise without cancelling work."""
         if not math.isfinite(timeout) or timeout < 0:

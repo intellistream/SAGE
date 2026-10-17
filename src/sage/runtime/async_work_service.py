@@ -83,6 +83,10 @@ class AsyncWorkService:
                                    result=result, tasks=tasks, mutations=mutations, dependencies=dependencies,
                                    settled=settled, guard=guard)
 
+    async def cancel(self, request_id, task_id, *, protect=None):
+        """Persist explicit cancellation; observer cancellation is unrelated."""
+        return await self._offload(self._service.cancel, request_id, task_id, protect=protect)
+
     async def wait(self, request_id, *, timeout, start_timeout=None):
         """Observe completion with an optional first-claim wait bound.
 
