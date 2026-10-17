@@ -3,7 +3,7 @@ from threading import Event
 
 import pytest
 
-from sage.runtime.async_work_service import AsyncWorkService
+from sage.runtime.async_work_service import AsyncWorkService, WorkStartTimeoutError
 from sage.runtime.flownet.runtime.operator_runtime.stateful import StatefulProcessRuntime
 from sage.runtime.work_journal import WorkJournal
 from sage.runtime.work_service import WorkWaitTimeoutError
@@ -12,6 +12,47 @@ from sage.runtime.work_service import WorkWaitTimeoutError
 def state(path):
     store = StatefulProcessRuntime(backend="sqlite", sqlite_path=str(path))
     return store, WorkJournal(store, namespace="async-test")
+
+
+def test_start_timeout_observes_native_capacity_without_rejecting_queued_work(tmp_path):
+    async def scenario():
+        store, journal = state(tmp_path / "state.db")
+        entered, release = asyncio.Event(), asyncio.Event()
+        calls = []
+
+        async def handler(lease):
+            calls.append(lease.request_id)
+            if lease.request_id == "first":
+                entered.set()
+                await release.wait()
+            return "done"
+
+        service = AsyncWorkService(journal, handler, max_workers=1, poll_interval=0.01)
+        try:
+            await service.commit("first", result=None, tasks={"answer": {}})
+            await asyncio.wait_for(entered.wait(), 3)
+            await service.commit("second", result=None, tasks={"answer": {}})
+            with pytest.raises(WorkStartTimeoutError):
+                await service.wait("second", timeout=1, start_timeout=0.02)
+            queued = journal.read("second")["tasks"]["answer"]
+            assert queued["status"] == "pending" and queued["attempt"] == 0
+            # A running request must not be mistaken for waiting admission.
+            with pytest.raises(WorkWaitTimeoutError):
+                await service.wait("first", timeout=0.03, start_timeout=0)
+            release.set()
+            await service.wait("first", timeout=3)
+            result = await service.wait("second", timeout=3, start_timeout=1)
+            assert result["tasks"]["answer"]["result"] == "done"
+            assert calls == ["first", "second"]
+            for invalid in (-1, float("inf"), float("nan")):
+                with pytest.raises(ValueError, match="invalid_work_start_timeout"):
+                    await service.wait("second", timeout=1, start_timeout=invalid)
+        finally:
+            release.set()
+            await service.aclose()
+            store.close()
+
+    asyncio.run(scenario())
 
 
 def test_async_recovery_runs_on_owner_loop_and_keeps_results(tmp_path):

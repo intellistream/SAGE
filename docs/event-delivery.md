@@ -59,6 +59,14 @@ Handlers run on that loop, so loop-bound model/HTTP clients can be reused.
 Worker bounds, lease renewal, retry, routing and completion mutations remain
 owned by the existing dispatcher; this does not create a second task engine.
 
+`await wait(request_id, timeout=..., start_timeout=...)` optionally bounds how
+long an observer waits for the first journal claim. It raises
+`WorkStartTimeoutError` while an unclaimed request remains durably queued; it
+does not reject or cancel that work. Callers can report retryable backpressure
+and retry the same ID. A claimed request (including delayed retries) uses only
+the overall completion timeout. A claim is not proof that an external model
+has begun executing, and this API does not claim an exact queue position.
+
 Call `await aclose()` before closing borrowed storage, async clients or the
 event loop. Cancellation of a commit or close waits for the actual blocking
 operation to finish; it cannot roll back a transaction that already committed.

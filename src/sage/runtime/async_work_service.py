@@ -18,6 +18,10 @@ from sage.runtime.work_service import WorkService, WorkWaitTimeoutError
 _HANDLER_SERVICE = contextvars.ContextVar("sage_async_work_handler", default=None)
 
 
+class WorkStartTimeoutError(TimeoutError):
+    """Observer stopped waiting for a first claim; admitted work is unchanged."""
+
+
 class AsyncWorkService:
     def __init__(self, journal, handler, **dispatcher_options):
         if not (inspect.iscoroutinefunction(handler)
@@ -79,19 +83,37 @@ class AsyncWorkService:
                                    result=result, tasks=tasks, mutations=mutations, dependencies=dependencies,
                                    settled=settled)
 
-    async def wait(self, request_id, *, timeout):
+    async def wait(self, request_id, *, timeout, start_timeout=None):
+        """Observe completion with an optional first-claim wait bound.
+
+        A first claim is not proof of external execution. Retried tasks have
+        already started and are governed only by the overall observer timeout.
+        Neither timeout cancels, rejects, or removes persistent work.
+        """
         self._check_observer()
         if not math.isfinite(timeout) or timeout < 0:
             raise ValueError("invalid_work_wait_timeout")
+        if start_timeout is not None and (not math.isfinite(start_timeout) or start_timeout < 0):
+            raise ValueError("invalid_work_start_timeout")
         deadline = self._loop.time() + timeout
+        start_deadline = None if start_timeout is None else self._loop.time() + start_timeout
         while True:
             try:
                 return await self._offload(self._service.wait, request_id, timeout=0)
             except WorkWaitTimeoutError:
+                if start_deadline is not None:
+                    record = await self._offload(self.journal.read, request_id)
+                    if any(task["attempt"] > 0 for task in record["tasks"].values()):
+                        start_deadline = None
+                    elif self._loop.time() >= start_deadline:
+                        raise WorkStartTimeoutError("work_start_wait_timeout") from None
                 remaining = deadline - self._loop.time()
                 if remaining <= 0:
                     raise WorkWaitTimeoutError("work_result_wait_timeout") from None
-                await asyncio.sleep(min(remaining, self._poll_interval))
+                delay = min(remaining, self._poll_interval)
+                if start_deadline is not None:
+                    delay = min(delay, max(0, start_deadline - self._loop.time()))
+                await asyncio.sleep(delay)
 
     async def aclose(self, *, timeout=30):
         self._check_observer()
