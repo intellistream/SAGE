@@ -20,6 +20,10 @@ class WorkWaitTimeoutError(TimeoutError):
     """Observer deadline, distinct from a backend storage timeout."""
 
 
+class WorkFailedError(RuntimeError):
+    """Durable terminal failure; successful completion was not observed."""
+
+
 class WorkService:
     def __init__(self, journal: WorkJournal, handler, **dispatcher_options):
         self.journal = journal
@@ -121,6 +125,8 @@ class WorkService:
             record = self.journal.read(request_id)
             if record is None:
                 raise KeyError("journal_request_not_found")
+            if any(task["status"] in {"failed", "blocked"} for task in record["tasks"].values()):
+                raise WorkFailedError("work_request_failed")
             if all(task["status"] == "done" for task in record["tasks"].values()):
                 return record
             with self._lock:

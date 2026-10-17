@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import time
 import uuid
 from collections import deque
@@ -171,7 +172,7 @@ class WorkJournal:
     def _validate(record):
         if record is None:
             raise KeyError("journal_request_not_found")
-        if record.get("version") not in {1, 2}:
+        if record.get("version") not in {1, 2, 3}:
             raise ValueError("unsupported_journal_version")
         dependencies = record.get("dependencies", {})
         if record["version"] == 1 and dependencies:
@@ -201,7 +202,7 @@ class WorkJournal:
                     record["tasks"][parent]["status"] != "done" for parent in parents)
                    for child, parents in graph.items()):
                 raise ValueError("completed_work_has_unfinished_dependencies")
-            record.update(version=2, dependencies=graph)
+            record.update(version=max(2, record["version"]), dependencies=graph)
             return record
         return self._store.update(self._slot(request_id), upgrade)
 
@@ -219,7 +220,7 @@ class WorkJournal:
                    for parent in record.get("dependencies", {}).get(task_id, [])):
                 return record
             now = self._clock()
-            if task.get("available_at", 0.0) > now or task["status"] == "done" or (
+            if task.get("available_at", 0.0) > now or task["status"] in {"done", "failed", "blocked"} or (
                 task["status"] == "running" and task["lease_until"] > now
             ):
                 return record
@@ -271,6 +272,46 @@ class WorkJournal:
             return None
         self._validate(record)
         return _json_snapshot(record)
+
+    def fail(self, lease: TaskLease, *, code: str, retry_delay: float | None = None):
+        """Fence a classified failure; None delay is terminal, not success.
+
+        Store only an application-defined code, never exception text. Terminal
+        failure blocks dependent tasks atomically. Version 3 prevents older
+        workers from interpreting these states as claimable pending work.
+        """
+        if not isinstance(code, str) or re.fullmatch(r"[a-z][a-z0-9_]{0,63}", code) is None:
+            raise ValueError("invalid_work_failure_code")
+        if retry_delay is not None and (not math.isfinite(retry_delay) or retry_delay < 0):
+            raise ValueError("invalid_failure_retry_delay")
+        if lease.namespace != self.namespace:
+            raise ValueError("task_lease_namespace_mismatch")
+
+        def apply(record):
+            self._validate(record)
+            task = record["tasks"][lease.task_id]
+            now = self._clock()
+            if (task["status"] != "running" or task["token"] != lease.token
+                    or task["lease_until"] <= now):
+                raise StaleTaskLeaseError("stale_task_lease")
+            record["version"] = 3
+            task.update(status="failed" if retry_delay is None else "pending",
+                        failure_code=code, token=None, lease_until=0.0,
+                        available_at=0.0 if retry_delay is None else now + retry_delay)
+            if retry_delay is None:
+                changed = True
+                while changed:
+                    changed = False
+                    for child, parents in record.get("dependencies", {}).items():
+                        dependent = record["tasks"][child]
+                        if dependent["status"] == "pending" and any(
+                            record["tasks"][parent]["status"] in {"failed", "blocked"}
+                            for parent in parents
+                        ):
+                            dependent.update(status="blocked", failure_code="dependency_failed")
+                            changed = True
+            return record
+        return self._store.update(self._slot(lease.request_id), apply)
 
     def renew(self, lease: TaskLease, *, lease_seconds: float) -> None:
         if lease.namespace != self.namespace:

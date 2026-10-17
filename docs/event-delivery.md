@@ -94,3 +94,28 @@ For offline migration of independent records, stop old workers and call
 live leases, changed graphs and already-completed children with unfinished parents.
 Existing valid results, attempts and payloads are retained. Replay admission must
 include the same graph. Do not run old and new writers concurrently during cutover.
+
+## Classified task failures
+
+Dispatchers and both work services accept `failure_policy(lease, exception)`.
+Return `WorkFailure(code, retry_delay=seconds)` for a delayed retry, or
+`WorkFailure(code)` for terminal failure. Policies can use the durable
+`lease.attempt` to bound retries across restarts. Classification is synchronous,
+must be fast, and must not perform external effects. Invalid policies fail the
+supervisor without acknowledging the task. Without a policy the existing retry
+behavior is unchanged; applications must explicitly adopt and qualify a policy.
+
+Only a restricted application-defined code is persisted, not exception text,
+tracebacks or credentials. Failure uses the same lease-token and expiry fence as
+completion. Terminal tasks become `failed`; their pending transitive dependents
+become `blocked` in that transaction and are never claimed. Independent siblings
+may still run. `wait` raises `WorkFailedError`, not a success record or observer
+timeout; `read` retains results, attempt counts and failure codes for inspection.
+Retry success may retain the prior failure code as diagnostic history.
+
+Classified failures write version-3 records. Stop older consumers before adopting
+this policy; older readers fail closed. Rollback requires matching state and code,
+not a downgrade over version-3 data. Terminal failure is durable across restart;
+there is no automatic requeue or deletion. It does not undo prior external effects
+and does not provide exactly-once delivery. Retention, administrative remediation
+and application-specific failure notices remain separate responsibilities.
