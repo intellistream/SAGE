@@ -3,6 +3,10 @@
 The handler receives a TaskLease and must implement destination idempotency.
 Only one thread may drive run_once/run for a dispatcher. Journal leases arbitrate
 between multiple dispatchers. No request context or credentials are persisted.
+An optional accept_task(task_id, payload) selector must be a fast, pure routing
+decision returning bool. It is not authorization. It runs before lease claim;
+unmatched tasks remain pending for their destination. Predicate errors fail the
+supervisor rather than silently dropping work.
 """
 
 from concurrent.futures import ThreadPoolExecutor
@@ -15,14 +19,17 @@ from sage.runtime.work_journal import WorkJournal, StaleTaskLeaseError
 class WorkDispatcher:
     def __init__(self, journal: WorkJournal, handler, *, max_workers: int = 2,
                  lease_seconds: float = 60, retry_delay: float = 5,
-                 poll_interval: float = 1, page_size: int = 100):
+                 poll_interval: float = 1, page_size: int = 100, accept_task=None):
         if max_workers < 1 or page_size < 1:
             raise ValueError("dispatcher_bounds_must_be_positive")
+        if accept_task is not None and not callable(accept_task):
+            raise TypeError("task_selector_must_be_callable")
         if (not all(math.isfinite(v) for v in (lease_seconds, retry_delay, poll_interval))
                 or not 0 < poll_interval < lease_seconds / 3 or retry_delay < 0):
             raise ValueError("invalid_dispatcher_timing")
         self.journal = journal
         self.handler = handler
+        self.accept_task = accept_task
         self.max_workers = max_workers
         self.lease_seconds = lease_seconds
         self.retry_delay = retry_delay
@@ -86,6 +93,16 @@ class WorkDispatcher:
                     return admitted
                 if task["status"] == "done" or (row["key"], task_id) in active_keys:
                     continue
+                if self.accept_task is not None:
+                    # Selection precedes lease acquisition. A worker must not
+                    # claim/retry another destination's tasks just to route them.
+                    # records() returns detached JSON; claim() returns the
+                    # authoritative immutable payload even if selection mutates it.
+                    accepted = self.accept_task(task_id, task["payload"])
+                    if type(accepted) is not bool:
+                        raise TypeError("task_selector_must_return_bool")
+                    if not accepted:
+                        continue
                 lease = self.journal.claim(row["key"], task_id, lease_seconds=self.lease_seconds)
                 if lease is None:
                     continue
