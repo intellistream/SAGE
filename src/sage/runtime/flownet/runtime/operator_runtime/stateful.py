@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import inspect
 import copy
+import inspect
 import os
 import pickle
 import sqlite3
@@ -44,7 +44,10 @@ class StatefulStateHandle:
 
 
 class _StateBackend:
-    def update(self, slot, transform):  # pragma: no cover - interface
+    def update(self, slot, transform):
+        return self.update_many((slot,), lambda entries: {slot: transform(entries[slot])})[slot]
+
+    def update_many(self, slots, transform):  # pragma: no cover - interface
         raise NotImplementedError
 
     def get(self, slot: tuple[str, str, str]) -> _StateEntry | None:  # pragma: no cover - interface
@@ -76,10 +79,13 @@ class _MemoryStateBackend(_StateBackend):
     def __init__(self) -> None:
         self._state: dict[tuple[str, str, str], _StateEntry] = {}
 
-    def update(self, slot, transform):
-        entry = transform(copy.deepcopy(self._state.get(slot)))
-        self._state[slot] = copy.deepcopy(entry)
-        return copy.deepcopy(entry)
+    def update_many(self, slots, transform):
+        entries = transform(copy.deepcopy({slot: self._state.get(slot) for slot in slots}))
+        # All potentially failing copies precede publication of any entry.
+        saved = copy.deepcopy(entries)
+        result = copy.deepcopy(entries)
+        self._state.update(saved)
+        return result
 
     def get(self, slot: tuple[str, str, str]) -> _StateEntry | None:
         return self._state.get(slot)
@@ -157,14 +163,15 @@ class _SQLiteStateBackend(_StateBackend):
         )
         self._conn.commit()
 
-    def update(self, slot, transform):
+    def update_many(self, slots, transform):
         # Reserve the writer before reading, including across runtime instances.
         self._conn.execute("BEGIN IMMEDIATE")
         try:
-            entry = transform(self.get(slot))
-            self._put_uncommitted(slot, entry)
+            entries = transform({slot: self.get(slot) for slot in slots})
+            for slot, entry in entries.items():
+                self._put_uncommitted(slot, entry)
             self._conn.commit()
-            return entry
+            return entries
         except BaseException:
             self._conn.rollback()
             raise
@@ -426,6 +433,34 @@ class StatefulProcessRuntime:
 
         with self._lock:
             return copy.deepcopy(self._backend.update(normalized_slot, apply).value)
+
+    def update_many(self, slots, transform, *, default=None):
+        """Atomically replace a fixed set of non-expiring state records.
+
+        Slots are normalized before the transaction; duplicates and an empty
+        set are rejected. The pure callback receives detached values keyed by
+        normalized slots and must return exactly those keys. It must not call
+        storage or perform external effects. This is one backend transaction,
+        not a distributed transaction across databases or runtime instances.
+        Use it to commit related destination state and work intents together.
+        """
+        normalized = tuple(_normalize_state_slot(slot) for slot in slots)
+        if not normalized or len(set(normalized)) != len(normalized):
+            raise ValueError("atomic_update_requires_distinct_nonempty_slots")
+
+        def apply(entries):
+            values = {slot: copy.deepcopy(default if entry is None else entry.value)
+                      for slot, entry in entries.items()}
+            result = transform(values)
+            if not isinstance(result, Mapping) or set(result) != set(normalized):
+                raise ValueError("atomic_update_result_slots_mismatch")
+            now = self._time_fn()
+            return {slot: _StateEntry(value=copy.deepcopy(result[slot]), updated_at=now)
+                    for slot in normalized}
+
+        with self._lock:
+            result = self._backend.update_many(normalized, apply)
+            return {slot: copy.deepcopy(entry.value) for slot, entry in result.items()}
 
     def query_namespace_entries(
         self,
