@@ -9,12 +9,19 @@ import threading
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
 
 from .errors import StatefulProcessContractError
 from .models import _StateEntry
 from .protocols import StatefulSpec
 from .utils import _stable_key_fragment
+
+
+class StateMutation(Enum):
+    """Explicit batch mutation markers; None remains an ordinary stored value."""
+
+    DELETE = "delete"
 
 
 @dataclass(frozen=True)
@@ -84,7 +91,11 @@ class _MemoryStateBackend(_StateBackend):
         # All potentially failing copies precede publication of any entry.
         saved = copy.deepcopy(entries)
         result = copy.deepcopy(entries)
-        self._state.update(saved)
+        for slot, entry in saved.items():
+            if entry is None:
+                self._state.pop(slot, None)
+            else:
+                self._state[slot] = entry
         return result
 
     def get(self, slot: tuple[str, str, str]) -> _StateEntry | None:
@@ -169,7 +180,13 @@ class _SQLiteStateBackend(_StateBackend):
         try:
             entries = transform({slot: self.get(slot) for slot in slots})
             for slot, entry in entries.items():
-                self._put_uncommitted(slot, entry)
+                if entry is None:
+                    self._conn.execute(
+                        "DELETE FROM state_entries WHERE stage_id = ? AND namespace = ? AND entry_key = ?",
+                        slot,
+                    )
+                else:
+                    self._put_uncommitted(slot, entry)
             self._conn.commit()
             return entries
         except BaseException:
@@ -443,6 +460,9 @@ class StatefulProcessRuntime:
         storage or perform external effects. This is one backend transaction,
         not a distributed transaction across databases or runtime instances.
         Use it to commit related destination state and work intents together.
+        Return StateMutation.DELETE for a slot to remove it in the same
+        transaction. The result preserves that marker; returning None stores
+        None. Deleting an absent slot is idempotent and creates no tombstone.
         """
         normalized = tuple(_normalize_state_slot(slot) for slot in slots)
         if not normalized or len(set(normalized)) != len(normalized):
@@ -455,12 +475,14 @@ class StatefulProcessRuntime:
             if not isinstance(result, Mapping) or set(result) != set(normalized):
                 raise ValueError("atomic_update_result_slots_mismatch")
             now = self._time_fn()
-            return {slot: _StateEntry(value=copy.deepcopy(result[slot]), updated_at=now)
+            return {slot: (None if result[slot] is StateMutation.DELETE else
+                           _StateEntry(value=copy.deepcopy(result[slot]), updated_at=now))
                     for slot in normalized}
 
         with self._lock:
             result = self._backend.update_many(normalized, apply)
-            return {slot: copy.deepcopy(entry.value) for slot, entry in result.items()}
+            return {slot: (StateMutation.DELETE if entry is None else copy.deepcopy(entry.value))
+                    for slot, entry in result.items()}
 
     def query_namespace_entries(
         self,

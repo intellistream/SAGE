@@ -4,10 +4,86 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from sage.runtime.flownet.runtime.operator_runtime.stateful import StatefulProcessRuntime
+from sage.runtime.flownet.runtime.operator_runtime.stateful import (
+    StatefulProcessRuntime,
+    StateMutation,
+)
 
 A = ("memory", "turns", "exchange")
 B = ("journal", "turns", "intent")
+
+
+@pytest.mark.parametrize("backend", ["memory", "sqlite"])
+def test_batch_delete_is_atomic_and_not_a_none_tombstone(tmp_path, backend):
+    path = str(tmp_path / "state.db")
+    store = StatefulProcessRuntime(backend=backend, sqlite_path=path)
+    try:
+        store.update_many([A, B], lambda old: {A: "pending", B: "active"})
+
+        def fail(old):
+            old[B] = StateMutation.DELETE
+            raise ValueError("abort deletion")
+
+        with pytest.raises(ValueError, match="abort deletion"):
+            store.update_many([A, B], fail)
+        assert store.peek(B) == "active"
+        expected = {A: None, B: StateMutation.DELETE}
+        assert store.update_many([A, B], lambda old: expected) == expected
+        assert store.peek(A, default="absent") is None
+        assert store.peek(B, default="absent") == "absent"
+        rows, _ = store.query_namespace_entries(namespace="turns", prefix="", limit=100, cursor=0)
+        assert len(rows) == 1
+        assert store.update_many([A, B], lambda old: expected) == expected
+        if backend == "sqlite":
+            reader = StatefulProcessRuntime(backend=backend, sqlite_path=path)
+            try:
+                assert reader.peek(A, default="absent") is None
+                assert reader.peek(B, default="absent") == "absent"
+            finally:
+                reader.close()
+    finally:
+        store.close()
+
+
+def test_sqlite_delete_rolls_back_when_later_write_cannot_serialize(tmp_path):
+    store = StatefulProcessRuntime(backend="sqlite", sqlite_path=str(tmp_path / "state.db"))
+    try:
+        store.update_many([A, B], lambda old: {A: "active", B: "pending"})
+        with pytest.raises((AttributeError, TypeError)):
+            store.update_many([A, B], lambda old: {A: StateMutation.DELETE, B: lambda: None})
+        assert store.peek(A) == "active"
+        assert store.peek(B) == "pending"
+    finally:
+        store.close()
+
+
+@pytest.mark.parametrize("before_commit", [True, False])
+def test_process_exit_preserves_atomic_delete_and_replace(tmp_path, before_commit):
+    path = str(tmp_path / "state.db")
+    store = StatefulProcessRuntime(backend="sqlite", sqlite_path=path)
+    store.update_many([A, B], lambda old: {A: "active", B: "pending"})
+    store.close()
+    code = f"""
+import os
+from sage.runtime.flownet.runtime.operator_runtime.stateful import StatefulProcessRuntime, StateMutation
+s = StatefulProcessRuntime(backend='sqlite', sqlite_path={path!r})
+original = s._backend._put_uncommitted
+def interrupted(slot, entry):
+    original(slot, entry)
+    os._exit(25)
+if {before_commit!r}:
+    s._backend._put_uncommitted = interrupted
+s.update_many([{A!r}, {B!r}], lambda old: {{{A!r}: StateMutation.DELETE, {B!r}: 'done'}})
+os._exit(26)
+"""
+    result = subprocess.run([sys.executable, "-c", code], timeout=15, capture_output=True)
+    assert result.returncode == (25 if before_commit else 26), result.stderr.decode()
+    reader = StatefulProcessRuntime(backend="sqlite", sqlite_path=path)
+    try:
+        assert reader.peek(A, default="absent") == ("active" if before_commit else "absent")
+        assert reader.peek(B) == ("pending" if before_commit else "done")
+    finally:
+        reader.close()
 
 
 @pytest.mark.parametrize("backend", ["memory", "sqlite"])
