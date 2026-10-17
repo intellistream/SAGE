@@ -17,7 +17,9 @@ from threading import Lock, Thread
 from typing import Any
 from weakref import WeakKeyDictionary
 
-from sage.runtime.cancellation import RequestCancellation, bind_request_cancellation
+from sage.runtime.cancellation import (
+    RequestCancellation, bind_request_cancellation, child_request_cancellation,
+)
 
 from sage.runtime.flownet.api.declarations import (
     ActorDeclaration,
@@ -521,7 +523,7 @@ class _SharedStateClientSurface:
 @dataclass
 class _EndpointRequestState:
     request_id: str
-    cancellation: RequestCancellation = field(default_factory=RequestCancellation)
+    cancellation: RequestCancellation = field(default_factory=child_request_cancellation)
     outputs: Queue[Any] = field(default_factory=Queue)
     finished: bool = False
     released: bool = False
@@ -613,9 +615,11 @@ class FlowRequestRef:
         while True:
             elapsed = time.monotonic() - started
             remaining = float(timeout) - elapsed
-            if remaining <= 0:
+            if remaining <= 0 and not self.request_done():
                 raise TimeoutError(f"flow_request_collect_timeout:request_id={self.request_id}")
-            wait_timeout = min(poll, remaining)
+            # A terminal outcome already available at the deadline is not a
+            # collection timeout. Drain it without introducing another wait.
+            wait_timeout = max(0.0, min(poll, remaining))
             item = self.read(timeout=wait_timeout)
             if item is not None:
                 outputs.append(item)
@@ -750,6 +754,10 @@ class FlowEndpoint:
         """Collect a single request and release its endpoint-local buffers.
 
         An already-open request ID is rejected without changing its owner.
+        The timeout supplies a cooperative deadline from before publication,
+        including synchronous operator execution, and the remaining collection
+        budget. Running operators are not forcibly interrupted. Parent scope
+        cancellation propagates down to this request, never back to its parent.
         Release is not cancellation of dispatched work or deletion of runtime
         ledger history. Use submit() for explicit request lifetime management.
         """
@@ -757,13 +765,16 @@ class FlowEndpoint:
         # incremental reads or explicit lifecycle control use submit() instead.
         # Include write/finish in the ownership scope: admission or publication
         # can fail before submit() would have returned a reference to clean up.
-        request = self.open_request(
-            request_id=request_id, tags=tags, reuse_existing=False
-        )
+        deadline = time.monotonic() + max(0.0, timeout)
+        scope = child_request_cancellation(deadline_at=deadline)
+        with bind_request_cancellation(scope):
+            request = self.open_request(
+                request_id=request_id, tags=tags, reuse_existing=False
+            )
         try:
             request.write(payload)
             request.finish()
-            return request.collect(timeout=timeout)
+            return request.collect(timeout=max(0.0, deadline - time.monotonic()))
         finally:
             request.release()
 
