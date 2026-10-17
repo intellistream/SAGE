@@ -106,6 +106,11 @@ class PreparedLeaseGuard:
     _store: StatefulProcessRuntime
     _check: Callable[[Any], None]
 
+    def validate_store(self, store):
+        """Reject cross-store composition before opening the transaction."""
+        if store is not self._store:
+            raise ValueError("lease_guard_must_share_state_store")
+
     def apply(self, values):
         record = values[self.slot]
         self._check(record)
@@ -200,8 +205,9 @@ class WorkJournal:
         prepared = PreparedWorkCommit(journal_slot,
             ("sage-work-active-v1", journal_slot[1], journal_slot[2]), journal_transform)
         if guard is not None:
-            if not isinstance(guard, PreparedLeaseGuard) or guard._store is not self._store:
+            if not isinstance(guard, PreparedLeaseGuard):
                 raise ValueError("lease_guard_must_share_state_store")
+            guard.validate_store(self._store)
             if guard.slot in (*prepared.slots, *transforms):
                 raise ValueError("lease_guard_destination_overlap")
         def apply(values):
