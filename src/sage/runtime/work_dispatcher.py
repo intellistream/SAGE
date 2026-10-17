@@ -61,7 +61,10 @@ class WorkDispatcher:
                 continue
             failed = future.exception() is not None
             try:
-                self.journal.finish(lease, retry=failed, retry_delay=self.retry_delay if failed else 0)
+                if failed:
+                    self.journal.finish(lease, retry=True, retry_delay=self.retry_delay)
+                else:
+                    self.journal.finish(lease, result=future.result())
             except StaleTaskLeaseError:
                 self.lease_losses += 1
                 del self._active[future]

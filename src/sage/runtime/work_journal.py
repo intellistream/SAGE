@@ -17,6 +17,8 @@ from typing import Any, Callable
 
 from sage.runtime.flownet.runtime.operator_runtime.stateful import StatefulProcessRuntime
 
+_UNSET = object()
+
 
 class StaleTaskLeaseError(ValueError):
     """A worker no longer owns the task and may not acknowledge its result."""
@@ -104,11 +106,16 @@ class WorkJournal:
         self._store.update(self._slot(request_id), apply)
         return claimed[0] if claimed else None
 
-    def finish(self, lease: TaskLease, *, retry: bool = False, retry_delay: float = 0.0) -> None:
+    def finish(self, lease: TaskLease, *, retry: bool = False, retry_delay: float = 0.0,
+               result: Any = _UNSET) -> None:
+        """Atomically acknowledge ownership and publish an optional JSON result."""
         if not math.isfinite(retry_delay) or retry_delay < 0:
             raise ValueError("retry_delay_must_be_nonnegative_and_finite")
         if lease.namespace != self.namespace:
             raise ValueError("task_lease_namespace_mismatch")
+        if retry and result is not _UNSET:
+            raise ValueError("retry_cannot_publish_task_result")
+        snapshot = _json_snapshot(result) if result is not _UNSET else _UNSET
         def apply(record):
             self._validate(record)
             task = record["tasks"][lease.task_id]
@@ -117,9 +124,19 @@ class WorkJournal:
                 raise StaleTaskLeaseError("stale_task_lease")
             task.update(status="pending" if retry else "done", token=None, lease_until=0.0,
                         available_at=self._clock() + retry_delay if retry else 0.0)
+            if snapshot is not _UNSET:
+                task["result"] = snapshot
             return record
 
         self._store.update(self._slot(lease.request_id), apply)
+
+    def read(self, request_id: str) -> dict[str, Any] | None:
+        """Read a detached committed result and task states for one request."""
+        record = self._store.peek(self._slot(request_id))
+        if record is None:
+            return None
+        self._validate(record)
+        return _json_snapshot(record)
 
     def renew(self, lease: TaskLease, *, lease_seconds: float) -> None:
         if lease.namespace != self.namespace:

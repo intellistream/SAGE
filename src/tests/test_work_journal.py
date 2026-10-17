@@ -8,6 +8,78 @@ from sage.runtime.flownet.runtime.operator_runtime.stateful import StatefulProce
 from sage.runtime.work_journal import WorkJournal
 
 
+def test_task_result_commits_with_ack_and_survives_reopen(tmp_path):
+    path = str(tmp_path / "state.db")
+    store = StatefulProcessRuntime(backend="sqlite", sqlite_path=path)
+    journal = WorkJournal(store, namespace="tenant")
+    assert journal.read("missing") is None
+    journal.commit("turn", result={"answer": "original"}, tasks={"post": {"source": 1}})
+    lease = journal.claim("turn", "post", lease_seconds=30)
+    result = {"suggestions": ["read evidence"]}
+    journal.finish(lease, result=result)
+    result["suggestions"].append("not committed")
+    store.close()
+    store = StatefulProcessRuntime(backend="sqlite", sqlite_path=path)
+    try:
+        journal = WorkJournal(store, namespace="tenant")
+        view = journal.read("turn")
+        assert view["result"] == {"answer": "original"}
+        assert view["tasks"]["post"]["status"] == "done"
+        assert view["tasks"]["post"]["result"] == {"suggestions": ["read evidence"]}
+        view["tasks"]["post"]["result"] = "uncommitted"
+        assert journal.read("turn")["tasks"]["post"]["result"] == {"suggestions": ["read evidence"]}
+    finally:
+        store.close()
+
+
+def test_invalid_or_uncommitted_task_result_does_not_acknowledge(tmp_path, monkeypatch):
+    store = StatefulProcessRuntime(backend="sqlite", sqlite_path=str(tmp_path / "state.db"))
+    journal = WorkJournal(store, namespace="tenant")
+    try:
+        journal.commit("turn", result="answer", tasks={"post": 1})
+        lease = journal.claim("turn", "post", lease_seconds=30)
+        with pytest.raises(ValueError):
+            journal.finish(lease, result=float("nan"))
+        with pytest.raises(ValueError, match="retry_cannot"):
+            journal.finish(lease, retry=True, result="not final")
+        original = store._backend._put_uncommitted
+
+        def fail(slot, entry):
+            original(slot, entry)
+            raise OSError("injected before commit")
+
+        with monkeypatch.context() as patch:
+            patch.setattr(store._backend, "_put_uncommitted", fail)
+            with pytest.raises(OSError, match="before commit"):
+                journal.finish(lease, result="not committed")
+        task = journal.read("turn")["tasks"]["post"]
+        assert task["status"] == "running"
+        assert "result" not in task
+        journal.finish(lease, result="committed")
+        assert journal.read("turn")["tasks"]["post"]["result"] == "committed"
+    finally:
+        store.close()
+
+
+def test_journal_read_does_not_write_or_create_missing_records(tmp_path, monkeypatch):
+    store = StatefulProcessRuntime(backend="sqlite", sqlite_path=str(tmp_path / "state.db"))
+    journal = WorkJournal(store, namespace="tenant")
+    try:
+        journal.commit("turn", result="answer", tasks={})
+
+        def fail_write(*args, **kwargs):
+            raise AssertionError("read attempted storage mutation")
+
+        with monkeypatch.context() as patch:
+            patch.setattr(store._backend, "put", fail_write)
+            patch.setattr(store._backend, "_put_uncommitted", fail_write)
+            assert journal.read("turn")["result"] == "answer"
+            assert journal.read("missing") is None
+        assert [row["key"] for row in journal.records()[0]] == ["turn"]
+    finally:
+        store.close()
+
+
 def test_process_exit_before_atomic_commit_leaves_no_partial_turn(tmp_path):
     path = str(tmp_path / "state.db")
     script = '''

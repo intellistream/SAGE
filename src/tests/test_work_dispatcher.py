@@ -19,6 +19,7 @@ def test_bounded_dispatch_and_drain(tmp_path):
         seen.append(lease.task_id)
         entered.set()
         assert release.wait(3)
+        return {"task": lease.task_id, "value": lease.payload}
 
     worker = WorkDispatcher(journal, handler, max_workers=1)
     try:
@@ -34,6 +35,7 @@ def test_bounded_dispatch_and_drain(tmp_path):
         worker.run_once(admit=False)
         assert seen == ["one", "two"]
         assert worker.completed == 2
+        assert journal.read("turn")["tasks"]["two"]["result"] == {"task": "two", "value": 2}
         assert all(task["status"] == "done" for task in journal.records()[0][0]["value"]["tasks"].values())
     finally:
         release.set()

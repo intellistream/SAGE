@@ -374,6 +374,18 @@ class StatefulProcessRuntime:
             self._backend.put(normalized_slot, entry)
             return entry.value
 
+    def peek(self, slot: tuple[Any, Any, Any], *, default: Any = None) -> Any:
+        """Inspect stored state without a write or sliding-TTL refresh.
+
+        This returns a detached snapshot, including stored entries that an
+        owner may later expire through its TTL-aware access policy. Durable
+        journals use non-expiring state and must never rewrite it on reads.
+        """
+        normalized_slot = _normalize_state_slot(slot)
+        with self._lock:
+            entry = self._backend.get(normalized_slot)
+            return copy.deepcopy(default if entry is None else entry.value)
+
     def set(
         self,
         slot: tuple[Any, Any, Any],
