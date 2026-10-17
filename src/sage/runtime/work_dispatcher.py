@@ -1,0 +1,118 @@
+"""Bounded, restartable dispatch of SAGE journal tasks.
+
+The handler receives a TaskLease and must implement destination idempotency.
+Only one thread may drive run_once/run for a dispatcher. Journal leases arbitrate
+between multiple dispatchers. No request context or credentials are persisted.
+"""
+
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
+import math
+
+from sage.runtime.work_journal import WorkJournal, StaleTaskLeaseError
+
+
+class WorkDispatcher:
+    def __init__(self, journal: WorkJournal, handler, *, max_workers: int = 2,
+                 lease_seconds: float = 60, retry_delay: float = 5,
+                 poll_interval: float = 1, page_size: int = 100):
+        if max_workers < 1 or page_size < 1:
+            raise ValueError("dispatcher_bounds_must_be_positive")
+        if (not all(math.isfinite(v) for v in (lease_seconds, retry_delay, poll_interval))
+                or not 0 < poll_interval < lease_seconds / 3 or retry_delay < 0):
+            raise ValueError("invalid_dispatcher_timing")
+        self.journal = journal
+        self.handler = handler
+        self.max_workers = max_workers
+        self.lease_seconds = lease_seconds
+        self.retry_delay = retry_delay
+        self.poll_interval = poll_interval
+        self.page_size = page_size
+        self._pool = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="sage-work")
+        self._active = {}
+        self._cursor = 0
+        self._closed = False
+        self.completed = 0
+        self.failed = 0
+        self.lease_losses = 0
+        self._lost = set()
+
+    def run_once(self, *, admit: bool = True) -> int:
+        """Maintain leases, acknowledge completed work, inspect one bounded page.
+
+        Storage/fencing failures propagate to the supervisor; they are never
+        interpreted as successful work. Handler failures persist a delayed retry.
+        """
+        if self._closed:
+            raise RuntimeError("work_dispatcher_closed")
+        for future, lease in list(self._active.items()):
+            if future in self._lost:
+                if future.done():
+                    del self._active[future]
+                    self._lost.remove(future)
+                continue
+            if not future.done():
+                try:
+                    self.journal.renew(lease, lease_seconds=self.lease_seconds)
+                except StaleTaskLeaseError:
+                    self.lease_losses += 1
+                    self._lost.add(future)
+                    raise
+                continue
+            failed = future.exception() is not None
+            try:
+                self.journal.finish(lease, retry=failed, retry_delay=self.retry_delay if failed else 0)
+            except StaleTaskLeaseError:
+                self.lease_losses += 1
+                del self._active[future]
+                raise
+            del self._active[future]
+            if failed:
+                self.failed += 1
+            else:
+                self.completed += 1
+        if not admit or len(self._active) >= self.max_workers:
+            return 0
+        rows, following = self.journal.records(cursor=self._cursor, limit=self.page_size)
+        active_keys = {(lease.request_id, lease.task_id) for lease in self._active.values()}
+        admitted = 0
+        for row in rows:
+            for task_id, task in row["value"]["tasks"].items():
+                if len(self._active) >= self.max_workers:
+                    # Revisit this page: unclaimed tasks must not be skipped.
+                    return admitted
+                if task["status"] == "done" or (row["key"], task_id) in active_keys:
+                    continue
+                lease = self.journal.claim(row["key"], task_id, lease_seconds=self.lease_seconds)
+                if lease is None:
+                    continue
+                try:
+                    future = self._pool.submit(self.handler, lease)
+                except BaseException:
+                    self.journal.finish(lease, retry=True, retry_delay=self.retry_delay)
+                    raise
+                self._active[future] = lease
+                admitted += 1
+        self._cursor = following or 0
+        return admitted
+
+    def run(self, stop: Event) -> None:
+        """Run until stopped, then drain work while maintaining its leases.
+
+        A supervisor must surface exceptions and arrange a restart. Running
+        synchronous handlers cannot be forcibly stopped by this dispatcher.
+        """
+        while not stop.is_set() or self._active:
+            self.run_once(admit=not stop.is_set())
+            if stop.is_set():
+                Event().wait(self.poll_interval)
+            else:
+                stop.wait(self.poll_interval)
+
+    def close(self) -> None:
+        """Close only after run has drained; never abandon active lease renewal."""
+        if self._active:
+            raise RuntimeError("work_dispatcher_not_drained")
+        if not self._closed:
+            self._closed = True
+            self._pool.shutdown(wait=True)

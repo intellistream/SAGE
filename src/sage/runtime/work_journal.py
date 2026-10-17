@@ -18,6 +18,10 @@ from typing import Any, Callable
 from sage.runtime.flownet.runtime.operator_runtime.stateful import StatefulProcessRuntime
 
 
+class StaleTaskLeaseError(ValueError):
+    """A worker no longer owns the task and may not acknowledge its result."""
+
+
 def _json_snapshot(value):
     return json.loads(json.dumps(value, allow_nan=False, sort_keys=True))
 
@@ -63,7 +67,7 @@ class WorkJournal:
                 return old
             return {"version": 1, "result": result, "tasks": {
                 key: {"payload": value, "status": "pending", "attempt": 0,
-                      "token": None, "lease_until": 0.0}
+                      "token": None, "lease_until": 0.0, "available_at": 0.0}
                 for key, value in tasks.items()
             }}
 
@@ -87,7 +91,7 @@ class WorkJournal:
             self._validate(record)
             task = record["tasks"][task_id]
             now = self._clock()
-            if task["status"] == "done" or (
+            if task.get("available_at", 0.0) > now or task["status"] == "done" or (
                 task["status"] == "running" and task["lease_until"] > now
             ):
                 return record
@@ -100,7 +104,9 @@ class WorkJournal:
         self._store.update(self._slot(request_id), apply)
         return claimed[0] if claimed else None
 
-    def finish(self, lease: TaskLease, *, retry: bool = False) -> None:
+    def finish(self, lease: TaskLease, *, retry: bool = False, retry_delay: float = 0.0) -> None:
+        if not math.isfinite(retry_delay) or retry_delay < 0:
+            raise ValueError("retry_delay_must_be_nonnegative_and_finite")
         if lease.namespace != self.namespace:
             raise ValueError("task_lease_namespace_mismatch")
         def apply(record):
@@ -108,8 +114,9 @@ class WorkJournal:
             task = record["tasks"][lease.task_id]
             if (task["status"] != "running" or task["token"] != lease.token
                     or task["lease_until"] <= self._clock()):
-                raise ValueError("stale_task_lease")
-            task.update(status="pending" if retry else "done", token=None, lease_until=0.0)
+                raise StaleTaskLeaseError("stale_task_lease")
+            task.update(status="pending" if retry else "done", token=None, lease_until=0.0,
+                        available_at=self._clock() + retry_delay if retry else 0.0)
             return record
 
         self._store.update(self._slot(lease.request_id), apply)
@@ -126,7 +133,7 @@ class WorkJournal:
             now = self._clock()
             if (task["status"] != "running" or task["token"] != lease.token
                     or task["lease_until"] <= now):
-                raise ValueError("stale_task_lease")
+                raise StaleTaskLeaseError("stale_task_lease")
             task["lease_until"] = now + lease_seconds
             return record
 
