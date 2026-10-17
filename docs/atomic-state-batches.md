@@ -40,3 +40,23 @@ the first SQL write, and process exit before/after commit followed by reopen.
 These are process-crash tests, not power-loss durability certification. Existing
 SQLite WAL/synchronous configuration is unchanged. Applications must explicitly
 adopt the batch API before claiming atomic destination-state/outbox commits.
+
+## Composing a work intent
+
+`WorkJournal.prepare_commit(request_id, result=..., tasks=...)` returns a fixed
+slot and pure transform with captured JSON inputs. It performs no write. Compose
+this transform with another replay-safe destination transform in `update_many`:
+
+```python
+intent = journal.prepare_commit("turn", result={"answer": "..."}, tasks={"post": {}})
+runtime.update_many([destination.slot, intent.slot], lambda values: {
+    destination.slot: destination.transform(values[destination.slot]),
+    intent.slot: intent.transform(values[intent.slot]),
+})
+```
+
+The destination and journal must use this same state store. Each owns its replay
+identity and conflict checks; the transaction supplies all-or-nothing commit.
+Preparing or evaluating a transform is not a persistence receipt. Worker startup
+belongs after commit. `WorkJournal.commit` delegates to the same prepared
+transform, so standalone and composed commits have identical journal semantics.

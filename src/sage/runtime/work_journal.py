@@ -12,8 +12,9 @@ import json
 import math
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from sage.runtime.flownet.runtime.operator_runtime.stateful import StatefulProcessRuntime
 
@@ -44,6 +45,19 @@ class TaskLease:
     payload: Any
 
 
+@dataclass(frozen=True)
+class PreparedWorkCommit:
+    """Pure journal mutation for composition in one state transaction.
+
+    Not a persisted record or a transaction by itself. Apply the transform to
+    this slot's value inside the journal's state store. Other destinations
+    must implement their own replay/conflict checks in the same transaction.
+    """
+
+    slot: tuple[str, str, str]
+    transform: Callable[[Any], Any]
+
+
 class WorkJournal:
     """One atomic record contains a committed result and its task intents."""
 
@@ -57,6 +71,17 @@ class WorkJournal:
         return ("sage-work-journal-v1", self.namespace, _name(request_id))
 
     def commit(self, request_id: str, *, result: Any, tasks: dict[str, Any]):
+        prepared = self.prepare_commit(request_id, result=result, tasks=tasks)
+        return self._store.update(prepared.slot, prepared.transform)
+
+    def prepare_commit(self, request_id: str, *, result: Any, tasks: dict[str, Any]) -> PreparedWorkCommit:
+        """Capture immutable JSON inputs without writing or starting work.
+
+        Compose with destination mutations using this store's update_many.
+        Never invoke a destination's own storage methods inside the callback.
+        A successful prepare is not a successful commit or delivery receipt.
+        """
+        slot = self._slot(request_id)
         result = _json_snapshot(result)
         tasks = {_name(key): _json_snapshot(value) for key, value in tasks.items()}
 
@@ -67,13 +92,13 @@ class WorkJournal:
                 if old["result"] != result or original != tasks:
                     raise ValueError("journal_commit_conflict")
                 return old
-            return {"version": 1, "result": result, "tasks": {
-                key: {"payload": value, "status": "pending", "attempt": 0,
+            return {"version": 1, "result": _json_snapshot(result), "tasks": {
+                key: {"payload": _json_snapshot(value), "status": "pending", "attempt": 0,
                       "token": None, "lease_until": 0.0, "available_at": 0.0}
                 for key, value in tasks.items()
             }}
 
-        return self._store.update(self._slot(request_id), apply)
+        return PreparedWorkCommit(slot, apply)
 
     @staticmethod
     def _validate(record):
