@@ -73,3 +73,24 @@ Applications must provide destination idempotency and revalidate authorization,
 and must not place bearer callback URLs or credentials in task payloads. This
 adapter alone does not make a transport durable: its admission, answer and
 delivery intents still need the appropriate atomic commit boundary.
+
+## Native task prerequisites
+
+`WorkJournal.prepare_commit/commit`, `WorkService.commit`, and
+`AsyncWorkService.commit` accept `dependencies={"deliver": ["answer"]}`. The
+graph is captured with task payloads and is part of immutable admission identity.
+Unknown tasks, duplicate prerequisites and cycles fail before writing. Independent
+tasks retain the existing record format; graphs use version 2 so older workers
+fail closed instead of ignoring ordering. Upgrade all consumers before producers.
+
+The dispatcher skips known-blocked tasks and `claim` atomically rechecks that all
+parents are done. Waiting for a prerequisite does not acquire a lease, increment
+attempts or enter failure backoff. Retried or expired parents remain unfinished;
+their children cannot run until a successful fenced completion. This is not a
+terminal-failure/cancellation propagation policy or cross-request dependency graph.
+
+For offline migration of independent records, stop old workers and call
+`upgrade_dependencies(request_id, graph)` before starting new consumers. It rejects
+live leases, changed graphs and already-completed children with unfinished parents.
+Existing valid results, attempts and payloads are retained. Replay admission must
+include the same graph. Do not run old and new writers concurrently during cutover.

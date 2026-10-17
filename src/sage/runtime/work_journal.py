@@ -12,6 +12,7 @@ import json
 import math
 import time
 import uuid
+from collections import deque
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -33,6 +34,39 @@ def _name(value: str) -> str:
     if not isinstance(value, str) or not value or value != value.strip():
         raise ValueError("journal_identifier_must_be_nonempty_and_trimmed")
     return value
+
+
+def _dependencies(tasks, dependencies):
+    if dependencies is None:
+        return {}
+    if not isinstance(dependencies, Mapping) or set(dependencies) - set(tasks):
+        raise ValueError("invalid_work_dependencies")
+    normalized = {}
+    followers = {key: [] for key in tasks}
+    degrees = {key: 0 for key in tasks}
+    for key, prerequisites in dependencies.items():
+        if not isinstance(prerequisites, (list, tuple)):
+            raise ValueError("invalid_work_dependencies")
+        names = [_name(name) for name in prerequisites]
+        if len(set(names)) != len(names) or set(names) - set(tasks):
+            raise ValueError("invalid_work_dependencies")
+        if names:
+            normalized[key] = sorted(names)
+        degrees[key] = len(names)
+        for prerequisite in names:
+            followers[prerequisite].append(key)
+    ready = deque(key for key, degree in degrees.items() if degree == 0)
+    count = 0
+    while ready:
+        key = ready.popleft()
+        count += 1
+        for child in followers[key]:
+            degrees[child] -= 1
+            if degrees[child] == 0:
+                ready.append(child)
+    if count != len(tasks):
+        raise ValueError("cyclic_work_dependencies")
+    return normalized
 
 
 @dataclass(frozen=True)
@@ -71,6 +105,7 @@ class WorkJournal:
         return ("sage-work-journal-v1", self.namespace, _name(request_id))
 
     def commit(self, request_id: str, *, result: Any, tasks: dict[str, Any],
+               dependencies=None,
                mutations: Mapping[tuple[str, str, str], Callable[[Any], Any]] | None = None):
         """Commit intent with optional pure destination mutations in this store.
 
@@ -79,7 +114,7 @@ class WorkJournal:
         destination cannot bypass the task protocol. This is not cross-store
         atomicity, and successful replay must not reapply non-idempotent effects.
         """
-        prepared = self.prepare_commit(request_id, result=result, tasks=tasks)
+        prepared = self.prepare_commit(request_id, result=result, tasks=tasks, dependencies=dependencies)
         return self._apply_with_destinations(prepared.slot, prepared.transform, mutations)
 
     def _apply_with_destinations(self, journal_slot, journal_transform, mutations):
@@ -103,7 +138,7 @@ class WorkJournal:
         )
         return committed[journal_slot]
 
-    def prepare_commit(self, request_id: str, *, result: Any, tasks: dict[str, Any]) -> PreparedWorkCommit:
+    def prepare_commit(self, request_id: str, *, result: Any, tasks: dict[str, Any], dependencies=None) -> PreparedWorkCommit:
         """Capture immutable JSON inputs without writing or starting work.
 
         Compose with destination mutations using this store's update_many.
@@ -113,15 +148,18 @@ class WorkJournal:
         slot = self._slot(request_id)
         result = _json_snapshot(result)
         tasks = {_name(key): _json_snapshot(value) for key, value in tasks.items()}
+        dependencies = _dependencies(tasks, dependencies)
 
         def apply(old):
             if old is not None:
                 self._validate(old)
                 original = {key: value["payload"] for key, value in old["tasks"].items()}
-                if old["result"] != result or original != tasks:
+                if old["result"] != result or original != tasks or old.get("dependencies", {}) != dependencies:
                     raise ValueError("journal_commit_conflict")
                 return old
-            return {"version": 1, "result": _json_snapshot(result), "tasks": {
+            return {"version": 2 if dependencies else 1,
+                    **({"dependencies": _json_snapshot(dependencies)} if dependencies else {}),
+                    "result": _json_snapshot(result), "tasks": {
                 key: {"payload": _json_snapshot(value), "status": "pending", "attempt": 0,
                       "token": None, "lease_until": 0.0, "available_at": 0.0}
                 for key, value in tasks.items()
@@ -133,8 +171,39 @@ class WorkJournal:
     def _validate(record):
         if record is None:
             raise KeyError("journal_request_not_found")
-        if record.get("version") != 1:
+        if record.get("version") not in {1, 2}:
             raise ValueError("unsupported_journal_version")
+        dependencies = record.get("dependencies", {})
+        if record["version"] == 1 and dependencies:
+            raise ValueError("dependencies_require_journal_v2")
+        if _dependencies(record["tasks"], dependencies) != dependencies:
+            raise ValueError("invalid_work_dependencies")
+
+    def upgrade_dependencies(self, request_id, dependencies):
+        """Explicit offline upgrade of independent tasks; never change a graph.
+
+        Stop old workers first. Live leases and inconsistent completed children
+        reject the upgrade. V2 records fail closed in dependency-unaware workers.
+        """
+        def upgrade(record):
+            self._validate(record)
+            graph = _dependencies(record["tasks"], dependencies)
+            previous = record.get("dependencies", {})
+            if previous == graph:
+                return record
+            if previous:
+                raise ValueError("work_dependency_graph_immutable")
+            now = self._clock()
+            if any(task["status"] == "running" and task["lease_until"] > now
+                   for task in record["tasks"].values()):
+                raise ValueError("cannot_upgrade_dependencies_with_live_leases")
+            if any(record["tasks"][child]["status"] == "done" and any(
+                    record["tasks"][parent]["status"] != "done" for parent in parents)
+                   for child, parents in graph.items()):
+                raise ValueError("completed_work_has_unfinished_dependencies")
+            record.update(version=2, dependencies=graph)
+            return record
+        return self._store.update(self._slot(request_id), upgrade)
 
     def claim(self, request_id: str, task_id: str, *, lease_seconds: float) -> TaskLease | None:
         _name(task_id)
@@ -146,6 +215,9 @@ class WorkJournal:
         def apply(record):
             self._validate(record)
             task = record["tasks"][task_id]
+            if any(record["tasks"][parent]["status"] != "done"
+                   for parent in record.get("dependencies", {}).get(task_id, [])):
+                return record
             now = self._clock()
             if task.get("available_at", 0.0) > now or task["status"] == "done" or (
                 task["status"] == "running" and task["lease_until"] > now
