@@ -51,6 +51,9 @@ class StatefulStateHandle:
 
 
 class _StateBackend:
+    def scan_stage(self, *, stage_id, namespace, after_key, limit):  # pragma: no cover
+        raise NotImplementedError
+
     def update(self, slot, transform):
         return self.update_many((slot,), lambda entries: {slot: transform(entries[slot])})[slot]
 
@@ -85,6 +88,18 @@ class _StateBackend:
 class _MemoryStateBackend(_StateBackend):
     def __init__(self) -> None:
         self._state: dict[tuple[str, str, str], _StateEntry] = {}
+
+    def scan_stage(self, *, stage_id, namespace, after_key, limit):
+        keys = sorted(key for stage, ns, key in self._state
+                      if stage == stage_id and ns == namespace
+                      and (after_key is None or key > after_key))
+        page = keys[:limit]
+        rows = []
+        for key in page:
+            entry = self._state[(stage_id, namespace, key)]
+            rows.append({"stage_id": stage_id, "namespace": namespace, "key": key,
+                         "updated_at_ms": int(entry.updated_at * 1000), "value": entry.value})
+        return rows, page[-1] if len(keys) > limit else None
 
     def update_many(self, slots, transform):
         entries = transform(copy.deepcopy({slot: self._state.get(slot) for slot in slots}))
@@ -139,6 +154,20 @@ class _MemoryStateBackend(_StateBackend):
 
 
 class _SQLiteStateBackend(_StateBackend):
+    def scan_stage(self, *, stage_id, namespace, after_key, limit):
+        predicate = " AND entry_key > ?" if after_key is not None else ""
+        params = (stage_id, namespace) + ((after_key,) if after_key is not None else ())
+        rows = self._conn.execute(
+            "SELECT entry_key, updated_at, value_blob FROM state_entries "
+            "WHERE stage_id = ? AND namespace = ?" + predicate +
+            " ORDER BY entry_key LIMIT ?", (*params, limit + 1),
+        ).fetchall()
+        page = rows[:limit]
+        result = [{"stage_id": stage_id, "namespace": namespace, "key": key,
+                   "updated_at_ms": int(updated_at * 1000), "value": pickle.loads(blob)}
+                  for key, updated_at, blob in page]
+        return result, page[-1][0] if len(rows) > limit else None
+
     def __init__(self, *, sqlite_path: str) -> None:
         normalized_path = str(sqlite_path or "").strip()
         if not normalized_path:
@@ -483,6 +512,25 @@ class StatefulProcessRuntime:
             result = self._backend.update_many(normalized, apply)
             return {slot: (StateMutation.DELETE if entry is None else copy.deepcopy(entry.value))
                     for slot, entry in result.items()}
+
+    def scan_stage_entries(self, *, stage_id: str, namespace: str,
+                           after_key: str | None = None, limit: int = 100):
+        """Read a detached keyset page for exactly one stage and namespace.
+
+        Deletion of earlier keys cannot skip later records. This is not a
+        snapshot: insertions at/before the cursor require a new sweep. SQLite
+        uses the primary key range, without deserializing unrelated stages.
+        A returned None cursor ends this sweep; restart with after_key=None.
+        """
+        stage_id, namespace, _ = _normalize_state_slot((stage_id, namespace, "scan"))
+        if type(limit) is not int or limit <= 0:
+            raise ValueError("scan_limit_must_be_positive_integer")
+        if after_key is not None and not isinstance(after_key, str):
+            raise ValueError("scan_cursor_must_be_string_or_none")
+        with self._lock:
+            return copy.deepcopy(self._backend.scan_stage(
+                stage_id=stage_id, namespace=namespace, after_key=after_key, limit=limit,
+            ))
 
     def query_namespace_entries(
         self,
