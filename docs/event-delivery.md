@@ -119,3 +119,31 @@ not a downgrade over version-3 data. Terminal failure is durable across restart;
 there is no automatic requeue or deletion. It does not undo prior external effects
 and does not provide exactly-once delivery. Retention, administrative remediation
 and application-specific failure notices remain separate responsibilities.
+
+## Durable finalizers
+
+Admission accepts `settled=["finalize"]` together with, for example,
+`dependencies={"deliver": ["answer"], "finalize": ["answer", "deliver"]}`.
+Ordinary dependency edges still require success. A named settled task instead
+waits for every parent to be `done`, `failed`, or `blocked`; pending retries and
+running leases are not terminal. Both dispatcher selection and atomic claim use
+the same readiness predicate. A failure does not block the settled task itself.
+Its handler inspects parent outcomes and can publish a failure notice or do
+nothing on success. The finalizer uses the same leases, retry policy, recovery
+and destination-idempotency requirements as every other task, not a callback.
+
+Finalizer completion does not erase parent failures. `wait` still raises on a
+terminal parent failure and does not promise that finalizers have finished;
+consumers inspect task state for their receipts. A stopped service can leave
+pending finalizers for its successor, like any other admitted task. A finalizer
+that fails terminally remains failed and is not recursively regenerated.
+
+These admissions use version 4, failing closed on older readers. To add a
+finalizer to an existing record, stop old consumers and use
+`extend_tasks(request_id, tasks=..., dependencies=..., settled=...)` before
+starting the upgraded consumer. The extension is atomic and additive: existing
+payloads, edges, results, attempts and terminal states cannot be rewritten.
+Identical replay is safe; changed payloads/edges and active leases reject edits.
+This migration does not requeue failed work or imply delivery has occurred.
+Subsequent admission replay must include the extended task graph and settled set.
+Back up code and state consistently before upgrading; rollback must restore both.

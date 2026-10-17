@@ -123,8 +123,7 @@ class WorkDispatcher:
                     return admitted
                 if task["status"] in {"done", "failed", "blocked"} or (row["key"], task_id) in active_keys:
                     continue
-                if any(row["value"]["tasks"][parent]["status"] != "done"
-                       for parent in row["value"].get("dependencies", {}).get(task_id, [])):
+                if not self.journal.dependencies_ready(row["value"], task_id):
                     continue  # claim() rechecks atomically; avoid writes for known blocked work.
                 if self.accept_task is not None:
                     # Selection precedes lease acquisition. A worker must not

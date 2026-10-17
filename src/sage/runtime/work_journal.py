@@ -70,6 +70,17 @@ def _dependencies(tasks, dependencies):
     return normalized
 
 
+def _settled_dependencies(dependencies, settled):
+    if settled is None:
+        return []
+    if not isinstance(settled, (list, tuple)):
+        raise ValueError("invalid_settled_dependencies")
+    names = [_name(name) for name in settled]
+    if len(set(names)) != len(names) or set(names) - set(dependencies):
+        raise ValueError("invalid_settled_dependencies")
+    return sorted(names)
+
+
 @dataclass(frozen=True)
 class TaskLease:
     namespace: str
@@ -106,7 +117,7 @@ class WorkJournal:
         return ("sage-work-journal-v1", self.namespace, _name(request_id))
 
     def commit(self, request_id: str, *, result: Any, tasks: dict[str, Any],
-               dependencies=None,
+               dependencies=None, settled=None,
                mutations: Mapping[tuple[str, str, str], Callable[[Any], Any]] | None = None):
         """Commit intent with optional pure destination mutations in this store.
 
@@ -115,7 +126,8 @@ class WorkJournal:
         destination cannot bypass the task protocol. This is not cross-store
         atomicity, and successful replay must not reapply non-idempotent effects.
         """
-        prepared = self.prepare_commit(request_id, result=result, tasks=tasks, dependencies=dependencies)
+        prepared = self.prepare_commit(request_id, result=result, tasks=tasks, dependencies=dependencies,
+                                       settled=settled)
         return self._apply_with_destinations(prepared.slot, prepared.transform, mutations)
 
     def _apply_with_destinations(self, journal_slot, journal_transform, mutations):
@@ -139,7 +151,8 @@ class WorkJournal:
         )
         return committed[journal_slot]
 
-    def prepare_commit(self, request_id: str, *, result: Any, tasks: dict[str, Any], dependencies=None) -> PreparedWorkCommit:
+    def prepare_commit(self, request_id: str, *, result: Any, tasks: dict[str, Any], dependencies=None,
+                       settled=None) -> PreparedWorkCommit:
         """Capture immutable JSON inputs without writing or starting work.
 
         Compose with destination mutations using this store's update_many.
@@ -150,15 +163,18 @@ class WorkJournal:
         result = _json_snapshot(result)
         tasks = {_name(key): _json_snapshot(value) for key, value in tasks.items()}
         dependencies = _dependencies(tasks, dependencies)
+        settled = _settled_dependencies(dependencies, settled)
 
         def apply(old):
             if old is not None:
                 self._validate(old)
                 original = {key: value["payload"] for key, value in old["tasks"].items()}
-                if old["result"] != result or original != tasks or old.get("dependencies", {}) != dependencies:
+                if (old["result"] != result or original != tasks
+                        or old.get("dependencies", {}) != dependencies or old.get("settled", []) != settled):
                     raise ValueError("journal_commit_conflict")
                 return old
-            return {"version": 2 if dependencies else 1,
+            return {"version": 4 if settled else 2 if dependencies else 1,
+                    **({"settled": list(settled)} if settled else {}),
                     **({"dependencies": _json_snapshot(dependencies)} if dependencies else {}),
                     "result": _json_snapshot(result), "tasks": {
                 key: {"payload": _json_snapshot(value), "status": "pending", "attempt": 0,
@@ -172,13 +188,25 @@ class WorkJournal:
     def _validate(record):
         if record is None:
             raise KeyError("journal_request_not_found")
-        if record.get("version") not in {1, 2, 3}:
+        if record.get("version") not in {1, 2, 3, 4}:
             raise ValueError("unsupported_journal_version")
         dependencies = record.get("dependencies", {})
         if record["version"] == 1 and dependencies:
             raise ValueError("dependencies_require_journal_v2")
         if _dependencies(record["tasks"], dependencies) != dependencies:
             raise ValueError("invalid_work_dependencies")
+        settled = record.get("settled", [])
+        if settled and record["version"] < 4:
+            raise ValueError("settled_dependencies_require_journal_v4")
+        if _settled_dependencies(dependencies, settled) != settled:
+            raise ValueError("invalid_settled_dependencies")
+
+    @staticmethod
+    def dependencies_ready(record, task_id):
+        """Readiness snapshot only; claim rechecks within its transaction."""
+        accepted = {"done", "failed", "blocked"} if task_id in record.get("settled", []) else {"done"}
+        return all(record["tasks"][parent]["status"] in accepted
+                   for parent in record.get("dependencies", {}).get(task_id, []))
 
     def upgrade_dependencies(self, request_id, dependencies):
         """Explicit offline upgrade of independent tasks; never change a graph.
@@ -206,6 +234,56 @@ class WorkJournal:
             return record
         return self._store.update(self._slot(request_id), upgrade)
 
+    def extend_tasks(self, request_id, *, tasks, dependencies=None, settled=None):
+        """Offline additive migration; preserve existing payloads and graph edges.
+
+        Stop old workers first. Replaying the same extension is idempotent;
+        live leases reject changes. This never requeues terminal tasks.
+        """
+        tasks = {_name(key): _json_snapshot(value) for key, value in tasks.items()}
+        edges = _json_snapshot({} if dependencies is None else dependencies)
+        settled = list(settled) if isinstance(settled, tuple) else settled
+        if not isinstance(edges, dict) or set(edges) - set(tasks):
+            raise ValueError("extension_dependencies_must_belong_to_extended_tasks")
+        settled = _settled_dependencies(edges, settled)
+
+        def apply(record):
+            self._validate(record)
+            graph = record.get("dependencies", {})
+            current_settled = record.get("settled", [])
+            combined_graph = _dependencies({**record["tasks"], **tasks}, {**graph, **edges})
+            combined_settled = _settled_dependencies(combined_graph, sorted(set(current_settled + settled)))
+            for key, payload in tasks.items():
+                if key in record["tasks"]:
+                    if (record["tasks"][key]["payload"] != payload
+                            or graph.get(key, []) != sorted(edges.get(key, []))
+                            or (key in current_settled) != (key in settled)):
+                        raise ValueError("work_extension_conflict")
+            additions = set(tasks) - set(record["tasks"])
+            if not additions:
+                return record
+            now = self._clock()
+            if any(task["status"] == "running" and task["lease_until"] > now
+                   for task in record["tasks"].values()):
+                raise ValueError("cannot_extend_work_with_live_leases")
+            for key in additions:
+                record["tasks"][key] = {"payload": _json_snapshot(tasks[key]), "status": "pending",
+                                        "attempt": 0, "token": None, "lease_until": 0.0, "available_at": 0.0}
+            record.update(dependencies=combined_graph, settled=combined_settled,
+                          version=max(record["version"], 4 if combined_settled else 2))
+            changed = True
+            while changed:
+                changed = False
+                for child, parents in combined_graph.items():
+                    task = record["tasks"][child]
+                    if (child not in combined_settled and task["status"] == "pending" and any(
+                            record["tasks"][parent]["status"] in {"failed", "blocked"} for parent in parents)):
+                        task.update(status="blocked", failure_code="dependency_failed")
+                        record["version"] = max(record["version"], 3)
+                        changed = True
+            return record
+        return self._store.update(self._slot(request_id), apply)
+
     def claim(self, request_id: str, task_id: str, *, lease_seconds: float) -> TaskLease | None:
         _name(task_id)
         if not math.isfinite(lease_seconds) or lease_seconds <= 0:
@@ -216,8 +294,7 @@ class WorkJournal:
         def apply(record):
             self._validate(record)
             task = record["tasks"][task_id]
-            if any(record["tasks"][parent]["status"] != "done"
-                   for parent in record.get("dependencies", {}).get(task_id, [])):
+            if not self.dependencies_ready(record, task_id):
                 return record
             now = self._clock()
             if task.get("available_at", 0.0) > now or task["status"] in {"done", "failed", "blocked"} or (
@@ -294,7 +371,7 @@ class WorkJournal:
             if (task["status"] != "running" or task["token"] != lease.token
                     or task["lease_until"] <= now):
                 raise StaleTaskLeaseError("stale_task_lease")
-            record["version"] = 3
+            record["version"] = max(3, record["version"])
             task.update(status="failed" if retry_delay is None else "pending",
                         failure_code=code, token=None, lease_until=0.0,
                         available_at=0.0 if retry_delay is None else now + retry_delay)
@@ -303,6 +380,8 @@ class WorkJournal:
                 while changed:
                     changed = False
                     for child, parents in record.get("dependencies", {}).items():
+                        if child in record.get("settled", []):
+                            continue
                         dependent = record["tasks"][child]
                         if dependent["status"] == "pending" and any(
                             record["tasks"][parent]["status"] in {"failed", "blocked"}

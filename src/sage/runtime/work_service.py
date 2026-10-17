@@ -101,7 +101,7 @@ class WorkService:
             callback()
         self._closed = True
 
-    def commit(self, request_id, *, result, tasks, mutations=None, dependencies=None):
+    def commit(self, request_id, *, result, tasks, mutations=None, dependencies=None, settled=None):
         """Admit one atomic journal/destination commit before starting dispatch.
 
         The admission lock also serializes shutdown against the transaction.
@@ -112,7 +112,7 @@ class WorkService:
         with self._lock:
             self._check_available()
             committed = self.journal.commit(request_id, result=result, tasks=tasks,
-                                            mutations=mutations, dependencies=dependencies)
+                                            mutations=mutations, dependencies=dependencies, settled=settled)
             self.start()
             return committed
 

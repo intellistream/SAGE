@@ -74,9 +74,10 @@ class AsyncWorkService:
         await self._offload(self._service.start)
         return self
 
-    async def commit(self, request_id, *, result, tasks, mutations=None, dependencies=None):
+    async def commit(self, request_id, *, result, tasks, mutations=None, dependencies=None, settled=None):
         return await self._offload(self._service.commit, request_id,
-                                   result=result, tasks=tasks, mutations=mutations, dependencies=dependencies)
+                                   result=result, tasks=tasks, mutations=mutations, dependencies=dependencies,
+                                   settled=settled)
 
     async def wait(self, request_id, *, timeout):
         self._check_observer()
