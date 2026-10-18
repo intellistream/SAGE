@@ -36,6 +36,68 @@ class OperationReceipts:
         self._store = store
         self.namespace = _name(namespace)
 
+    def migrate_destinations(self, operation_id, *, migration_id, old_slots, new_slots, evidence):
+        """Explicit schema migration, never execution or reconstruction of effects.
+
+        Preserve the original receipt in an atomic audit record and change only
+        its destination declaration. New destinations must be a strict superset;
+        no destination state is initialized, rewritten or treated as delivered.
+        The caller must authorize migration and interpret historical external
+        outcomes separately. Run as an operator migration, not a replay fallback.
+        """
+        operation_id = _name(operation_id)
+        migration_id = _name(migration_id)
+        receipt_slot = ("sage-operation-receipts-v1", self.namespace, operation_id)
+        audit_slot = ("sage-operation-migrations-v1", self.namespace,
+                      _json([migration_id, operation_id]))
+
+        def destinations(slots):
+            slots = tuple(slots)
+            if not slots or any(not isinstance(slot, tuple) or len(slot) != 3
+                                or any(not isinstance(part, str) or not part or part != part.strip()
+                                       for part in slot) for slot in slots):
+                raise ValueError("operation_requires_explicit_state_slots")
+            if len(set(slots)) != len(slots) or any(slot[0] in {
+                    "sage-operation-receipts-v1", "sage-operation-migrations-v1"} for slot in slots):
+                raise ValueError("operation_slots_duplicate_or_reserved")
+            return [list(slot) for slot in sorted(slots)]
+
+        old = destinations(old_slots)
+        new = destinations(new_slots)
+        if not {tuple(slot) for slot in old} < {tuple(slot) for slot in new}:
+            raise ValueError("migration_requires_strict_destination_extension")
+        evidence = json.loads(_json(evidence))
+        if not isinstance(evidence, dict) or not evidence:
+            raise ValueError("migration_requires_explicit_evidence")
+
+        def apply(values):
+            receipt, audit = values[receipt_slot], values[audit_slot]
+            if (not isinstance(receipt, dict) or receipt.get("version") != 1
+                    or set(receipt) != {"version", "input_digest", "destinations", "result"}):
+                raise ValueError("migration_requires_existing_valid_receipt")
+            if audit is not None:
+                if (not isinstance(audit, dict) or audit.get("version") != 1
+                        or audit.get("migration_id") != migration_id
+                        or not isinstance(audit.get("original_receipt"), dict)
+                        or audit.get("new_destinations") != new
+                        or audit.get("evidence") != evidence
+                        or audit.get("original_receipt", {}).get("destinations") != old
+                        or receipt != {**audit["original_receipt"], "destinations": new}):
+                    raise OperationConflict("operation_migration_conflict")
+                raise _Replay(json.loads(_json(audit)))
+            if receipt["destinations"] != old:
+                raise OperationConflict("operation_migration_source_conflict")
+            audit = {"version": 1, "migration_id": migration_id,
+                     "original_receipt": json.loads(_json(receipt)),
+                     "new_destinations": new, "evidence": evidence}
+            return {receipt_slot: {**receipt, "destinations": new}, audit_slot: audit}
+
+        try:
+            saved = self._store.update_many((receipt_slot, audit_slot), apply)
+        except _Replay as replay:
+            return replay.result
+        return saved[audit_slot]
+
     def commit(self, operation_id, *, inputs, slots, transition, guard=None):
         """Commit destination replacements and immutable result in one transaction.
 

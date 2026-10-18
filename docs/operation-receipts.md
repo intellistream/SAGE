@@ -47,3 +47,22 @@ input/destination rejection, same-store/cancelled guards, failed SQLite writes,
 lost acknowledgements, process death before and after commit, and atomic outbox
 capacity admission. Application wiring and production migration require their own
 end-to-end tests; the primitive alone does not repair existing callers.
+
+## Explicit destination-schema migration
+
+`migrate_destinations(operation_id, migration_id=..., old_slots=..., new_slots=...,
+evidence=...)` is an operator-authorized migration, not an automatic replay fallback.
+It requires an existing receipt and a strict destination superset. In one state
+transaction it preserves the complete original receipt in a migration audit and
+changes only the receipt's declared destinations. Input digest and canonical
+result are unchanged; no destination is initialized and no historical task is
+admitted. Historical effects on newly declared destinations remain unproven.
+
+The nonempty JSON evidence must explain the application migration policy, including
+unknown external delivery outcomes. A repeated identical migration returns its
+audit without rewriting state; changed evidence, source schema or target schema
+fails closed. An absent receipt cannot be fabricated. A new producer can continue
+to use the strict commit contract after migration, while old operations replay
+their original result without rerunning effects. Do not use this to claim that
+historical external effects were atomic or delivered. Migration auditing is
+persistent and subject to the same authorization and retention as receipts.
