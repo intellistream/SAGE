@@ -15,6 +15,14 @@ namespace, native source namespace/request/task, destination/content and order.
 They remain stable across source retries but do not collapse identical legitimate
 requests or different delivery namespaces.
 
+The caller must durably capture the already formatted destination/payload inputs
+before their source step is acknowledged, for example as that step's immutable
+result. Reconstruct the same plan from those captured inputs on recovery, not
+by regenerating an answer or silently reformatting a partially delivered one.
+Receipt metadata is not a replacement for that durable canonical input. Changing
+formatters while unfinished old plans exist requires an explicit drain/migration
+decision; plan conflicts must not reset confirmed receipts.
+
 Only plan/part digests, ordered accepted receipts and preparation/source-attempt
 counts are persisted. Original payloads, source lease tokens and exception text
 are not copied into receipt storage. Source lease validation and receipt state
@@ -49,3 +57,9 @@ expiry, same-attempt concurrency, authorization revocation, receipt rollback and
 lost acknowledgement, cancellation during a live SQLite write, and real child
 process death after external acceptance but before local acknowledgement. These
 prove a platform primitive, not a particular Slack renderer or live deployment.
+
+Runtime `bc3879e2` passed 216 related source tests (17.98 seconds) and 216
+independent installed-package tests (44.39 seconds), including 14 new delivery
+cases. The installed module was loaded from site-packages without PYTHONPATH or
+a source overlay. These results do not certify a Markdown boundary planner,
+application adoption, payload-format compatibility or actual Slack rendering.
