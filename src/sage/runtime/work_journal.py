@@ -211,6 +211,19 @@ class WorkJournal:
         """
         if type(max_active_requests) is not int or max_active_requests <= 0:
             raise ValueError("work_capacity_must_be_positive_integer")
+        self._change_capacity_offline(max_active_requests)
+
+    def disable_capacity(self):
+        """Offline rollback to indexed v5; stop ALL writers before calling.
+
+        Retains every canonical result, task, lease/failure record and active
+        index. Removes only the capacity policy, atomically with v6->v5 record
+        conversion. Never start old binaries before this transaction succeeds.
+        Repeated calls are idempotent. Live leases refuse this operation.
+        """
+        self._change_capacity_offline(None)
+
+    def _change_capacity_offline(self, max_active_requests):
         slots = []
         cursor = None
         while True:
@@ -225,6 +238,8 @@ class WorkJournal:
         def configure(values):
             active = []
             result = {}
+            if values[policy_slot] is not None:
+                _validate_capacity(values[policy_slot])
             for slot in slots:
                 record = values[slot]
                 self._validate(record)
@@ -234,11 +249,17 @@ class WorkJournal:
                 if any(task["status"] in {"pending", "running"}
                        for task in record["tasks"].values()):
                     active.append(slot[2])
-                result[slot] = {**record, "version": 6}
-            if len(active) > max_active_requests:
+                if max_active_requests is None:
+                    if record["version"] == 6 and values[policy_slot] is None:
+                        raise ValueError("work_capacity_state_missing")
+                    result[slot] = {**record, "version": min(record["version"], 5)}
+                else:
+                    result[slot] = {**record, "version": 6}
+            if max_active_requests is not None and len(active) > max_active_requests:
                 raise WorkCapacityError("work_capacity_below_existing_backlog")
-            result[policy_slot] = {"version": 1, "limit": max_active_requests,
-                                   "active": sorted(active)}
+            result[policy_slot] = (StateMutation.DELETE if max_active_requests is None else
+                                  {"version": 1, "limit": max_active_requests,
+                                   "active": sorted(active)})
             return result
 
         self._store.update_many((*slots, policy_slot), configure)

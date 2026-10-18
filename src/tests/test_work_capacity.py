@@ -157,3 +157,54 @@ def test_missing_capacity_metadata_fails_closed():
         journal.claim("a", "task", lease_seconds=30)
     assert journal.read("a")["tasks"]["task"]["status"] == "pending"
     state.close()
+
+
+def test_offline_disable_preserves_history_pending_work_and_reenable(tmp_path):
+    path = str(tmp_path / "state.db")
+    state = StatefulProcessRuntime(backend="sqlite", sqlite_path=path)
+    journal = WorkJournal(state, namespace="test")
+    journal.configure_capacity(max_active_requests=2)
+    journal.commit("done", result={"answer": "full original"}, tasks={"task": {"body": "full"}})
+    journal.finish(journal.claim("done", "task", lease_seconds=30), result="side effect receipt")
+    journal.commit("pending", result="canonical", tasks={"task": {"body": "not executed"}})
+    before = {key: journal.read(key) for key in ("done", "pending")}
+    journal.disable_capacity()
+    journal.disable_capacity()
+    assert state.peek(("sage-work-capacity-v1", "test", "policy")) is None
+    for key, record in before.items():
+        assert journal.read(key) == {**record, "version": 5}
+    state.close()
+    state = StatefulProcessRuntime(backend="sqlite", sqlite_path=path)
+    try:
+        journal = WorkJournal(state, namespace="test")
+        assert [row["key"] for row in journal.active_records()[0]] == ["pending"]
+        journal.configure_capacity(max_active_requests=1)
+        with pytest.raises(WorkCapacityError):
+            journal.commit("overflow", result=None, tasks={"task": {}})
+        journal.finish(journal.claim("pending", "task", lease_seconds=30))
+        assert journal.read("done")["result"] == {"answer": "full original"}
+    finally:
+        state.close()
+
+
+def test_disable_rejects_live_lease_and_rolls_back_storage_failure(tmp_path, monkeypatch):
+    state = StatefulProcessRuntime(backend="sqlite", sqlite_path=str(tmp_path / "state.db"))
+    journal = WorkJournal(state, namespace="test")
+    journal.configure_capacity(max_active_requests=1)
+    journal.commit("a", result="answer", tasks={"task": {}})
+    lease = journal.claim("a", "task", lease_seconds=30)
+    with pytest.raises(ValueError, match="live_leases"):
+        journal.disable_capacity()
+    journal.finish(lease)
+    before = journal.read("a")
+    original = state._backend._put_uncommitted
+    def fail(slot, entry):
+        original(slot, entry)
+        raise OSError("injected after write")
+    with monkeypatch.context() as patch:
+        patch.setattr(state._backend, "_put_uncommitted", fail)
+        with pytest.raises(OSError, match="injected"):
+            journal.disable_capacity()
+    assert journal.read("a") == before
+    assert state.peek(("sage-work-capacity-v1", "test", "policy"))["limit"] == 1
+    state.close()
