@@ -71,3 +71,11 @@ independent installed-package tests (44.39 seconds), including 14 new delivery
 cases. The installed module was loaded from site-packages without PYTHONPATH or
 a source overlay. These results do not certify a Markdown boundary planner,
 application adoption, payload-format compatibility or actual Slack rendering.
+
+Captured-plan revision `e627245f` passed 226 related source tests (19.16 seconds)
+and 226 independently installed-package tests (45.27 seconds). The installed
+module and VCS provenance were verified from site-packages without PYTHONPATH.
+The delivery group now has 24 cases, including detached JSON round-trip,
+corrupt/unknown-schema rejection and actual SQLite reopen from an upstream
+committed result after partial delivery. These still do not certify a Markdown
+planner, Twin integration or live transport display.
