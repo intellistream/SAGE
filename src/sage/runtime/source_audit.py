@@ -26,6 +26,8 @@ Return ONLY JSON: {"digest": input digest, "units": [{"id": unit id,
 "verdict": "supported|unsupported|nonfactual", "evidence": [
 {"source_id": source id, "quote": exact verbatim source substring}]}]}.
 Include each unit exactly once. Unsupported/nonfactual units have empty evidence.
+Use exactly the keys shown. Do not echo unit text or add explanations, reasons,
+confidence, Markdown fences or any other fields.
 """
 
 
