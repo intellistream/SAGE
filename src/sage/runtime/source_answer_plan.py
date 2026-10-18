@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
+from typing import Literal
 from urllib.parse import quote, urlsplit
 
 from sage.runtime.source_audit import AnswerValidationRejected
@@ -151,25 +152,47 @@ def validate_source_plan(request: SourcePlanRequest, response: str) -> SourceAns
     return SourceAnswerPlan(request.digest, tuple(ids), tuple(inferences))
 
 
-def render_source_plan(request: SourcePlanRequest, plan: SourceAnswerPlan) -> str:
+@dataclass(frozen=True)
+class SourceAnswerBlock:
+    """Lossless presentation part with provenance supplied only by the runtime.
+
+    Consumers join markdown with two newlines (and strip the assembled result)
+    for the canonical answer. Only source parts carry a relative-link base;
+    suggestions must never inherit a preceding source's authority or URL.
+    """
+
+    kind: Literal["notice", "source", "source_link", "inference"]
+    markdown: str
+    source_id: str | None = None
+    source_url: str | None = None
+
+
+def render_source_plan_blocks(
+    request: SourcePlanRequest, plan: SourceAnswerPlan,
+) -> tuple[SourceAnswerBlock, ...]:
     # Revalidate even manually constructed plans; receipts are not trusted flags.
     validate_source_plan(request, json.dumps({
         "digest": plan.digest, "source_ids": plan.source_ids, "inferences": plan.inferences,
     }))
     if not plan.source_ids:
-        return "当前检索到的来源不足以回答这个问题；不能据此推断相关事实不存在。"
+        return (SourceAnswerBlock("notice", "当前检索到的来源不足以回答这个问题；不能据此推断相关事实不存在。"),)
     sources = {source.source_id: source for source in request.sources}
-    parts = ["以下是与问题相关的来源原文，保留完整内容与限定条件；不将来源未提及的情况推断为不存在。"]
+    parts = [SourceAnswerBlock("notice", "以下是与问题相关的来源原文，保留完整内容与限定条件；不将来源未提及的情况推断为不存在。")]
     for index, source_id in enumerate(plan.source_ids, 1):
         source = sources[source_id]
         # Do not interpolate model-generated headings or rewrite Markdown/URLs.
-        parts.append(f"## 来源原文 {index}\n\n{source.content}")
+        parts.append(SourceAnswerBlock("source", f"## 来源原文 {index}\n\n{source.content}",
+                                       source_id, source.url or None))
         if source.url:
             target = quote(source.url, safe=":/?#[]@!$&'*+,;=%~_-")
-            parts.append(f"[完整来源]({target})")
+            parts.append(SourceAnswerBlock("source_link", f"[完整来源]({target})", source_id))
     if plan.inferences:
         # Quote every line, so model Markdown cannot create an unlabelled factual section.
-        parts.append("## 推论／建议（非来源事实）\n\n" + "\n\n".join(
+        parts.append(SourceAnswerBlock("inference", "## 推论／建议（非来源事实）\n\n" + "\n\n".join(
             "\n".join("> " + line for line in item.splitlines()) for item in plan.inferences
-        ))
-    return "\n\n".join(parts).strip()
+        )))
+    return tuple(parts)
+
+
+def render_source_plan(request: SourcePlanRequest, plan: SourceAnswerPlan) -> str:
+    return "\n\n".join(block.markdown for block in render_source_plan_blocks(request, plan)).strip()

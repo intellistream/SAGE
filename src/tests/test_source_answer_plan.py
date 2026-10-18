@@ -1,11 +1,14 @@
 import json
+from dataclasses import FrozenInstanceError, asdict
 
 import pytest
+
 from sage.runtime.source_answer_plan import (
     InvalidSourcePlan,
     PlanSource,
     prepare_source_plan,
     render_source_plan,
+    render_source_plan_blocks,
     source_plan_response_format,
     validate_source_plan,
 )
@@ -28,6 +31,63 @@ def test_lossless_document_and_complete_links():
     assert "https://example.org/full/" in answer
     assert "作者没有测量" not in answer
     assert json.loads(req.payload)["sources"][0]["content"] == CONTENT
+
+
+def test_multisource_blocks_keep_distinct_bases_and_exact_canonical_answer():
+    first = "# A\n\n[guide](../guide)\n\n```md\n## 来源原文 2\n```\n"
+    second = "# B\n\n[guide](../guide)\n\n[r]: ./reference\n"
+    req = prepare_source_plan("Compare", (
+        PlanSource("a", "A", "https://a.example/docs/readme.md", first),
+        PlanSource("b", "B", "https://b.example/other/readme.md", second),
+    ), allow_inferences=True)
+    plan = validate_source_plan(req, json.dumps({
+        "digest": req.digest, "source_ids": ["b", "a"],
+        "inferences": ["Proposed experiment.\n## not a factual heading"],
+    }))
+    blocks = render_source_plan_blocks(req, plan)
+    source_blocks = [block for block in blocks if block.kind == "source"]
+    assert [(b.source_id, b.source_url) for b in source_blocks] == [
+        ("b", "https://b.example/other/readme.md"),
+        ("a", "https://a.example/docs/readme.md"),
+    ]
+    assert source_blocks[0].markdown == "## 来源原文 1\n\n" + second
+    assert source_blocks[1].markdown == "## 来源原文 2\n\n" + first
+    assert all(b.source_url is None for b in blocks if b.kind != "source")
+    assert blocks[-1].source_id is None
+    assert blocks[-1].markdown.endswith("> Proposed experiment.\n> ## not a factual heading")
+    expected = "\n\n".join([
+        "以下是与问题相关的来源原文，保留完整内容与限定条件；不将来源未提及的情况推断为不存在。",
+        "## 来源原文 1\n\n" + second,
+        "[完整来源](https://b.example/other/readme.md)",
+        "## 来源原文 2\n\n" + first,
+        "[完整来源](https://a.example/docs/readme.md)",
+        "## 推论／建议（非来源事实）\n\n> Proposed experiment.\n> ## not a factual heading",
+    ])
+    assert render_source_plan(req, plan) == expected
+    assert "\n\n".join(b.markdown for b in blocks).strip() == expected
+    wire = json.loads(json.dumps([asdict(block) for block in blocks]))
+    assert wire[1]["source_url"] == "https://b.example/other/readme.md"
+    with pytest.raises(FrozenInstanceError):
+        blocks[1].source_url = "https://wrong.example/"
+
+
+def test_blocks_revalidate_plan_and_do_not_invent_missing_source_url():
+    req = prepare_source_plan("q", (PlanSource("s", "t", "", CONTENT),))
+    plan = validate_source_plan(req, response(req))
+    blocks = render_source_plan_blocks(req, plan)
+    assert len(blocks) == 2 and blocks[1].source_url is None
+    assert CONTENT in blocks[1].markdown
+    with pytest.raises(InvalidSourcePlan, match="stale"):
+        render_source_plan_blocks(request(), plan)
+
+
+def test_empty_plan_has_only_unattributed_notice_block():
+    req = request()
+    plan = validate_source_plan(req, json.dumps({"digest": req.digest, "source_ids": [], "inferences": []}))
+    blocks = render_source_plan_blocks(req, plan)
+    assert len(blocks) == 1 and blocks[0].kind == "notice"
+    assert blocks[0].source_id is None and blocks[0].source_url is None
+    assert blocks[0].markdown == render_source_plan(req, plan)
 
 
 def test_engine_schema_binds_authorized_ids_and_current_digest():
