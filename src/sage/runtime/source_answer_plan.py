@@ -25,8 +25,10 @@ irrelevant documents. Never generate factual prose, paraphrases, titles or quote
 Return empty source_ids if none is relevant. Inferences MUST be empty unless
 allow_inferences is true; when true, optional suggestions are strings rendered
 separately as non-source inferences, never as established facts.
-For research review, inferences should answer the requested analysis, not repeat
-source descriptions. Distinguish: what THESE supplied sources do not establish;
+For research review, inferences contain ONLY prospective experimental proposals
+and explicitly source-scoped unknowns. Do not restate facts (the renderer already
+includes them) and do not issue retrospective verdicts about a project's actual
+validation, publication, maturity or experimental history. Distinguish: what THESE supplied sources do not establish;
 a proposed, explicitly hypothetical claim; a matched control experiment; the
 measurements and observations that would falsify that proposed claim. A proposal
 is not the authors' actual hypothesis. Functional correctness, safe composition,
@@ -34,6 +36,18 @@ and performance are distinct claims: lack of speedup does not falsify a safety
 claim. Absence of measurements from a page establishes only an evidence boundary
 for this answer, never that experiments were not performed or results do not
 exist. Do not declare overall validation status from a source's omission.
+For each proposed experiment, name ONE hypothetical claim, its matched control,
+held-fixed variables, measurement, and a falsifying observation for THAT claim.
+Keep all of those fields together in ONE inference string per experiment. Write
+in the user's question language, including field labels. A non-significant result
+alone is inconclusive, not falsification: for performance specify a predeclared
+practical effect threshold and adequately powered confidence-bound comparison.
+Correctness/safety: a concrete invariant violation can falsify the stated
+invariant. Slower latency, lower throughput, greater cost, or absent speedup alone
+CANNOT falsify a correctness/safety claim. Performance: compare the stated metric
+to the matched control under identical conditions; do not call that safety failure.
+Do not combine these into an 'any of the above' test. Introduce hypotheses as
+proposals for this answer, not as the project's documented core hypotheses.
 """
 
 
