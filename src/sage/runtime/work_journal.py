@@ -391,6 +391,15 @@ class WorkJournal:
         return all(record["tasks"][parent]["status"] in accepted
                    for parent in record.get("dependencies", {}).get(task_id, []))
 
+    @staticmethod
+    def claimable(record, task_id, *, now):
+        """Native eligibility predicate, not a reservation or permission grant."""
+        task = record["tasks"][task_id]
+        return (WorkJournal.dependencies_ready(record, task_id)
+                and task["status"] in {"pending", "running"}
+                and task.get("available_at", 0.0) <= now
+                and (task["status"] != "running" or task["lease_until"] <= now))
+
     def upgrade_dependencies(self, request_id, dependencies):
         """Explicit offline upgrade of independent tasks; never change a graph.
 
@@ -477,12 +486,8 @@ class WorkJournal:
         def apply(record):
             self._validate(record)
             task = record["tasks"][task_id]
-            if not self.dependencies_ready(record, task_id):
-                return record
             now = self._clock()
-            if task.get("available_at", 0.0) > now or task["status"] in {"done", "failed", "blocked"} or (
-                task["status"] == "running" and task["lease_until"] > now
-            ):
+            if not self.claimable(record, task_id, now=now):
                 return record
             task.update(status="running", token=token, lease_until=now + lease_seconds,
                         attempt=task["attempt"] + 1)
@@ -538,6 +543,36 @@ class WorkJournal:
             return None
         self._validate(record)
         return _json_snapshot(record)
+
+    def status(self, request_id: str):
+        """Read one validated record, excluding all business/lease secrets.
+
+        An expired lease remains running in storage until the engine reclaims
+        it. Eligibility uses claim's own predicate; observing never changes it.
+        Failure codes describe the last recorded failure, including after retry.
+        Caller must authorize the namespace/request before publishing this view.
+        """
+        from sage.runtime.work_status import WorkRequestStatus, WorkTaskStatus
+
+        record = self.read(request_id)
+        if record is None:
+            return None
+        now = self._clock()
+        tasks = []
+        for task_id, task in record["tasks"].items():
+            if task["status"] not in {"pending", "running", "done", "failed", "blocked"}:
+                raise ValueError("invalid_work_task_status")
+            tasks.append(WorkTaskStatus(task_id=task_id, status=task["status"],
+                attempt=task["attempt"], available_at=task.get("available_at", 0.0),
+                lease_until=task["lease_until"],
+                lease_expired=task["status"] == "running" and task["lease_until"] <= now,
+                claimable=self.claimable(record, task_id, now=now),
+                dependency_task_ids=tuple(record.get("dependencies", {}).get(task_id, [])),
+                dependency_mode="settled" if task_id in record.get("settled", []) else "success",
+                dependencies_ready=self.dependencies_ready(record, task_id),
+                last_failure_code=task.get("failure_code")))
+        return WorkRequestStatus(namespace=self.namespace, request_id=request_id,
+                                 observed_at=now, journal_version=record["version"], tasks=tuple(tasks))
 
     def fail(self, lease: TaskLease, *, code: str, retry_delay: float | None = None, observation=None):
         """Fence a classified failure; None delay is terminal, not success.

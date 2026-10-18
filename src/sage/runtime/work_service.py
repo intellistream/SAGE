@@ -38,11 +38,39 @@ class WorkService:
         self._retiring = False
         self._on_drained = None
 
+    def status(self):
+        """Observe admission/supervisor lifecycle without touching storage.
+
+        Ready means the supervisor is running and admissions are enabled, not
+        that a handler progressed or a future storage/external call will work.
+        A recorded supervisor failure remains visible even after close.
+        """
+        from sage.runtime.work_status import WorkServiceStatus
+
+        with self._lock:
+            alive = self._thread is not None and self._thread.is_alive()
+            if self._error is not None:
+                phase = "failed"
+            elif self._closed:
+                phase = "closed"
+            elif self._closing:
+                phase = "draining"
+            elif self._stopped.is_set() or (self._thread is not None and not alive):
+                phase = "stopped"
+            else:
+                phase = "running" if alive else "created"
+            return WorkServiceStatus(namespace=self.journal.namespace, phase=phase,
+                supervisor_alive=alive, accepting=phase in {"created", "running"},
+                ready=phase == "running" and alive,
+                error_type=type(self._error).__name__ if self._error is not None else None)
+
     def _check_available(self):
         if self._error is not None:
             raise RuntimeError("work_service_failed") from self._error
         if self._closing or self._closed:
             raise RuntimeError("work_service_closing")
+        if self._stopped.is_set():
+            raise RuntimeError("work_service_stopped")
 
     def start(self):
         with self._lock:

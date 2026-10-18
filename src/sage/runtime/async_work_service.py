@@ -12,6 +12,7 @@ import asyncio
 import contextvars
 import inspect
 import math
+from dataclasses import replace
 
 from sage.runtime.work_service import WorkService, WorkWaitTimeoutError
 
@@ -57,6 +58,18 @@ class AsyncWorkService:
         self._poll_interval = dispatcher_options.get("poll_interval", 1)
         self._service = WorkService(journal, self._invoke,
                                     on_lease_lost=self._lease_lost, **dispatcher_options)
+
+    def status(self):
+        """Thread-safe observation; does not schedule on the handler loop.
+
+        A live dispatch thread is insufficient when its owner loop is stopped
+        or closed. This still does not detect a busy/unresponsive running loop.
+        """
+        status = self._service.status()
+        running = self._loop.is_running() and not self._loop.is_closed()
+        return replace(status, execution_context_running=running,
+                       accepting=status.accepting and running,
+                       ready=status.ready and running)
 
     def _check_loop(self):
         if asyncio.get_running_loop() is not self._loop:
