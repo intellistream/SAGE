@@ -34,7 +34,11 @@ class WorkDispatcher:
     def __init__(self, journal: WorkJournal, handler, *, max_workers: int = 2,
                  lease_seconds: float = 60, retry_delay: float = 5,
                  poll_interval: float = 1, page_size: int = 100, accept_task=None,
-                 completion_mutations=None, failure_policy=None, on_lease_lost=None):
+                 completion_mutations=None, failure_policy=None, on_lease_lost=None, observer=None):
+        from sage.runtime.work_observation import WorkObserver
+
+        if observer is not None and (not isinstance(observer, WorkObserver) or observer.journal is not journal):
+            raise ValueError("work_observer_journal_mismatch")
         if max_workers < 1 or page_size < 1:
             raise ValueError("dispatcher_bounds_must_be_positive")
         if accept_task is not None and not callable(accept_task):
@@ -54,6 +58,8 @@ class WorkDispatcher:
         self.completion_mutations = completion_mutations
         self.failure_policy = failure_policy
         self.on_lease_lost = on_lease_lost
+        self._observer = observer
+        self._observations = {}
         self.max_workers = max_workers
         self.lease_seconds = lease_seconds
         self.retry_delay = retry_delay
@@ -81,6 +87,7 @@ class WorkDispatcher:
             if future in self._lost:
                 if future.done():
                     del self._active[future]
+                    self._observations.pop(future, None)
                     self._lost.remove(future)
                 continue
             if not future.done():
@@ -93,25 +100,33 @@ class WorkDispatcher:
                         self.on_lease_lost(lease)
                 continue
             failed = future.exception() is not None
+            observation = self._observations.get(future)
             try:
                 if failed:
+                    error = future.exception()
                     if self.failure_policy is None:
-                        self.journal.finish(lease, retry=True, retry_delay=self.retry_delay)
+                        event = observation.prepare("retrying", error=error) if observation is not None else None
+                        self.journal.finish(lease, retry=True, retry_delay=self.retry_delay, observation=event)
                     else:
-                        decision = self.failure_policy(lease, future.exception())
+                        decision = self.failure_policy(lease, error)
                         if not isinstance(decision, WorkFailure):
                             raise TypeError("failure_policy_must_return_work_failure")
-                        self.journal.fail(lease, code=decision.code, retry_delay=decision.retry_delay)
+                        event = (observation.prepare("failed" if decision.retry_delay is None else "retrying",
+                            error=error, failure_code=decision.code) if observation is not None else None)
+                        self.journal.fail(lease, code=decision.code, retry_delay=decision.retry_delay, observation=event)
                 else:
                     result = future.result()
                     mutations = (self.completion_mutations(lease, result)
                                  if self.completion_mutations is not None else None)
-                    self.journal.finish(lease, result=result, mutations=mutations)
+                    event = observation.prepare("completed") if observation is not None else None
+                    self.journal.finish(lease, result=result, mutations=mutations, observation=event)
             except StaleTaskLeaseError:
                 self.lease_losses += 1
                 del self._active[future]
+                self._observations.pop(future, None)
                 continue
             del self._active[future]
+            self._observations.pop(future, None)
             if failed:
                 self.failed += 1
             else:
@@ -144,14 +159,22 @@ class WorkDispatcher:
                 if lease is None:
                     continue
                 try:
-                    future = self._pool.submit(self.handler, lease)
+                    observation = self._observer.bind(lease) if self._observer is not None else None
+                    future = self._pool.submit(self._invoke, lease, observation)
                 except BaseException:
                     self.journal.finish(lease, retry=True, retry_delay=self.retry_delay)
                     raise
                 self._active[future] = lease
+                if observation is not None:
+                    self._observations[future] = observation
                 admitted += 1
         self._cursor = following
         return admitted
+
+    def _invoke(self, lease, observation):
+        if observation is not None:
+            observation.started()
+        return self.handler(lease)
 
     def run(self, stop: Event) -> None:
         """Run until stopped, then drain work while maintaining its leases.

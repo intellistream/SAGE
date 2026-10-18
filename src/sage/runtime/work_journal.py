@@ -495,7 +495,8 @@ class WorkJournal:
 
     def finish(self, lease: TaskLease, *, retry: bool = False, retry_delay: float = 0.0,
                result: Any = _UNSET,
-               mutations: Mapping[tuple[str, str, str], Callable[[Any], Any]] | None = None) -> None:
+               mutations: Mapping[tuple[str, str, str], Callable[[Any], Any]] | None = None,
+               observation=None) -> None:
         """Fence ownership and atomically publish result and destination state.
 
         Destinations follow commit's pure, same-store mutation contract. Retry
@@ -510,6 +511,11 @@ class WorkJournal:
             raise ValueError("retry_cannot_publish_task_result")
         if retry and mutations:
             raise ValueError("retry_cannot_publish_destination_state")
+        from sage.runtime.work_observation import observation_mutations
+
+        mutations = observation_mutations(self, lease, "retrying" if retry else "completed", observation, mutations)
+        if observation is not None and observation.event.failure_code is not None:
+            raise ValueError("work_observation_unexpected_failure_code")
         snapshot = _json_snapshot(result) if result is not _UNSET else _UNSET
         def apply(record):
             self._validate(record)
@@ -533,7 +539,7 @@ class WorkJournal:
         self._validate(record)
         return _json_snapshot(record)
 
-    def fail(self, lease: TaskLease, *, code: str, retry_delay: float | None = None):
+    def fail(self, lease: TaskLease, *, code: str, retry_delay: float | None = None, observation=None):
         """Fence a classified failure; None delay is terminal, not success.
 
         Store only an application-defined code, never exception text. Terminal
@@ -546,6 +552,11 @@ class WorkJournal:
             raise ValueError("invalid_failure_retry_delay")
         if lease.namespace != self.namespace:
             raise ValueError("task_lease_namespace_mismatch")
+        from sage.runtime.work_observation import observation_mutations
+
+        mutations = observation_mutations(self, lease, "failed" if retry_delay is None else "retrying", observation)
+        if observation is not None and observation.event.failure_code != code:
+            raise ValueError("work_observation_failure_code_mismatch")
 
         def apply(record):
             self._validate(record)
@@ -561,7 +572,26 @@ class WorkJournal:
             if retry_delay is None:
                 _block_failed_dependents(record)
             return record
-        return self._apply_with_destinations(self._slot(lease.request_id), apply, None)
+        return self._apply_with_destinations(self._slot(lease.request_id), apply, mutations)
+
+    def observe(self, lease: TaskLease, observation):
+        """Record actual worker entry under its current lease, never an ack.
+
+        Completion/retry/failure observations are rejected here. They can only
+        publish inside their corresponding fenced state transition.
+        """
+        from sage.runtime.work_observation import observation_mutations
+
+        if observation is None:
+            raise TypeError("work_observation_required")
+        guard = self.prepare_guard(lease)
+        mutations = observation_mutations(self, lease, "started", observation)
+
+        def check(record):
+            guard.apply({guard.slot: record})
+            return record
+
+        self._apply_with_destinations(self._slot(lease.request_id), check, mutations)
 
     def cancel(self, request_id: str, task_id: str, *, protect=None) -> str:
         """Cancel pending/running work atomically against canonical destinations.
