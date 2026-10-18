@@ -30,6 +30,24 @@ class StaleTaskLeaseError(ValueError):
     """A worker no longer owns the task and may not acknowledge its result."""
 
 
+class WorkCapacityError(RuntimeError):
+    """A new active request cannot be admitted; no state was committed."""
+
+
+def _capacity_slot(namespace):
+    return ("sage-work-capacity-v1", namespace, "policy")
+
+
+def _validate_capacity(value):
+    if (not isinstance(value, dict) or value.get("version") != 1
+            or type(value.get("limit")) is not int or value["limit"] <= 0
+            or not isinstance(value.get("active"), list)
+            or any(not isinstance(key, str) or not key for key in value["active"])
+            or len(set(value["active"])) != len(value["active"])
+            or len(value["active"]) > value["limit"]):
+        raise ValueError("invalid_work_capacity_state")
+
+
 def _json_snapshot(value):
     return json.loads(json.dumps(value, allow_nan=False, sort_keys=True))
 
@@ -145,14 +163,31 @@ class PreparedWorkCommit:
 
     @property
     def slots(self):
-        return (self.slot, self.index_slot)
+        return (self.slot, self.index_slot, _capacity_slot(self.slot[1]))
 
     def apply(self, values):
+        old = values[self.slot]
+        capacity_slot = _capacity_slot(self.slot[1])
+        capacity = values[capacity_slot]
+        if old is not None and old.get("version") == 6 and capacity is None:
+            raise ValueError("work_capacity_state_missing")
         record = self._record_transform(values[self.slot])
         record["version"] = 5  # Index-unaware workers must fail closed.
         active = any(task["status"] in {"pending", "running"}
                      for task in record["tasks"].values())
-        return {self.slot: record, self.index_slot: True if active else StateMutation.DELETE}
+        if capacity is not None:
+            _validate_capacity(capacity)
+            members = set(capacity["active"])
+            if active:
+                if self.slot[2] not in members and len(members) >= capacity["limit"]:
+                    raise WorkCapacityError("work_capacity_exhausted")
+                members.add(self.slot[2])
+            else:
+                members.discard(self.slot[2])
+            capacity = {**capacity, "active": sorted(members)}
+            record["version"] = 6  # Capacity-unaware workers must fail closed.
+        return {self.slot: record, self.index_slot: True if active else StateMutation.DELETE,
+                capacity_slot: capacity if capacity is not None else StateMutation.DELETE}
 
 
 class WorkJournal:
@@ -164,6 +199,49 @@ class WorkJournal:
         self.namespace = _name(namespace)
         self._clock = clock
         self._index_ready = False
+
+    def configure_capacity(self, *, max_active_requests: int):
+        """Offline installation/reconfiguration; stop ALL namespace writers first.
+
+        Limits active requests, not task count, payload bytes or retained history.
+        Scan and transaction are separate: callers must enforce the maintenance
+        boundary, including stopping old-version writers. Never run at startup
+        beside other workers. Existing results are retained, not expired/deleted.
+        Every later mutation reads the persisted policy in its own transaction.
+        """
+        if type(max_active_requests) is not int or max_active_requests <= 0:
+            raise ValueError("work_capacity_must_be_positive_integer")
+        slots = []
+        cursor = None
+        while True:
+            rows, cursor = self._store.scan_stage_entries(
+                stage_id="sage-work-journal-v1", namespace=self.namespace,
+                after_key=cursor, limit=100)
+            slots.extend(self._slot(row["key"]) for row in rows)
+            if cursor is None:
+                break
+        policy_slot = _capacity_slot(self.namespace)
+
+        def configure(values):
+            active = []
+            result = {}
+            for slot in slots:
+                record = values[slot]
+                self._validate(record)
+                if any(task["status"] == "running" and task["lease_until"] > self._clock()
+                       for task in record["tasks"].values()):
+                    raise ValueError("cannot_configure_capacity_with_live_leases")
+                if any(task["status"] in {"pending", "running"}
+                       for task in record["tasks"].values()):
+                    active.append(slot[2])
+                result[slot] = {**record, "version": 6}
+            if len(active) > max_active_requests:
+                raise WorkCapacityError("work_capacity_below_existing_backlog")
+            result[policy_slot] = {"version": 1, "limit": max_active_requests,
+                                   "active": sorted(active)}
+            return result
+
+        self._store.update_many((*slots, policy_slot), configure)
 
     def _slot(self, request_id):
         return ("sage-work-journal-v1", self.namespace, _name(request_id))
@@ -211,7 +289,8 @@ class WorkJournal:
                 raise ValueError("invalid_destination_slot")
             for part in slot:
                 _name(part)
-            if slot[0] in {"sage-work-journal-v1", "sage-work-active-v1", "sage-work-index-meta-v1"}:
+            if slot[0] in {"sage-work-journal-v1", "sage-work-active-v1", "sage-work-index-meta-v1",
+                           "sage-work-capacity-v1"}:
                 raise ValueError("destination_cannot_mutate_journal")
             if not callable(transform):
                 raise TypeError("destination_transform_not_callable")
@@ -271,7 +350,7 @@ class WorkJournal:
     def _validate(record):
         if record is None:
             raise KeyError("journal_request_not_found")
-        if record.get("version") not in {1, 2, 3, 4, 5}:
+        if record.get("version") not in {1, 2, 3, 4, 5, 6}:
             raise ValueError("unsupported_journal_version")
         dependencies = record.get("dependencies", {})
         if record["version"] == 1 and dependencies:
@@ -475,13 +554,14 @@ class WorkJournal:
         slot = self._slot(request_id)
         task_id = _name(task_id)
         index = ("sage-work-active-v1", self.namespace, request_id)
+        capacity_slot = _capacity_slot(self.namespace)
         predicates = dict(protect or {})
         for key, predicate in predicates.items():
             if not isinstance(key, tuple) or len(key) != 3:
                 raise ValueError("invalid_cancellation_protection_slot")
             for part in key:
                 _name(part)
-            if key in (slot, index) or not callable(predicate):
+            if key in (slot, index, capacity_slot) or not callable(predicate):
                 raise ValueError("invalid_cancellation_protection")
         outcome = "missing"
 
@@ -514,7 +594,7 @@ class WorkJournal:
             outcome = "cancelled"
             return result
 
-        self._store.update_many((slot, index, *predicates), apply)
+        self._store.update_many((slot, index, capacity_slot, *predicates), apply)
         return outcome
 
     def renew(self, lease: TaskLease, *, lease_seconds: float) -> None:
@@ -583,7 +663,7 @@ class WorkJournal:
         result = []
         for row in rows:
             record = self.read(row["key"])
-            if record is None or record["version"] != 5 or row["value"] is not True:
+            if record is None or record["version"] not in {5, 6} or row["value"] is not True:
                 raise ValueError("work_active_index_inconsistent")
             # Concurrent completion may make this snapshot terminal; claim()
             # rechecks the authoritative state before any handler executes.
