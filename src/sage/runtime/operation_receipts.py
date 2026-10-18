@@ -106,8 +106,11 @@ class OperationReceipts:
         Conflicts/failures publish neither destination nor receipt. Replay aborts
         the read transaction and returns the saved result without touching current
         destination state (which may legitimately have changed since first commit).
-        An optional same-store PreparedLeaseGuard is checked even for replay.
-        This cannot fence operations in another database or external service.
+        An optional same-store guard (PreparedLeaseGuard or PreparedEffectGuard)
+        is checked even for replay. A remote origin lease cannot be composed
+        here; cross-store cancellation requires destination-local effect guards
+        and durable sealing of every declared destination before acknowledgement.
+        This transaction cannot roll back another database or external service.
         """
         receipt_slot = ("sage-operation-receipts-v1", self.namespace, _name(operation_id))
         slots = tuple(slots)
