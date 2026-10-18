@@ -76,6 +76,10 @@ class DependencyVerifier:
     def ready(self):
         return self.status()["state"] == "verified"
 
+    def work_status(self):
+        """Supervisor lifecycle is independent of a committed verification."""
+        return self._work.status()
+
     def _register(self, current):
         if current is not None and current["binding"] == self._binding:
             return current  # Lost admission acknowledgement must not reset success.

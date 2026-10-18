@@ -7,6 +7,11 @@ closed and failed are distinct, non-accepting states. A recorded supervisor
 failure remains failed even after close; unexpected normal supervisor exit
 rejects further admission before committing work. Error type is included, never
 raw exception text, payloads, results, lease tokens or credentials.
+The independent drained flag confirms dispatcher close completed. After a failed
+supervisor, close still reports that failure; once it explicitly confirms drain,
+retirement may release resources exactly once without erasing the failed state.
+An undrained failed service still cannot retire its resources. Thread exit alone
+is not drain acknowledgement.
 
 AsyncWorkService.status projects the same lifecycle and separately observes its
 owner event loop. A live dispatch thread cannot make a stopped/closed loop ready

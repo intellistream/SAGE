@@ -8,6 +8,8 @@ from threading import Event
 import pytest
 
 from sage.runtime.async_work_service import AsyncWorkService
+from sage.runtime.dependency_verifier import DependencyVerifier
+from sage.runtime.effect_cancellation import CancellationService
 from sage.runtime.flownet.runtime.operator_runtime.stateful import (
     StatefulProcessRuntime,
 )
@@ -224,4 +226,53 @@ def test_request_storage_failure_is_not_fabricated_as_empty_or_success(monkeypat
         assert service.status().phase == "created" and not service.status().ready
     finally:
         service.close()
+        state.close()
+
+
+def test_failed_but_explicitly_drained_service_retires_resources_without_hiding_failure(tmp_path, monkeypatch):
+    state = StatefulProcessRuntime(backend="sqlite", sqlite_path=str(tmp_path / "work.db"))
+    service = WorkService(WorkJournal(state, namespace="owned"), lambda lease: None)
+    released = []
+
+    def fail(stop):
+        raise OSError("storage unavailable")
+
+    monkeypatch.setattr(service._dispatcher, "run", fail)
+    try:
+        service.start()
+        assert service._stopped.wait(3)
+        assert service.status().phase == "failed" and not service.status().drained
+        with pytest.raises(RuntimeError, match="work_service_failed"):
+            service.close()
+        assert service.status().phase == "failed" and service.status().drained
+
+        def release():
+            assert service.status().phase == "failed" and service.status().drained
+            released.append(True)
+            state.close()
+
+        service.retire(release)
+        assert released == [True] and service.status().phase == "failed"
+        with pytest.raises(RuntimeError, match="already_retiring"):
+            service.retire(release)
+        assert released == [True]
+    finally:
+        state.close()
+
+
+def test_dependency_and_cancellation_facades_preserve_native_lifecycle():
+    state = StatefulProcessRuntime()
+    verifier = DependencyVerifier(state, name="fixture", probe=lambda: True, poll_interval=0.01)
+    cancellation = CancellationService(WorkJournal(state, namespace="origin"),
+                                       task_id="answer", targets={}, poll_interval=0.01)
+    try:
+        assert verifier.work_status().phase == cancellation.work_status().phase == "created"
+        verifier.start()
+        verifier._work.wait(verifier._binding, timeout=3)
+        cancellation.start()
+        assert verifier.ready() and verifier.work_status().ready and cancellation.work_status().ready
+    finally:
+        verifier.close()
+        cancellation.close()
+        assert verifier.work_status().phase == cancellation.work_status().phase == "closed"
         state.close()

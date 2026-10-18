@@ -153,6 +153,9 @@ class CancellationService:
         self._work.start()
         return self
 
+    def work_status(self):
+        return self._work.status()
+
     def request(self, request_id):
         """Return accepted/missing/terminal; accepted never means cancelled."""
         request_id = _name(request_id)

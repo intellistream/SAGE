@@ -19,6 +19,7 @@ class WorkServiceStatus:
     ready: bool
     error_type: str | None = None
     execution_context_running: bool | None = None
+    drained: bool = False
     version: int = 1
 
     def to_dict(self):

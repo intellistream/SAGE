@@ -62,6 +62,7 @@ class WorkService:
             return WorkServiceStatus(namespace=self.journal.namespace, phase=phase,
                 supervisor_alive=alive, accepting=phase in {"created", "running"},
                 ready=phase == "running" and alive,
+                drained=self._closed,
                 error_type=type(self._error).__name__ if self._error is not None else None)
 
     def _check_available(self):
@@ -121,7 +122,7 @@ class WorkService:
     def _finish_retirement(self):
         # WorkDispatcher refuses shutdown if a failed supervisor still owns
         # active work. Do not close storage in that case.
-        if self._error is not None:
+        if self._error is not None and not self._closed:
             raise RuntimeError("work_service_failed") from self._error
         self._dispatcher.close()
         callback, self._on_drained = self._on_drained, None
