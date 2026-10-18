@@ -20,7 +20,7 @@ def fixture():
             {
                 "id": 0,
                 "verdict": "supported",
-                "evidence": [{"source_id": "wiki", "quote": "仍在研究。"}],
+                "evidence": [{"source_id": "wiki", "line_ids": [0]}],
             },
             {"id": 1, "verdict": "unsupported", "evidence": []},
         ],
@@ -50,9 +50,12 @@ def test_complete_supported_answer_passes():
         "duplicate",
         "boolean_id",
         "stale",
-        "invented_quote",
+        "invented_line",
         "invented_source",
-        "empty_quote",
+        "empty_lines",
+        "boolean_line",
+        "duplicate_line",
+        "legacy_quote",
         "empty_evidence",
         "unknown_verdict",
         "extra_field",
@@ -71,12 +74,18 @@ def test_invalid_audits_fail_closed(mutation):
         unit["id"] = False
     elif mutation == "stale":
         response["digest"] = "other answer"
-    elif mutation == "invented_quote":
-        unit["evidence"][0]["quote"] = "没有做过基准测试"
+    elif mutation == "invented_line":
+        unit["evidence"][0]["line_ids"] = [999]
     elif mutation == "invented_source":
         unit["evidence"][0]["source_id"] = "private-not-authorized"
-    elif mutation == "empty_quote":
-        unit["evidence"][0]["quote"] = ""
+    elif mutation == "empty_lines":
+        unit["evidence"][0]["line_ids"] = []
+    elif mutation == "boolean_line":
+        unit["evidence"][0]["line_ids"] = [False]
+    elif mutation == "duplicate_line":
+        unit["evidence"][0]["line_ids"] = [0, 0]
+    elif mutation == "legacy_quote":
+        unit["evidence"][0] = {"source_id": "wiki", "quote": "仍在研究。"}
     elif mutation == "empty_evidence":
         unit["evidence"] = []
     elif mutation == "unknown_verdict":
@@ -103,7 +112,7 @@ def test_malformed_response_is_not_a_pass(response):
 def test_snapshot_preserves_full_sources_and_binds_question_answer_evidence():
     sources = {"wiki": "x" * 20000 + " https://example.org/full/path/"}
     request = prepare_source_audit("question", "# heading\n\nanswer", sources)
-    assert json.loads(request.payload)["sources"][0]["text"] == sources["wiki"]
+    assert "\n".join(line["text"] for line in json.loads(request.payload)["sources"][0]["lines"]) == sources["wiki"]
     assert request.units == ("# heading", "answer")
     assert (
         prepare_source_audit("other", "# heading\n\nanswer", sources).digest
@@ -124,3 +133,27 @@ def test_snapshot_preserves_full_sources_and_binds_question_answer_evidence():
 def test_empty_inputs_rejected(answer, sources):
     with pytest.raises(ValueError):
         prepare_source_audit("question", answer, sources)
+
+
+def test_evidence_lines_are_lossless_and_blank_lines_cannot_support_claims():
+    source = "# 标题\n\n仍在**研究**，不是性能结论。\n"
+    request = prepare_source_audit("状态", "仍在研究。", {"wiki": source})
+    lines = json.loads(request.payload)["sources"][0]["lines"]
+    assert [line["id"] for line in lines] == [0, 1, 2, 3]
+    assert "\n".join(line["text"] for line in lines) == source
+    response = {"digest": request.digest, "units": [{
+        "id": 0, "verdict": "supported", "evidence": [{"source_id": "wiki", "line_ids": [2]}],
+    }]}
+    assert validate_source_audit(request, json.dumps(response)).passed
+    response["units"][0]["evidence"][0]["line_ids"] = [1, 3]
+    with pytest.raises(InvalidSourceAudit):
+        validate_source_audit(request, json.dumps(response))
+
+
+def test_supported_sentence_cannot_mask_appended_inference_or_split_urls():
+    answer = "资料提醒设计不等于收益。这意味着目前只是理论。来源 https://lab.example.org/a/b/。"
+    request = prepare_source_audit("状态", answer, {"wiki": "设计不等于收益。"})
+    assert request.units == (
+        "资料提醒设计不等于收益。", "这意味着目前只是理论。", "来源 https://lab.example.org/a/b/。",
+    )
+    assert "".join(request.units) == answer
