@@ -4,6 +4,7 @@ import asyncio
 import threading
 from collections.abc import Coroutine
 from concurrent.futures import Future
+from contextvars import Context
 
 
 class LoopThread:
@@ -35,12 +36,19 @@ class LoopThread:
     def is_running(self) -> bool:
         return self._loop is not None and self._loop.is_running()
 
-    def submit(self, coro: Coroutine) -> Future:
+    def submit(self, coro: Coroutine, *, context: Context | None = None) -> Future:
+        """Submit request work with inherited context, or explicit service scope.
+
+        Service-lifetime coroutines should pass a fresh Context so a runtime
+        first initialized during a request cannot retain its authority/ports.
+        """
         if self._stopped:
             raise RuntimeError("loop_thread_stopped")
         if not asyncio.iscoroutine(coro):
             raise TypeError("submit(...) expects a coroutine object.")
-        return asyncio.run_coroutine_threadsafe(coro, self.loop)
+        if context is None:
+            return asyncio.run_coroutine_threadsafe(coro, self.loop)
+        return context.run(asyncio.run_coroutine_threadsafe, coro, self.loop)
 
     def stop(self, *, join: bool = True, join_timeout: float | None = 2.0) -> None:
         with self._stop_lock:

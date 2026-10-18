@@ -5,6 +5,7 @@ from collections.abc import Coroutine, Mapping
 from concurrent.futures import CancelledError as FutureCancelledError
 from concurrent.futures import Future
 from concurrent.futures import TimeoutError as FutureTimeoutError
+from contextvars import Context
 from threading import Lock
 from typing import Any, Protocol
 
@@ -278,9 +279,9 @@ class V1RuntimeHost:
     def user_loop(self) -> LoopThread:
         return self._user_loop
 
-    def submit_runtime_coro(self, coro: Coroutine) -> Future:
+    def submit_runtime_coro(self, coro: Coroutine, *, context: Context | None = None) -> Future:
         self._ensure_open()
-        return self._runtime_loop.submit(coro)
+        return self._runtime_loop.submit(coro, context=context)
 
     def submit_user_coro(self, coro: Coroutine) -> Future:
         self._ensure_open()
@@ -1081,7 +1082,10 @@ class V1RuntimeHost:
             self._run_idle_gc_loop(
                 interval_seconds=interval_seconds,
                 ttl_seconds=self._gc_idle_ttl_seconds,
-            )
+            ),
+            # This coroutine lives as long as the runtime, not its first caller.
+            # Never retain request observers, authority, cancellation or ports.
+            context=Context(),
         )
 
     def _stop_idle_gc_loop(self) -> None:

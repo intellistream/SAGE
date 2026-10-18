@@ -88,6 +88,20 @@ Application notes such as “booking not requested” or “source unavailable�
 business annotations. They are not a substitute for these execution states, and
 must not restore guessed parallel groups when native events are unavailable.
 
+## Resident service context isolation
+
+LoopThread.submit inherits the caller context for request work; its optional
+context argument explicitly supplies a service scope. The resident runtime's
+idle-GC coroutine is always submitted with a fresh Context. Without this boundary,
+initializing a runtime while handling a request retained that request's observer
+(and any referenced application service, authority or ports) until runtime shutdown,
+preventing the application's own lifetime finalizers from releasing resources.
+
+Weak-reference regression tests exercise both initialization inside and outside an
+observed request, while keeping the runtime alive for an unobserved subsequent
+call. A separate loop test verifies normal per-request propagation is preserved
+and explicit service scope does not inherit or clear the caller's context.
+
 ## Qualification boundary
 
 Real native flow tests cover overlapping fanout starts, actual router successor

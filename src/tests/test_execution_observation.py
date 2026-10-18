@@ -1,4 +1,7 @@
+import gc
+import weakref
 from concurrent.futures import ThreadPoolExecutor
+from contextvars import Context, ContextVar
 from threading import Barrier
 
 import pytest
@@ -15,6 +18,7 @@ from sage.runtime.flownet import (
     flow_exception_handler,
     stateless,
 )
+from sage.runtime.flownet.runtime.loops import LoopThread
 from sage.runtime.flownet.runtime.operator_runtime.stateful import StatefulProcessRuntime
 
 _barriers = {}
@@ -269,3 +273,42 @@ def test_native_events_persist_and_replay_in_existing_event_journal(tmp_path):
         assert EventJournal(reopened, namespace="workflow").read("owned-stream") == original
     finally:
         reopened.close()
+
+
+@pytest.mark.parametrize("initialize_observed", [False, True])
+def test_resident_runtime_does_not_retain_finished_observer(initialize_observed):
+    bootstrap = None
+    if not initialize_observed:
+        bootstrap, bound = endpoint(single, "observed-retention-outside")
+    events = []
+    observer = ExecutionObserver(events.append)
+    reference = weakref.ref(observer)
+    try:
+        with observer.bind():
+            if initialize_observed:
+                bootstrap, bound = endpoint(single, "observed-retention-inside")
+            assert bound.call({"id": "retention"}, request_id="retention") == ["left"]
+        del observer
+        gc.collect()
+        assert reference() is None, "resident runtime retained a completed request observer"
+        assert bound.call({"id": "after-retention"}, request_id="after-retention") == ["left"]
+    finally:
+        if bootstrap is not None:
+            bootstrap.shutdown()
+
+
+def test_loop_submission_distinguishes_request_and_service_context():
+    marker = ContextVar("synthetic-request-scope", default=None)
+    token = marker.set("synthetic-sensitive-scope")
+    loop = LoopThread("isolated-context-test")
+
+    async def read_scope():
+        return marker.get()
+
+    try:
+        assert loop.submit(read_scope()).result(timeout=3) == "synthetic-sensitive-scope"
+        assert loop.submit(read_scope(), context=Context()).result(timeout=3) is None
+        assert marker.get() == "synthetic-sensitive-scope"
+    finally:
+        marker.reset(token)
+        loop.stop()
