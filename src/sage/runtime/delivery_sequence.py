@@ -63,6 +63,39 @@ class DeliveryPlan:
         if self != expected:
             raise DeliveryConflict("delivery_plan_invalid")
 
+    def to_dict(self):
+        """Export a detached, versioned plan for the upstream durable result.
+
+        Contains private transport bodies, not receipt metadata. The caller must
+        apply its ordinary canonical-data access and retention policy. Do not
+        log this object or place authentication headers/credentials in a plan.
+        """
+        self.validate()
+        return {"version": 1, "fingerprint": self.fingerprint,
+                "destination": json.loads(self._destination_json),
+                "payloads": [json.loads(item) for item in self._payloads_json]}
+
+    @classmethod
+    def from_dict(cls, value):
+        """Restore the captured inputs without formatting or regenerating them.
+
+        The fingerprint checks integrity, not ownership or authorization. The
+        caller must load this only from its trusted, owner-scoped source result.
+        An unsupported version is an explicit migration gate, never a fallback.
+        """
+        if (not isinstance(value, dict)
+                or set(value) != {"version", "fingerprint", "destination", "payloads"}
+                or type(value["version"]) is not int or value["version"] != 1
+                or not isinstance(value["fingerprint"], str)):
+            raise DeliveryConflict("delivery_plan_invalid")
+        try:
+            captured = cls.capture(destination=value["destination"], payloads=value["payloads"])
+        except (TypeError, ValueError, OverflowError):
+            raise DeliveryConflict("delivery_plan_invalid") from None
+        if captured.fingerprint != value["fingerprint"]:
+            raise DeliveryConflict("delivery_plan_invalid")
+        return captured
+
 
 @dataclass(frozen=True)
 class DeliveryFrame:

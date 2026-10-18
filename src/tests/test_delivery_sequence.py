@@ -1,6 +1,7 @@
 """Ordered external receipts without another worker or a false exactly-once claim."""
 
 import asyncio
+import json
 import multiprocessing
 import os
 import sqlite3
@@ -38,6 +39,84 @@ def source(tmp_path, *, clock=None):
     journal = WorkJournal(state, namespace="source", **({"clock": clock} if clock else {}))
     journal.commit("request", result="fixed answer", tasks={"deliver": {}})
     return state, journal, DeliverySequence(journal, namespace="transport")
+
+
+def test_captured_plan_round_trip_is_detached_and_redacted():
+    original = plan(2)
+    exported = original.to_dict()
+    restored = DeliveryPlan.from_dict(json.loads(json.dumps(exported)))
+    assert restored == original
+    exported["destination"]["recipient"] = "wrong recipient"
+    exported["payloads"][0]["text"] = "wrong answer"
+    assert restored.to_dict() == original.to_dict()
+    assert "private body" not in repr(restored)
+    assert "fixture" not in repr(restored)
+
+
+@pytest.mark.parametrize("change", [
+    {"version": True}, {"version": 2}, {"fingerprint": "forged"},
+    {"payloads": [{"text": "changed"}]}, {"destination": {"recipient": "other"}},
+    {"payloads": []}, {"destination": None}, {"unexpected": "extra"},
+])
+def test_captured_plan_rejects_corruption_or_unknown_schema(change):
+    captured = plan(2).to_dict()
+    captured.update(change)
+    with pytest.raises(DeliveryConflict, match="delivery_plan_invalid"):
+        DeliveryPlan.from_dict(captured)
+
+
+def test_reopen_uses_upstream_captured_plan_and_only_resumes_unconfirmed_parts(tmp_path):
+    async def run():
+        path = str(tmp_path / "captured.db")
+        state = StatefulProcessRuntime(backend="sqlite", sqlite_path=path)
+        journal = WorkJournal(state, namespace="captured")
+        journal.commit("request", result={}, tasks={"answer": {}, "deliver": {}},
+                       dependencies={"deliver": ["answer"]})
+        produced = plan(3)
+        answer = journal.claim("request", "answer", lease_seconds=30)
+        journal.finish(answer, result=produced.to_dict())
+        sequence = DeliverySequence(journal, namespace="transport")
+        delivery = journal.claim("request", "deliver", lease_seconds=30)
+        calls = []
+
+        async def send(frame):
+            calls.append((frame.part_id, frame.payload))
+            if len(calls) == 2:
+                raise ConnectionError("unconfirmed external outcome")
+            return DeliveryReceipt(external_id=str(frame.index))
+
+        try:
+            captured = DeliveryPlan.from_dict(journal.read("request")["tasks"]["answer"]["result"])
+            with pytest.raises(ConnectionError):
+                await sequence.deliver(delivery, captured, send=send, authorize=allow)
+            journal.finish(delivery, retry=True)
+        finally:
+            state.close()
+
+        # Actual reopen: no original plan object, formatter or answer port is
+        # available to this worker. The upstream committed result is sufficient.
+        state = StatefulProcessRuntime(backend="sqlite", sqlite_path=path)
+        journal = WorkJournal(state, namespace="captured")
+        sequence = DeliverySequence(journal, namespace="transport")
+        try:
+            record = journal.read("request")
+            assert record["tasks"]["answer"]["status"] == "done"
+            assert record["tasks"]["answer"]["attempt"] == 1
+            captured = DeliveryPlan.from_dict(record["tasks"]["answer"]["result"])
+            delivery = journal.claim("request", "deliver", lease_seconds=30)
+            saved = await sequence.deliver(delivery, captured, send=send, authorize=allow)
+            journal.finish(delivery, result={"accepted_parts": len(saved["receipts"])})
+            assert [item[1]["text"] for item in calls] == [
+                "private body 0", "private body 1", "private body 1", "private body 2"]
+            assert calls[1] == calls[2]
+            assert len({item[0] for item in calls}) == 3
+            assert journal.read("request")["tasks"]["deliver"]["status"] == "done"
+            assert all(receipt["accepted"] is True for receipt in saved["receipts"])
+            assert "private body" not in json.dumps(saved)
+        finally:
+            state.close()
+
+    asyncio.run(run())
 
 
 def test_real_native_worker_delivers_in_order_and_alone_acknowledges_source(tmp_path):

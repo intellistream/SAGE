@@ -19,6 +19,14 @@ The caller must durably capture the already formatted destination/payload inputs
 before their source step is acknowledged, for example as that step's immutable
 result. Reconstruct the same plan from those captured inputs on recovery, not
 by regenerating an answer or silently reformatting a partially delivered one.
+`DeliveryPlan.to_dict()` exports a detached versioned object for this upstream
+result; `DeliveryPlan.from_dict()` verifies the schema and captured fingerprint
+without invoking a formatter. The exported object **contains private content**:
+it belongs in the protected source result, not logs, public status, or the
+metadata-only receipt ledger. Fingerprints provide integrity, not authorization.
+Unknown versions or changed bodies/destinations fail explicitly; no legacy
+renderer or schema fallback is selected. The receiving app must additionally
+validate its expected transport/destination policy on every attempt.
 Receipt metadata is not a replacement for that durable canonical input. Changing
 formatters while unfinished old plans exist requires an explicit drain/migration
 decision; plan conflicts must not reset confirmed receipts.
