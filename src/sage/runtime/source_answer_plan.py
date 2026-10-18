@@ -100,6 +100,21 @@ def _unique(pairs):
     return result
 
 
+def source_plan_response_format(request: SourcePlanRequest) -> dict:
+    """Ask the engine for valid plan syntax; semantic validation remains mandatory."""
+    return {"type": "json_schema", "json_schema": {
+        "name": "source_answer_plan", "strict": True,
+        "schema": {"type": "object", "additionalProperties": False,
+            "required": ["digest", "source_ids", "inferences"], "properties": {
+                "digest": {"type": "string", "enum": [request.digest]},
+                "source_ids": {"type": "array", "items": {"type": "string",
+                    "enum": [source.source_id for source in request.sources]}},
+                "inferences": {"type": "array", "items": {"type": "string"},
+                    **({} if request.allow_inferences else {"maxItems": 0})},
+            }},
+    }}
+
+
 def validate_source_plan(request: SourcePlanRequest, response: str) -> SourceAnswerPlan:
     try:
         data = json.loads(response, object_pairs_hook=_unique)

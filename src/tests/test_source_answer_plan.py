@@ -6,6 +6,7 @@ from sage.runtime.source_answer_plan import (
     PlanSource,
     prepare_source_plan,
     render_source_plan,
+    source_plan_response_format,
     validate_source_plan,
 )
 
@@ -27,6 +28,18 @@ def test_lossless_document_and_complete_links():
     assert "https://example.org/full/" in answer
     assert "作者没有测量" not in answer
     assert json.loads(req.payload)["sources"][0]["content"] == CONTENT
+
+
+def test_engine_schema_binds_authorized_ids_and_current_digest():
+    req = request()
+    fmt = source_plan_response_format(req)
+    schema = fmt["json_schema"]["schema"]
+    assert fmt["json_schema"]["strict"] is True
+    assert schema["additionalProperties"] is False
+    assert schema["properties"]["digest"]["enum"] == [req.digest]
+    assert schema["properties"]["source_ids"]["items"]["enum"] == ["s"]
+    assert schema["properties"]["inferences"]["maxItems"] == 0
+    assert "maxItems" not in source_plan_response_format(request(allow_inferences=True))["json_schema"]["schema"]["properties"]["inferences"]
 
 
 @pytest.mark.parametrize("field,value", [
