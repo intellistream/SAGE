@@ -44,3 +44,14 @@ reconstruction, long table cells and empty column positions, nested and numbered
 lists, multiline styles, code fencing, Unicode graphemes, literal control tokens,
 and deliberate renderer text/link/style corruption. Ruff and diff checks pass.
 Installed-package and actual application/transport acceptance remain separate.
+
+Runtime revision `4c4abffe` was then installed in a **fresh** virtual environment
+from the owned Git mirror, whose exact commit matched the published main ref.
+Installing the declared `delivery-markdown` extra plus pytest/pytest-asyncio
+resolved only 16 packages; no Twin, NeuroMem, SageVDB or existing app environment
+was borrowed. The same 257 installed-package tests passed in 24.84 seconds from
+`/tmp`, with PYTHONPATH removed and user-site imports disabled. Module location
+and VCS revision were verified in site-packages. This also exercised a newer
+compatible regex wheel (2026.9.29 rather than the source fixture's 2026.7.19).
+This verifies the packaged capability and declared dependencies, not Twin
+adoption, real Slack rendering, recipient visibility or production promotion.
