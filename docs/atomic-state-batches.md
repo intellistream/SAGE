@@ -41,6 +41,23 @@ These are process-crash tests, not power-loss durability certification. Existing
 SQLite WAL/synchronous configuration is unchanged. Applications must explicitly
 adopt the batch API before claiming atomic destination-state/outbox commits.
 
+## Concurrent SQLite initialization
+
+Independent connections may first open the same SQLite database concurrently.
+WAL negotiation can return `SQLITE_BUSY` or `SQLITE_LOCKED` immediately even when
+a SQLite busy timeout is configured. Runtime initialization explicitly retries
+only those lock errors during WAL negotiation, with a five-second monotonic
+deadline. Other database errors propagate immediately. Failed initialization
+closes its connection before propagating the original error.
+
+After negotiating WAL, the normal five-second SQLite writer busy timeout is
+restored. Journal mode, synchronous policy and transaction behavior are unchanged;
+no application lock or retry around a business effect is introduced. A persistent
+external lock still fails after the startup wait, rather than waiting forever.
+Qualification includes a real held SQLite lock released during initialization,
+deadline exhaustion, corrupt-database failure and eight independent cold
+connections making 80 atomic updates followed by reopen.
+
 ## Composing a work intent
 
 `WorkJournal.prepare_commit(request_id, result=..., tasks=...)` returns a fixed

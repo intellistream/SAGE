@@ -17,6 +17,8 @@ from .models import _StateEntry
 from .protocols import StatefulSpec
 from .utils import _stable_key_fragment
 
+_SQLITE_BUSY_TIMEOUT_SECONDS = 5.0
+
 
 class StateMutation(Enum):
     """Explicit batch mutation markers; None remains an ordinary stored value."""
@@ -178,10 +180,36 @@ class _SQLiteStateBackend(_StateBackend):
                 os.makedirs(parent, exist_ok=True)
         self._conn = sqlite3.connect(
             normalized_path,
-            timeout=5.0,
+            # WAL negotiation can report BUSY without invoking SQLite's busy
+            # handler. Use an explicit deadline here, then restore the normal
+            # writer timeout once the connection has negotiated its mode.
+            timeout=0.0,
             check_same_thread=False,
         )
-        self._conn.execute("PRAGMA journal_mode=WAL")
+        try:
+            self._initialize()
+        except BaseException:
+            self._conn.close()
+            raise
+
+    def _enable_wal(self) -> None:
+        deadline = time.monotonic() + _SQLITE_BUSY_TIMEOUT_SECONDS
+        while True:
+            try:
+                self._conn.execute("PRAGMA journal_mode=WAL").close()
+                return
+            except sqlite3.OperationalError as error:
+                code = getattr(error, "sqlite_errorcode", None)
+                if code is None or code & 0xFF not in {sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED}:
+                    raise
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise
+                time.sleep(min(0.01, remaining))
+
+    def _initialize(self) -> None:
+        self._enable_wal()
+        self._conn.execute(f"PRAGMA busy_timeout={int(_SQLITE_BUSY_TIMEOUT_SECONDS * 1000)}").close()
         self._conn.execute("PRAGMA synchronous=NORMAL")
         self._conn.execute(
             """
