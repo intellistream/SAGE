@@ -25,6 +25,15 @@ irrelevant documents. Never generate factual prose, paraphrases, titles or quote
 Return empty source_ids if none is relevant. Inferences MUST be empty unless
 allow_inferences is true; when true, optional suggestions are strings rendered
 separately as non-source inferences, never as established facts.
+For research review, inferences should answer the requested analysis, not repeat
+source descriptions. Distinguish: what THESE supplied sources do not establish;
+a proposed, explicitly hypothetical claim; a matched control experiment; the
+measurements and observations that would falsify that proposed claim. A proposal
+is not the authors' actual hypothesis. Functional correctness, safe composition,
+and performance are distinct claims: lack of speedup does not falsify a safety
+claim. Absence of measurements from a page establishes only an evidence boundary
+for this answer, never that experiments were not performed or results do not
+exist. Do not declare overall validation status from a source's omission.
 """
 
 
