@@ -30,6 +30,12 @@ sage-dev = "sage.tools.cli.commands.dev:run_with_suggestions"
 sage-edge = "sage.edge.server:main"
 
 [project.optional-dependencies]
+delivery-markdown = [
+    "mdformat==1.0.0",
+    "mdformat-gfm==1.0.0",
+    "markdown-it-py>=4,<5",
+    "regex>=2024.0",
+]
 sagellm = [
     # Optional external inference engine integration
     "isagellm>=0.5.4.3; python_version < '3.13'",
@@ -70,6 +76,11 @@ full = [
     "isage-data>=0.2.3.2",
 ]
 dev = [
+    # Bounded complete Markdown delivery planning
+    "mdformat==1.0.0",
+    "mdformat-gfm==1.0.0",
+    "markdown-it-py>=4,<5",
+    "regex>=2024.0",
     # Edge integration runtime + test helpers
     "fastapi>=0.115.0,<1.0.0",
     "uvicorn[standard]>=0.34.0,<1.0.0",
