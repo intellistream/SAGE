@@ -14,6 +14,7 @@ import math
 from dataclasses import dataclass
 from uuid import uuid4
 
+from sage.runtime.async_work_service import complete_sync_call
 from sage.runtime.work_dispatcher import WorkFailure
 from sage.runtime.work_journal import WorkJournal
 from sage.runtime.work_service import WorkService
@@ -221,3 +222,16 @@ class CancellationService:
 
     def close(self, *, timeout: float = 30):
         self._work.close(timeout=timeout)
+
+    async def astart(self):
+        return await complete_sync_call(self.start)
+
+    async def arequest(self, request_id):
+        return await complete_sync_call(self.request, request_id)
+
+    async def await_result(self, request_id, *, timeout: float):
+        """Cancelling an observer cannot abandon a borrowed-store read thread."""
+        return await complete_sync_call(self.wait, request_id, timeout=timeout)
+
+    async def aclose(self, *, timeout: float = 30):
+        await complete_sync_call(self.close, timeout=timeout)

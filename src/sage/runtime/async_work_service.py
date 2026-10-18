@@ -18,6 +18,27 @@ from sage.runtime.work_service import WorkService, WorkWaitTimeoutError
 _HANDLER_SERVICE = contextvars.ContextVar("sage_async_work_handler", default=None)
 
 
+async def complete_sync_call(function, *args, **kwargs):
+    """Keep ownership of a synchronous storage/drain call through cancellation.
+
+    Cancelling an asyncio observer cannot stop a transaction in its thread. Wait
+    for that call to settle before propagating cancellation, including repeated
+    cancellation. Actual operation errors retain precedence. This schedules no
+    durable work; the caller owns the resource lifetime and durable service.
+    """
+    operation = asyncio.create_task(asyncio.to_thread(function, *args, **kwargs))
+    cancelled = False
+    while not operation.done():
+        try:
+            await asyncio.shield(operation)
+        except asyncio.CancelledError:
+            cancelled = True
+    result = operation.result()
+    if cancelled:
+        raise asyncio.CancelledError
+    return result
+
+
 class WorkStartTimeoutError(TimeoutError):
     """Observer stopped waiting for a first claim; admitted work is unchanged."""
 
@@ -80,19 +101,7 @@ class AsyncWorkService:
 
     async def _offload(self, function, *args, **kwargs):
         self._check_loop()
-        operation = asyncio.create_task(asyncio.to_thread(function, *args, **kwargs))
-        cancelled = False
-        while not operation.done():
-            try:
-                await asyncio.shield(operation)
-            except asyncio.CancelledError:
-                # Cancelling the waiter cannot stop a transaction or close
-                # thread. Retain ownership through repeated cancellations.
-                cancelled = True
-        result = operation.result()  # Surface actual storage/drain failures.
-        if cancelled:
-            raise asyncio.CancelledError
-        return result
+        return await complete_sync_call(function, *args, **kwargs)
 
     async def start(self):
         await self._offload(self._service.start)

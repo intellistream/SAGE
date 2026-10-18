@@ -1,3 +1,4 @@
+import asyncio
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -297,3 +298,41 @@ instance.wait("turn",timeout=10)
         instance.close()
         target.close()
         source.close()
+
+
+def test_async_observer_repeated_cancel_waits_for_native_settlement(stores):
+    async def scenario():
+        origin = WorkJournal(stores("origin.db"), namespace="http")
+        origin.commit("turn", result=None, tasks={"answer": {}})
+        target = EffectFences(stores("target.db"), namespace="request")
+        entered, release = Event(), Event()
+        seal = target.seal
+
+        def blocked(scope):
+            entered.set()
+            assert release.wait(5)
+            seal(scope)
+
+        target.seal = blocked
+        instance = service(origin, {"target": target})
+        observer = None
+        try:
+            await instance.astart()
+            assert await instance.arequest("turn") == "accepted"
+            assert await asyncio.to_thread(entered.wait, 3)
+            observer = asyncio.create_task(instance.await_result("turn", timeout=3))
+            await asyncio.sleep(0.02)
+            for _ in range(2):
+                observer.cancel()
+                await asyncio.sleep(0.02)
+                assert not observer.done(), "cancelled observer abandoned borrowed storage"
+            release.set()
+            with pytest.raises(asyncio.CancelledError):
+                await observer
+            assert instance.wait("turn", timeout=3) == "cancelled"
+        finally:
+            release.set()
+            if observer is not None and not observer.done():
+                await asyncio.gather(observer, return_exceptions=True)
+            await instance.aclose()
+    asyncio.run(scenario())

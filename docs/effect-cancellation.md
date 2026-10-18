@@ -63,6 +63,13 @@ if admission == "accepted":
 cancellations.close()
 ```
 
+Async adapters use `astart`, `arequest`, `await_result` and `aclose` on this same
+service. These ports reuse the existing async work service's
+`complete_sync_call` ownership boundary: cancellation of an asyncio observer,
+including repeated cancellation, waits for its underlying synchronous call to
+settle before propagating. No borrowed-store read or close thread is abandoned.
+This is an async facade over the same durable worker, not another scheduler.
+
 Lazy providers returning `EffectFences` are supported. Destination names and
 bindings are immutable within an admitted cancellation. Changing a declaration
 on replay raises a journal conflict; missing/remapped providers cannot become
