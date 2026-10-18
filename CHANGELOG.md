@@ -16,6 +16,8 @@ Source: `https://pypi.org/pypi/isage/json` (checked on 2026-02-14, UTC).
 
 ### Changed
 
+- Added `sage.runtime.source_audit`: full-evidence, input-bound audit protocol with complete answer-unit coverage and exact quote provenance checks. Malformed, stale and incomplete audits fail closed. Semantic entailment still requires an independently qualified auditor; this protocol alone is not proof of factual correctness or a production rollout.
+
 - Added a typed, versioned compiled-workflow plan cache with bounded LRU/TTL, failure recovery, single-flight compilation, metrics, and real `FlowDeclaration.compile_reusable()` / `bind_reusable()` integration that keeps request IO outside static plans.
 - Promoted the main repository to the `0.3` product line after the stream/runtime/serving consolidation.
 - Reworked the owned `sage` CLI surface around the in-tree core boundary: `version`, `status`, `doctor`, `verify`, `runtime nodes`, `serve gateway`, `chat`, and `index ingest`.
