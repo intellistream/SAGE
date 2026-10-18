@@ -35,6 +35,14 @@ class InvalidSourceAudit(ValueError):
     """Malformed, stale or incomplete audit; never safe to publish."""
 
 
+class SourceAuditRejected(RuntimeError):
+    """Terminal answer-validation failure after the caller's repair allowance.
+
+    Durable adapters must not retry the entire generation as a transport error.
+    This stable exception type also survives FlowNet's structured error outcome.
+    """
+
+
 @dataclass(frozen=True)
 class AuditRequest:
     """Immutable snapshot binding an audit to its complete input."""
