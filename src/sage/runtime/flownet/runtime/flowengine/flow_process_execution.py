@@ -9,6 +9,9 @@ from threading import Lock
 from typing import Any
 
 from sage.runtime.cancellation import RequestCancelledError, raise_if_request_cancelled
+from sage.runtime.execution_observation import (
+    ExecutionObservationError, execution_is_observed, execution_wave, observe_operator,
+)
 
 from sage.runtime.flownet.runtime.flowengine.cursor_ctx import bind_event_cursor
 from sage.runtime.flownet.runtime.flowengine.branch_scheduler import BranchScheduler
@@ -528,6 +531,10 @@ class FlowProcessExecution:
         return getattr(transformation, "type", None) == "map"
 
     def _execute_ready_cursors(self, ready: list[EventCursor]) -> list[CursorStepResult]:
+        with execution_wave(len(ready)):
+            return self._dispatch_ready_cursors(ready)
+
+    def _dispatch_ready_cursors(self, ready: list[EventCursor]) -> list[CursorStepResult]:
         if len(ready) == 1 and not self._is_parallel_map_cursor(ready[0]):
             return [self._execute_cursor_step_with_exception_handling(ready[0])]
         # Copy before dispatch: failed copying must not execute only part of a
@@ -539,6 +546,23 @@ class FlowProcessExecution:
         self._branch_scheduler.close(wait=wait, cancel_futures=cancel_futures)
 
     def _execute_cursor_step_with_exception_handling(
+        self,
+        cursor: EventCursor,
+    ) -> CursorStepResult:
+        if not execution_is_observed():
+            return self._execute_cursor_step_resolving_exceptions(cursor)
+        program = self._resolve_flow_program(cursor.flow_program_ref)
+        transformation = getattr(program, "transformations", {}).get(cursor.pc_node_id)
+        with observe_operator(cursor, transformation) as observation:
+            try:
+                result = self._execute_cursor_step_resolving_exceptions(cursor)
+            except _TerminalCursorOutcome as failure:
+                observation.failed_resolution(failure.metadata.get("exception_action"))
+                raise
+            observation.resolve(result)
+            return result
+
+    def _execute_cursor_step_resolving_exceptions(
         self,
         cursor: EventCursor,
     ) -> CursorStepResult:
@@ -558,6 +582,7 @@ class FlowProcessExecution:
                 )
             except (
                 RequestCancelledError,
+                ExecutionObservationError,
                 UnsupportedOperatorTypeError,
                 StatefulProcessContractError,
                 ShuffleOperatorContractError,
@@ -569,6 +594,8 @@ class FlowProcessExecution:
                 # Advanced operator contract violations are non-recoverable runtime errors.
                 raise
             except Exception as exc:
+                if getattr(exc, "error_type", None) == "ExecutionObservationError":
+                    raise
                 message = str(exc)
                 self._observe_process_factory_error_if_needed(
                     cursor=cursor,

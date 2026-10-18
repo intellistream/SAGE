@@ -135,11 +135,12 @@ class DataStream(Generic[T]):
         self.transformation = transformation
         self.init = bool(init)
 
-    def map(self, fn_object: Any) -> DataStream:
+    def map(self, fn_object: Any, *, operator_key: str | None = None) -> DataStream:
         transformation = Transformation(
             self.flow_program,
             _ensure_flow_target(fn_object, "map"),
             type="map",
+            operator_key=operator_key,
         )
         return self._apply(transformation)
 
@@ -630,7 +631,7 @@ class SinkStream(DataStream):
     def _raise(self, op: str):
         raise FlowDefinitionError(f"Cannot call {op} on a SinkStream.")
 
-    def map(self, fn_object):  # type: ignore[override]
+    def map(self, fn_object, *, operator_key=None):  # type: ignore[override]
         return self._raise("map()")
 
     def process(self, fn_object):  # type: ignore[override]
