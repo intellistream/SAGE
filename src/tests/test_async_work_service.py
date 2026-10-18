@@ -14,6 +14,44 @@ def state(path):
     return store, WorkJournal(store, namespace="async-test")
 
 
+def test_cancel_during_pending_poll_is_not_swallowed(tmp_path, monkeypatch):
+    async def scenario():
+        store, journal = state(tmp_path / "state.db")
+        entered, release = Event(), Event()
+        calls = []
+
+        async def handler(lease):
+            return "unused"
+
+        service = AsyncWorkService(journal, handler, poll_interval=0.01)
+
+        def pending(*args, **kwargs):
+            calls.append(1)
+            entered.set()
+            assert release.wait(3)
+            raise WorkWaitTimeoutError("work_result_wait_timeout")
+
+        monkeypatch.setattr(service._service, "wait", pending)
+        observer = asyncio.create_task(service.wait("turn", timeout=0.2))
+        try:
+            assert await asyncio.to_thread(entered.wait, 3)
+            observer.cancel()
+            await asyncio.sleep(0)  # Deliver cancellation while the poll is blocked.
+            release.set()
+            with pytest.raises(asyncio.CancelledError):
+                await observer
+            assert calls == [1]
+        finally:
+            release.set()
+            if not observer.done():
+                observer.cancel()
+                await asyncio.gather(observer, return_exceptions=True)
+            await service.aclose()
+            store.close()
+
+    asyncio.run(scenario())
+
+
 def test_start_timeout_observes_native_capacity_without_rejecting_queued_work(tmp_path):
     async def scenario():
         store, journal = state(tmp_path / "state.db")

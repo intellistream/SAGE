@@ -107,6 +107,14 @@ class AsyncWorkService:
         """Persist explicit cancellation; observer cancellation is unrelated."""
         return await self._offload(self._service.cancel, request_id, task_id, protect=protect)
 
+    def _poll_result(self, request_id):
+        # Expected pending status must not replace a cancellation observed by
+        # _offload while its thread drains. Real storage failures still surface.
+        try:
+            return self._service.wait(request_id, timeout=0)
+        except WorkWaitTimeoutError:
+            return None
+
     async def wait(self, request_id, *, timeout, start_timeout=None):
         """Observe completion with an optional first-claim wait bound.
 
@@ -123,7 +131,10 @@ class AsyncWorkService:
         start_deadline = None if start_timeout is None else self._loop.time() + start_timeout
         while True:
             try:
-                return await self._offload(self._service.wait, request_id, timeout=0)
+                result = await self._offload(self._poll_result, request_id)
+                if result is None:
+                    raise WorkWaitTimeoutError("work_result_wait_timeout")
+                return result
             except WorkWaitTimeoutError:
                 if start_deadline is not None:
                     record = await self._offload(self.journal.read, request_id)
