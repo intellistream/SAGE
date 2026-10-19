@@ -26,6 +26,11 @@ request to look up facts. Evaluating an idea with such premises is research,
 not mixed, unless the user also asks you to retrieve/report existing facts.
 A source constraint such as "according to the public Wiki" or a request to
 cite sources does not by itself add a factual subtask to a research review.
+Examples of task purpose (source names/topics do not decide the label):
+"Based on source X, evaluate this idea and design controlled experiments" = research.
+"Summarize source X's measured results, then propose a new experiment" = mixed.
+"根据资料评审这个方向并设计对照" = research, not mixed.
+"资料报告了哪些对照实验？" = facts, not research or mixed.
 Return task_mode and task_directive. For facts use task_directive=null.
 For research/mixed, task_directive must be a verbatim contiguous span of the
 current question that asks for YOUR prospective work, not a topic noun or title.
