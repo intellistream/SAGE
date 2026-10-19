@@ -15,11 +15,11 @@ def test_factual_topic_does_not_enable_prospective_work(question):
 
 def test_mixed_task_requires_current_directive():
     question = "先核对现有结果，再为缺口设计对照实验。"
-    assert AnswerTask("mixed", "为缺口设计对照实验").validate(question).research_requested
+    assert AnswerTask("research", "为缺口设计对照实验").validate(question).research_requested
 
 
 @pytest.mark.parametrize("task", [AnswerTask("research"),
-    AnswerTask("mixed", "设计不存在的实验"), AnswerTask("facts", "设计实验"),
+    AnswerTask("research", "设计不存在的实验"), AnswerTask("facts", "设计实验"),
     AnswerTask("unknown")])
 def test_invalid_task_cannot_activate_work(task):
     with pytest.raises(ValueError):
