@@ -45,6 +45,9 @@ def test_runtime_owns_distinct_matched_control_and_falsification_rules():
     assert "两组使用完全相同的故障／事件轨迹" in safety and "两组使用完全相同" in performance
     assert "不代表项目当前实现或既有实验" in safety
     assert "对照度量为正" in performance
+    assert "确认两组未改变数值计算路径" in safety
+    assert "不能在看到差异后放宽为数值容差" in safety
+    assert "不能只统计成功存活的请求" in performance
     assert experiment_response_format(req)["json_schema"]["strict"] is True
 
 
