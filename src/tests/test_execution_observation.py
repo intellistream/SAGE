@@ -133,7 +133,10 @@ def test_real_fanout_reports_live_starts_actual_wave_and_content_free_events():
         assert set(topology[router.node_id].downstream_node_ids) == {
             event.node_id for event in starts}
         assert all(set(vars(node)) == {
-            "node_id", "operator_type", "operator_key", "downstream_node_ids"} for node in topology.values())
+            "node_id", "operator_type", "operator_key", "downstream_node_ids",
+            "is_entry", "is_return", "is_sink"} for node in topology.values())
+        assert {node.node_id for node in topology.values() if node.is_entry} == {router.node_id}
+        assert {node.node_id for node in topology.values() if node.is_return} == {event.node_id for event in starts}
     finally:
         bootstrap.shutdown()
         _barriers.clear()

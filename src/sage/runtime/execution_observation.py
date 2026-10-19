@@ -47,11 +47,16 @@ class ExecutionTopologyNode:
     operator_type: str
     operator_key: str | None
     downstream_node_ids: tuple[str, ...]
+    is_entry: bool = False
+    is_return: bool = False
+    is_sink: bool = False
 
 
 def _program_topology(transformation):
     program = getattr(transformation, "flow_program", None)
     nodes = getattr(program, "transformations", {})
+    router = getattr(program, "_entry_router", None)
+    entries = {router.trans_id} if router is not None else set(getattr(program, "entry_ids", ()))
     snapshot = []
     for node_id, node in sorted(nodes.items()):
         downstream = {item.trans_id for item in getattr(node, "downstreams", ())}
@@ -65,7 +70,9 @@ def _program_topology(transformation):
         if not downstream <= nodes.keys():
             raise ExecutionObservationError("execution_topology_unknown_node")
         snapshot.append(ExecutionTopologyNode(node_id, str(node.type), node.operator_key,
-                                              tuple(sorted(downstream))))
+                                              tuple(sorted(downstream)), node_id in entries,
+                                              bool(getattr(node, "is_return", False)),
+                                              bool(getattr(node, "is_sink", False))))
     return tuple(snapshot)
 
 
