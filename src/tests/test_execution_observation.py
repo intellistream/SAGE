@@ -126,6 +126,14 @@ def test_real_fanout_reports_live_starts_actual_wave_and_content_free_events():
         assert {event.trace_id for event in events} == {"synthetic-trace"}
         assert "secret-request-content" not in repr([event.to_dict() for event in events])
         assert not any(key in events[0].to_dict() for key in ("payload", "tags", "target", "exception"))
+        snapshots = [event for event in events if event.program_topology]
+        assert len(snapshots) == 1
+        topology = {node.node_id: node for node in snapshots[0].program_topology}
+        assert set(topology) == {event.node_id for event in events}
+        assert set(topology[router.node_id].downstream_node_ids) == {
+            event.node_id for event in starts}
+        assert all(set(vars(node)) == {
+            "node_id", "operator_type", "operator_key", "downstream_node_ids"} for node in topology.values())
     finally:
         bootstrap.shutdown()
         _barriers.clear()

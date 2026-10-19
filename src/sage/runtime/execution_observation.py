@@ -40,6 +40,36 @@ class ExecutionNodeRef:
 
 
 @dataclass(frozen=True)
+class ExecutionTopologyNode:
+    """Content-free declared node; presence never asserts that it executed."""
+
+    node_id: str
+    operator_type: str
+    operator_key: str | None
+    downstream_node_ids: tuple[str, ...]
+
+
+def _program_topology(transformation):
+    program = getattr(transformation, "flow_program", None)
+    nodes = getattr(program, "transformations", {})
+    snapshot = []
+    for node_id, node in sorted(nodes.items()):
+        downstream = {item.trans_id for item in getattr(node, "downstreams", ())}
+        # Entry routers use explicit registry route references, not normal
+        # downstream links. Export identities only, never operator configuration.
+        if getattr(node, "type", None) == "sys/router":
+            for route in (getattr(node, "operator_config", None) or {}).get("routes", ()):
+                target = route.get("transformation") if isinstance(route, dict) else None
+                if target is not None:
+                    downstream.add(target.trans_id)
+        if not downstream <= nodes.keys():
+            raise ExecutionObservationError("execution_topology_unknown_node")
+        snapshot.append(ExecutionTopologyNode(node_id, str(node.type), node.operator_key,
+                                              tuple(sorted(downstream))))
+    return tuple(snapshot)
+
+
+@dataclass(frozen=True)
 class ExecutionEvent:
     version: int
     event_id: str
@@ -62,6 +92,7 @@ class ExecutionEvent:
     timestamp_ns: int
     duration_ns: int | None
     resolution: str | None
+    program_topology: tuple[ExecutionTopologyNode, ...] = ()
 
     def to_dict(self):
         return asdict(self)
@@ -87,6 +118,7 @@ class ExecutionObserver:
         self._identity = uuid4().hex
         self._sequence = 0
         self._lock = Lock()
+        self._declared_programs = set()
 
     @classmethod
     def journaled(cls, journal, *, stream_id: str, trace_id: str | None = None):
@@ -120,10 +152,15 @@ class ExecutionObserver:
             _parent.reset(parent_token)
             _observer.reset(observer_token)
 
-    def _emit(self, fields):
+    def _emit(self, fields, *, transformation=None):
         if _delivering.get() is not None:
             raise ExecutionObservationError("execution_observer_reentrant_delivery")
         with self._lock:
+            scope = (fields["request_id"], fields["parent_execution_id"],
+                     fields["program_uri"], fields["program_rev"])
+            if transformation is not None and scope not in self._declared_programs:
+                fields = {**fields, "program_topology": _program_topology(transformation)}
+                self._declared_programs.add(scope)
             self._sequence += 1
             event = ExecutionEvent(version=1, event_id=f"{self._identity}:{self._sequence}",
                 sequence=self._sequence, trace_id=self.trace_id, timestamp_ns=time.time_ns(), **fields)
@@ -186,7 +223,7 @@ def observe_operator(cursor, transformation):
         downstream_node_ids=tuple(item.trans_id for item in getattr(transformation, "downstreams", ())),
         wave_id=wave[0] if wave else None, wave_size=wave[1] if wave else 1)
     observer._emit({**fields, "state": "started", "duration_ns": None, "resolution": None,
-                    "next_nodes": ()})
+                    "next_nodes": ()}, transformation=transformation)
     parent_token = _parent.set(execution_id)
     started = time.monotonic_ns()
     try:

@@ -74,6 +74,12 @@ def test_filtered_native_paths_rejoin_once_and_reuse_graph():
             assert completed.count("booking") == int(booking)
             assert completed.count("render") == 1
             assert completed.count("booking-decision") == completed.count("answer-decision") == 1
+            topology = [node for event in events for node in event.program_topology]
+            assert [node.operator_key for node in topology].count("booking") == 1
+            # The unselected descendant remains declared, never fabricated as
+            # an executed node. The snapshot is emitted once per invocation.
+            assert sum(bool(event.program_topology) for event in events) == 1
+            assert completed.count("booking") == int(booking)
         assert endpoint._requests == {}
     finally:
         if endpoint is not None:
