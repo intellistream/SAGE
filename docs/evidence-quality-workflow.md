@@ -2,7 +2,7 @@
 
 `sage.runtime.evidence_workflow.EvidenceWorkflowRuntime` is a single persistent
 native flow for read-only evidence work. Applications supply request-scoped
-`assess`, `supplement`, `compose` and `review` ports, not another scheduler.
+`assess`, `supplement`, `compose` and `plan_experiments` ports, not another scheduler.
 
 The flow is:
 
@@ -10,8 +10,12 @@ The flow is:
 2. Route only missing evidence through one supplement round and fresh assessment.
 3. Compose a source-constrained plan; mapped witnesses may not disappear from
    the selected factual source set.
-4. Research requests execute a separate proposal review. Ordinary factual
-   requests do not incur this model stage. Review cannot change factual sources.
+4. Research requests with selected factual sources execute a separate typed
+   experiment-plan stage. Ordinary factual requests do not incur this model
+   stage. The model supplies mechanism settings, shared conditions and
+   measurements, never verdict or falsifier prose. SAGE renders the distinct
+   invariant counterexample and performance confidence-bound rules. Selected
+   factual sources cannot be changed by this stage.
 5. Verify exact source rendering and render any remaining evidence gaps as
    original question spans, explicitly not negative factual conclusions.
 
@@ -38,6 +42,11 @@ An exact witness proves provenance, NOT entailment or independent truth. The
 model's relevance/completeness assessment still needs real-question qualification.
 Never advertise a coverage receipt as a guarantee that the answer is correct.
 Research proposals likewise remain labeled prospective inferences, not facts.
+Candidate implementations are explicitly not claims about the project's current
+architecture, actual experiments or results. Relative performance gains require
+positive comparable baseline measurements; inconclusive intervals do not
+falsify a gain threshold. One reproducible invariant violation can falsify its
+stated universal claim, independently of statistical significance or speedup.
 
 ## Adapter obligations
 
@@ -54,8 +63,11 @@ unconstrained factual generation. Resolved/business turns remain resolved.
   `PlanSource` records. Conflicting reuse of a source ID is rejected. The runtime
   preserves all existing sources rather than replacing them with an abstract.
 - `assess(request)` returns coverage JSON; `compose(request, assessment)` returns
-  source-plan JSON; `review(request, plan)` returns reviewed source-plan JSON.
-  Fact selection is unchanged by review. These ports must use configured models
+  factual source-plan JSON with no freeform inferences; `plan_experiments(request, plan)`
+  returns typed experiment JSON (`experiment_response_format`). Fact selection
+  is fixed before this stage. The exact experiment receipt is revalidated and
+  canonically rendered before publication; arbitrary replacement prose fails.
+  These ports must use configured models
   and auth helpers without logging credentials or private request payloads.
 - Respect the caller's remaining deadline. Native child requests inherit
   cancellation. No business writes are replayed, and gaps do not start an

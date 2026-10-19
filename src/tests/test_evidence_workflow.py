@@ -26,11 +26,10 @@ SUPPLEMENT = PlanSource("b", "B", "https://example.org/b", "B composes extension
 
 
 class Ports:
-    def __init__(self, *, missing=False, no_evidence=False, proposals=False, omit=False):
+    def __init__(self, *, missing=False, no_evidence=False, omit=False):
         self.calls = []
         self.missing = missing
         self.no_evidence = no_evidence
-        self.proposals = proposals
         self.omit = omit
 
     def assess(self, request):
@@ -48,12 +47,17 @@ class Ports:
         self.calls.append(("compose", request.digest))
         return json.dumps({"digest": request.digest,
             "source_ids": [] if self.omit else [s.source_id for s in request.sources],
-            "inferences": ["Proposed matched-control experiment."] if self.proposals else []})
+            "inferences": []})
 
-    def review(self, request, plan):
-        self.calls.append(("review", request.digest))
-        return json.dumps({"digest": request.digest, "source_ids": plan.source_ids,
-            "inferences": ["Reviewed prospective proposal, not an established fact."]})
+    def plan_experiments(self, request, plan):
+        self.calls.append(("experiments", request.digest))
+        common = {"mechanism": "mechanism", "control_value": "off", "treatment_value": "on",
+            "shared_conditions": ["same workload"], "fault_schedule": "identical replay"}
+        return json.dumps({"digest": request.digest, "experiments": [
+            {**common, "kind": "invariant", "invariant": "unique ownership"},
+            {**common, "kind": "performance", "metric": "QPS", "direction": "higher",
+                "threshold_gain": 0.2, "confidence": 0.95, "target_power": 0.8,
+                "sampling_unit": "paired trace"}]})
 
 
 @pytest.mark.parametrize("missing", [False, True])
@@ -66,7 +70,7 @@ def test_only_evidence_gaps_execute_one_native_supplement_and_reassessment(missi
         assert starts.count("supplement-evidence") == int(missing)
         assert starts.count("reassess-coverage") == int(missing)
         assert starts.count("verify-evidence-answer") == 1
-        assert starts.count("review-proposals") == 0
+        assert starts.count("plan-experiments") == 0
         assert result.repair_attempted is missing
         assert result.assessment.missing_ids == ()
         assert SOURCE.content in result.answer
@@ -93,14 +97,29 @@ def test_unresolved_after_one_repair_is_not_hidden_or_claimed_false():
         runtime.close()
 
 
-def test_research_activates_actual_proposal_review_not_a_route_label():
-    runtime, ports, events = EvidenceWorkflowRuntime(), Ports(proposals=True), []
+def test_research_distinguishes_source_unknowns_from_generated_experimental_design():
+    runtime = EvidenceWorkflowRuntime()
+    try:
+        result = runtime.run("Review A", (SOURCE,), Ports(no_evidence=True), timeout=3, research=True)
+        assert result.experiment_plan is not None
+        assert "## 来源事实边界" in result.answer
+        assert "不代表项目当前实现、已有实验或验证状态" in result.answer
+        assert SOURCE.content in result.answer and "一次可复现的不变量违反" in result.answer
+    finally:
+        runtime.close()
+
+
+def test_research_activates_actual_experiment_plan_and_formal_checks_not_a_route_label():
+    runtime, ports, events = EvidenceWorkflowRuntime(), Ports(), []
     try:
         with ExecutionObserver(events.append).bind():
             result = runtime.run("Propose an experiment about A", (SOURCE,), ports, timeout=5, research=True)
-        assert [c[0] for c in ports.calls] == ["assess", "compose", "review"]
-        assert any(e.operator_key == "review-proposals" and e.state == "completed" for e in events)
-        assert "Reviewed prospective proposal" in result.answer and SOURCE.content in result.answer
+        assert [c[0] for c in ports.calls] == ["assess", "compose", "experiments"]
+        assert any(e.operator_key == "plan-experiments" and e.state == "completed" for e in events)
+        assert "单侧置信上界低于" in result.answer and SOURCE.content in result.answer
+        assert "一次可复现的不变量违反" in result.answer
+        with pytest.raises(InvalidEvidenceCoverage):
+            render_evidence_work(replace(result, plan=replace(result.plan, inferences=("arbitrary verdict",))))
     finally:
         runtime.close()
 
@@ -164,9 +183,9 @@ def test_shared_runtime_keeps_concurrent_model_and_retrieval_ports_scoped():
         runtime.close()
 
 
-def test_research_review_cannot_replace_factual_sources():
-    runtime, ports = EvidenceWorkflowRuntime(), Ports(proposals=True)
-    ports.review = lambda request, plan: json.dumps({"digest": request.digest,
+def test_research_plan_cannot_replace_factual_sources():
+    runtime, ports = EvidenceWorkflowRuntime(), Ports()
+    ports.plan_experiments = lambda request, plan: json.dumps({"digest": request.digest,
         "source_ids": [], "inferences": []})
     try:
         with pytest.raises(FlowRequestOutcomeError):

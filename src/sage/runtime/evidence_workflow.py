@@ -20,6 +20,12 @@ from sage.runtime.evidence_coverage import (
     validate_coverage,
 )
 from sage.runtime.flownet import bootstrap_runtime, build_runtime_client, flow, stateless
+from sage.runtime.research_experiments import (
+    ExperimentPlan,
+    prepare_experiments,
+    render_experiments,
+    validate_experiments,
+)
 from sage.runtime.source_answer_plan import (
     PLAN_SYSTEM_PROMPT,
     PlanSource,
@@ -37,16 +43,6 @@ Retain ALL sources used by coverage witnesses. A missing coverage item is an
 evidence boundary, never proof of absence.
 """
 
-PROPOSAL_REVIEW_SYSTEM_PROMPT = PLAN_SYSTEM_PROMPT + """
-Review and correct ONLY prospective inferences in draft_plan. Keep source_ids
-EXACTLY unchanged and in the same order. Reject retrospective verdicts inferred
-from source omissions. Each proposed experiment must keep its hypothetical claim,
-matched control, fixed variables, measurement and appropriate falsifier together.
-If a proposal cannot be justified, remove it rather than assert a fact. This
-review is not independent verification of source truth.
-"""
-
-
 @dataclass(frozen=True)
 class EvidenceWork:
     request: CoverageRequest
@@ -56,6 +52,7 @@ class EvidenceWork:
     repair_attempted: bool = False
     plan: SourceAnswerPlan | None = None
     answer: str | None = None
+    experiment_plan: ExperimentPlan | None = None
 
 
 @stateless(uri="stateless://sage/evidence/assess", namespace="sage")
@@ -99,13 +96,18 @@ def compose(work):
         raise InvalidEvidenceCoverage("composition requires fresh coverage")
     if not work.request.sources:
         return replace(work, answer="当前允许检索的来源不足以回答这个问题；这不表示相关事实不存在。")
-    request = prepare_source_plan(work.request.question, work.request.sources, allow_inferences=work.research)
+    request = prepare_source_plan(work.request.question, work.request.sources, allow_inferences=False)
     plan = validate_source_plan(request, _ports.get().compose(request, work.assessment))
+    if plan.inferences:
+        raise InvalidEvidenceCoverage("composition cannot author freeform research claims")
+    if work.research:
+        final_request = prepare_source_plan(work.request.question, work.request.sources, allow_inferences=True)
+        plan = SourceAnswerPlan(final_request.digest, plan.source_ids, ())
     return replace(work, plan=plan)
 
 
 def _research_requested(work):
-    return work.research and work.plan is not None
+    return work.research and work.plan is not None and bool(work.plan.source_ids)
 
 
 @stateless(uri="stateless://sage/evidence/research-requested", namespace="sage")
@@ -118,14 +120,14 @@ def research_not_requested(work):
     return not _research_requested(work)
 
 
-@stateless(uri="stateless://sage/evidence/review-proposals", namespace="sage")
-def review_proposals(work):
-    # The review port may reject/rewrite prospective suggestions, never facts.
+@stateless(uri="stateless://sage/evidence/plan-experiments", namespace="sage")
+def plan_experiments(work):
     request = prepare_source_plan(work.request.question, work.request.sources, allow_inferences=True)
-    plan = validate_source_plan(request, _ports.get().review(request, work.plan))
-    if plan.source_ids != work.plan.source_ids:
-        raise InvalidEvidenceCoverage("research review cannot change factual source selection")
-    return replace(work, plan=plan)
+    experiments = prepare_experiments(request, work.plan.source_ids)
+    plan = validate_experiments(experiments, _ports.get().plan_experiments(experiments, work.plan))
+    inferences = render_experiments(experiments, plan)
+    return replace(work, experiment_plan=plan,
+        plan=SourceAnswerPlan(request.digest, work.plan.source_ids, inferences))
 
 
 def render_evidence_work_blocks(work: EvidenceWork) -> tuple[SourceAnswerBlock, ...]:
@@ -139,6 +141,12 @@ def render_evidence_work_blocks(work: EvidenceWork) -> tuple[SourceAnswerBlock, 
         parts = [SourceAnswerBlock("notice", "当前允许检索的来源不足以回答这个问题；这不表示相关事实不存在。")]
     else:
         request = prepare_source_plan(work.request.question, work.request.sources, allow_inferences=work.research)
+        if work.research and work.plan.source_ids:
+            if work.experiment_plan is None:
+                raise InvalidEvidenceCoverage("research answer requires a structured experiment plan")
+            experiments = prepare_experiments(request, work.plan.source_ids)
+            if work.plan.inferences != render_experiments(experiments, work.experiment_plan):
+                raise InvalidEvidenceCoverage("research prose differs from canonical experiment plan")
         used = {w.source_id for item in work.assessment.items for w in item.witnesses}
         if not used <= set(work.plan.source_ids):
             raise InvalidEvidenceCoverage("composition omitted mapped evidence")
@@ -146,9 +154,13 @@ def render_evidence_work_blocks(work: EvidenceWork) -> tuple[SourceAnswerBlock, 
     if gaps:
         # These are original question spans, not model-authored negative claims.
         quoted = "\n".join("> " + line for query in gaps for line in query.splitlines())
-        parts.append(SourceAnswerBlock("notice", "## 仍待补充的依据\n\n本次允许检索的来源未充分覆盖以下提问部分；"
-                   "不能据此认定相关事实不存在。覆盖匹配由模型提出、原文片段由运行时核对，"
-                   "不等同于独立事实核验。\n\n" + quoted))
+        notice = ("## 来源事实边界\n\n本次来源未能逐项证实下列提问中的全部事实前提。"
+            "上面的实验设计是本回答提出的候选方案，不代表项目当前实现、已有实验或验证状态；"
+            "来源未写明的信息仍然未知，不能据此认定事实不存在。"
+            if work.experiment_plan is not None else
+            "## 仍待补充的依据\n\n本次允许检索的来源未充分覆盖以下提问部分；不能据此认定相关事实不存在。")
+        parts.append(SourceAnswerBlock("notice", notice + "覆盖匹配由模型提出、原文片段由运行时核对，"
+            "不等同于独立事实核验。\n\n" + quoted))
     return tuple(parts)
 
 
@@ -168,9 +180,9 @@ def evidence_quality_flow(init_stream):
         supplement, operator_key="supplement-evidence").map(assess, operator_key="reassess-coverage")
     planned = repaired.connect(checked.filter(no_repair, operator_key="coverage-ready")).map(
         compose, operator_key="compose-source-plan")
-    reviewed = planned.filter(research_requested, operator_key="research-proposals").map(
-        review_proposals, operator_key="review-proposals").connect(
-        planned.filter(research_not_requested, operator_key="no-proposal-review"))
+    reviewed = planned.filter(research_requested, operator_key="research-experiments").map(
+        plan_experiments, operator_key="plan-experiments").connect(
+        planned.filter(research_not_requested, operator_key="no-experiment-plan"))
     return reviewed.map(verify, operator_key="verify-evidence-answer")
 
 
