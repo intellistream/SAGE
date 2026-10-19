@@ -1,0 +1,203 @@
+"""One native, read-only evidence coverage / repair / composition workflow.
+
+Applications provide permission-aware retrieval and model adapters, not a second
+scheduler. All decisions use immutable receipts. There is one bounded repair
+round, never automatic replay of business writes or an unbounded model loop.
+"""
+
+from contextvars import ContextVar
+from dataclasses import dataclass, replace
+
+from sage.runtime.evidence_coverage import (
+    CoverageAssessment,
+    CoverageRequest,
+    EvidenceRequirement,
+    InvalidEvidenceCoverage,
+    RequirementCoverage,
+    prepare_coverage,
+    question_requirements,
+    repair_queries,
+    validate_coverage,
+)
+from sage.runtime.flownet import bootstrap_runtime, build_runtime_client, flow, stateless
+from sage.runtime.source_answer_plan import (
+    PLAN_SYSTEM_PROMPT,
+    PlanSource,
+    SourceAnswerBlock,
+    SourceAnswerPlan,
+    prepare_source_plan,
+    render_source_plan_blocks,
+    validate_source_plan,
+)
+
+_ports = ContextVar("sage_evidence_workflow_ports")
+
+COVERED_PLAN_SYSTEM_PROMPT = PLAN_SYSTEM_PROMPT + """
+Retain ALL sources used by coverage witnesses. A missing coverage item is an
+evidence boundary, never proof of absence.
+"""
+
+PROPOSAL_REVIEW_SYSTEM_PROMPT = PLAN_SYSTEM_PROMPT + """
+Review and correct ONLY prospective inferences in draft_plan. Keep source_ids
+EXACTLY unchanged and in the same order. Reject retrospective verdicts inferred
+from source omissions. Each proposed experiment must keep its hypothetical claim,
+matched control, fixed variables, measurement and appropriate falsifier together.
+If a proposal cannot be justified, remove it rather than assert a fact. This
+review is not independent verification of source truth.
+"""
+
+
+@dataclass(frozen=True)
+class EvidenceWork:
+    request: CoverageRequest
+    research: bool = False
+    assessment: CoverageAssessment | None = None
+    queries: tuple[str, ...] = ()
+    repair_attempted: bool = False
+    plan: SourceAnswerPlan | None = None
+    answer: str | None = None
+
+
+@stateless(uri="stateless://sage/evidence/assess", namespace="sage")
+def assess(work):
+    # No source can witness any factual requirement: avoid a pointless model
+    # round trip, but still route the explicit gaps through permission-aware repair.
+    assessment = (validate_coverage(work.request, _ports.get().assess(work.request))
+        if work.request.sources else CoverageAssessment(work.request.digest, tuple(
+            RequirementCoverage(r.requirement_id, ()) for r in work.request.requirements)))
+    return replace(work, assessment=assessment, queries=repair_queries(work.request, assessment))
+
+
+@stateless(uri="stateless://sage/evidence/needs-repair", namespace="sage")
+def needs_repair(work):
+    return bool(work.queries)
+
+
+@stateless(uri="stateless://sage/evidence/no-repair", namespace="sage")
+def no_repair(work):
+    return not work.queries
+
+
+@stateless(uri="stateless://sage/evidence/supplement", namespace="sage")
+def supplement(work):
+    sources = {source.source_id: source for source in work.request.sources}
+    # This port is read-only and must reapply the SAME captured identity/source
+    # capability filter. Model text never supplies roles or expands source scope.
+    for source in _ports.get().supplement(work.queries):
+        if not isinstance(source, PlanSource):
+            raise InvalidEvidenceCoverage("repair adapter must return authorized source records")
+        if source.source_id in sources and sources[source.source_id] != source:
+            raise InvalidEvidenceCoverage("source identity changed during coverage workflow")
+        sources[source.source_id] = source
+    request = prepare_coverage(work.request.question, work.request.requirements, tuple(sources.values()))
+    return replace(work, request=request, assessment=None, repair_attempted=True)
+
+
+@stateless(uri="stateless://sage/evidence/compose", namespace="sage")
+def compose(work):
+    if work.assessment is None:
+        raise InvalidEvidenceCoverage("composition requires fresh coverage")
+    if not work.request.sources:
+        return replace(work, answer="当前允许检索的来源不足以回答这个问题；这不表示相关事实不存在。")
+    request = prepare_source_plan(work.request.question, work.request.sources, allow_inferences=work.research)
+    plan = validate_source_plan(request, _ports.get().compose(request, work.assessment))
+    return replace(work, plan=plan)
+
+
+def _research_requested(work):
+    return work.research and work.plan is not None
+
+
+@stateless(uri="stateless://sage/evidence/research-requested", namespace="sage")
+def research_requested(work):
+    return _research_requested(work)
+
+
+@stateless(uri="stateless://sage/evidence/research-not-requested", namespace="sage")
+def research_not_requested(work):
+    return not _research_requested(work)
+
+
+@stateless(uri="stateless://sage/evidence/review-proposals", namespace="sage")
+def review_proposals(work):
+    # The review port may reject/rewrite prospective suggestions, never facts.
+    request = prepare_source_plan(work.request.question, work.request.sources, allow_inferences=True)
+    plan = validate_source_plan(request, _ports.get().review(request, work.plan))
+    if plan.source_ids != work.plan.source_ids:
+        raise InvalidEvidenceCoverage("research review cannot change factual source selection")
+    return replace(work, plan=plan)
+
+
+def render_evidence_work_blocks(work: EvidenceWork) -> tuple[SourceAnswerBlock, ...]:
+    """Canonical lossless parts, binding coverage and final source selection."""
+    if work.assessment is None:
+        raise InvalidEvidenceCoverage("missing final coverage")
+    gaps = repair_queries(work.request, work.assessment)
+    if work.plan is None:
+        if work.request.sources:
+            raise InvalidEvidenceCoverage("missing final source plan")
+        parts = [SourceAnswerBlock("notice", "当前允许检索的来源不足以回答这个问题；这不表示相关事实不存在。")]
+    else:
+        request = prepare_source_plan(work.request.question, work.request.sources, allow_inferences=work.research)
+        used = {w.source_id for item in work.assessment.items for w in item.witnesses}
+        if not used <= set(work.plan.source_ids):
+            raise InvalidEvidenceCoverage("composition omitted mapped evidence")
+        parts = list(render_source_plan_blocks(request, work.plan))
+    if gaps:
+        # These are original question spans, not model-authored negative claims.
+        quoted = "\n".join("> " + line for query in gaps for line in query.splitlines())
+        parts.append(SourceAnswerBlock("notice", "## 仍待补充的依据\n\n本次允许检索的来源未充分覆盖以下提问部分；"
+                   "不能据此认定相关事实不存在。覆盖匹配由模型提出、原文片段由运行时核对，"
+                   "不等同于独立事实核验。\n\n" + quoted))
+    return tuple(parts)
+
+
+def render_evidence_work(work: EvidenceWork) -> str:
+    return "\n\n".join(block.markdown for block in render_evidence_work_blocks(work)).strip()
+
+
+@stateless(uri="stateless://sage/evidence/verify", namespace="sage")
+def verify(work):
+    return replace(work, answer=render_evidence_work(work))
+
+
+@flow(uri="flow://sage/evidence-quality", namespace="sage")
+def evidence_quality_flow(init_stream):
+    checked = init_stream.map(assess, operator_key="assess-coverage")
+    repaired = checked.filter(needs_repair, operator_key="coverage-gap").map(
+        supplement, operator_key="supplement-evidence").map(assess, operator_key="reassess-coverage")
+    planned = repaired.connect(checked.filter(no_repair, operator_key="coverage-ready")).map(
+        compose, operator_key="compose-source-plan")
+    reviewed = planned.filter(research_requested, operator_key="research-proposals").map(
+        review_proposals, operator_key="review-proposals").connect(
+        planned.filter(research_not_requested, operator_key="no-proposal-review"))
+    return reviewed.map(verify, operator_key="verify-evidence-answer")
+
+
+class EvidenceWorkflowRuntime:
+    def __init__(self):
+        self._bootstrap = bootstrap_runtime(node_mode="local")
+        try:
+            client = build_runtime_client(owner="sage-evidence", runtime_host=self._bootstrap.runtime_host)
+            self._endpoint = evidence_quality_flow.bind("evidence-quality-in", "evidence-quality-out").endpoint(
+                client=client, reuse_existing=False)
+        except BaseException:
+            self._bootstrap.shutdown()
+            raise
+
+    def run(self, question: str, sources: tuple[PlanSource, ...], ports, *, timeout: float,
+            requirements: tuple[EvidenceRequirement, ...] | None = None, research: bool = False) -> EvidenceWork:
+        request = prepare_coverage(question, requirements if requirements is not None else
+            question_requirements(question), sources)
+        token = _ports.set(ports)
+        try:
+            outputs = self._endpoint.call(EvidenceWork(request, research=research), timeout=timeout)
+        finally:
+            _ports.reset(token)
+        if len(outputs) != 1:
+            raise InvalidEvidenceCoverage("invalid evidence workflow output count")
+        return outputs[0]
+
+    def close(self):
+        self._endpoint.close()
+        self._bootstrap.shutdown()

@@ -1,0 +1,203 @@
+import json
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
+from threading import Barrier
+
+import pytest
+
+from sage.runtime.evidence_coverage import EvidenceRequirement, InvalidEvidenceCoverage
+from sage.runtime.evidence_workflow import (
+    EvidenceWorkflowRuntime,
+    render_evidence_work,
+    render_evidence_work_blocks,
+)
+from sage.runtime.execution_observation import ExecutionObserver
+from sage.runtime.flownet import (
+    FlowRequestOutcomeError,
+    bootstrap_runtime,
+    build_runtime_client,
+    flow,
+    stateless,
+)
+from sage.runtime.source_answer_plan import PlanSource
+
+SOURCE = PlanSource("a", "A", "https://example.org/a", "A owns state. [Full link](https://example.org/long/path)")
+SUPPLEMENT = PlanSource("b", "B", "https://example.org/b", "B composes extensions.\n\n- complete\n  - nested")
+
+
+class Ports:
+    def __init__(self, *, missing=False, no_evidence=False, proposals=False, omit=False):
+        self.calls = []
+        self.missing = missing
+        self.no_evidence = no_evidence
+        self.proposals = proposals
+        self.omit = omit
+
+    def assess(self, request):
+        self.calls.append(("assess", request.digest))
+        return json.dumps({"digest": request.digest, "items": [{"requirement_id": r.requirement_id,
+            "witnesses": [] if self.no_evidence or self.missing and len(request.sources)<2 else [
+                {"source_id": s.source_id, "quote": s.content} for s in request.sources]}
+            for r in request.requirements]})
+
+    def supplement(self, queries):
+        self.calls.append(("supplement", queries))
+        return () if self.no_evidence else (SUPPLEMENT,)
+
+    def compose(self, request, assessment):
+        self.calls.append(("compose", request.digest))
+        return json.dumps({"digest": request.digest,
+            "source_ids": [] if self.omit else [s.source_id for s in request.sources],
+            "inferences": ["Proposed matched-control experiment."] if self.proposals else []})
+
+    def review(self, request, plan):
+        self.calls.append(("review", request.digest))
+        return json.dumps({"digest": request.digest, "source_ids": plan.source_ids,
+            "inferences": ["Reviewed prospective proposal, not an established fact."]})
+
+
+@pytest.mark.parametrize("missing", [False, True])
+def test_only_evidence_gaps_execute_one_native_supplement_and_reassessment(missing):
+    runtime, ports, events = EvidenceWorkflowRuntime(), Ports(missing=missing), []
+    try:
+        with ExecutionObserver(events.append).bind():
+            result = runtime.run("A and B?", (SOURCE,), ports, timeout=5)
+        starts = [e.operator_key for e in events if e.state == "started"]
+        assert starts.count("supplement-evidence") == int(missing)
+        assert starts.count("reassess-coverage") == int(missing)
+        assert starts.count("verify-evidence-answer") == 1
+        assert starts.count("review-proposals") == 0
+        assert result.repair_attempted is missing
+        assert result.assessment.missing_ids == ()
+        assert SOURCE.content in result.answer
+        assert (SUPPLEMENT.content in result.answer) is missing
+        assert render_evidence_work(result) == result.answer
+        assert "\n\n".join(block.markdown for block in render_evidence_work_blocks(result)).strip() == result.answer
+        assert runtime._endpoint._requests == {}
+    finally:
+        runtime.close()
+
+
+def test_unresolved_after_one_repair_is_not_hidden_or_claimed_false():
+    runtime, ports = EvidenceWorkflowRuntime(), Ports(no_evidence=True)
+    try:
+        result = runtime.run("Does B exist?", (SOURCE,), ports, timeout=5)
+        assert [c[0] for c in ports.calls] == ["assess", "supplement", "assess", "compose"]
+        assert result.assessment.missing_ids == ("question",)
+        assert "仍待补充的依据" in result.answer and "> Does B exist?" in result.answer
+        assert "不能据此认定相关事实不存在" in result.answer
+        blocks = render_evidence_work_blocks(result)
+        assert blocks[-1].kind == "notice" and blocks[-1].source_url is None
+        assert "\n\n".join(b.markdown for b in blocks).strip() == result.answer
+    finally:
+        runtime.close()
+
+
+def test_research_activates_actual_proposal_review_not_a_route_label():
+    runtime, ports, events = EvidenceWorkflowRuntime(), Ports(proposals=True), []
+    try:
+        with ExecutionObserver(events.append).bind():
+            result = runtime.run("Propose an experiment about A", (SOURCE,), ports, timeout=5, research=True)
+        assert [c[0] for c in ports.calls] == ["assess", "compose", "review"]
+        assert any(e.operator_key == "review-proposals" and e.state == "completed" for e in events)
+        assert "Reviewed prospective proposal" in result.answer and SOURCE.content in result.answer
+    finally:
+        runtime.close()
+
+
+def test_source_coverage_may_not_be_discarded_by_composition_and_failure_recovers():
+    runtime = EvidenceWorkflowRuntime()
+    try:
+        with pytest.raises(FlowRequestOutcomeError):
+            runtime.run("A?", (SOURCE,), Ports(omit=True), timeout=3)
+        result = runtime.run("A?", (SOURCE,), Ports(), timeout=3)
+        assert SOURCE.content in result.answer
+        assert runtime._endpoint._requests == {}
+        with pytest.raises(InvalidEvidenceCoverage):
+            render_evidence_work(replace(result, request=replace(result.request, digest="stale")))
+    finally:
+        runtime.close()
+
+
+def test_empty_retrieval_can_repair_without_inventing_a_source():
+    runtime = EvidenceWorkflowRuntime()
+    try:
+        found = runtime.run("B?", (), Ports(missing=True), timeout=3,
+            requirements=(EvidenceRequirement("all", 0, 2),))
+        assert found.repair_attempted and SUPPLEMENT.content in found.answer
+        missing = runtime.run("B?", (), Ports(no_evidence=True), timeout=3)
+        assert missing.plan is None and "不存在" in missing.answer
+    finally:
+        runtime.close()
+
+
+def test_repair_cannot_rebind_existing_source_identity():
+    runtime, ports = EvidenceWorkflowRuntime(), Ports(missing=True)
+    ports.supplement = lambda queries: (replace(SOURCE, content="changed source"),)
+    try:
+        with pytest.raises(FlowRequestOutcomeError):
+            runtime.run("A?", (SOURCE,), ports, timeout=3)
+    finally:
+        runtime.close()
+
+
+def test_shared_runtime_keeps_concurrent_model_and_retrieval_ports_scoped():
+    runtime, barrier = EvidenceWorkflowRuntime(), Barrier(2)
+    try:
+        def call(index):
+            source = replace(SOURCE, source_id=f"source-{index}", content=f"Authorized data {index}")
+            ports = Ports()
+            original = ports.assess
+            def assess(request):
+                barrier.wait(3)
+                assert request.sources == (source,)
+                return original(request)
+            ports.assess = assess
+            return runtime.run(f"Question {index}", (source,), ports, timeout=5)
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            results = list(executor.map(call, range(4)))
+        for index, result in enumerate(results):
+            assert f"Authorized data {index}" in result.answer
+            assert result.request.sources[0].source_id == f"source-{index}"
+        assert runtime._endpoint._requests == {}
+    finally:
+        runtime.close()
+
+
+def test_research_review_cannot_replace_factual_sources():
+    runtime, ports = EvidenceWorkflowRuntime(), Ports(proposals=True)
+    ports.review = lambda request, plan: json.dumps({"digest": request.digest,
+        "source_ids": [], "inferences": []})
+    try:
+        with pytest.raises(FlowRequestOutcomeError):
+            runtime.run("Review A", (SOURCE,), ports, timeout=3, research=True)
+    finally:
+        runtime.close()
+
+
+@stateless(uri="stateless://test/coverage-parent", namespace="test")
+def parent_quality(payload):
+    runtime, ports = payload
+    return runtime.run("A?", (SOURCE,), ports, timeout=3)
+
+
+@flow(uri="flow://test/coverage-parent", namespace="test")
+def parent_quality_flow(init_stream):
+    return init_stream.map(parent_quality)
+
+
+def test_nested_quality_failure_preserves_leaf_type_for_durable_classification():
+    bootstrap, runtime, ports = bootstrap_runtime(node_mode="local"), EvidenceWorkflowRuntime(), Ports()
+    ports.assess = lambda request: "invalid JSON"
+    endpoint = parent_quality_flow.bind("test-quality-in", "test-quality-out").endpoint(
+        client=build_runtime_client(owner="test", runtime_host=bootstrap.runtime_host), reuse_existing=False)
+    try:
+        with pytest.raises(FlowRequestOutcomeError) as caught:
+            endpoint.call((runtime, ports), timeout=5)
+        assert caught.value.error_type == "InvalidEvidenceCoverage"
+        assert "invalid coverage JSON" in caught.value.message
+        assert endpoint._requests == {} and runtime._endpoint._requests == {}
+    finally:
+        endpoint.close()
+        runtime.close()
+        bootstrap.shutdown()

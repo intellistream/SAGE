@@ -10,11 +10,13 @@ from typing import Any
 
 from sage.runtime.cancellation import RequestCancelledError, raise_if_request_cancelled
 from sage.runtime.execution_observation import (
-    ExecutionObservationError, execution_is_observed, execution_wave, observe_operator,
+    ExecutionObservationError,
+    execution_is_observed,
+    execution_wave,
+    observe_operator,
 )
-
-from sage.runtime.flownet.runtime.flowengine.cursor_ctx import bind_event_cursor
 from sage.runtime.flownet.runtime.flowengine.branch_scheduler import BranchScheduler
+from sage.runtime.flownet.runtime.flowengine.cursor_ctx import bind_event_cursor
 from sage.runtime.flownet.runtime.flowengine.cursor_models import (
     EventCursor,
     FlowProgramRef,
@@ -748,11 +750,18 @@ class FlowProcessExecution:
         flow_program: Any,
         exc: Exception,
     ) -> CursorStepResult:
+        # Native child flows must preserve their structured cause across the
+        # parent boundary. Otherwise permanent quality/access errors become a
+        # generic FlowRequestOutcomeError and durable adapters retry generation.
+        from sage.runtime.flownet.client.runtime_client import FlowRequestOutcomeError
+
+        error_type = exc.error_type if isinstance(exc, FlowRequestOutcomeError) else exc.__class__.__name__
+        error_message = exc.message if isinstance(exc, FlowRequestOutcomeError) else str(exc)
         event = {
             "kind": "operator_exception",
             "error": exc,
-            "error_type": exc.__class__.__name__,
-            "message": str(exc),
+            "error_type": error_type,
+            "message": error_message,
             "event_group_id": cursor.event_group_id,
             "event_chain_id": cursor.event_chain_id,
             "flow_program_uri": cursor.flow_program_ref.program_uri,
@@ -772,8 +781,8 @@ class FlowProcessExecution:
         except Exception as resolution_exc:
             raise _TerminalCursorOutcome(
                 outcome_status="failed",
-                error_type=exc.__class__.__name__,
-                message=str(exc),
+                error_type=error_type,
+                message=error_message,
                 error_stage=cursor.pc_node_id,
                 metadata={
                     "flow_program_uri": cursor.flow_program_ref.program_uri,
@@ -787,8 +796,8 @@ class FlowProcessExecution:
         if not resolution.handled or resolution.decision is None:
             raise _TerminalCursorOutcome(
                 outcome_status="failed",
-                error_type=exc.__class__.__name__,
-                message=str(exc),
+                error_type=error_type,
+                message=error_message,
                 error_stage=cursor.pc_node_id,
                 metadata={
                     "flow_program_uri": cursor.flow_program_ref.program_uri,
@@ -810,8 +819,8 @@ class FlowProcessExecution:
         if decision.action in {"drop", "abort"}:
             raise _TerminalCursorOutcome(
                 outcome_status=("aborted" if decision.action == "abort" else "failed"),
-                error_type=exc.__class__.__name__,
-                message=str(exc),
+                error_type=error_type,
+                message=error_message,
                 error_stage=cursor.pc_node_id,
                 metadata={
                     "flow_program_uri": cursor.flow_program_ref.program_uri,
@@ -823,8 +832,8 @@ class FlowProcessExecution:
 
         raise _TerminalCursorOutcome(
             outcome_status="failed",
-            error_type=exc.__class__.__name__,
-            message=str(exc),
+            error_type=error_type,
+            message=error_message,
             error_stage=cursor.pc_node_id,
             metadata={
                 "flow_program_uri": cursor.flow_program_ref.program_uri,
