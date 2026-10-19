@@ -1,0 +1,62 @@
+import pytest
+
+from sage.runtime.adaptive_workflow import (
+    WorkflowCapabilities,
+    WorkflowRequirements,
+    plan_workflow,
+)
+
+
+def test_public_and_member_research_have_different_real_sources():
+    requirements = WorkflowRequirements(research_review=True)
+    guest = plan_workflow(requirements, WorkflowCapabilities("guest", ("wiki",), False))
+    member = plan_workflow(requirements, WorkflowCapabilities("account", ("wiki", "private"), True))
+    assert guest.route == member.route == "research"
+    assert guest.quality == member.quality == "research"
+    assert guest.sources == ("wiki",) and not guest.retrieve_memory
+    assert member.sources == ("wiki", "private") and member.retrieve_memory
+
+
+@pytest.mark.parametrize("requested,expected", [(None, ("wiki",)), ((), ()),
+                                               (("private",), ()), (("wiki", "private"), ("wiki",))])
+def test_requested_origins_only_narrow_capability(requested, expected):
+    plan = plan_workflow(WorkflowRequirements(requested_sources=requested),
+                         WorkflowCapabilities("guest", ("wiki",), False))
+    assert plan.sources == expected
+    assert plan.retrieve_knowledge == bool(expected)
+
+
+@pytest.mark.parametrize("action", ["book_meeting", "review_queue", "human_handoff"])
+def test_business_routes_do_not_read_irrelevant_evidence(action):
+    plan = plan_workflow(WorkflowRequirements(action=action, research_review=True, web=True),
+                         WorkflowCapabilities("account", ("wiki", "private"), True))
+    assert plan.route == action and not plan.needs_retrieval
+    assert not plan.write_knowledge
+
+
+def test_write_requires_explicit_capability_not_identity_label():
+    with pytest.raises(PermissionError):
+        plan_workflow(WorkflowRequirements(action="admin_add_knowledge"),
+                      WorkflowCapabilities("admin", ("wiki",), True))
+    plan = plan_workflow(WorkflowRequirements(action="admin_add_knowledge"),
+                         WorkflowCapabilities("admin", ("wiki",), True, write_knowledge=True))
+    assert plan.write_knowledge and not plan.needs_retrieval
+
+
+@pytest.mark.parametrize("requirements,route", [
+    (WorkflowRequirements(resolved=True), "resolved"),
+    (WorkflowRequirements(self_contained=True), "self_contained"),
+    (WorkflowRequirements(knowledge=False), "contextual"),
+])
+def test_fast_routes_skip_unneeded_work(requirements, route):
+    plan = plan_workflow(requirements, WorkflowCapabilities("guest", ("wiki",), True))
+    assert plan.route == route
+    assert not plan.retrieve_knowledge
+    if route != "contextual":
+        assert not plan.needs_retrieval
+
+
+def test_unknown_action_fails_closed():
+    with pytest.raises(ValueError):
+        plan_workflow(WorkflowRequirements(action="grant_admin"),
+                      WorkflowCapabilities("guest", ("wiki",), False))

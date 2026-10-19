@@ -30,8 +30,10 @@ def render_choice(value):
 
 @flow(uri="flow://test/exclusive-merge", namespace="test")
 def exclusive(init_stream):
-    return init_stream.filter(choose_booking).map(booking_effect, operator_key="booking").connect(
-        init_stream.filter(choose_answer)).map(render_choice, operator_key="render")
+    return init_stream.filter(choose_booking, operator_key="booking-decision").map(
+        booking_effect, operator_key="booking").connect(
+        init_stream.filter(choose_answer, operator_key="answer-decision")).map(
+        render_choice, operator_key="render")
 
 
 @flow(uri="flow://test/composed-merge", namespace="test")
@@ -71,6 +73,7 @@ def test_filtered_native_paths_rejoin_once_and_reuse_graph():
             completed = [e.operator_key for e in events if e.state == "completed"]
             assert completed.count("booking") == int(booking)
             assert completed.count("render") == 1
+            assert completed.count("booking-decision") == completed.count("answer-decision") == 1
         assert endpoint._requests == {}
     finally:
         if endpoint is not None:

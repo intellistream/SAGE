@@ -163,11 +163,12 @@ class DataStream(Generic[T]):
             "pipe() is removed from v1 surface. Use process(...) instead.",
         )
 
-    def filter(self, fn_object: Any) -> DataStream:
+    def filter(self, fn_object: Any, *, operator_key: str | None = None) -> DataStream:
         transformation = Transformation(
             self.flow_program,
             _ensure_flow_target(fn_object, "filter"),
             type="filter",
+            operator_key=operator_key,
         )
         return self._apply(transformation)
 
@@ -642,7 +643,7 @@ class SinkStream(DataStream):
     def pipe(self, fn_object):  # type: ignore[override]
         return self._raise("pipe()")
 
-    def filter(self, fn_object):  # type: ignore[override]
+    def filter(self, fn_object, *, operator_key=None):  # type: ignore[override]
         return self._raise("filter()")
 
     def flatmap(self, fn_object):  # type: ignore[override]
