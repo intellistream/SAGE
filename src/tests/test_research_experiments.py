@@ -21,13 +21,14 @@ def request():
 
 def payload(req):
     common = {"mechanism": "state mechanism", "control_value": "off", "treatment_value": "on",
-        "shared_conditions": ["same weights", "same precision", "same hardware", "same request trace"],
+        "shared_conditions": {"model":"same weights", "hardware":"same hardware", "workload":"same trace",
+            "software":"pinned build", "precision":"bf16", "warmup_operations":100, "replay_seed":42},
         "fault_events": [{"kind": "process_stop", "target": "worker-1", "at_step": 20}]}
     return {"digest": req.digest, "experiments": [
         {**common, "kind": "invariant", "invariant": "unique state ownership"},
         {**common, "kind": "performance", "metric": "QPS", "direction": "higher",
             "threshold_gain": 0.2, "confidence": 0.95, "target_power": 0.8,
-            "sampling_unit": "independent paired request trace"}]}
+            "sampling_unit": "paired_replay"}]}
 
 
 def test_runtime_owns_distinct_matched_control_and_falsification_rules():
@@ -82,6 +83,21 @@ def test_fault_free_plan_is_explicit_not_a_claim_to_test_crashes():
     answer = render_experiments(req, validate_experiments(req, json.dumps(data)))[0]
     assert "声明的注入故障范围仅包含：无故障注入" in answer
     assert "仅重放相同的无故障请求轨迹" in answer
+
+
+def test_shared_conditions_cannot_add_an_independent_fault_model_label():
+    req, data = request(), payload(request())
+    data["experiments"][1]["shared_conditions"]["fault_model"] = "Simulated Memory Page Fault"
+    with pytest.raises(InvalidResearchPlan, match="shared matched-control"):
+        validate_experiments(req, json.dumps(data))
+
+
+@pytest.mark.parametrize("unit", ["per_second", "request", "paired trace", ""])
+def test_metric_units_and_correlated_rows_are_not_independent_replays(unit):
+    req, data = request(), payload(request())
+    data["experiments"][1]["sampling_unit"] = unit
+    with pytest.raises(InvalidResearchPlan):
+        validate_experiments(req, json.dumps(data))
 
 
 def test_lower_is_better_uses_correct_relative_gain_not_inverse_ratio():

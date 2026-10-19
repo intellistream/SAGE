@@ -52,12 +52,13 @@ class Ports:
     def plan_experiments(self, request, plan):
         self.calls.append(("experiments", request.digest))
         common = {"mechanism": "mechanism", "control_value": "off", "treatment_value": "on",
-            "shared_conditions": ["same workload"], "fault_events": []}
+            "shared_conditions": {"model":"synthetic", "hardware":"synthetic", "workload":"same workload",
+                "software":"pinned", "precision":"bf16", "warmup_operations":0, "replay_seed":42}, "fault_events": []}
         return json.dumps({"digest": request.digest, "experiments": [
             {**common, "kind": "invariant", "invariant": "unique ownership"},
             {**common, "kind": "performance", "metric": "QPS", "direction": "higher",
                 "threshold_gain": 0.2, "confidence": 0.95, "target_power": 0.8,
-                "sampling_unit": "paired trace"}]})
+                "sampling_unit": "paired_replay"}]})
 
 
 def test_named_subject_selection_excludes_unrelated_long_manual_without_losing_provenance():
