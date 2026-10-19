@@ -22,7 +22,7 @@ def request():
 
 def response(req, **changes):
     data = {"digest": req.digest, "items": [
-        {"requirement_id": "a", "witnesses": [{"source_id": "public", "quote": "A uses state ownership."}]},
+        {"requirement_id": "a", "witnesses": [{"source_id": "public", "start_line": 1, "end_line": 1}]},
         {"requirement_id": "b", "witnesses": []}]}
     data.update(changes)
     return json.dumps(data)
@@ -35,6 +35,31 @@ def test_complete_question_and_exact_witnesses_bind_repair():
     assert repair_queries(req, checked) == ("B?",)
     assert "Measurements are not displayed here." in req.payload
     assert coverage_response_format(req)["json_schema"]["strict"] is True
+
+
+@pytest.mark.parametrize("start,end", [(0, 1), (1, 2), (2, 1), (True, 1), (1, 1.0), ("1", 1)])
+def test_witness_ranges_fail_closed(start, end):
+    req = request()
+    with pytest.raises(InvalidEvidenceCoverage):
+        validate_coverage(req, response(req, items=[{"requirement_id": "a", "witnesses": [
+            {"source_id": "public", "start_line": start, "end_line": end}]},
+            {"requirement_id": "b", "witnesses": []}]))
+
+
+def test_source_lines_are_lossless_and_receipts_cannot_replace_source_text():
+    req = request()
+    content = "标题\r\n\r\n测量数据未在本文展示。\n完整链接：https://example.org/full?q=one&n=two"
+    req = prepare_coverage(req.question, req.requirements, (replace(req.sources[0], content=content),))
+    payload = json.loads(req.payload)
+    assert "".join(line["text"] for line in payload["sources"][0]["lines"]) == content
+    checked = validate_coverage(req, response(req, items=[{"requirement_id": "a", "witnesses": [
+        {"source_id": "public", "start_line": 3, "end_line": 4}]},
+        {"requirement_id": "b", "witnesses": []}]))
+    assert checked.items[0].witnesses[0].quote == "".join(content.splitlines(keepends=True)[2:])
+    tampered = replace(checked, items=(replace(checked.items[0], witnesses=(
+        replace(checked.items[0].witnesses[0], quote="作者从未测量"),)), checked.items[1]))
+    with pytest.raises(InvalidEvidenceCoverage, match="receipt content changed"):
+        repair_queries(req, tampered)
 
 
 @pytest.mark.parametrize("requirements", [(), (EvidenceRequirement("a", 1, 5),),
