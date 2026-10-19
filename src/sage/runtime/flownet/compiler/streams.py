@@ -586,6 +586,8 @@ class DataStream(Generic[T]):
         )
 
     def connect(self, other: DataStream | ConnectedStreams) -> ConnectedStreams:
+        if isinstance(other, ConnectedStreams):
+            return ConnectedStreams(self.flow_program, [self.transformation, *other.transformations])
         if isinstance(other, DataStream):
             return ConnectedStreams(self.flow_program, [self.transformation, other.transformation])
         new_transformations = [self.transformation] + other.transformations
@@ -719,6 +721,8 @@ class ConnectedStreams(DataStream):
                 )
 
     def connect(self, other: DataStream | ConnectedStreams) -> ConnectedStreams:
+        if isinstance(other, ConnectedStreams):
+            return ConnectedStreams(self.flow_program, self.transformations + other.transformations)
         if isinstance(other, DataStream):
             new_transformations = self.transformations + [other.transformation]
             return ConnectedStreams(self.flow_program, new_transformations)
@@ -732,6 +736,11 @@ class ConnectedStreams(DataStream):
         self.flow_program.pipeline.append(transformation)
         self.flow_program.transformations[transformation.trans_id] = transformation
         return DataStream(self.flow_program, transformation)
+
+    def _apply(self, transformation: Transformation) -> DataStream:
+        # Inherited map/filter/process methods must attach to every upstream,
+        # not access the single-stream transformation slot which is absent here.
+        return self.apply(transformation)
 
     def set_return(self) -> None:
         for transformation in self.transformations:
