@@ -40,6 +40,8 @@ from sage.runtime.source_answer_plan import (
 
 _ports = ContextVar("sage_evidence_workflow_ports")
 
+from sage.runtime.answer_task import AnswerTask
+
 COVERED_PLAN_SYSTEM_PROMPT = PLAN_SYSTEM_PROMPT + """
 Retain ALL sources used by coverage witnesses. A missing coverage item is an
 evidence boundary, never proof of absence.
@@ -225,7 +227,13 @@ class EvidenceWorkflowRuntime:
             raise
 
     def run(self, question: str, sources: tuple[PlanSource, ...], ports, *, timeout: float,
-            requirements: tuple[EvidenceRequirement, ...] | None = None, research: bool = False) -> EvidenceWork:
+            requirements: tuple[EvidenceRequirement, ...] | None = None, research: bool = False,
+            task: AnswerTask | None = None) -> EvidenceWork:
+        if task is not None:
+            task.validate(question)
+            if research and not task.research_requested:
+                raise ValueError("research flag contradicts factual task")
+            research = task.research_requested
         request = prepare_coverage(question, requirements if requirements is not None else
             question_requirements(question), sources)
         token = _ports.set(ports)

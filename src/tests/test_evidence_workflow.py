@@ -6,6 +6,7 @@ from threading import Barrier
 import pytest
 
 from sage.runtime.evidence_coverage import EvidenceRequirement, InvalidEvidenceCoverage
+from sage.runtime.answer_task import AnswerTask
 from sage.runtime.evidence_workflow import (
     EvidenceWorkflowRuntime,
     render_evidence_work,
@@ -23,6 +24,23 @@ from sage.runtime.source_answer_plan import PlanSource
 
 SOURCE = PlanSource("a", "A", "https://example.org/a", "A owns state. [Full link](https://example.org/long/path)")
 SUPPLEMENT = PlanSource("b", "B", "https://example.org/b", "B composes extensions.\n\n- complete\n  - nested")
+
+
+def test_factual_task_never_calls_experiment_port_for_research_nouns():
+    runtime, ports = EvidenceWorkflowRuntime(), Ports()
+    try:
+        result = runtime.run("What experiments and research questions does A report?", (SOURCE,),
+                             ports, timeout=5, task=AnswerTask("facts"))
+        assert not result.research and result.experiment_plan is None
+    finally:
+        runtime.close()
+
+
+def test_conflicting_legacy_flag_is_rejected_before_any_work():
+    runtime = object.__new__(EvidenceWorkflowRuntime)
+    with pytest.raises(ValueError, match="contradicts"):
+        runtime.run("What does A report?", (), None, timeout=5,
+                    research=True, task=AnswerTask("facts"))
 
 
 class Ports:
