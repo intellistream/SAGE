@@ -45,6 +45,7 @@ class AdaptiveWorkflowPlan:
     search_web: bool
     quality: Literal["direct", "standard", "source_grounded", "research"]
     write_knowledge: bool
+    evidence_required: bool = False
 
     @property
     def needs_retrieval(self) -> bool:
@@ -70,14 +71,16 @@ def plan_workflow(
                      requirements.requested_sources is None or s in requirements.requested_sources)
     business = action in {"book_meeting", "admin_add_knowledge", "review_queue", "human_handoff"}
     active = not requirements.resolved and not business
+    evidence_required = (active and requirements.knowledge and not requirements.self_contained
+                         and requirements.requested_sources is not None)
     knowledge = active and requirements.knowledge and not requirements.self_contained and bool(selected)
     memory = active and requirements.memory and not requirements.self_contained and capabilities.memory
     web = active and requirements.web
     sources = selected if knowledge else ()
     quality = ("direct" if not active else "research" if requirements.research_review
-               else "source_grounded" if knowledge else "standard")
+               else "source_grounded" if knowledge or evidence_required else "standard")
     route = ("resolved" if requirements.resolved else action if business else
-             "research" if requirements.research_review else "evidence" if knowledge or web
+             "research" if requirements.research_review else "evidence" if knowledge or web or evidence_required
              else "contextual" if memory else "self_contained")
     return AdaptiveWorkflowPlan(route, capabilities.identity, sources, knowledge, memory, web,
-                                quality, action == "admin_add_knowledge")
+                                quality, action == "admin_add_knowledge", evidence_required)

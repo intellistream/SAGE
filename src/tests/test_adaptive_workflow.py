@@ -60,3 +60,18 @@ def test_unknown_action_fails_closed():
     with pytest.raises(ValueError):
         plan_workflow(WorkflowRequirements(action="grant_admin"),
                       WorkflowCapabilities("guest", ("wiki",), False))
+
+
+def test_explicit_source_contract_is_distinct_from_opportunistic_retrieval():
+    caps = WorkflowCapabilities("account", ("wiki",), True)
+    contextual = plan_workflow(WorkflowRequirements(), caps)
+    explicit = plan_workflow(WorkflowRequirements(requested_sources=("wiki",)), caps)
+    assert contextual.retrieve_knowledge and not contextual.evidence_required
+    assert explicit.retrieve_knowledge and explicit.evidence_required
+    # A denied source constraint must stay evidence-required, not turn into an
+    # unconstrained factual generation when the permitted source set is empty.
+    denied = plan_workflow(WorkflowRequirements(requested_sources=("private",)), caps)
+    assert denied.sources == () and not denied.retrieve_knowledge
+    assert denied.evidence_required and denied.quality == "source_grounded"
+    resolved = plan_workflow(WorkflowRequirements(requested_sources=("wiki",), resolved=True), caps)
+    assert not resolved.evidence_required

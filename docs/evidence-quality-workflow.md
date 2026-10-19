@@ -41,6 +41,12 @@ Research proposals likewise remain labeled prospective inferences, not facts.
 
 ## Adapter obligations
 
+The immutable adaptive plan distinguishes `evidence_required` (an explicitly
+source-constrained request) from opportunistic knowledge retrieval. Empty Wiki
+retrieval must not disable ordinary advice or a caller's own conversation memory.
+Conversely, denied/empty explicitly requested sources must not silently turn into
+unconstrained factual generation. Resolved/business turns remain resolved.
+
 - Supply only sources visible to the verified caller. Every supplement search
   and document hydration must reapply the same captured identity and source scope;
   question/model text must never widen permissions. There are no write ports.
