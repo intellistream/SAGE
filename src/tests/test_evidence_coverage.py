@@ -62,6 +62,17 @@ def test_source_lines_are_lossless_and_receipts_cannot_replace_source_text():
         repair_queries(req, tampered)
 
 
+def test_repair_anchors_original_identifiers_without_losing_missing_spans():
+    question = "请评审 ExampleState 和 ABC：比较正确性与性能；不要推断结果。"
+    req = prepare_coverage(question, question_requirements(question), ())
+    assessment = validate_coverage(req, json.dumps({"digest": req.digest, "items": [
+        {"requirement_id": r.requirement_id, "witnesses": []} for r in req.requirements]}))
+    queries = repair_queries(req, assessment)
+    assert queries[0] == "ExampleState ABC"
+    assert "".join(queries[1:]) == question
+    assert len(queries) == len(req.requirements)+1
+
+
 @pytest.mark.parametrize("requirements", [(), (EvidenceRequirement("a", 1, 5),),
     (EvidenceRequirement("a", 0, 4),), (EvidenceRequirement("a", 0, 3), EvidenceRequirement("a", 3, 5)),
     (EvidenceRequirement("a", 0, 3), EvidenceRequirement("b", 2, 5)),

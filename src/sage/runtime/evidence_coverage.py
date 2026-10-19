@@ -216,4 +216,16 @@ def repair_queries(request: CoverageRequest, assessment: CoverageAssessment) -> 
     if validated != assessment:
         raise InvalidEvidenceCoverage("coverage receipt content changed")
     missing = set(validated.missing_ids)
-    return tuple(request.question[r.start:r.end] for r in request.requirements if r.requirement_id in missing)
+    original = tuple(request.question[r.start:r.end] for r in request.requirements if r.requirement_id in missing)
+    if not original:
+        return ()
+    # A long methodological question can bury its requested system identifiers
+    # under generic review terms. Add ONE exact-identifier query, not a generated
+    # answer/HyDE document. Keep every original missing span too. Identifiers
+    # are search hints, never authorization or evidence of factual relevance.
+    identifiers = tuple(dict.fromkeys(term for term in
+        re.findall(r"(?<![\w])([A-Za-z][A-Za-z0-9_.-]*)(?![\w])", request.question)
+        if len(term) > 1 and (term.isupper() or sum(c.isupper() for c in term) > 1
+                             or any(c.isdigit() for c in term))))
+    anchor = " ".join(identifiers)
+    return tuple(dict.fromkeys(((anchor,) if anchor else ()) + original))
