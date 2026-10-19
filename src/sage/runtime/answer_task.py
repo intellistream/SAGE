@@ -24,6 +24,8 @@ by the user is mixed, even if its condition may not hold yet.
 Supplied background or reported preliminary results are premises, NOT a second
 request to look up facts. Evaluating an idea with such premises is research,
 not mixed, unless the user also asks you to retrieve/report existing facts.
+A source constraint such as "according to the public Wiki" or a request to
+cite sources does not by itself add a factual subtask to a research review.
 Return task_mode and task_directive. For facts use task_directive=null.
 For research/mixed, task_directive must be a verbatim contiguous span of the
 current question that asks for YOUR prospective work, not a topic noun or title.
