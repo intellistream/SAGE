@@ -52,12 +52,53 @@ class Ports:
     def plan_experiments(self, request, plan):
         self.calls.append(("experiments", request.digest))
         common = {"mechanism": "mechanism", "control_value": "off", "treatment_value": "on",
-            "shared_conditions": ["same workload"], "fault_schedule": "identical replay"}
+            "shared_conditions": ["same workload"], "fault_events": []}
         return json.dumps({"digest": request.digest, "experiments": [
             {**common, "kind": "invariant", "invariant": "unique ownership"},
             {**common, "kind": "performance", "metric": "QPS", "direction": "higher",
                 "threshold_gain": 0.2, "confidence": 0.95, "target_power": 0.8,
                 "sampling_unit": "paired trace"}]})
+
+
+def test_named_subject_selection_excludes_unrelated_long_manual_without_losing_provenance():
+    runtime, ports, events = EvidenceWorkflowRuntime(), Ports(), []
+    wanted = replace(SOURCE, source_id="overview", title="Wiki | ExampleState and ABC",
+        content="ExampleState manages state. ABC composes extensions.")
+    manual = replace(SOURCE, source_id="manual", title="Wiki | unrelated manual", content="unrelated text\n"*25000)
+    original = ports.assess
+    def assess_selected(request):
+        assert request.sources == (wanted,)
+        assert "unrelated text" not in request.payload
+        return original(request)
+    ports.assess = assess_selected
+    try:
+        with ExecutionObserver(events.append).bind():
+            result = runtime.run("ExampleState 和 ABC 分别是什么？", (wanted, manual), ports, timeout=5)
+        assert result.candidates == (wanted, manual)
+        assert result.request.sources == (wanted,)
+        assert wanted.content in result.answer and manual.content not in result.answer
+        assert any(e.operator_key == "select-evidence" and e.state == "completed" for e in events)
+        for changed in ((wanted,), (wanted, replace(manual, content="replacement"))):
+            with pytest.raises(InvalidEvidenceCoverage, match="candidate snapshot changed"):
+                render_evidence_work(replace(result, candidates=changed))
+    finally:
+        runtime.close()
+
+
+def test_repair_reselects_against_complete_candidates_and_stable_ids():
+    runtime, ports = EvidenceWorkflowRuntime(), Ports(missing=True)
+    wrong = replace(SOURCE, source_id="manual", content="generic methodology")
+    found = replace(SUPPLEMENT, source_id="specific", title="ExampleState", content="ExampleState owns state.")
+    ports.supplement = lambda queries: (found,)
+    try:
+        result = runtime.run("ExampleState?", (wrong,), ports, timeout=5)
+        assert result.candidates == (wrong, found)
+        assert result.request.sources == (found,)
+        assert result.request.sources[0].source_id == "specific"
+        assert found.content in result.answer and wrong.content not in result.answer
+        assert render_evidence_work(result) == result.answer
+    finally:
+        runtime.close()
 
 
 @pytest.mark.parametrize("missing", [False, True])

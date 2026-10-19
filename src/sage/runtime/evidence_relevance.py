@@ -5,6 +5,19 @@ from __future__ import annotations
 import re
 
 
+def question_identifiers(question: str) -> tuple[str, ...]:
+    """Literal acronym/mixed-case/versioned identifiers, never inferred roles.
+
+    Deliberately conservative: ordinary capitalized prose and unidentified
+    Chinese names remain for semantic retrieval rather than guessed entities.
+    No project-name dictionary or generated query content is used.
+    """
+    return tuple(dict.fromkeys(term for term in
+        re.findall(r"(?<![\w])([A-Za-z][A-Za-z0-9_.-]*)(?![\w])", question)
+        if len(term) > 1 and (term.isupper() or sum(c.isupper() for c in term) > 1
+                             or any(c.isdigit() for c in term))))
+
+
 def subject_candidate_indices(subjects: tuple[str, ...], texts: tuple[str, ...]) -> tuple[int, ...]:
     """Prefer discriminating named subjects, not collection-wide labels.
 

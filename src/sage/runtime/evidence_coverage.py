@@ -12,6 +12,7 @@ import json
 import re
 from dataclasses import dataclass
 
+from sage.runtime.evidence_relevance import question_identifiers
 from sage.runtime.source_answer_plan import PlanSource, prepare_source_plan
 from sage.runtime.source_audit import AnswerValidationRejected
 
@@ -207,7 +208,7 @@ def validate_coverage(request: CoverageRequest, response: str) -> CoverageAssess
     return CoverageAssessment(request.digest, tuple(seen[r.requirement_id] for r in request.requirements))
 
 
-def repair_queries(request: CoverageRequest, assessment: CoverageAssessment) -> tuple[str, ...]:
+def missing_question_spans(request: CoverageRequest, assessment: CoverageAssessment) -> tuple[str, ...]:
     # Revalidate constructed receipts too; no caller-controlled 'passed' flag.
     validated = validate_coverage(request, json.dumps({"digest": assessment.digest,
         "items": [{"requirement_id": item.requirement_id,
@@ -216,16 +217,17 @@ def repair_queries(request: CoverageRequest, assessment: CoverageAssessment) -> 
     if validated != assessment:
         raise InvalidEvidenceCoverage("coverage receipt content changed")
     missing = set(validated.missing_ids)
-    original = tuple(request.question[r.start:r.end] for r in request.requirements if r.requirement_id in missing)
+    return tuple(request.question[r.start:r.end] for r in request.requirements if r.requirement_id in missing)
+
+
+def repair_queries(request: CoverageRequest, assessment: CoverageAssessment) -> tuple[str, ...]:
+    original = missing_question_spans(request, assessment)
     if not original:
         return ()
     # A long methodological question can bury its requested system identifiers
     # under generic review terms. Add ONE exact-identifier query, not a generated
     # answer/HyDE document. Keep every original missing span too. Identifiers
     # are search hints, never authorization or evidence of factual relevance.
-    identifiers = tuple(dict.fromkeys(term for term in
-        re.findall(r"(?<![\w])([A-Za-z][A-Za-z0-9_.-]*)(?![\w])", request.question)
-        if len(term) > 1 and (term.isupper() or sum(c.isupper() for c in term) > 1
-                             or any(c.isdigit() for c in term))))
+    identifiers = question_identifiers(request.question)
     anchor = " ".join(identifiers)
     return tuple(dict.fromkeys(((anchor,) if anchor else ()) + original))

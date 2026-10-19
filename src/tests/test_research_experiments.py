@@ -22,7 +22,7 @@ def request():
 def payload(req):
     common = {"mechanism": "state mechanism", "control_value": "off", "treatment_value": "on",
         "shared_conditions": ["same weights", "same precision", "same hardware", "same request trace"],
-        "fault_schedule": "identical crash-stop replay in BOTH groups"}
+        "fault_events": [{"kind": "process_stop", "target": "worker-1", "at_step": 20}]}
     return {"digest": req.digest, "experiments": [
         {**common, "kind": "invariant", "invariant": "unique state ownership"},
         {**common, "kind": "performance", "metric": "QPS", "direction": "higher",
@@ -45,6 +45,43 @@ def test_runtime_owns_distinct_matched_control_and_falsification_rules():
     assert "不代表项目当前实现或既有实验" in safety
     assert "对照度量为正" in performance
     assert experiment_response_format(req)["json_schema"]["strict"] is True
+
+
+def test_fault_boundary_is_derived_from_all_typed_events_not_a_model_label():
+    req, data = request(), payload(request())
+    data["experiments"][0]["fault_events"] = [
+        {"kind": "state_corruption", "target": "state-A", "at_step": 10},
+        {"kind": "network_partition", "target": "link-A-B", "at_step": 20}]
+    safety = render_experiments(req, validate_experiments(req, json.dumps(data)))[0]
+    assert "声明的注入故障范围仅包含：状态损坏、网络分区" in safety
+    assert "操作步 10：状态损坏（目标 state-A）" in safety
+    assert "操作步 20：网络分区（目标 link-A-B）" in safety
+    assert "不是两组各自的墙钟时间" in safety
+    data["experiments"][0]["fault_model"] = "crash-stop only"
+    with pytest.raises(InvalidResearchPlan, match="schema"):
+        validate_experiments(req, json.dumps(data))
+
+
+@pytest.mark.parametrize("events", ["inject some failures", [
+    {"kind": "state_corruption", "target": "x", "at_step": True}], [
+    {"kind": "unlisted_failure", "target": "x", "at_step": 1}], [
+    {"kind": "process_stop", "target": "", "at_step": 1}], [
+    {"kind": "process_stop", "target": "x", "at_step": -1}], [
+    {"kind": "process_stop", "target": "x", "at_step": 20},
+    {"kind": "process_restart", "target": "x", "at_step": 10}]])
+def test_invalid_fault_events_cannot_be_hidden_in_freeform_schedule(events):
+    req, data = request(), payload(request())
+    data["experiments"][0]["fault_events"] = events
+    with pytest.raises(InvalidResearchPlan):
+        validate_experiments(req, json.dumps(data))
+
+
+def test_fault_free_plan_is_explicit_not_a_claim_to_test_crashes():
+    req, data = request(), payload(request())
+    data["experiments"][0]["fault_events"] = []
+    answer = render_experiments(req, validate_experiments(req, json.dumps(data)))[0]
+    assert "声明的注入故障范围仅包含：无故障注入" in answer
+    assert "仅重放相同的无故障请求轨迹" in answer
 
 
 def test_lower_is_better_uses_correct_relative_gain_not_inverse_ratio():
@@ -75,7 +112,7 @@ def test_invalid_statistical_design_is_a_terminal_quality_error(key, value):
         validate_experiments(req, json.dumps(data))
 
 
-@pytest.mark.parametrize("change", ["drop_performance", "same_variant", "missing_shared", "no_fault_schedule"])
+@pytest.mark.parametrize("change", ["drop_performance", "same_variant", "missing_shared", "no_fault_events"])
 def test_comparison_cannot_lose_its_required_design_fields(change):
     req, data = request(), payload(request())
     if change == "drop_performance":
@@ -85,7 +122,7 @@ def test_comparison_cannot_lose_its_required_design_fields(change):
     elif change == "missing_shared":
         data["experiments"][0]["shared_conditions"] = []
     else:
-        data["experiments"][0].pop("fault_schedule")
+        data["experiments"][0].pop("fault_events")
     with pytest.raises(InvalidResearchPlan):
         validate_experiments(req, json.dumps(data))
 

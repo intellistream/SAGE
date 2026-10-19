@@ -14,11 +14,13 @@ from sage.runtime.evidence_coverage import (
     EvidenceRequirement,
     InvalidEvidenceCoverage,
     RequirementCoverage,
+    missing_question_spans,
     prepare_coverage,
     question_requirements,
     repair_queries,
     validate_coverage,
 )
+from sage.runtime.evidence_relevance import question_identifiers, subject_candidate_indices
 from sage.runtime.flownet import bootstrap_runtime, build_runtime_client, flow, stateless
 from sage.runtime.research_experiments import (
     ExperimentPlan,
@@ -46,6 +48,8 @@ evidence boundary, never proof of absence.
 @dataclass(frozen=True)
 class EvidenceWork:
     request: CoverageRequest
+    candidates: tuple[PlanSource, ...]
+    candidate_digest: str
     research: bool = False
     assessment: CoverageAssessment | None = None
     queries: tuple[str, ...] = ()
@@ -53,6 +57,24 @@ class EvidenceWork:
     plan: SourceAnswerPlan | None = None
     answer: str | None = None
     experiment_plan: ExperimentPlan | None = None
+
+
+def _selected_request(work):
+    # Always select against the COMPLETE candidate snapshot, not the previously
+    # narrowed set. Repeated selection must not progressively erase subjects.
+    # A matching identifier is a relevance hint, not an independent fact check.
+    complete = prepare_coverage(work.request.question, work.request.requirements, work.candidates)
+    if complete.digest != work.candidate_digest:
+        raise InvalidEvidenceCoverage("authorized candidate snapshot changed")
+    indices = subject_candidate_indices(question_identifiers(work.request.question), tuple(
+        source.title + "\n" + source.content for source in work.candidates))
+    return prepare_coverage(work.request.question, work.request.requirements,
+        tuple(work.candidates[index] for index in indices))
+
+
+@stateless(uri="stateless://sage/evidence/select", namespace="sage")
+def select_evidence(work):
+    return replace(work, request=_selected_request(work))
 
 
 @stateless(uri="stateless://sage/evidence/assess", namespace="sage")
@@ -77,7 +99,7 @@ def no_repair(work):
 
 @stateless(uri="stateless://sage/evidence/supplement", namespace="sage")
 def supplement(work):
-    sources = {source.source_id: source for source in work.request.sources}
+    sources = {source.source_id: source for source in work.candidates}
     # This port is read-only and must reapply the SAME captured identity/source
     # capability filter. Model text never supplies roles or expands source scope.
     for source in _ports.get().supplement(work.queries):
@@ -86,8 +108,9 @@ def supplement(work):
         if source.source_id in sources and sources[source.source_id] != source:
             raise InvalidEvidenceCoverage("source identity changed during coverage workflow")
         sources[source.source_id] = source
-    request = prepare_coverage(work.request.question, work.request.requirements, tuple(sources.values()))
-    return replace(work, request=request, assessment=None, repair_attempted=True)
+    complete = prepare_coverage(work.request.question, work.request.requirements, tuple(sources.values()))
+    return replace(work, candidates=complete.sources, candidate_digest=complete.digest,
+        assessment=None, repair_attempted=True)
 
 
 @stateless(uri="stateless://sage/evidence/compose", namespace="sage")
@@ -134,7 +157,9 @@ def render_evidence_work_blocks(work: EvidenceWork) -> tuple[SourceAnswerBlock, 
     """Canonical lossless parts, binding coverage and final source selection."""
     if work.assessment is None:
         raise InvalidEvidenceCoverage("missing final coverage")
-    gaps = repair_queries(work.request, work.assessment)
+    if work.request != _selected_request(work):
+        raise InvalidEvidenceCoverage("selected evidence differs from complete candidate snapshot")
+    gaps = missing_question_spans(work.request, work.assessment)
     if work.plan is None:
         if work.request.sources:
             raise InvalidEvidenceCoverage("missing final source plan")
@@ -175,9 +200,11 @@ def verify(work):
 
 @flow(uri="flow://sage/evidence-quality", namespace="sage")
 def evidence_quality_flow(init_stream):
-    checked = init_stream.map(assess, operator_key="assess-coverage")
+    checked = init_stream.map(select_evidence, operator_key="select-evidence").map(
+        assess, operator_key="assess-coverage")
     repaired = checked.filter(needs_repair, operator_key="coverage-gap").map(
-        supplement, operator_key="supplement-evidence").map(assess, operator_key="reassess-coverage")
+        supplement, operator_key="supplement-evidence").map(
+        select_evidence, operator_key="select-repaired-evidence").map(assess, operator_key="reassess-coverage")
     planned = repaired.connect(checked.filter(no_repair, operator_key="coverage-ready")).map(
         compose, operator_key="compose-source-plan")
     reviewed = planned.filter(research_requested, operator_key="research-experiments").map(
@@ -203,7 +230,8 @@ class EvidenceWorkflowRuntime:
             question_requirements(question), sources)
         token = _ports.set(ports)
         try:
-            outputs = self._endpoint.call(EvidenceWork(request, research=research), timeout=timeout)
+            outputs = self._endpoint.call(EvidenceWork(request, candidates=sources,
+                candidate_digest=request.digest, research=research), timeout=timeout)
         finally:
             _ports.reset(token)
         if len(outputs) != 1:
