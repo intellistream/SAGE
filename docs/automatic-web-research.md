@@ -28,6 +28,11 @@ fallible; the host should deny requests with private attachments/channel context
 and must not describe this policy as a formal data-loss-prevention guarantee.
 Unknown subject references require clarification rather than history expansion.
 
+`WebIntent.json_schema()` exposes the same field contract for native structured
+decoding. Shape constraints prevent missing/invalid enum fields; they do not prove
+that a semantic label or a public-subject classification is correct. Hosts must
+retain the runtime capability checks and fail closed on unresolved proposals.
+
 `execute_web_research` emits running immediately before the real transport call,
 then completed/empty/failed from its actual outcome. Skipped decisions never call
 transport. Failed/empty results must not be displayed as retrieved or verified
@@ -39,3 +44,11 @@ Transport exceptions must propagate to this contract; a provider chain that
 silently turns all failures into an empty list cannot distinguish outages from
 successful zero-result searches. Do not add a second scheduler or parallel
 application policy to work around that ambiguity.
+
+All providers share a ContextVar deadline. SDK transports must pass remaining
+time rather than resetting their own default timeout. `ReadToolExecutor` bounds
+caller waiting even when an OS resolver ignores a cooperative socket timeout.
+It admits at most four outstanding read-only operations, retains capacity until
+cleanup, and discards late results. Python cannot forcibly cancel running DNS;
+the timeout receipt explicitly says cleanup may remain pending. This executor
+must never be used to replay or abandon externally mutating operations.

@@ -1,6 +1,21 @@
 import pytest
 
-from sage.runtime.web_research import WebIntent, decide_web_research, execute_web_research
+from sage.runtime.web_research import (
+    WebIntent,
+    decide_web_research,
+    execute_web_research,
+    web_research_budget,
+    web_research_deadline,
+)
+
+
+def test_one_deadline_cannot_be_extended_by_nested_adapters_and_is_reset():
+    assert web_research_deadline() is None
+    with web_research_budget(1) as deadline:
+        with web_research_budget(60):
+            assert web_research_deadline() == deadline
+        assert web_research_deadline() == deadline
+    assert web_research_deadline() is None
 
 
 def decision(**overrides):
@@ -35,6 +50,16 @@ def test_malformed_proposals_fail_with_explicit_validation_errors():
     for value in (["current"], {}, False):
         with pytest.raises(ValueError):
             WebIntent.parse(dict(need=value, disclosure="public", query="vLLM"))
+
+
+def test_native_decoding_schema_covers_all_semantic_fields_without_granting_authority():
+    schema = WebIntent.json_schema()
+    assert schema["additionalProperties"] is False
+    assert set(schema["properties"]) == set(schema["required"])
+    for need in schema["properties"]["need"]["enum"]:
+        assert WebIntent.parse(
+            dict(need=need, disclosure="public", query="vLLM", local_only_span=None)
+        )
 
 
 @pytest.mark.parametrize("identity", ["guest", "account", "slack", "admin"])

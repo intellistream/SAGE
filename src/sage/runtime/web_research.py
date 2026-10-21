@@ -7,8 +7,32 @@ Unknown disclosure scope is denied, including in user-required mode.
 
 import re
 from collections.abc import Callable
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from time import monotonic
+
+from sage.runtime.read_tool_deadline import ReadToolDeadlineExceeded, read_tool_executor
+
+_deadline = ContextVar("sage_web_research_deadline", default=None)
+
+
+def web_research_deadline():
+    return _deadline.get()
+
+
+@contextmanager
+def web_research_budget(seconds):
+    """One cooperative deadline, isolated per request and never extended by a port."""
+    deadline = monotonic() + seconds
+    previous = _deadline.get()
+    token = _deadline.set(min(previous, deadline) if previous is not None else deadline)
+    try:
+        yield _deadline.get()
+    finally:
+        _deadline.reset(token)
+
 
 WEB_RESEARCH_INSTRUCTIONS = """
 Also return web_intent with exactly need, disclosure, query, local_only_span.
@@ -38,6 +62,20 @@ class WebIntent:
     disclosure: str = "unknown"
     query: str | None = None
     local_only_span: str | None = None
+
+    @staticmethod
+    def json_schema():
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "need": {"type": "string", "enum": ["forbidden", "current", "sources", "none"]},
+                "disclosure": {"type": "string", "enum": ["public", "private", "unknown"]},
+                "query": {"type": ["string", "null"]},
+                "local_only_span": {"type": ["string", "null"]},
+            },
+            "required": ["need", "disclosure", "query", "local_only_span"],
+        }
 
     def __post_init__(self):
         if (
@@ -127,7 +165,9 @@ def decide_web_research(
     )
 
 
-def execute_web_research(decision: WebDecision, search: Callable, observe: Callable):
+def execute_web_research(
+    decision: WebDecision, search: Callable, observe: Callable, *, timeout_seconds=8
+):
     """Observe only actual provider execution, not an optimistic workflow graph.
 
     The host owns HTTP transport/ACLs. Errors never appear as successful search.
@@ -138,7 +178,15 @@ def execute_web_research(decision: WebDecision, search: Callable, observe: Calla
         return []
     observe("running", "正在搜索公开网页。", None)
     try:
-        hits = list(search(decision.query))
+        with web_research_budget(timeout_seconds) as deadline:
+            hits = read_tool_executor.call(
+                lambda: list(search(decision.query)), timeout=max(0, deadline - monotonic())
+            )
+            if monotonic() > deadline:
+                raise TimeoutError("web research deadline exceeded")
+    except ReadToolDeadlineExceeded:
+        observe("failed", "搜索等待超时；外部请求可能仍在清理，迟到结果不会作为依据。", None)
+        return []
     except Exception:
         observe("failed", "网页搜索失败或超时；不能声称已取得联网依据。", None)
         return []
