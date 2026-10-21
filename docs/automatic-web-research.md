@@ -1,0 +1,41 @@
+# Automatic web research
+
+`sage.runtime.web_research` owns one host-independent decision and execution
+contract. Adapters supply verified identity, operator network availability,
+explicit API source boundary and request-local private-context flags. A semantic
+intent proposal supplies need, disclosure and an exact current-question query
+span; it cannot grant a role or access a private source. Local retrieval ACLs
+remain independently enforced by the host.
+
+Modes: auto uses public current-information/source needs; never sends no external
+request; always requires a safe, explicit public subject and cannot override
+private/unknown disclosure, local-only source constraints or a network denial.
+Resolved/business operations do not start unrelated searches. Missing local hits
+are not permission to search. Current information can require searching even
+when an older local source exists.
+
+The local source preference of a retrieval planner is not a user prohibition on
+web access. The immutable API source constraint remains authoritative. An
+additional semantic local-only constraint is carried as `local_only_span` from
+the current question. Model mistakes can conservatively deny a search; they
+must never expand the trusted source capabilities.
+
+Never pass source snippets, conversation history, private attachments or a model-
+rewritten query to the external transport. Queries must be contiguous spans of
+the current question. Common credential/email guards are defense in depth, not
+complete secret/PII recognition. Semantic public/private classification is
+fallible; the host should deny requests with private attachments/channel context
+and must not describe this policy as a formal data-loss-prevention guarantee.
+Unknown subject references require clarification rather than history expansion.
+
+`execute_web_research` emits running immediately before the real transport call,
+then completed/empty/failed from its actual outcome. Skipped decisions never call
+transport. Failed/empty results must not be displayed as retrieved or verified
+evidence. Completed means candidates were retrieved, not that all claims are
+true. Successful attempts carry a UTC retrieval time; hosts retain full evidence
+links and display the policy reason. Old records without receipts stay unknown.
+
+Transport exceptions must propagate to this contract; a provider chain that
+silently turns all failures into an empty list cannot distinguish outages from
+successful zero-result searches. Do not add a second scheduler or parallel
+application policy to work around that ambiguity.
