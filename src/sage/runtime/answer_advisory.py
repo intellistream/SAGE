@@ -99,6 +99,14 @@ def validate_catalog(catalog: object) -> list[dict]:
         for variable in ref["variables"].values():
             if not isinstance(variable, dict) or not isinstance(variable.get("label"), str):
                 raise ValueError("invalid variable metadata")
+            coverage = variable.get("may_cover", [])
+            if (
+                not isinstance(coverage, list)
+                or any(not isinstance(k, str) or k not in ref["variables"] for k in coverage)
+                or (coverage and not variable.get("scope_note"))
+                or not isinstance(variable.get("scope_note", ""), str)
+            ):
+                raise ValueError("invalid conditional dependency coverage")
             for key in ("aliases", "definition_terms"):
                 if not isinstance(variable.get(key), list) or any(
                     not isinstance(v, str) or not v for v in variable[key]
@@ -185,7 +193,12 @@ def audit_answer(question: str, answer: str, catalog: list[dict]) -> dict:
                 continue
             checked += 1
             dependencies = {aliases[name] for name in names}
-            missing = set(ref["required"]) - dependencies
+            conditional_coverage = {
+                key
+                for dependency in dependencies
+                for key in ref["variables"][dependency].get("may_cover", [])
+            }
+            missing = set(ref["required"]) - dependencies - conditional_coverage
             if missing:
                 labels = [ref["variables"][key]["label"] for key in sorted(missing)]
                 findings.append(
@@ -196,6 +209,21 @@ def audit_answer(question: str, answer: str, catalog: list[dict]) -> dict:
                         details="若采用下述来源的适用假设，该式未体现："
                         + "、".join(labels)
                         + "。这不是自动纠错或完整数学证明。",
+                        source_ids=[ref["id"]],
+                    )
+                )
+            notes = [
+                ref["variables"][key]["scope_note"]
+                for key in sorted(dependencies)
+                if ref["variables"][key].get("scope_note")
+            ]
+            if notes:
+                findings.append(
+                    dict(
+                        code="scope_unresolved",
+                        title="合并维度的适用条件待核对",
+                        quote=quote,
+                        details=" ".join(notes) + " 未据此判定该式错误。",
                         source_ids=[ref["id"]],
                     )
                 )

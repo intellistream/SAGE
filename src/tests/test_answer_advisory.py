@@ -30,7 +30,7 @@ def test_original_formula_keeps_raw_answer_and_reports_source_bound_gaps(catalog
     assert report["answer_sha256"] == hashlib.sha256(answer.encode()).hexdigest()
     assert report["findings"][0]["quote"] in answer
     assert "序列长度" in report["findings"][0]["details"]
-    assert "每头维度" in report["findings"][0]["details"]
+    assert any(f["code"] == "scope_unresolved" for f in report["findings"])
     assert report["sources"][0]["assumptions"]
     assert not {"answer", "repaired_answer", "passed"} & report.keys()
 
@@ -46,6 +46,23 @@ def test_correct_dependencies_not_claimed_as_full_formula_or_fact_proof(catalog)
         audit_answer("公式", answer.replace("2 * B", "999 * B"), catalog)["status"]
         == "no_dependency_gap"
     )
+
+
+def test_chinese_composite_formula_is_conditional_not_automatically_wrong(catalog):
+    answer = r"$$\text{显存占用} \approx 2 \times \text{层数} \times \text{序列长度} \times \text{隐藏维度} \times \text{精度字节数}$$"
+    report = audit_answer("KV缓存显存", answer, catalog)
+    assert any(f["code"] == "scope_unresolved" for f in report["findings"])
+    assert "未据此判定该式错误" in report["findings"][-1]["details"]
+    gaps = " ".join(f["details"] for f in report["findings"] if f["code"] == "missing_dependency")
+    assert "序列长度" not in gaps and "每头维度" not in gaps
+
+
+def test_conditional_coverage_requires_known_dependencies_and_scope(catalog):
+    for coverage, note in [(["missing"], "scope"), (["head_dim"], ""), ("head_dim", "scope")]:
+        broken = json.loads(json.dumps(catalog))
+        broken[0]["variables"]["hidden_width"].update(may_cover=coverage, scope_note=note)
+        with pytest.raises(ValueError, match="conditional"):
+            validate_catalog(broken)
 
 
 @pytest.mark.parametrize(

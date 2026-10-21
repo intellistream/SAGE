@@ -34,3 +34,12 @@ uses socket deadlines. Place it behind a same-origin application proxy with its
 own deadline; do not bind it publicly. Sources are operator-controlled, not
 caller-provided URLs. This adapter does not fetch arbitrary URLs or inherit a
 model API key.
+### Composite dimensions and Chinese symbols
+
+Source contracts can declare Chinese aliases and `may_cover` dependency roles.
+These conditional substitutions require an explicit `scope_note`; they do not
+prove equivalence. For example, a hidden-width product may represent KV head
+count times per-head width for ordinary MHA, but not unconditionally for GQA or
+MQA. Reports retain this ambiguity rather than declaring such a simplification
+wrong. Explicit batch-one/single-layer assumptions still require review.
+

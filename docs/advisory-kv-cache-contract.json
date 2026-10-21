@@ -6,15 +6,15 @@
     "excerpt": "state_content_size_bytes = (head_size + head_size_v) * get_dtype_size(dtype); unpadded_page_size_bytes = num_heads * num_states * state_content_size_bytes。按普通全注意力、每 token 存储 K/V 推导：全批次全层有效数据量 = B × L × T × H_kv × (d_k + d_v) × element_bytes。",
     "assumptions": "仅当公式表示普通全注意力、全批次、全层、全部历史 token 的 KV 有效数据总字节数时适用；不包含分页填充、前缀共享、分片与混合递归状态。不把它当作 Qwen3.5 整个混合架构的总显存公式。H 必须表示 KV 头数；单层、单 token 或已合并维度的公式需要另行核验。",
     "topic_groups": [["kv", "键值"], ["缓存", "cache"], ["显存", "memory", "字节"]],
-    "quantities": ["Memory", "M", "Memory_Bytes", "Size_Bytes", "Size", "SizeBytes"],
+    "quantities": ["Memory", "M", "Memory_Bytes", "Size_Bytes", "Size", "SizeBytes", "显存占用", "缓存大小", "KV缓存大小", "KV Cache", "VRAM"],
     "variables": {
       "batch": {"label": "批次大小", "aliases": ["B", "Batch"], "definition_terms": ["批量大小", "批次大小", "batch size"]},
-      "layers": {"label": "层数", "aliases": ["L", "Layers"], "definition_terms": ["层数", "number of layers"]},
-      "sequence": {"label": "序列长度／历史 token 数", "aliases": ["T", "S", "Sequence", "SeqLen"], "definition_terms": ["序列长度", "历史token数", "sequence length"]},
+      "layers": {"label": "层数", "aliases": ["L", "Layers", "层数"], "definition_terms": ["层数", "number of layers"]},
+      "sequence": {"label": "序列长度／历史 token 数", "aliases": ["T", "S", "Sequence", "SeqLen", "序列长度"], "definition_terms": ["序列长度", "历史token数", "sequence length"]},
       "kv_heads": {"label": "KV 头数", "aliases": ["H", "H_kv", "Heads"], "definition_terms": ["kv 头数", "kv头数", "key/value heads"]},
-      "head_dim": {"label": "每头维度", "aliases": ["d", "d_head", "Dim"], "definition_terms": ["单头维度", "每头维度", "每个头的维度", "per-head dimension"]},
-      "element_bytes": {"label": "元素字节数", "aliases": ["dtype_size", "s", "p", "Bytes"], "definition_terms": ["元素字节数", "单个元素的字节数", "数据类型占用字节数"]},
-      "hidden_width": {"label": "隐藏层总维度（不等同于单头维度）", "aliases": [], "definition_terms": ["隐藏层维度", "隐藏维度", "hidden size"]}
+      "head_dim": {"label": "每头维度", "aliases": ["d", "d_head", "Dim", "每头维度"], "definition_terms": ["单头维度", "每头维度", "每个头的维度", "per-head dimension", "头的维度"]},
+      "element_bytes": {"label": "元素字节数", "aliases": ["dtype_size", "s", "p", "Bytes", "精度字节数", "元素字节数"], "definition_terms": ["元素字节数", "单个元素的字节数", "数据类型占用字节数"]},
+      "hidden_width": {"label": "隐藏层总维度（不等同于单头维度）", "aliases": ["隐藏维度"], "definition_terms": ["隐藏层维度", "隐藏维度", "hidden size"], "may_cover": ["kv_heads", "head_dim"], "scope_note": "若隐藏维度合并了头数×每头维度，需确认采用普通 MHA 还是 GQA/MQA，并说明批次是否取 1；若又单独乘头数还可能重复计数。此合并项不能无条件替代 KV 头数×每头维度。"}
     },
     "required": ["batch", "layers", "sequence", "kv_heads", "head_dim", "element_bytes"]
   }
