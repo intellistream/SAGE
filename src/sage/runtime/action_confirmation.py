@@ -53,7 +53,7 @@ class ActionConfirmations:
                 raise ConfirmationError("confirmation_payload_conflict")
             return {**values, slot: current or proposal}
 
-        return json.loads(json.dumps(self.store.update_many(slots, prepare)[slot]))
+        return self._snapshot(self.store.update_many(slots, prepare)[slot])
 
     def resolve(self, owner, action_id, *, decision):
         if decision not in {"confirm", "cancel"}:
@@ -80,6 +80,10 @@ class ActionConfirmations:
         current = self.store.peek(self._slot(owner, action_id))
         if current is None:
             raise ConfirmationError("confirmation_not_found")
+        return self._snapshot(current)
+
+    def _snapshot(self, current):
+        """Project expiry consistently, including idempotent preparation replay."""
         result = json.loads(json.dumps(current))
         if result["status"] == "pending" and result["expires_at"] <= self.clock():
             result["status"] = "expired"

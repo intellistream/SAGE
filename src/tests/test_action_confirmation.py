@@ -78,6 +78,29 @@ def test_cancel_expiry_and_racing_decisions(tmp_path):
         store.close()
 
 
+def test_expired_prepare_replay_does_not_resurrect_or_extend_ttl(tmp_path):
+    path = str(tmp_path / "state.sqlite3")
+    now = [100]
+    store = StatefulProcessRuntime(backend="sqlite", sqlite_path=path)
+    gate = ActionConfirmations(store, namespace="expiry", clock=lambda: now[0])
+    draft = gate.prepare("owner", {}, operation_id="same", ttl_seconds=1)
+    now[0] = 102
+    for _ in range(3):
+        replay = gate.prepare("owner", {}, operation_id="same", ttl_seconds=900)
+        assert replay["status"] == "expired"
+        assert replay["expires_at"] == draft["expires_at"]
+        with pytest.raises(ConfirmationError, match="expired"):
+            gate.resolve("owner", draft["action_id"], decision="confirm")
+    store.close()
+    store = StatefulProcessRuntime(backend="sqlite", sqlite_path=path)
+    try:
+        gate = ActionConfirmations(store, namespace="expiry", clock=lambda: now[0])
+        assert gate.read("owner", draft["action_id"])["status"] == "expired"
+        assert gate.prepare("owner", {}, operation_id="same")["status"] == "expired"
+    finally:
+        store.close()
+
+
 def test_sealed_scope_rejects_stale_prepare_and_its_replay(tmp_path):
     store = StatefulProcessRuntime(backend="sqlite", sqlite_path=str(tmp_path / "state.sqlite3"))
     try:
