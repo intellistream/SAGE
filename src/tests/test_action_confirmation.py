@@ -5,6 +5,26 @@ import pytest
 from sage.runtime.action_confirmation import ActionConfirmations, ConfirmationError
 from sage.runtime.effect_cancellation import EffectFences, EffectCancelled
 from sage.runtime.flownet.runtime.operator_runtime.stateful import StatefulProcessRuntime
+from sage.runtime.operation_receipts import OperationReceipts
+
+
+def test_read_is_owner_bound_nonmutating_and_does_not_execute(tmp_path, monkeypatch):
+    store = StatefulProcessRuntime(backend="sqlite", sqlite_path=str(tmp_path / "state.sqlite3"))
+    gate = ActionConfirmations(store, namespace="read", clock=lambda: 10)
+    draft = gate.prepare("owner", {"topic": "synthetic"}, ttl_seconds=1)
+    receipts = OperationReceipts(store, namespace="read")
+    receipts.commit("committed", inputs={}, slots=(("test", "test", "one"),),
+                    transition=lambda values: ({"accepted": True}, {("test", "test", "one"): 1}))
+    monkeypatch.setattr(store, "update_many", lambda *args, **kwargs: pytest.fail("read must not write or execute"))
+    assert receipts.read("absent") is None
+    assert receipts.read("committed") == {"accepted": True}
+    assert gate.read("owner", draft["action_id"])["status"] == "pending"
+    with pytest.raises(ConfirmationError, match="not_found"):
+        gate.read("another-owner", draft["action_id"])
+    gate.clock = lambda: 12
+    assert gate.read("owner", draft["action_id"])["status"] == "expired"
+    assert store.peek(gate._slot("owner", draft["action_id"]))["status"] == "pending"
+    store.close()
 
 
 def test_immutable_owner_scoped_proposal_and_restart(tmp_path):

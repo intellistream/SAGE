@@ -74,3 +74,13 @@ class ActionConfirmations:
             return {slot: {**current, "status": target}}
 
         return json.loads(json.dumps(self.store.update_many((slot,), resolve)[slot]))
+
+    def read(self, owner, action_id):
+        """Owner-bound snapshot: never approve, execute, renew TTL or write state."""
+        current = self.store.peek(self._slot(owner, action_id))
+        if current is None:
+            raise ConfirmationError("confirmation_not_found")
+        result = json.loads(json.dumps(current))
+        if result["status"] == "pending" and result["expires_at"] <= self.clock():
+            result["status"] = "expired"
+        return result

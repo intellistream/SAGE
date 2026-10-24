@@ -36,6 +36,20 @@ class OperationReceipts:
         self._store = store
         self.namespace = _name(namespace)
 
+    def read(self, operation_id):
+        """Read a committed result without executing/replaying its transition.
+
+        Authorization is the consumer's responsibility, as for commit. Missing
+        results mean unknown/not committed, never permission to execute.
+        """
+        receipt = self._store.peek(("sage-operation-receipts-v1", self.namespace, _name(operation_id)))
+        if receipt is None:
+            return None
+        if (not isinstance(receipt, dict) or receipt.get("version") != 1
+                or set(receipt) != {"version", "input_digest", "destinations", "result"}):
+            raise ValueError("invalid_operation_receipt")
+        return json.loads(_json(receipt["result"]))
+
     def migrate_destinations(self, operation_id, *, migration_id, old_slots, new_slots, evidence):
         """Explicit schema migration, never execution or reconstruction of effects.
 
