@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 
 from sage.runtime.action_confirmation import ActionConfirmations, ConfirmationError
+from sage.runtime.effect_cancellation import EffectFences, EffectCancelled
 from sage.runtime.flownet.runtime.operator_runtime.stateful import StatefulProcessRuntime
 
 
@@ -53,5 +54,20 @@ def test_cancel_expiry_and_racing_decisions(tmp_path):
         with ThreadPoolExecutor(2) as pool:
             outcomes = list(pool.map(decide, ["confirm", "cancel"]))
         assert outcomes.count("conflict") == 1
+    finally:
+        store.close()
+
+
+def test_sealed_scope_rejects_stale_prepare_and_its_replay(tmp_path):
+    store = StatefulProcessRuntime(backend="sqlite", sqlite_path=str(tmp_path / "state.sqlite3"))
+    try:
+        gate = ActionConfirmations(store, namespace="test")
+        fences = EffectFences(store, namespace="test")
+        guard = fences.prepare_guard("request")
+        gate.prepare("owner", {}, operation_id="before", guard=guard)
+        fences.seal("request")
+        for operation in ("before", "after"):
+            with pytest.raises(EffectCancelled):
+                gate.prepare("owner", {}, operation_id=operation, guard=guard)
     finally:
         store.close()

@@ -28,7 +28,7 @@ class ActionConfirmations:
         return ("sage-action-confirmations-v1", self.namespace,
                 hashlib.sha256(json.dumps([owner, action_id]).encode()).hexdigest())
 
-    def prepare(self, owner, payload, *, operation_id=None, ttl_seconds=900):
+    def prepare(self, owner, payload, *, operation_id=None, ttl_seconds=900, guard=None):
         if operation_id is not None and (not isinstance(operation_id, str) or not operation_id or operation_id != operation_id.strip()):
             raise ConfirmationError("confirmation_operation_identity_required")
         action_id = hashlib.sha256(json.dumps([owner, operation_id]).encode()).hexdigest() if operation_id else uuid4().hex
@@ -38,14 +38,22 @@ class ActionConfirmations:
             raise ConfirmationError("invalid_confirmation_expiry")
         proposal = dict(action_id=action_id, payload=payload, status="pending",
                         expires_at=self.clock() + ttl_seconds)
+        slots = (slot,)
+        if guard is not None:
+            guard.validate_store(self.store)
+            if guard.slot == slot:
+                raise ConfirmationError("confirmation_guard_destination_overlap")
+            slots = (slot, guard.slot)
 
         def prepare(values):
+            if guard is not None:
+                guard.apply(values)
             current = values[slot]
             if current is not None and current["payload"] != payload:
                 raise ConfirmationError("confirmation_payload_conflict")
-            return {slot: current or proposal}
+            return {**values, slot: current or proposal}
 
-        return json.loads(json.dumps(self.store.update_many((slot,), prepare)[slot]))
+        return json.loads(json.dumps(self.store.update_many(slots, prepare)[slot]))
 
     def resolve(self, owner, action_id, *, decision):
         if decision not in {"confirm", "cancel"}:
